@@ -1,0 +1,18 @@
+version: '3.3'
+
+networks:
+  evolution-net:
+    driver: bridge
+
+services:
+  base:
+    container_name: evolution_api
+    image: davidsongomes/evolution-api:latest
+    ports:
+      - 8080:8080
+    volumes:
+      - /data/instances:/evolution/instances
+    command: ['node', './dist/src/main.js']
+
+    networks:
+      - evolution-net
