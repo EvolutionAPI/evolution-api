@@ -58,7 +58,7 @@ DATABASE:
     DB_PREFIX_NAME: evolution
   # Choose the data you want to save in the application's database or store
   SAVE_DATA:
-    INSTANCE: true
+    INSTANCE: false
     OLD_MESSAGE: false
     NEW_MESSAGE: true
     MESSAGE_UPDATE: true
