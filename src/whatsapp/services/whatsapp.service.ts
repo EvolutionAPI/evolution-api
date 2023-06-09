@@ -35,8 +35,6 @@ import {
   ConfigService,
   ConfigSessionPhone,
   Database,
-  Env,
-  Instance,
   QrCode,
   Redis,
   StoreConf,
