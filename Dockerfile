@@ -9,8 +9,6 @@ COPY ./package.json .
 
 ENV DOCKER_ENV=true
 
-ENV TZ=America/Sao_Paulo
-
 ENV CORS_ORIGIN="*"
 ENV CORS_METHODS="POST,GET,PUT,DELETE"
 ENV CORS_CREDENTIALS=true
