@@ -77,7 +77,7 @@ WEBHOOK:
     URL: <url>
     ENABLED: true
     # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
-    WEBHOOK_BY_EVENTS: true
+    WEBHOOK_BY_EVENTS: false
   # Automatically maps webhook paths
   # Set the events you want to hear  
   EVENTS:
