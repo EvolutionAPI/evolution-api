@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "declaration": true,
+    "target": "ES6",
+    "module": "commonjs",
+    "rootDir": "./",
+    "resolveJsonModule": true,
+    "removeComments": true,
+    "outDir": "./dist",
+    "noEmitOnError": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "incremental": true,
+    "noImplicitAny": false
+  },
+  "exclude": ["node_modules", "./test", "./dist", "./prisma"]
+}

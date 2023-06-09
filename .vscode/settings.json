@@ -1,0 +1,11 @@
+{
+  "editor.fontSize": 13,
+  "editor.fontLigatures": true,
+  "editor.letterSpacing": 0.5,
+  "editor.smoothScrolling": true,
+  "editor.tabSize": 2,
+  "editor.codeActionsOnSave": {
+     "source.fixAll.eslint": true,
+     "source.fixAll": true
+  }
+}

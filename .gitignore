@@ -1,0 +1,32 @@
+# compiled output
+/dist
+/node_modules
+
+# Logs
+logs/**.json
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Package
+/yarn.lock
+/package-lock.json
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Prisma
+/prisma/migrations
+
+# Project related
+/instances/*
+!/instances/.gitkeep
+/test/
+/src/env.yml
