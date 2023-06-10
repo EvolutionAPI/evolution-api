@@ -7,12 +7,12 @@ networks:
 services:
   api:
     container_name: evolution_api
-    # image: davidsongomes/evolution-api:latest
+    # image: davidsongomes/evolution-api:v1.0.9
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 8080:8080
+      - 8080:8083
     # volumes:
     #   - /data/instances:/evolution/instances
     environment:
@@ -73,7 +73,7 @@ services:
       # Set qrcode display limit
       - QRCODE_LIMIT=30
       # Defines an authentication type for the api
-      - AUTHENTICATION_TYPE="apikey" # jwt or apikey
+      # - AUTHENTICATION_TYPE="apikey" # jwt or apikey
       # Define a global apikey to access all instances
       # OBS: This key must be inserted in the request header to create an instance.
       - AUTHENTICATION_API_KEY=B6D711FCDE4D4FD5936544120E713976
@@ -89,36 +89,38 @@ services:
     command: ['node', './dist/src/main.js']
     networks:
       - evolution-net
-
-  mongodb:
-    container_name: mongodb
-    # This image already has a single replica set
-    image: mongo
-    restart: always
-    # volumes:
-      # sudo mkdir -p /data/mongodb
-      # - /data/mongodb:/data/db
-    ports:
-      - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      # Set a password to access the bank
-      MONGO_INITDB_ROOT_PASSWORD: root
-    networks:
-      - evolution-net
     expose:
-      - 27017
+      - 8083
 
-  redis:
-    container_name: redis
-    image: redis:latest
-    restart: always
-    # volumes:
-      # sudo mkdir -p /data/redis
-      # - /data/redis:/data
-    ports:
-      - 6379:6379
-    networks:
-      - evolution-net
-    expose:
-      - 6379
+  # mongodb:
+  #   container_name: mongodb
+  #   # This image already has a single replica set
+  #   image: mongo
+  #   restart: always
+  #   # volumes:
+  #     # sudo mkdir -p /data/mongodb
+  #     # - /data/mongodb:/data/db
+  #   ports:
+  #     - 27017:27017
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     # Set a password to access the bank
+  #     MONGO_INITDB_ROOT_PASSWORD: root
+  #   networks:
+  #     - evolution-net
+  #   expose:
+  #     - 27017
+
+  # redis:
+  #   container_name: redis
+  #   image: redis:latest
+  #   restart: always
+  #   # volumes:
+  #     # sudo mkdir -p /data/redis
+  #     # - /data/redis:/data
+  #   ports:
+  #     - 6379:6379
+  #   networks:
+  #     - evolution-net
+  #   expose:
+  #     - 6379
