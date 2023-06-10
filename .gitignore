@@ -12,6 +12,7 @@ yarn-error.log*
 lerna-debug.log*
 
 /store/*
+/docker-compose-data
 
 # Package
 /yarn.lock

@@ -12,9 +12,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 8080:8083
-    # volumes:
-    #   - /data/instances:/evolution/instances
+      - 8080:8080
+    volumes:
+      - /Users/davidson/Projects/atendai-api/instances:/evolution/instances
     environment:
       # Determine how long the instance should be deleted from memory in case of no connection.
       # Default time: 5 minutes
@@ -26,8 +26,8 @@ services:
       - STORE_CONTACTS=true
       - STORE_CHATS=true
       # Permanent data storage
-      - DATABASE_ENABLED=false
-      - DATABASE_CONNECTION_URI=mongodb://root:root@localhost:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
+      - DATABASE_ENABLED=true
+      - DATABASE_CONNECTION_URI=mongodb://root:root@mongodb:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
       - DATABASE_CONNECTION_DB_PREFIX_NAME=evolution
       # Choose the data you want to save in the application's database or store
       - DATABASE_SAVE_DATA_INSTANCE=false
@@ -36,8 +36,8 @@ services:
       - DATABASE_SAVE_MESSAGE_UPDATE=false
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
-      - REDIS_ENABLED=false
-      - REDIS_URI=redis://localhost:6379
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://redis:6379
       - REDIS_PREFIX_KEY=evolution
       # Webhook Settings
       # Define a global webhook that will listen for enabled events from all instances
@@ -48,7 +48,7 @@ services:
       # Automatically maps webhook paths
       # Set the events you want to hear 
       - WEBHOOK_EVENTS_STATUS_INSTANCE=true
-      - WEBHOOK_EVENTS_APPLICATION_STARTUP=true
+      - WEBHOOK_EVENTS_APPLICATION_STARTUP=false
       - WEBHOOK_EVENTS_QRCODE_UPDATED=true
       - WEBHOOK_EVENTS_MESSAGES_SET=true
       - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
@@ -69,11 +69,10 @@ services:
       - WEBHOOK_EVENTS_NEW_JWT_TOKEN=true
       # Name that will be displayed on smartphone connection
       - CONFIG_SESSION_PHONE_CLIENT="Evolution API"
-      - CONFIG_SESSION_PHONE_NAME="Chrome" # firefox | edge | opera | safari
       # Set qrcode display limit
       - QRCODE_LIMIT=30
       # Defines an authentication type for the api
-      # - AUTHENTICATION_TYPE="apikey" # jwt or apikey
+      - AUTHENTICATION_TYPE=apikey # jwt or apikey
       # Define a global apikey to access all instances
       # OBS: This key must be inserted in the request header to create an instance.
       - AUTHENTICATION_API_KEY=B6D711FCDE4D4FD5936544120E713976
@@ -92,35 +91,31 @@ services:
     expose:
       - 8083
 
-  # mongodb:
-  #   container_name: mongodb
-  #   # This image already has a single replica set
-  #   image: mongo
-  #   restart: always
-  #   # volumes:
-  #     # sudo mkdir -p /data/mongodb
-  #     # - /data/mongodb:/data/db
-  #   ports:
-  #     - 27017:27017
-  #   environment:
-  #     MONGO_INITDB_ROOT_USERNAME: root
-  #     # Set a password to access the bank
-  #     MONGO_INITDB_ROOT_PASSWORD: root
-  #   networks:
-  #     - evolution-net
-  #   expose:
-  #     - 27017
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
+    volumes:
+      - /Users/davidson/Projects/atendai-api/docker-compose-data/mongodb:/data/db
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    networks:
+      - evolution-net
+    expose:
+      - 27017
 
-  # redis:
-  #   container_name: redis
-  #   image: redis:latest
-  #   restart: always
-  #   # volumes:
-  #     # sudo mkdir -p /data/redis
-  #     # - /data/redis:/data
-  #   ports:
-  #     - 6379:6379
-  #   networks:
-  #     - evolution-net
-  #   expose:
-  #     - 6379
+  redis:
+    container_name: redis
+    image: redis:latest
+    restart: always
+    volumes:
+      - /Users/davidson/Projects/atendai-api/docker-compose-data/redis:/data
+    ports:
+      - 6379:6379
+    networks:
+      - evolution-net
+    expose:
+      - 6379
