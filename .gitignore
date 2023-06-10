@@ -11,6 +11,8 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+/store/*
+
 # Package
 /yarn.lock
 /package-lock.json
