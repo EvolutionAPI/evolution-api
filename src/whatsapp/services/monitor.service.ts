@@ -60,16 +60,25 @@ export class WAMonitoringService {
     const instances: any[] = [];
 
     for await (const [key, value] of Object.entries(this.waInstances)) {
-      if (value && value.connectionStatus.state === 'open') {
-        instances.push({
-          instance: {
-            instanceName: key,
-            owner: value.wuid,
-            profileName: (await value.getProfileName()) || 'not loaded',
-            profilePictureUrl: value.profilePictureUrl,
-            status: (await value.getProfileStatus()) || '',
-          },
-        });
+      if (value) {
+        if (value.connectionStatus.state === 'open') {
+          instances.push({
+            instance: {
+              instanceName: key,
+              owner: value.wuid,
+              profileName: (await value.getProfileName()) || 'not loaded',
+              profilePictureUrl: value.profilePictureUrl,
+              status: (await value.getProfileStatus()) || '',
+            },
+          });
+        } else {
+          instances.push({
+            instance: {
+              instanceName: key,
+              status: value.connectionStatus.state,
+            },
+          });
+        }
       }
     }
 

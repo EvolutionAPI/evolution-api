@@ -7,14 +7,13 @@ networks:
 services:
   api:
     container_name: evolution_api
-    # image: davidsongomes/evolution-api:v1.0.9
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - 8080:8080
     volumes:
-      - /Users/davidson/Projects/atendai-api/instances:/evolution/instances
+      - /data/instances:/evolution/instances
     environment:
       # Determine how long the instance should be deleted from memory in case of no connection.
       # Default time: 5 minutes
@@ -41,7 +40,7 @@ services:
       - REDIS_PREFIX_KEY=evolution
       # Webhook Settings
       # Define a global webhook that will listen for enabled events from all instances
-      - WEBHOOK_GLOBAL_URL=https://webhooks.n8n.evolution-api.com/webhook/0e66d93a-1671-474f-a07f-3f44b581d320
+      - WEBHOOK_GLOBAL_URL=url
       - WEBHOOK_GLOBAL_ENABLED=false
       # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
       - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
@@ -84,7 +83,7 @@ services:
       - AUTHENTICATION_INSTANCE_MODE=server # container or server
       # if you are using container mode, set the container name and the webhook url to default instance
       - AUTHENTICATION_INSTANCE_NAME=evolution
-      - AUTHENTICATION_INSTANCE_WEBHOOK_URL=https://webhooks.n8n.evolution-api.com/webhook/0e66d93a-1671-474f-a07f-3f44b581d320
+      - AUTHENTICATION_INSTANCE_WEBHOOK_URL=url
     command: ['node', './dist/src/main.js']
     networks:
       - evolution-net
@@ -96,7 +95,7 @@ services:
     image: mongo
     restart: always
     volumes:
-      - /Users/davidson/Projects/atendai-api/docker-compose-data/mongodb:/data/db
+      - /data/mongodb:/data/db
     ports:
       - 27017:27017
     environment:
@@ -112,7 +111,7 @@ services:
     image: redis:latest
     restart: always
     volumes:
-      - /Users/davidson/Projects/atendai-api/docker-compose-data/redis:/data
+      - /data/redis:/data
     ports:
       - 6379:6379
     networks:

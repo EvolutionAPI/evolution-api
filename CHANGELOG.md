@@ -1,3 +1,14 @@
+# 1.1.0 (homolog)
+
+### Features
+
+* Improved fetch instances endpoint, now it also fetch other instances even if they are not connected
+
+### Fixed
+
+* Adjust dockerfile variables
+* tweaks in docker-compose to pass variables
+
 # 1.0.9 (2023-06-10)
 
 ### Fixed
