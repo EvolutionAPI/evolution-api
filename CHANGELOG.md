@@ -1,3 +1,9 @@
+# 1.0.9 (2023-06-10)
+
+### Fixed
+
+* Adjust dockerfile variables
+
 # 1.0.8 (2023-06-09)
 
 ### Features
