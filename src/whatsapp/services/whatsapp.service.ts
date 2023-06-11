@@ -40,6 +40,7 @@ import {
   StoreConf,
   Webhook,
 } from '../../config/env.config';
+import fs from 'fs';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
 import { existsSync, readFileSync } from 'fs';
@@ -53,7 +54,8 @@ import { Boom } from '@hapi/boom';
 import EventEmitter2 from 'eventemitter2';
 import { release } from 'os';
 import P from 'pino';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
+import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
 import { ContactRaw } from '../models/contact.model';
@@ -207,93 +209,87 @@ export class WAStartupService {
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
-    const webhook = this.configService.get<Webhook>('WEBHOOK');
-    const we = event.replace(/[\.-]/gm, '_').toUpperCase();
-    const transformedWe = we.replace(/_/gm, '-').toLowerCase();
-    const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
-
-    if (webhook.EVENTS[we]) {
-      if (local && instance.MODE !== 'container') {
-        const { WEBHOOK_BY_EVENTS } = instance;
-        let baseURL;
-
-        if (WEBHOOK_BY_EVENTS) {
-          baseURL = `${this.localWebhook.url}/${transformedWe}`;
-        } else {
-          baseURL = this.localWebhook.url;
-        }
-        try {
-          if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
-            const httpService = axios.create({ baseURL });
-            await httpService.post('', {
-              event,
-              instance: this.instance.name,
-              data,
-              destination: this.localWebhook.url,
-            });
-          }
-        } catch (error) {
-          this.logger.error({
-            local: WAStartupService.name + '.sendDataWebhook-local',
-            message: error?.message,
-            hostName: error?.hostname,
-            syscall: error?.syscall,
-            code: error?.code,
-            error: error?.errno,
-            stack: error?.stack,
-            name: error?.name,
-            url: baseURL,
-          });
-        }
-      }
-      const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
-      let globalURL;
-
-      if (webhook.GLOBAL.WEBHOOK_BY_EVENTS) {
-        globalURL = `${globalWebhook.URL}/${transformedWe}`;
-      } else {
-        globalURL = globalWebhook.URL;
-      }
-
-      let localUrl;
-
-      if (instance.MODE === 'container') {
-        localUrl = instance.WEBHOOK_URL;
-      } else {
-        localUrl = this.localWebhook.url;
-      }
-
-      this.logger.log({
-        url: globalURL,
-        event,
-        instance: this.instance.name,
-        data,
-        destination: localUrl,
-      });
-      try {
-        if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
-          const httpService = axios.create({ baseURL: globalURL });
-          await httpService.post('', {
-            event,
-            instance: this.instance.name,
-            data,
-            destination: localUrl,
-          });
-        }
-      } catch (error) {
-        this.logger.error({
-          local: WAStartupService.name + '.sendDataWebhook-global',
-          message: error?.message,
-          hostName: error?.hostname,
-          syscall: error?.syscall,
-          code: error?.code,
-          error: error?.errno,
-          stack: error?.stack,
-          name: error?.name,
-          url: globalURL,
-        });
-      }
-    }
+    // const webhook = this.configService.get<Webhook>('WEBHOOK');
+    // const we = event.replace(/[\.-]/gm, '_').toUpperCase();
+    // const transformedWe = we.replace(/_/gm, '-').toLowerCase();
+    // const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
+    // if (webhook.EVENTS[we]) {
+    //   if (local && instance.MODE !== 'container') {
+    //     const { WEBHOOK_BY_EVENTS } = instance;
+    //     let baseURL;
+    //     if (WEBHOOK_BY_EVENTS) {
+    //       baseURL = `${this.localWebhook.url}/${transformedWe}`;
+    //     } else {
+    //       baseURL = this.localWebhook.url;
+    //     }
+    //     try {
+    //       if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
+    //         const httpService = axios.create({ baseURL });
+    //         await httpService.post('', {
+    //           event,
+    //           instance: this.instance.name,
+    //           data,
+    //           destination: this.localWebhook.url,
+    //         });
+    //       }
+    //     } catch (error) {
+    //       this.logger.error({
+    //         local: WAStartupService.name + '.sendDataWebhook-local',
+    //         message: error?.message,
+    //         hostName: error?.hostname,
+    //         syscall: error?.syscall,
+    //         code: error?.code,
+    //         error: error?.errno,
+    //         stack: error?.stack,
+    //         name: error?.name,
+    //         url: baseURL,
+    //       });
+    //     }
+    //   }
+    //   const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
+    //   let globalURL;
+    //   if (webhook.GLOBAL.WEBHOOK_BY_EVENTS) {
+    //     globalURL = `${globalWebhook.URL}/${transformedWe}`;
+    //   } else {
+    //     globalURL = globalWebhook.URL;
+    //   }
+    //   let localUrl;
+    //   if (instance.MODE === 'container') {
+    //     localUrl = instance.WEBHOOK_URL;
+    //   } else {
+    //     localUrl = this.localWebhook.url;
+    //   }
+    //   this.logger.log({
+    //     url: globalURL,
+    //     event,
+    //     instance: this.instance.name,
+    //     data,
+    //     destination: localUrl,
+    //   });
+    //   try {
+    //     if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
+    //       const httpService = axios.create({ baseURL: globalURL });
+    //       await httpService.post('', {
+    //         event,
+    //         instance: this.instance.name,
+    //         data,
+    //         destination: localUrl,
+    //       });
+    //     }
+    //   } catch (error) {
+    //     this.logger.error({
+    //       local: WAStartupService.name + '.sendDataWebhook-global',
+    //       message: error?.message,
+    //       hostName: error?.hostname,
+    //       syscall: error?.syscall,
+    //       code: error?.code,
+    //       error: error?.errno,
+    //       stack: error?.stack,
+    //       name: error?.name,
+    //       url: globalURL,
+    //     });
+    //   }
+    // }
   }
 
   private async connectionUpdate({
@@ -1115,18 +1111,46 @@ export class WAStartupService {
     );
   }
 
+  private async processAudio(audio: string) {
+    const outputAudio = `${join(process.cwd(), 'temp', 'audio.opus')}`;
+
+    const response = await axios.get(audio, { responseType: 'arraybuffer' });
+
+    const tempAudioPath = `${join(process.cwd(), 'temp', 'audio.mp3')}`;
+
+    fs.writeFileSync(tempAudioPath, response.data);
+
+    return new Promise((resolve, reject) => {
+      exec(
+        `${ffmpegPath.path} -i ${tempAudioPath} -vn -c:a libopus -b:a 128k -ar 48000 ${outputAudio} -y`,
+        (error, _stdout, _stderr) => {
+          fs.unlinkSync(tempAudioPath);
+          if (error) reject(error);
+          resolve(outputAudio);
+        },
+      );
+    });
+  }
+
   public async audioWhatsapp(data: SendAudioDto) {
-    return this.sendMessageWithTyping<AnyMessageContent>(
-      data.number,
-      {
-        audio: isURL(data.audioMessage.audio)
-          ? { url: data.audioMessage.audio }
-          : Buffer.from(data.audioMessage.audio, 'base64'),
-        ptt: true,
-        mimetype: 'audio/ogg; codecs=opus',
-      },
-      { presence: 'recording', delay: data?.options?.delay },
-    );
+    const convert = await this.processAudio(data.audioMessage.audio);
+    if (typeof convert === 'string') {
+      const audio = fs.readFileSync(convert).toString('base64');
+      return this.sendMessageWithTyping<AnyMessageContent>(
+        data.number,
+        {
+          audio: Buffer.from(audio, 'base64'),
+          // audio: isURL(data.audioMessage.audio)
+          //   ? { url: data.audioMessage.audio }
+          //   : Buffer.from(data.audioMessage.audio, 'base64'),
+          ptt: true,
+          mimetype: 'audio/ogg; codecs=opus',
+        },
+        { presence: 'recording', delay: data?.options?.delay },
+      );
+    } else {
+      throw new InternalServerErrorException(convert);
+    }
   }
 
   public async buttonMessage(data: SendButtonDto) {

@@ -3,6 +3,7 @@
 ### Features
 
 * Improved fetch instances endpoint, now it also fetch other instances even if they are not connected
+* Added conversion of audios for sending recorded audio, now it is possible to send mp3 audios and not just ogg
 
 ### Fixed
 
