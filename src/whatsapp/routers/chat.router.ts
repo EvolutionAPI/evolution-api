@@ -5,6 +5,7 @@ import {
   deleteMessageSchema,
   messageUpSchema,
   messageValidateSchema,
+  privacySettingsSchema,
   profileNameSchema,
   profilePictureSchema,
   profileStatusSchema,
@@ -15,6 +16,7 @@ import {
   ArchiveChatDto,
   DeleteMessage,
   NumberDto,
+  PrivacySettingDto,
   ProfileNameDto,
   ProfilePictureDto,
   ProfileStatusDto,
@@ -149,6 +151,17 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.OK).json(response);
+      })
+      .put(this.routerPath('updatePrivacySettings'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<PrivacySettingDto>({
+          request: req,
+          schema: privacySettingsSchema,
+          ClassRef: PrivacySettingDto,
+          execute: (instance, data) =>
+            chatController.updatePrivacySettings(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('getBusinessProfile'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfilePictureDto>({

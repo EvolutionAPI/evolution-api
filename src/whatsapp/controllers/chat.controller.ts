@@ -3,6 +3,7 @@ import {
   ArchiveChatDto,
   DeleteMessage,
   NumberDto,
+  PrivacySettingDto,
   ProfileNameDto,
   ProfilePictureDto,
   ProfileStatusDto,
@@ -65,6 +66,13 @@ export class ChatController {
 
   public async fetchPrivacySettings({ instanceName }: InstanceDto) {
     return await this.waMonitor.waInstances[instanceName].fetchPrivacySettings();
+  }
+
+  public async updatePrivacySettings(
+    { instanceName }: InstanceDto,
+    data: PrivacySettingDto,
+  ) {
+    return await this.waMonitor.waInstances[instanceName].updatePrivacySettings(data);
   }
 
   public async getBusinessProfile(

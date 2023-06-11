@@ -29,6 +29,9 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
+  WAReadReceiptsValue,
+  WAPrivacyValue,
+  WAPrivacyOnlineValue,
 } from '@evolution/base';
 import {
   Auth,
@@ -81,6 +84,7 @@ import {
   ArchiveChatDto,
   DeleteMessage,
   OnWhatsAppDto,
+  PrivacySettingDto,
   ReadMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
@@ -1477,6 +1481,23 @@ export class WAStartupService {
 
   public async fetchPrivacySettings() {
     return await this.client.fetchPrivacySettings();
+  }
+
+  public async updatePrivacySettings(settings: PrivacySettingDto) {
+    try {
+      await this.client.updateReadReceiptsPrivacy(settings.privacySettings.readreceipts);
+      await this.client.updateProfilePicturePrivacy(settings.privacySettings.profile);
+      await this.client.updateStatusPrivacy(settings.privacySettings.status);
+      await this.client.updateOnlinePrivacy(settings.privacySettings.online);
+      await this.client.updateLastSeenPrivacy(settings.privacySettings.last);
+      await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
+      return { update: 'success', data: await this.client.fetchPrivacySettings() };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating privacy settings',
+        error.toString(),
+      );
+    }
   }
 
   public async getBusinessProfile(number: string) {

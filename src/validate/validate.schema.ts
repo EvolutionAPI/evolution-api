@@ -408,6 +408,36 @@ export const readMessageSchema: JSONSchema7 = {
   required: ['readMessages'],
 };
 
+export const privacySettingsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    privacySettings: {
+      type: 'object',
+      properties: {
+        readreceipts: { type: 'string', enum: ['all', 'none'] },
+        profile: {
+          type: 'string',
+          enum: ['all', 'contacts', 'contact_blacklist', 'none'],
+        },
+        status: {
+          type: 'string',
+          enum: ['all', 'contacts', 'contact_blacklist', 'none'],
+        },
+        online: { type: 'string', enum: ['all', 'match_last_seen'] },
+        last: { type: 'string', enum: ['all', 'contacts', 'contact_blacklist', 'none'] },
+        groupadd: {
+          type: 'string',
+          enum: ['all', 'contacts', 'contact_blacklist', 'none'],
+        },
+      },
+      required: ['readreceipts', 'profile', 'status', 'online', 'last', 'groupadd'],
+      ...isNotEmpty('readreceipts', 'profile', 'status', 'online', 'last', 'groupadd'),
+    },
+  },
+  required: ['privacySettings'],
+};
+
 export const archiveChatSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
