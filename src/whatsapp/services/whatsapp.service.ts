@@ -1610,6 +1610,14 @@ export class WAStartupService {
     }
   }
 
+  public async fetchAllGroups() {
+    try {
+      return await this.client.groupFetchAllParticipating();
+    } catch (error) {
+      throw new NotFoundException('Error fetching group', error.toString());
+    }
+  }
+
   public async inviteCode(id: GroupJid) {
     try {
       const code = await this.client.groupInviteCode(id.groupJid);

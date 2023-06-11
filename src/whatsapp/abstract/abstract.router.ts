@@ -65,6 +65,37 @@ export abstract class RouterBroker {
     return await execute(instance, ref);
   }
 
+  public async groupNoValidate<T>(args: DataValidate<T>) {
+    const { request, ClassRef, schema, execute } = args;
+
+    const instance = request.params as unknown as InstanceDto;
+
+    const ref = new ClassRef();
+
+    Object.assign(ref, request.body);
+
+    const v = validate(ref, schema);
+
+    if (!v.valid) {
+      const message: any[] = v.errors.map(({ property, stack, schema }) => {
+        let message: string;
+        if (schema['description']) {
+          message = schema['description'];
+        } else {
+          message = stack.replace('instance.', '');
+        }
+        return {
+          property: property.replace('instance.', ''),
+          message,
+        };
+      });
+      logger.error([...message]);
+      throw new BadRequestException(...message);
+    }
+
+    return await execute(instance, ref);
+  }
+
   public async groupValidate<T>(args: DataValidate<T>) {
     const { request, ClassRef, schema, execute } = args;
 
