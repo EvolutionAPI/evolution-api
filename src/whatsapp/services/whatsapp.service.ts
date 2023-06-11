@@ -213,87 +213,98 @@ export class WAStartupService {
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
-    // const webhook = this.configService.get<Webhook>('WEBHOOK');
-    // const we = event.replace(/[\.-]/gm, '_').toUpperCase();
-    // const transformedWe = we.replace(/_/gm, '-').toLowerCase();
-    // const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
-    // if (webhook.EVENTS[we]) {
-    //   if (local && instance.MODE !== 'container') {
-    //     const { WEBHOOK_BY_EVENTS } = instance;
-    //     let baseURL;
-    //     if (WEBHOOK_BY_EVENTS) {
-    //       baseURL = `${this.localWebhook.url}/${transformedWe}`;
-    //     } else {
-    //       baseURL = this.localWebhook.url;
-    //     }
-    //     try {
-    //       if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
-    //         const httpService = axios.create({ baseURL });
-    //         await httpService.post('', {
-    //           event,
-    //           instance: this.instance.name,
-    //           data,
-    //           destination: this.localWebhook.url,
-    //         });
-    //       }
-    //     } catch (error) {
-    //       this.logger.error({
-    //         local: WAStartupService.name + '.sendDataWebhook-local',
-    //         message: error?.message,
-    //         hostName: error?.hostname,
-    //         syscall: error?.syscall,
-    //         code: error?.code,
-    //         error: error?.errno,
-    //         stack: error?.stack,
-    //         name: error?.name,
-    //         url: baseURL,
-    //       });
-    //     }
-    //   }
-    //   const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
-    //   let globalURL;
-    //   if (webhook.GLOBAL.WEBHOOK_BY_EVENTS) {
-    //     globalURL = `${globalWebhook.URL}/${transformedWe}`;
-    //   } else {
-    //     globalURL = globalWebhook.URL;
-    //   }
-    //   let localUrl;
-    //   if (instance.MODE === 'container') {
-    //     localUrl = instance.WEBHOOK_URL;
-    //   } else {
-    //     localUrl = this.localWebhook.url;
-    //   }
-    //   this.logger.log({
-    //     url: globalURL,
-    //     event,
-    //     instance: this.instance.name,
-    //     data,
-    //     destination: localUrl,
-    //   });
-    //   try {
-    //     if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
-    //       const httpService = axios.create({ baseURL: globalURL });
-    //       await httpService.post('', {
-    //         event,
-    //         instance: this.instance.name,
-    //         data,
-    //         destination: localUrl,
-    //       });
-    //     }
-    //   } catch (error) {
-    //     this.logger.error({
-    //       local: WAStartupService.name + '.sendDataWebhook-global',
-    //       message: error?.message,
-    //       hostName: error?.hostname,
-    //       syscall: error?.syscall,
-    //       code: error?.code,
-    //       error: error?.errno,
-    //       stack: error?.stack,
-    //       name: error?.name,
-    //       url: globalURL,
-    //     });
-    //   }
-    // }
+    const webhook = this.configService.get<Webhook>('WEBHOOK');
+    const we = event.replace(/[\.-]/gm, '_').toUpperCase();
+    const transformedWe = we.replace(/_/gm, '-').toLowerCase();
+    const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
+
+    if (webhook.EVENTS[we]) {
+      if (local && instance.MODE !== 'container') {
+        const { WEBHOOK_BY_EVENTS } = instance;
+
+        let baseURL;
+
+        if (WEBHOOK_BY_EVENTS) {
+          baseURL = `${this.localWebhook.url}/${transformedWe}`;
+        } else {
+          baseURL = this.localWebhook.url;
+        }
+
+        try {
+          if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
+            const httpService = axios.create({ baseURL });
+            await httpService.post('', {
+              event,
+              instance: this.instance.name,
+              data,
+              destination: this.localWebhook.url,
+            });
+          }
+        } catch (error) {
+          this.logger.error({
+            local: WAStartupService.name + '.sendDataWebhook-local',
+            message: error?.message,
+            hostName: error?.hostname,
+            syscall: error?.syscall,
+            code: error?.code,
+            error: error?.errno,
+            stack: error?.stack,
+            name: error?.name,
+            url: baseURL,
+          });
+        }
+      }
+
+      const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
+
+      let globalURL;
+
+      if (webhook.GLOBAL.WEBHOOK_BY_EVENTS) {
+        globalURL = `${globalWebhook.URL}/${transformedWe}`;
+      } else {
+        globalURL = globalWebhook.URL;
+      }
+
+      let localUrl;
+
+      if (instance.MODE === 'container') {
+        localUrl = instance.WEBHOOK_URL;
+      } else {
+        localUrl = this.localWebhook.url;
+      }
+
+      this.logger.log({
+        url: globalURL,
+        event,
+        instance: this.instance.name,
+        data,
+        destination: localUrl,
+      });
+
+      try {
+        if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
+          const httpService = axios.create({ baseURL: globalURL });
+          await httpService.post('', {
+            event,
+            instance: this.instance.name,
+            data,
+            destination: localUrl,
+          });
+        }
+      } catch (error) {
+        this.logger.error({
+          local: WAStartupService.name + '.sendDataWebhook-global',
+          message: error?.message,
+          hostName: error?.hostname,
+          syscall: error?.syscall,
+          code: error?.code,
+          error: error?.errno,
+          stack: error?.stack,
+          name: error?.name,
+          url: globalURL,
+        });
+      }
+    }
   }
 
   private async connectionUpdate({
@@ -455,7 +466,7 @@ export class WAStartupService {
 
       const { version } = await fetchLatestBaileysVersion();
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      const browser: WABrowserDescription = [session.CLIENT, 'Chrome', release()];
 
       const socketConfig: UserFacingSocketConfig = {
         auth: {
