@@ -140,6 +140,16 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       // Profile routes
+      .get(this.routerPath('fetchPrivacySettings'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: null,
+          ClassRef: InstanceDto,
+          execute: (instance) => chatController.fetchPrivacySettings(instance),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
       .post(this.routerPath('getBusinessProfile'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,

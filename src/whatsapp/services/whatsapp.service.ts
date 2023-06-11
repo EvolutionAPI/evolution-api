@@ -1475,6 +1475,10 @@ export class WAStartupService {
     return await this.repository.chat.find({ where: { owner: this.instance.wuid } });
   }
 
+  public async fetchPrivacySettings() {
+    return await this.client.fetchPrivacySettings();
+  }
+
   public async getBusinessProfile(number: string) {
     try {
       let jid;

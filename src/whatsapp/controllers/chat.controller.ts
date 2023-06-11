@@ -63,6 +63,10 @@ export class ChatController {
     return await this.waMonitor.waInstances[instanceName].fetchChats();
   }
 
+  public async fetchPrivacySettings({ instanceName }: InstanceDto) {
+    return await this.waMonitor.waInstances[instanceName].fetchPrivacySettings();
+  }
+
   public async getBusinessProfile(
     { instanceName }: InstanceDto,
     data: ProfilePictureDto,
