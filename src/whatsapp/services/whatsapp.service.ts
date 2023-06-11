@@ -1112,13 +1112,22 @@ export class WAStartupService {
   }
 
   private async processAudio(audio: string) {
-    const outputAudio = `${join(process.cwd(), 'temp', 'audio.opus')}`;
+    let tempAudioPath: string;
+    let outputAudio: string;
 
-    const response = await axios.get(audio, { responseType: 'arraybuffer' });
+    if (isURL(audio)) {
+      outputAudio = `${join(process.cwd(), 'temp', 'audio.opus')}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', 'audio.mp3')}`;
 
-    const tempAudioPath = `${join(process.cwd(), 'temp', 'audio.mp3')}`;
+      const response = await axios.get(audio, { responseType: 'arraybuffer' });
+      fs.writeFileSync(tempAudioPath, response.data);
+    } else {
+      outputAudio = `${join(process.cwd(), 'temp', 'audio.opus')}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', 'audio.mp3')}`;
 
-    fs.writeFileSync(tempAudioPath, response.data);
+      const audioBuffer = Buffer.from(audio, 'base64');
+      fs.writeFileSync(tempAudioPath, audioBuffer);
+    }
 
     return new Promise((resolve, reject) => {
       exec(
