@@ -13,7 +13,7 @@
 
 ## WhatsApp-Api-NodeJs
 
-This project is based on the [CodeChat](https://github.com/code-chat-br/whatsapp-api). The original project is an implementation of [Baileys](https://github.com/adiwajshing/Baileys), serving as a Restful API service that controls WhatsApp functions.</br> 
+This project is based on the [CodeChat](https://github.com/code-chat-br/whatsapp-api). The original project is an implementation of [Baileys](https://github.com/WhiskeySockets/Baileys), serving as a Restful API service that controls WhatsApp functions.</br> 
 The code allows the creation of multiservice chats, service bots, or any other system that utilizes WhatsApp. The documentation provides instructions on how to set up and use the project, as well as additional information about its features and configuration options.
 
 ## Infrastructure
