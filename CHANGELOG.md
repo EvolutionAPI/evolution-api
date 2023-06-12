@@ -10,6 +10,7 @@
 * Route to update group subject
 * Route to update group description
 * Route to accept invite code
+* Added configuration of events by webhook of instances
 
 ### Fixed
 

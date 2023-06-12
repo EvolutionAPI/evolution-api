@@ -22,12 +22,10 @@ export class InstanceController {
 
   private readonly logger = new Logger(InstanceController.name);
 
-  public async createInstance({ instanceName, webhook }: InstanceDto) {
-    //verifica se modo da instancia é container
+  public async createInstance({ instanceName, webhook, events }: InstanceDto) {
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
     if (mode === 'container') {
-      //verifica se ja existe uma instancia criada com qualquer nome
       if (Object.keys(this.waMonitor.waInstances).length > 0) {
         throw new BadRequestException([
           'Instance already created',
@@ -50,7 +48,7 @@ export class InstanceController {
 
       if (webhook) {
         try {
-          this.webhookService.create(instance, { enabled: true, url: webhook });
+          this.webhookService.create(instance, { enabled: true, url: webhook, events });
         } catch (error) {
           this.logger.log(error);
         }

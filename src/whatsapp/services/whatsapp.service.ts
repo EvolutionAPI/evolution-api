@@ -200,6 +200,7 @@ export class WAStartupService {
     const data = await this.repository.webhook.find(this.instanceName);
     this.localWebhook.url = data?.url;
     this.localWebhook.enabled = data?.enabled;
+    this.localWebhook.events = data?.events;
   }
 
   public async setWebhook(data: WebhookRaw) {
@@ -212,12 +213,13 @@ export class WAStartupService {
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
-    const webhook = this.configService.get<Webhook>('WEBHOOK');
+    const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
+    const webhookLocal = this.localWebhook.events;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
 
-    if (webhook.EVENTS[we]) {
+    if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
       if (local && instance.MODE !== 'container') {
         const { WEBHOOK_BY_EVENTS } = instance;
 
@@ -228,6 +230,15 @@ export class WAStartupService {
         } else {
           baseURL = this.localWebhook.url;
         }
+
+        this.logger.log({
+          local: WAStartupService.name + '.sendDataWebhook-local',
+          url: baseURL,
+          event,
+          instance: this.instance.name,
+          data,
+          destination: this.localWebhook.url,
+        });
 
         try {
           if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
@@ -253,12 +264,13 @@ export class WAStartupService {
           });
         }
       }
-
+    }
+    if (webhookGlobal.EVENTS[we]) {
       const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
 
       let globalURL;
 
-      if (webhook.GLOBAL.WEBHOOK_BY_EVENTS) {
+      if (webhookGlobal.GLOBAL.WEBHOOK_BY_EVENTS) {
         globalURL = `${globalWebhook.URL}/${transformedWe}`;
       } else {
         globalURL = globalWebhook.URL;
@@ -273,6 +285,7 @@ export class WAStartupService {
       }
 
       this.logger.log({
+        local: WAStartupService.name + '.sendDataWebhook-global',
         url: globalURL,
         event,
         instance: this.instance.name,

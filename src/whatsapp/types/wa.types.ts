@@ -34,7 +34,7 @@ export declare namespace wa {
     profilePictureUrl?: string;
   };
 
-  export type LocalWebHook = { enabled?: boolean; url?: string };
+  export type LocalWebHook = { enabled?: boolean; url?: string; events?: string[] };
 
   export type StateConnection = {
     instance?: string;
