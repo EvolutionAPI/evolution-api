@@ -9,6 +9,11 @@ export class GroupPictureDto {
   image: string;
 }
 
+export class GroupSubjectDto {
+  groupJid: string;
+  subject: string;
+}
+
 export class GroupJid {
   groupJid: string;
 }

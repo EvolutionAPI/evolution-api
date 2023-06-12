@@ -100,6 +100,7 @@ import {
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
   GroupToggleEphemeralDto,
+  GroupSubjectDto,
 } from '../dto/group.dto';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
@@ -1631,7 +1632,23 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException('Error creating group', error.toString());
+      throw new InternalServerErrorException(
+        'Error update group picture',
+        error.toString(),
+      );
+    }
+  }
+
+  public async updateGroupSubject(data: GroupSubjectDto) {
+    try {
+      await this.client.groupUpdateSubject(data.groupJid, data.subject);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating group subject',
+        error.toString(),
+      );
     }
   }
 

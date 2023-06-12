@@ -5,7 +5,8 @@ import {
   updateParticipantsSchema,
   updateSettingsSchema,
   toggleEphemeralSchema,
-  updateGroupPicture,
+  updateGroupPictureSchema,
+  updateGroupSubjectSchema,
   groupInviteSchema,
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
@@ -14,6 +15,7 @@ import {
   GroupInvite,
   GroupJid,
   GroupPictureDto,
+  GroupSubjectDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
   GroupToggleEphemeralDto,
@@ -35,10 +37,20 @@ export class GroupRouter extends RouterBroker {
 
         res.status(HttpStatus.CREATED).json(response);
       })
+      .put(this.routerPath('updateGroupSubject'), ...guards, async (req, res) => {
+        const response = await this.groupValidate<GroupSubjectDto>({
+          request: req,
+          schema: updateGroupSubjectSchema,
+          ClassRef: GroupSubjectDto,
+          execute: (instance, data) => groupController.updateGroupSubject(instance, data),
+        });
+
+        res.status(HttpStatus.CREATED).json(response);
+      })
       .put(this.routerPath('updateGroupPicture'), ...guards, async (req, res) => {
         const response = await this.groupValidate<GroupPictureDto>({
           request: req,
-          schema: updateGroupPicture,
+          schema: updateGroupPictureSchema,
           ClassRef: GroupPictureDto,
           execute: (instance, data) => groupController.updateGroupPicture(instance, data),
         });

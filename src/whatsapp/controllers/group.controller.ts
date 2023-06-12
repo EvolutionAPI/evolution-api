@@ -3,6 +3,7 @@ import {
   GroupInvite,
   GroupJid,
   GroupPictureDto,
+  GroupSubjectDto,
   GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
@@ -19,6 +20,12 @@ export class GroupController {
 
   public async updateGroupPicture(instance: InstanceDto, update: GroupPictureDto) {
     return await this.waMonitor.waInstances[instance.instanceName].updateGroupPicture(
+      update,
+    );
+  }
+
+  public async updateGroupSubject(instance: InstanceDto, update: GroupSubjectDto) {
+    return await this.waMonitor.waInstances[instance.instanceName].updateGroupSubject(
       update,
     );
   }

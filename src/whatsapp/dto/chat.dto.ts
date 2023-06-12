@@ -1,4 +1,8 @@
-import { WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from "@evolution/base";
+import {
+  WAPrivacyOnlineValue,
+  WAPrivacyValue,
+  WAReadReceiptsValue,
+} from '@evolution/base';
 
 export class OnWhatsAppDto {
   constructor(

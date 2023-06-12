@@ -680,7 +680,7 @@ export const toggleEphemeralSchema: JSONSchema7 = {
   ...isNotEmpty('groupJid', 'expiration'),
 };
 
-export const updateGroupPicture: JSONSchema7 = {
+export const updateGroupPictureSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
@@ -689,6 +689,17 @@ export const updateGroupPicture: JSONSchema7 = {
   },
   required: ['groupJid', 'image'],
   ...isNotEmpty('groupJid', 'image'),
+};
+
+export const updateGroupSubjectSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    groupJid: { type: 'string' },
+    subject: { type: 'string' },
+  },
+  required: ['groupJid', 'subject'],
+  ...isNotEmpty('groupJid', 'subject'),
 };
 
 // Webhook Schema

@@ -7,6 +7,7 @@
 * Route to fetch all groups that the connection is part of
 * Route to fetch all privacy settings
 * Route to update the privacy settings
+* Route to update group subject
 
 ### Fixed
 
