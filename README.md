@@ -235,27 +235,31 @@ docker-compose up
 
 ## Webhook Routes
 When enabling the WEBHOOK_BY_EVENTS options in the global and local webhooks, the following paths will be added at the end of the webhook.
+<br><br>
+Example:
 
-| Name | Route |
+https://sub.domain.com/webhook-test/exclusive-webhook-code/qrcode-updated
+
+| Name | Path |
 |------|-------|
-| APPLICATION_STARTUP | https://url_webhook/application-startup |
-| QRCODE_UPDATED | https://url_webhook/qrcode-updated |
-| CONNECTION_UPDATE | https://url_webhook/connection-update |
-| MESSAGES_SET | https://url_webhook/messages-set |
-| MESSAGES_UPSERT | https://url_webhook/messages-upsert |
-| MESSAGES_UPDATE | https://url_webhook/messages-update |
-| SEND_MESSAGE | https://url_webhook/send-message |
-| CONTACTS_SET | https://url_webhook/contacts-set |
-| CONTACTS_UPSERT | https://url_webhook/contacts-upsert |
-| CONTACTS_UPDATE | https://url_webhook/contacts-update |
-| PRESENCE_UPDATE | https://url_webhook/presence-update |
-| CHATS_SET | https://url_webhook/chats-set |
-| CHATS_UPDATE | https://url_webhook/chats-update |
-| CHATS_UPSERT | https://url_webhook/chats-upsert |
-| GROUPS_UPSERT | https://url_webhook/groups-upsert |
-| GROUPS_UPDATE | https://url_webhook/groups-update |
-| GROUP_PARTICIPANTS_UPDATE | https://url_webhook/groups-participants-update |
-| NEW_TOKEN | https://url_webhook/new-token |
+| APPLICATION_STARTUP | /application-startup |
+| QRCODE_UPDATED | /qrcode-updated |
+| CONNECTION_UPDATE | /connection-update |
+| MESSAGES_SET | /messages-set |
+| MESSAGES_UPSERT | /messages-upsert |
+| MESSAGES_UPDATE | /messages-update |
+| SEND_MESSAGE | /send-message |
+| CONTACTS_SET | /contacts-set |
+| CONTACTS_UPSERT | /contacts-upsert |
+| CONTACTS_UPDATE | /contacts-update |
+| PRESENCE_UPDATE | /presence-update |
+| CHATS_SET | /chats-set |
+| CHATS_UPDATE | /chats-update |
+| CHATS_UPSERT | /chats-upsert |
+| GROUPS_UPSERT | /groups-upsert |
+| GROUPS_UPDATE | /groups-update |
+| GROUP_PARTICIPANTS_UPDATE | /groups-participants-update |
+| NEW_TOKEN | /new-token |
 ## Env File
 
 See additional settings that can be applied through the **env** file by clicking **[here](./src/dev-env.yml)**.
