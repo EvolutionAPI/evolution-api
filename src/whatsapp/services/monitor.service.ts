@@ -4,7 +4,13 @@ import { INSTANCE_DIR } from '../../config/path.config';
 import EventEmitter2 from 'eventemitter2';
 import { join } from 'path';
 import { Logger } from '../../config/logger.config';
-import { ConfigService, Database, DelInstance, Redis } from '../../config/env.config';
+import {
+  Auth,
+  ConfigService,
+  Database,
+  DelInstance,
+  Redis,
+} from '../../config/env.config';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { NotFoundException } from '../../exceptions';
 import { Db } from 'mongodb';
@@ -62,6 +68,14 @@ export class WAMonitoringService {
     for await (const [key, value] of Object.entries(this.waInstances)) {
       if (value) {
         if (value.connectionStatus.state === 'open') {
+          let apikey: string;
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            const tokenStore = await this.repository.auth.find(key);
+            apikey = tokenStore.apikey || '';
+          } else {
+            apikey = '';
+          }
+
           instances.push({
             instance: {
               instanceName: key,
@@ -69,6 +83,7 @@ export class WAMonitoringService {
               profileName: (await value.getProfileName()) || 'not loaded',
               profilePictureUrl: value.profilePictureUrl,
               status: (await value.getProfileStatus()) || '',
+              apikey,
             },
           });
         } else {

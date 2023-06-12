@@ -118,6 +118,8 @@ AUTHENTICATION:
   API_KEY:
     # OBS: This key must be inserted in the request header to create an instance.
     KEY: B6D711FC-DE4D-4FD5-9365-44120E713976
+  # Expose the api key on return from fetch instances
+  EXPOSE_IN_FETCH_INSTANCES: true
   # Set the secret key to encrypt and decrypt your token and its expiration time.
   JWT:
     EXPIRIN_IN: 0 # seconds - 3600s === 1h | zero (0) - never expires

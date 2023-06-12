@@ -75,6 +75,8 @@ services:
       # Define a global apikey to access all instances
       # OBS: This key must be inserted in the request header to create an instance.
       - AUTHENTICATION_API_KEY=B6D711FCDE4D4FD5936544120E713976
+      # Expose the api key on return from fetch instances
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       # Set the secret key to encrypt and decrypt your token and its expiration time.
       - AUTHENTICATION_JWT_EXPIRIN_IN=0 # seconds - 3600s === 1h | zero (0) - never expires
       # Set the instance name and webhook url to create an instance in init the application

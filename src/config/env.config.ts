@@ -82,6 +82,7 @@ export type Instance = {
 };
 export type Auth = {
   API_KEY: ApiKey;
+  EXPOSE_IN_FETCH_INSTANCES: boolean;
   JWT: Jwt;
   TYPE: 'jwt' | 'apikey';
   INSTANCE: Instance;
@@ -234,6 +235,8 @@ export class ConfigService {
         API_KEY: {
           KEY: process.env.AUTHENTICATION_API_KEY,
         },
+        EXPOSE_IN_FETCH_INSTANCES:
+          process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
         JWT: {
           EXPIRIN_IN: Number.isInteger(process.env?.AUTHENTICATION_JWT_EXPIRIN_IN)
             ? Number.parseInt(process.env.AUTHENTICATION_JWT_EXPIRIN_IN)
