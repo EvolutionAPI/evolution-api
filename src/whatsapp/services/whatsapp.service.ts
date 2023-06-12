@@ -1702,6 +1702,14 @@ export class WAStartupService {
     }
   }
 
+  public async acceptInvite(id: GroupInvite) {
+    try {
+      return await this.client.groupAcceptInvite(id.inviteCode);
+    } catch (error) {
+      throw new NotFoundException('No invite info', id.inviteCode);
+    }
+  }
+
   public async revokeInviteCode(id: GroupJid) {
     try {
       const inviteCode = await this.client.groupRevokeInvite(id.groupJid);

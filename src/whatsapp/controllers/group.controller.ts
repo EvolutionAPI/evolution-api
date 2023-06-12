@@ -56,6 +56,12 @@ export class GroupController {
     return await this.waMonitor.waInstances[instance.instanceName].inviteInfo(inviteCode);
   }
 
+  public async acceptInvite(instance: InstanceDto, inviteCode: GroupInvite) {
+    return await this.waMonitor.waInstances[instance.instanceName].acceptInvite(
+      inviteCode,
+    );
+  }
+
   public async revokeInviteCode(instance: InstanceDto, groupJid: GroupJid) {
     return await this.waMonitor.waInstances[instance.instanceName].revokeInviteCode(
       groupJid,

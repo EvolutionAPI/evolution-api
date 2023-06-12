@@ -9,6 +9,7 @@
 * Route to update the privacy settings
 * Route to update group subject
 * Route to update group description
+* Route to accept invite code
 
 ### Fixed
 
