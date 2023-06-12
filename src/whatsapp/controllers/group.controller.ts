@@ -1,5 +1,6 @@
 import {
   CreateGroupDto,
+  GroupDescriptionDto,
   GroupInvite,
   GroupJid,
   GroupPictureDto,
@@ -26,6 +27,15 @@ export class GroupController {
 
   public async updateGroupSubject(instance: InstanceDto, update: GroupSubjectDto) {
     return await this.waMonitor.waInstances[instance.instanceName].updateGroupSubject(
+      update,
+    );
+  }
+
+  public async updateGroupDescription(
+    instance: InstanceDto,
+    update: GroupDescriptionDto,
+  ) {
+    return await this.waMonitor.waInstances[instance.instanceName].updateGroupDescription(
       update,
     );
   }

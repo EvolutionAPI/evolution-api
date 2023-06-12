@@ -101,6 +101,7 @@ import {
   GroupUpdateSettingDto,
   GroupToggleEphemeralDto,
   GroupSubjectDto,
+  GroupDescriptionDto,
 } from '../dto/group.dto';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
@@ -1647,6 +1648,19 @@ export class WAStartupService {
     } catch (error) {
       throw new InternalServerErrorException(
         'Error updating group subject',
+        error.toString(),
+      );
+    }
+  }
+
+  public async updateGroupDescription(data: GroupDescriptionDto) {
+    try {
+      await this.client.groupUpdateDescription(data.groupJid, data.description);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating group description',
         error.toString(),
       );
     }

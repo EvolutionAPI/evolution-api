@@ -14,6 +14,11 @@ export class GroupSubjectDto {
   subject: string;
 }
 
+export class GroupDescriptionDto {
+  groupJid: string;
+  description: string;
+}
+
 export class GroupJid {
   groupJid: string;
 }

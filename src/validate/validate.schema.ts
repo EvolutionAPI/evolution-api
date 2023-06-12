@@ -702,6 +702,17 @@ export const updateGroupSubjectSchema: JSONSchema7 = {
   ...isNotEmpty('groupJid', 'subject'),
 };
 
+export const updateGroupDescriptionSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    groupJid: { type: 'string' },
+    description: { type: 'string' },
+  },
+  required: ['groupJid', 'description'],
+  ...isNotEmpty('groupJid', 'description'),
+};
+
 // Webhook Schema
 export const webhookSchema: JSONSchema7 = {
   $id: v4(),

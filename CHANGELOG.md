@@ -8,6 +8,7 @@
 * Route to fetch all privacy settings
 * Route to update the privacy settings
 * Route to update group subject
+* Route to update group description
 
 ### Fixed
 
