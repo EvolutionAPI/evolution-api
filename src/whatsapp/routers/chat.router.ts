@@ -163,12 +163,13 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .post(this.routerPath('getBusinessProfile'), ...guards, async (req, res) => {
+      .post(this.routerPath('fetchBusinessProfile'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
           schema: profilePictureSchema,
           ClassRef: ProfilePictureDto,
-          execute: (instance, data) => chatController.getBusinessProfile(instance, data),
+          execute: (instance, data) =>
+            chatController.fetchBusinessProfile(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);

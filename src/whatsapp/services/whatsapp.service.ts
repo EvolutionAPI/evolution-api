@@ -29,9 +29,6 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
-  WAReadReceiptsValue,
-  WAPrivacyValue,
-  WAPrivacyOnlineValue,
 } from '@evolution/base';
 import {
   Auth,
@@ -1502,6 +1499,9 @@ export class WAStartupService {
       await this.client.updateOnlinePrivacy(settings.privacySettings.online);
       await this.client.updateLastSeenPrivacy(settings.privacySettings.last);
       await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
+
+      // reinicia a instancia
+
       return { update: 'success', data: await this.client.fetchPrivacySettings() };
     } catch (error) {
       throw new InternalServerErrorException(
@@ -1511,7 +1511,7 @@ export class WAStartupService {
     }
   }
 
-  public async getBusinessProfile(number: string) {
+  public async fetchBusinessProfile(number: string) {
     try {
       let jid;
 
