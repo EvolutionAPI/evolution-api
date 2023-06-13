@@ -19,6 +19,7 @@
 * tweaks in docker-compose to pass variables
 * Adjust the route getProfileBusiness to fetchProfileBusiness
 * fix error after logout and try to get status or to connect again
+* fix sending narrated audio on whatsapp android and ios
 
 # 1.0.9 (2023-06-10)
 

@@ -1158,7 +1158,7 @@ export class WAStartupService {
 
     return new Promise((resolve, reject) => {
       exec(
-        `${ffmpegPath.path} -i ${tempAudioPath} -vn -c:a libopus -b:a 128k -ar 48000 ${outputAudio} -y`,
+        `${ffmpegPath.path} -i ${tempAudioPath} -c:a libopus ${outputAudio} -y`,
         (error, _stdout, _stderr) => {
           fs.unlinkSync(tempAudioPath);
           if (error) reject(error);
