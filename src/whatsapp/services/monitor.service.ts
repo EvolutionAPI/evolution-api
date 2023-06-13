@@ -95,12 +95,26 @@ export class WAMonitoringService {
             });
           }
         } else {
-          instances.push({
-            instance: {
-              instanceName: key,
-              status: value.connectionStatus.state,
-            },
-          });
+          let apikey: string;
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            const tokenStore = await this.repository.auth.find(key);
+            apikey = tokenStore.apikey || 'Apikey not found';
+
+            instances.push({
+              instance: {
+                instanceName: key,
+                status: value.connectionStatus.state,
+                apikey,
+              },
+            });
+          } else {
+            instances.push({
+              instance: {
+                instanceName: key,
+                status: value.connectionStatus.state,
+              },
+            });
+          }
         }
       }
     }
