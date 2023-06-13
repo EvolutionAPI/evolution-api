@@ -11,9 +11,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - 8080:8080
-    volumes:
-      - /data/instances:/evolution/instances
+      - 8083:8080
+    # volumes:
+    #   - /data/instances:/evolution/instances
     environment:
       # Determine how long the instance should be deleted from memory in case of no connection.
       # Default time: 5 minutes
@@ -25,7 +25,7 @@ services:
       - STORE_CONTACTS=true
       - STORE_CHATS=true
       # Permanent data storage
-      - DATABASE_ENABLED=true
+      - DATABASE_ENABLED=false
       - DATABASE_CONNECTION_URI=mongodb://root:root@mongodb:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
       - DATABASE_CONNECTION_DB_PREFIX_NAME=evolution
       # Choose the data you want to save in the application's database or store
@@ -35,7 +35,7 @@ services:
       - DATABASE_SAVE_MESSAGE_UPDATE=false
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
-      - REDIS_ENABLED=true
+      - REDIS_ENABLED=false
       - REDIS_URI=redis://redis:6379
       - REDIS_PREFIX_KEY=evolution
       # Webhook Settings
@@ -92,31 +92,31 @@ services:
     expose:
       - 8083
 
-  mongodb:
-    container_name: mongodb
-    image: mongo
-    restart: always
-    volumes:
-      - /data/mongodb:/data/db
-    ports:
-      - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
-    networks:
-      - evolution-net
-    expose:
-      - 27017
+  # mongodb:
+  #   container_name: mongodb
+  #   image: mongo
+  #   restart: always
+  #   volumes:
+  #     - /data/mongodb:/data/db
+  #   ports:
+  #     - 27017:27017
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: root
+  #   networks:
+  #     - evolution-net
+  #   expose:
+  #     - 27017
 
-  redis:
-    container_name: redis
-    image: redis:latest
-    restart: always
-    volumes:
-      - /data/redis:/data
-    ports:
-      - 6379:6379
-    networks:
-      - evolution-net
-    expose:
-      - 6379
+  # redis:
+  #   container_name: redis
+  #   image: redis:latest
+  #   restart: always
+  #   volumes:
+  #     - /data/redis:/data
+  #   ports:
+  #     - 6379:6379
+  #   networks:
+  #     - evolution-net
+  #   expose:
+  #     - 6379

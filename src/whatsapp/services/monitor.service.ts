@@ -72,20 +72,28 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             const tokenStore = await this.repository.auth.find(key);
             apikey = tokenStore.apikey || '';
-          } else {
-            apikey = '';
-          }
 
-          instances.push({
-            instance: {
-              instanceName: key,
-              owner: value.wuid,
-              profileName: (await value.getProfileName()) || 'not loaded',
-              profilePictureUrl: value.profilePictureUrl,
-              status: (await value.getProfileStatus()) || '',
-              apikey,
-            },
-          });
+            instances.push({
+              instance: {
+                instanceName: key,
+                owner: value.wuid,
+                profileName: (await value.getProfileName()) || 'not loaded',
+                profilePictureUrl: value.profilePictureUrl,
+                status: (await value.getProfileStatus()) || '',
+                apikey,
+              },
+            });
+          } else {
+            instances.push({
+              instance: {
+                instanceName: key,
+                owner: value.wuid,
+                profileName: (await value.getProfileName()) || 'not loaded',
+                profilePictureUrl: value.profilePictureUrl,
+                status: (await value.getProfileStatus()) || '',
+              },
+            });
+          }
         } else {
           instances.push({
             instance: {

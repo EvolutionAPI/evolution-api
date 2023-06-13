@@ -265,56 +265,59 @@ export class WAStartupService {
         }
       }
     }
-    if (webhookGlobal.EVENTS[we]) {
-      const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
 
-      let globalURL;
+    if (webhookGlobal.GLOBAL?.ENABLED) {
+      if (webhookGlobal.EVENTS[we]) {
+        const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
 
-      if (webhookGlobal.GLOBAL.WEBHOOK_BY_EVENTS) {
-        globalURL = `${globalWebhook.URL}/${transformedWe}`;
-      } else {
-        globalURL = globalWebhook.URL;
-      }
+        let globalURL;
 
-      let localUrl;
+        if (webhookGlobal.GLOBAL.WEBHOOK_BY_EVENTS) {
+          globalURL = `${globalWebhook.URL}/${transformedWe}`;
+        } else {
+          globalURL = globalWebhook.URL;
+        }
 
-      if (instance.MODE === 'container') {
-        localUrl = instance.WEBHOOK_URL;
-      } else {
-        localUrl = this.localWebhook.url;
-      }
+        let localUrl;
 
-      this.logger.log({
-        local: WAStartupService.name + '.sendDataWebhook-global',
-        url: globalURL,
-        event,
-        instance: this.instance.name,
-        data,
-        destination: localUrl,
-      });
+        if (instance.MODE === 'container') {
+          localUrl = instance.WEBHOOK_URL;
+        } else {
+          localUrl = this.localWebhook.url;
+        }
 
-      try {
-        if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
-          const httpService = axios.create({ baseURL: globalURL });
-          await httpService.post('', {
-            event,
-            instance: this.instance.name,
-            data,
-            destination: localUrl,
+        this.logger.log({
+          local: WAStartupService.name + '.sendDataWebhook-global',
+          url: globalURL,
+          event,
+          instance: this.instance.name,
+          data,
+          destination: localUrl,
+        });
+
+        try {
+          if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
+            const httpService = axios.create({ baseURL: globalURL });
+            await httpService.post('', {
+              event,
+              instance: this.instance.name,
+              data,
+              destination: localUrl,
+            });
+          }
+        } catch (error) {
+          this.logger.error({
+            local: WAStartupService.name + '.sendDataWebhook-global',
+            message: error?.message,
+            hostName: error?.hostname,
+            syscall: error?.syscall,
+            code: error?.code,
+            error: error?.errno,
+            stack: error?.stack,
+            name: error?.name,
+            url: globalURL,
           });
         }
-      } catch (error) {
-        this.logger.error({
-          local: WAStartupService.name + '.sendDataWebhook-global',
-          message: error?.message,
-          hostName: error?.hostname,
-          syscall: error?.syscall,
-          code: error?.code,
-          error: error?.errno,
-          stack: error?.stack,
-          name: error?.name,
-          url: globalURL,
-        });
       }
     }
   }
