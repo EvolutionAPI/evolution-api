@@ -81,6 +81,7 @@ const quotedOptionsSchema: JSONSchema7 = {
       required: ['id', 'remoteJid', 'fromMe'],
       ...isNotEmpty('id', 'remoteJid'),
     },
+    message: { type: 'object' },
   },
 };
 
