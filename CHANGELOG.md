@@ -12,6 +12,7 @@
 * Route to accept invite code
 * Added configuration of events by webhook of instances
 * Now the api key can be exposed in fetch instances if the EXPOSE_IN_FETCH_INSTANCES variable is set to true
+* Added option to generate qrcode as soon as the instance is created
 
 ### Fixed
 

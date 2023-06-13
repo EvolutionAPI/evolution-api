@@ -9,6 +9,7 @@ import { WAMonitoringService } from '../services/monitor.service';
 import { WAStartupService } from '../services/whatsapp.service';
 import { WebhookService } from '../services/webhook.service';
 import { Logger } from '../../config/logger.config';
+import { wa } from '../types/wa.types';
 
 export class InstanceController {
   constructor(
@@ -22,7 +23,7 @@ export class InstanceController {
 
   private readonly logger = new Logger(InstanceController.name);
 
-  public async createInstance({ instanceName, webhook, events }: InstanceDto) {
+  public async createInstance({ instanceName, webhook, events, qrcode }: InstanceDto) {
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
     if (mode === 'container') {
@@ -46,9 +47,13 @@ export class InstanceController {
         instanceName: instance.instanceName,
       });
 
+      let getEvents: string[];
+
       if (webhook) {
         try {
           this.webhookService.create(instance, { enabled: true, url: webhook, events });
+
+          getEvents = (await this.webhookService.find(instance)).events;
         } catch (error) {
           this.logger.log(error);
         }
@@ -61,6 +66,7 @@ export class InstanceController {
         },
         hash,
         webhook,
+        events: getEvents,
       };
     } else {
       const instance = new WAStartupService(
@@ -76,12 +82,24 @@ export class InstanceController {
         instanceName: instance.instanceName,
       });
 
+      let getEvents: string[];
+
       if (webhook) {
         try {
-          this.webhookService.create(instance, { enabled: true, url: webhook });
+          this.webhookService.create(instance, { enabled: true, url: webhook, events });
+
+          getEvents = (await this.webhookService.find(instance)).events;
         } catch (error) {
           this.logger.log(error);
         }
+      }
+
+      let getQrcode: wa.QrCode;
+
+      if (qrcode) {
+        await instance.connectToWhatsapp();
+        await delay(2000);
+        getQrcode = instance.qrCode;
       }
 
       return {
@@ -91,6 +109,8 @@ export class InstanceController {
         },
         hash,
         webhook,
+        events: getEvents,
+        qrcode: getQrcode,
       };
     }
   }
