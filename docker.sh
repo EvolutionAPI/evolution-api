@@ -8,8 +8,11 @@ then
   docker network create -d bridge ${NET}
 fi
 
-sudo mkdir -p /data/instances
+sudo mkdir -p ./docker-data/instances
+sudo mkdir -p ./docker-data/mongodb
+sudo mkdir -p ./docker-data/mongodb/data
+sudo mkdir -p ./docker-data/mongodb/configdb
 
 docker build -t ${IMAGE} .
 
-docker run -d --restart 'always' --name 'evolution_api' --mount 'type=bind,source=/data/instances,target=/evolution/instances' --publish '8083:8083' --hostname 'evolution' --network ${NET} ${IMAGE}
+docker compose up -d

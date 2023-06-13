@@ -983,7 +983,12 @@ export class WAStartupService {
 
       const messageSent = await (async () => {
         const option = {
-          quoted,
+          quoted: {
+            key: quoted.key,
+            message: {
+              conversation: 'message',
+            },
+          },
         };
 
         if (!message['audio'] && !message['poll'] && !message['linkPreview']) {

@@ -7,13 +7,14 @@ networks:
 services:
   api:
     container_name: evolution_api
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: evolution/api:local
     ports:
-      - 8083:8080
-    # volumes:
-    #   - /data/instances:/evolution/instances
+      - 8080:8080
+    volumes:
+      - ./docker-data/instances:/evolution/instances
+    depends_on:
+      - mongodb
+      - redis
     environment:
       # Determine how long the instance should be deleted from memory in case of no connection.
       # Default time: 5 minutes
@@ -25,7 +26,7 @@ services:
       - STORE_CONTACTS=true
       - STORE_CHATS=true
       # Permanent data storage
-      - DATABASE_ENABLED=false
+      - DATABASE_ENABLED=true
       - DATABASE_CONNECTION_URI=mongodb://root:root@mongodb:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
       - DATABASE_CONNECTION_DB_PREFIX_NAME=evolution
       # Choose the data you want to save in the application's database or store
@@ -35,7 +36,7 @@ services:
       - DATABASE_SAVE_MESSAGE_UPDATE=false
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
-      - REDIS_ENABLED=false
+      - REDIS_ENABLED=true
       - REDIS_URI=redis://redis:6379
       - REDIS_PREFIX_KEY=evolution
       # Webhook Settings
@@ -76,7 +77,7 @@ services:
       # OBS: This key must be inserted in the request header to create an instance.
       - AUTHENTICATION_API_KEY=B6D711FCDE4D4FD5936544120E713976
       # Expose the api key on return from fetch instances
-      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
       # Set the secret key to encrypt and decrypt your token and its expiration time.
       - AUTHENTICATION_JWT_EXPIRIN_IN=0 # seconds - 3600s === 1h | zero (0) - never expires
       # Set the instance name and webhook url to create an instance in init the application
@@ -90,33 +91,31 @@ services:
     networks:
       - evolution-net
     expose:
-      - 8083
+      - 8080
 
-  # mongodb:
-  #   container_name: mongodb
-  #   image: mongo
-  #   restart: always
-  #   volumes:
-  #     - /data/mongodb:/data/db
-  #   ports:
-  #     - 27017:27017
-  #   environment:
-  #     MONGO_INITDB_ROOT_USERNAME: root
-  #     MONGO_INITDB_ROOT_PASSWORD: root
-  #   networks:
-  #     - evolution-net
-  #   expose:
-  #     - 27017
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
+    volumes:
+      - ./docker-data/mongodb/data:/data/db
+      - ./docker-data/mongodb/configdb:/data/configdb
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    networks:
+      - evolution-net
+    expose:
+      - 27017
 
-  # redis:
-  #   container_name: redis
-  #   image: redis:latest
-  #   restart: always
-  #   volumes:
-  #     - /data/redis:/data
-  #   ports:
-  #     - 6379:6379
-  #   networks:
-  #     - evolution-net
-  #   expose:
-  #     - 6379
+  redis:
+    image: redis:latest
+    volumes:
+      - ./docker-data/redis:/data
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - evolution-net

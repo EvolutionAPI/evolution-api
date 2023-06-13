@@ -71,7 +71,7 @@ export class WAMonitoringService {
           let apikey: string;
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             const tokenStore = await this.repository.auth.find(key);
-            apikey = tokenStore.apikey || '';
+            apikey = tokenStore.apikey || 'Apikey not found';
 
             instances.push({
               instance: {

@@ -7,7 +7,7 @@
 # Choose the server type for the application
 SERVER:
   TYPE: http # https
-  PORT: 8083 # 443
+  PORT: 8080 # 443
 
 CORS:
   ORIGIN:
