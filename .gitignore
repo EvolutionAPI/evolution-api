@@ -34,4 +34,4 @@ lerna-debug.log*
 /test/
 /src/env.yml
 
-/temp
+/temp/*
