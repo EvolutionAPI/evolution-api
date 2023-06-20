@@ -12,6 +12,7 @@ services:
       - 8080:8080
     volumes:
       - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
     depends_on:
       - mongodb
       - redis
@@ -21,10 +22,15 @@ services:
       # If you don't even want an expiration, enter the value false
       - DEL_INSTANCE=5 # or false
       # Temporary data storage
-      - STORE_CLEANING_INTERVAL=7200 # seconds === 2h
-      - STORE_MESSAGE=true
+      - STORE_MESSAGES=true
+      - STORE_MESSAGE_UP=true
       - STORE_CONTACTS=true
       - STORE_CHATS=true
+      - CLEAN_STORE_CLEANING_INTERVAL=7200 # seconds === 2h
+      - CLEAN_STORE_MESSAGES=true
+      - CLEAN_STORE_MESSAGE_UP=true
+      - CLEAN_STORE_CONTACTS=true
+      - CLEAN_STORE_CHATS=true
       # Permanent data storage
       - DATABASE_ENABLED=true
       - DATABASE_CONNECTION_URI=mongodb://root:root@mongodb:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
@@ -131,6 +137,7 @@ services:
 
 volumes:
   evolution_instances:
+  evolution_store:
   evolution_mongodb_data:
   evolution_mongodb_configdb:
   evolution_redis:

@@ -45,8 +45,15 @@ DEL_INSTANCE: false # or false
 
 # Temporary data storage
 STORE:
-  CLEANING_INTERVAL: 7200 # seconds === 2h
-  MESSAGE: true
+  MESSAGES: true
+  MESSAGE_UP: true
+  CONTACTS: true
+  CHATS: true
+
+CLEAN_STORE:
+  CLEANING_INTERVAL: 7200 # 7200 seconds === 2h
+  MESSAGES: true
+  MESSAGE_UP: true
   CONTACTS: true
   CHATS: true
 

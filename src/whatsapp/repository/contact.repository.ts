@@ -1,6 +1,6 @@
 import { opendirSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { ConfigService } from '../../config/env.config';
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { ContactRaw, IContactModel } from '../models';
 import { IInsert, Repository } from '../abstract/abstract.repository';
 
@@ -27,15 +27,21 @@ export class ContactRepository extends Repository {
         return { insertCount: insert.length };
       }
 
-      data.forEach((contact) => {
-        this.writeStore({
-          path: join(this.storePath, 'contacts', contact.owner),
-          fileName: contact.id,
-          data: contact,
-        });
-      });
+      const store = this.configService.get<StoreConf>('STORE');
 
-      return { insertCount: data.length };
+      if (store.CONTACTS) {
+        data.forEach((contact) => {
+          this.writeStore({
+            path: join(this.storePath, 'contacts', contact.owner),
+            fileName: contact.id,
+            data: contact,
+          });
+        });
+
+        return { insertCount: data.length };
+      }
+
+      return { insertCount: 0 };
     } catch (error) {
       return error;
     } finally {

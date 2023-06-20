@@ -29,9 +29,16 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
+  WAMessageKey,
+  WAMessageContent,
+  getAggregateVotesInPollMessage,
+  jidNormalizedUser,
+  getKeyAuthor,
+  decryptPollVote,
 } from '@evolution/base';
 import {
   Auth,
+  CleanStoreConf,
   ConfigService,
   ConfigSessionPhone,
   Database,
@@ -40,6 +47,7 @@ import {
   StoreConf,
   Webhook,
 } from '../../config/env.config';
+import { PollUpdateDecrypt } from '../../utils/poll-update-decrypt-message';
 import fs from 'fs';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
@@ -231,14 +239,14 @@ export class WAStartupService {
           baseURL = this.localWebhook.url;
         }
 
-        this.logger.log({
-          local: WAStartupService.name + '.sendDataWebhook-local',
-          url: baseURL,
-          event,
-          instance: this.instance.name,
-          data,
-          destination: this.localWebhook.url,
-        });
+        // this.logger.log({
+        //   local: WAStartupService.name + '.sendDataWebhook-local',
+        //   url: baseURL,
+        //   event,
+        //   instance: this.instance.name,
+        //   data,
+        //   destination: this.localWebhook.url,
+        // });
 
         try {
           if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
@@ -286,14 +294,14 @@ export class WAStartupService {
           localUrl = this.localWebhook.url;
         }
 
-        this.logger.log({
-          local: WAStartupService.name + '.sendDataWebhook-global',
-          url: globalURL,
-          event,
-          instance: this.instance.name,
-          data,
-          destination: localUrl,
-        });
+        // this.logger.log({
+        //   local: WAStartupService.name + '.sendDataWebhook-global',
+        //   url: globalURL,
+        //   event,
+        //   instance: this.instance.name,
+        //   data,
+        //   destination: localUrl,
+        // });
 
         try {
           if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
@@ -437,24 +445,24 @@ export class WAStartupService {
   }
 
   private cleanStore() {
-    const store = this.configService.get<StoreConf>('STORE');
+    const cleanStore = this.configService.get<CleanStoreConf>('CLEAN_STORE');
     const database = this.configService.get<Database>('DATABASE');
-    if (store?.CLEANING_INTERVAL && !database.ENABLED) {
+    if (cleanStore?.CLEANING_INTERVAL && !database.ENABLED) {
       setInterval(() => {
         try {
-          for (const [key, value] of Object.entries(store)) {
+          for (const [key, value] of Object.entries(cleanStore)) {
             if (value === true) {
               execSync(
                 `rm -rf ${join(
                   this.storePath,
-                  key.toLowerCase(),
+                  key.toLowerCase().replace('_', '-'),
                   this.instance.wuid,
                 )}/*.json`,
               );
             }
           }
         } catch (error) {}
-      }, (store?.CLEANING_INTERVAL ?? 3600) * 1000);
+      }, (cleanStore?.CLEANING_INTERVAL ?? 3600) * 1000);
     }
   }
 
@@ -715,6 +723,49 @@ export class WAStartupService {
         received.messageTimestamp = received.messageTimestamp?.toNumber();
       }
 
+      // if (received.message?.pollUpdateMessage) {
+      //   const creationMsgKey = received.message.pollUpdateMessage.pollCreationMessageKey;
+      //   const pollCreation = (await this.getMessage(
+      //     creationMsgKey,
+      //     true,
+      //   )) as proto.IWebMessageInfo;
+
+      //   if (pollCreation) {
+      //     const meIdNormalised = jidNormalizedUser(this.instance.wuid);
+      //     const pollCreatorJid = getKeyAuthor(creationMsgKey, meIdNormalised);
+      //     const voterJid = getKeyAuthor(received.key!, meIdNormalised);
+      //     const pollEncKey = pollCreation.message?.messageContextInfo?.messageSecret;
+      //     // const voteMsg = decryptPollVote(received.message.pollUpdateMessage.vote, {
+      //     //   pollEncKey,
+      //     //   pollCreatorJid,
+      //     //   pollMsgId: creationMsgKey.id,
+      //     //   voterJid,
+      //     // });
+      //     // console.log('voteMsg: ', voteMsg);
+      //     // console.log(
+      //     //   pollEncKey,
+      //     //   received.message?.pollUpdateMessage.vote.encPayload,
+      //     //   received.message?.pollUpdateMessage.vote.encIv,
+      //     //   pollCreatorJid,
+      //     //   pollCreation.key.id,
+      //     //   voterJid,
+      //     // );
+      //     const hash = await PollUpdateDecrypt.decrypt(
+      //       pollEncKey, // from PollCreationMessage, HAS to be Uint8Array
+      //       received.message?.pollUpdateMessage.vote.encPayload, // from PollUpdateMessage, HAS to be Uint8Array
+      //       received.message?.pollUpdateMessage.vote.encIv, // from PollUpdateMessage, HAS to be Uint8Array
+      //       pollCreatorJid, // PollCreationMessage sender jid (author)
+      //       pollCreation.key.id, // Message ID of the PollCreationMessage (can be gotten via the store & pollCreationMessageKey property on the update)
+      //       voterJid, // PollUpdateMessage sender jid (author) \\ from above
+      //     );
+      //     const opt = pollCreation.message?.pollCreationMessage?.options.map(
+      //       (o) => o.optionName,
+      //     );
+      //     const option = await PollUpdateDecrypt.compare(opt, hash);
+      //     console.log('option: ', option);
+      //   }
+      // }
+
       const messageRaw: MessageRaw = {
         key: received.key,
         pushName: received.pushName,
@@ -732,6 +783,7 @@ export class WAStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
+      console.log('messages.update args: ', args);
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
         1: 'PENDING',
@@ -742,6 +794,18 @@ export class WAStartupService {
       };
       for await (const { key, update } of args) {
         if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
+          if (update.pollUpdates) {
+            const pollCreation = await this.getMessage(key);
+            console.log('pollCreation: ', pollCreation);
+            if (pollCreation) {
+              const pollMessage = getAggregateVotesInPollMessage({
+                message: pollCreation as proto.IMessage,
+                pollUpdates: update.pollUpdates,
+              });
+              console.log('pollMessage: ', pollMessage);
+            }
+          }
+
           const message: MessageUpdateRaw = {
             ...key,
             status: status[update.status],

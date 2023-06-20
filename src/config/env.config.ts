@@ -29,8 +29,16 @@ export type SaveData = {
 };
 
 export type StoreConf = {
+  MESSAGES: boolean;
+  MESSAGE_UP: boolean;
+  CONTACTS: boolean;
+  CHATS: boolean;
+};
+
+export type CleanStoreConf = {
   CLEANING_INTERVAL: number;
   MESSAGES: boolean;
+  MESSAGE_UP: boolean;
   CONTACTS: boolean;
   CHATS: boolean;
 };
@@ -107,6 +115,7 @@ export interface Env {
   CORS: Cors;
   SSL_CONF: SslConf;
   STORE: StoreConf;
+  CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
   REDIS: Redis;
   LOG: Log;
@@ -160,12 +169,19 @@ export class ConfigService {
         FULLCHAIN: process.env?.SSL_CONF_FULLCHAIN,
       },
       STORE: {
-        CLEANING_INTERVAL: Number.isInteger(process.env?.STORE_CLEANING_TERMINAL)
-          ? Number.parseInt(process.env.STORE_CLEANING_TERMINAL)
-          : undefined,
-        MESSAGES: process.env?.STORE_MESSAGE === 'true',
+        MESSAGES: process.env?.STORE_MESSAGES === 'true',
+        MESSAGE_UP: process.env?.STORE_MESSAGE_UP === 'true',
         CONTACTS: process.env?.STORE_CONTACTS === 'true',
         CHATS: process.env?.STORE_CHATS === 'true',
+      },
+      CLEAN_STORE: {
+        CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_TERMINAL)
+          ? Number.parseInt(process.env.CLEAN_STORE_CLEANING_TERMINAL)
+          : undefined,
+        MESSAGES: process.env?.CLEAN_STORE_MESSAGES === 'true',
+        MESSAGE_UP: process.env?.CLEAN_STORE_MESSAGE_UP === 'true',
+        CONTACTS: process.env?.CLEAN_STORE_CONTACTS === 'true',
+        CHATS: process.env?.CLEAN_STORE_CHATS === 'true',
       },
       DATABASE: {
         CONNECTION: {
