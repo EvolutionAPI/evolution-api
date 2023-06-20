@@ -23,6 +23,7 @@
 * fix error after logout and try to get status or to connect again
 * fix sending narrated audio on whatsapp android and ios
 * fixed the problem of not disabling the global webhook by the variable
+* Adjustment in the recording of temporary files and periodic cleaning
 
 # 1.0.9 (2023-06-10)
 
