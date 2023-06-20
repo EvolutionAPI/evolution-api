@@ -222,9 +222,10 @@ export class WAMonitoringService {
           }
 
           await set(dirent.name);
+        } else {
+          initInstance();
         }
       }
-      initInstance();
     } catch (error) {
       this.logger.error(error);
     }

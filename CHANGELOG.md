@@ -25,6 +25,7 @@
 * fix sending narrated audio on whatsapp android and ios
 * fixed the problem of not disabling the global webhook by the variable
 * Adjustment in the recording of temporary files and periodic cleaning
+* Fix for container mode also work only with files
 
 # 1.0.9 (2023-06-10)
 
