@@ -33,5 +33,3 @@ lerna-debug.log*
 !/instances/.gitkeep
 /test/
 /src/env.yml
-
-/temp/*
