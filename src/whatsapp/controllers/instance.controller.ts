@@ -23,7 +23,13 @@ export class InstanceController {
 
   private readonly logger = new Logger(InstanceController.name);
 
-  public async createInstance({ instanceName, webhook, events, qrcode }: InstanceDto) {
+  public async createInstance({
+    instanceName,
+    webhook,
+    events,
+    qrcode,
+    token,
+  }: InstanceDto) {
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
     if (mode === 'container') {
@@ -43,9 +49,12 @@ export class InstanceController {
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
-      const hash = await this.authService.generateHash({
-        instanceName: instance.instanceName,
-      });
+      const hash = await this.authService.generateHash(
+        {
+          instanceName: instance.instanceName,
+        },
+        token,
+      );
 
       let getEvents: string[];
 
@@ -78,9 +87,12 @@ export class InstanceController {
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
-      const hash = await this.authService.generateHash({
-        instanceName: instance.instanceName,
-      });
+      const hash = await this.authService.generateHash(
+        {
+          instanceName: instance.instanceName,
+        },
+        token,
+      );
 
       let getEvents: string[];
 

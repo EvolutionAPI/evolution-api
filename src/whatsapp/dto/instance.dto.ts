@@ -3,4 +3,5 @@ export class InstanceDto {
   webhook?: string;
   events?: string[];
   qrcode?: boolean;
+  token?: string;
 }
