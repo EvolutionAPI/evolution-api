@@ -36,10 +36,10 @@ services:
       - DATABASE_CONNECTION_URI=mongodb://root:root@mongodb:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
       - DATABASE_CONNECTION_DB_PREFIX_NAME=evolution
       # Choose the data you want to save in the application's database or store
-      - DATABASE_SAVE_DATA_INSTANCE=false
+      - DATABASE_SAVE_DATA_INSTANCE=true
       - DATABASE_SAVE_DATA_OLD_MESSAGE=false
       - DATABASE_SAVE_DATA_NEW_MESSAGE=true
-      - DATABASE_SAVE_MESSAGE_UPDATE=false
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
       - REDIS_ENABLED=true

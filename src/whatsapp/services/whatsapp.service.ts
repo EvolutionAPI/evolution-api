@@ -29,12 +29,7 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
-  WAMessageKey,
-  WAMessageContent,
   getAggregateVotesInPollMessage,
-  jidNormalizedUser,
-  getKeyAuthor,
-  decryptPollVote,
 } from '@evolution/base';
 import {
   Auth,
@@ -44,10 +39,8 @@ import {
   Database,
   QrCode,
   Redis,
-  StoreConf,
   Webhook,
 } from '../../config/env.config';
-import { PollUpdateDecrypt } from '../../utils/poll-update-decrypt-message';
 import fs from 'fs';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
@@ -119,7 +112,6 @@ import { WebhookRaw } from '../models/webhook.model';
 import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
-import { promisify } from 'util';
 import sharp from 'sharp';
 
 export class WAStartupService {
@@ -726,49 +718,6 @@ export class WAStartupService {
         received.messageTimestamp = received.messageTimestamp?.toNumber();
       }
 
-      // if (received.message?.pollUpdateMessage) {
-      //   const creationMsgKey = received.message.pollUpdateMessage.pollCreationMessageKey;
-      //   const pollCreation = (await this.getMessage(
-      //     creationMsgKey,
-      //     true,
-      //   )) as proto.IWebMessageInfo;
-
-      //   if (pollCreation) {
-      //     const meIdNormalised = jidNormalizedUser(this.instance.wuid);
-      //     const pollCreatorJid = getKeyAuthor(creationMsgKey, meIdNormalised);
-      //     const voterJid = getKeyAuthor(received.key!, meIdNormalised);
-      //     const pollEncKey = pollCreation.message?.messageContextInfo?.messageSecret;
-      //     // const voteMsg = decryptPollVote(received.message.pollUpdateMessage.vote, {
-      //     //   pollEncKey,
-      //     //   pollCreatorJid,
-      //     //   pollMsgId: creationMsgKey.id,
-      //     //   voterJid,
-      //     // });
-      //     // console.log('voteMsg: ', voteMsg);
-      //     // console.log(
-      //     //   pollEncKey,
-      //     //   received.message?.pollUpdateMessage.vote.encPayload,
-      //     //   received.message?.pollUpdateMessage.vote.encIv,
-      //     //   pollCreatorJid,
-      //     //   pollCreation.key.id,
-      //     //   voterJid,
-      //     // );
-      //     const hash = await PollUpdateDecrypt.decrypt(
-      //       pollEncKey, // from PollCreationMessage, HAS to be Uint8Array
-      //       received.message?.pollUpdateMessage.vote.encPayload, // from PollUpdateMessage, HAS to be Uint8Array
-      //       received.message?.pollUpdateMessage.vote.encIv, // from PollUpdateMessage, HAS to be Uint8Array
-      //       pollCreatorJid, // PollCreationMessage sender jid (author)
-      //       pollCreation.key.id, // Message ID of the PollCreationMessage (can be gotten via the store & pollCreationMessageKey property on the update)
-      //       voterJid, // PollUpdateMessage sender jid (author) \\ from above
-      //     );
-      //     const opt = pollCreation.message?.pollCreationMessage?.options.map(
-      //       (o) => o.optionName,
-      //     );
-      //     const option = await PollUpdateDecrypt.compare(opt, hash);
-      //     console.log('option: ', option);
-      //   }
-      // }
-
       const messageRaw: MessageRaw = {
         key: received.key,
         pushName: received.pushName,
@@ -1218,6 +1167,7 @@ export class WAStartupService {
         imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
         await sharp(imageBuffer).toFile(imagePath);
       }
+
       await sharp(imagePath).webp().toFile(outputPath);
 
       return outputPath;
