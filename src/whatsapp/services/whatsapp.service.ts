@@ -1152,8 +1152,8 @@ export class WAStartupService {
       const response = await axios.get(audio, { responseType: 'arraybuffer' });
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
-      outputAudio = `${join(process.cwd(), 'temp', 'audio.opus')}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', 'audio.mp3')}`;
+      outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', 'audioTemp.mp3')}`;
 
       const audioBuffer = Buffer.from(audio, 'base64');
       fs.writeFileSync(tempAudioPath, audioBuffer);
