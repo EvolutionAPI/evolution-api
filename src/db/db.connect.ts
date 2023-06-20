@@ -4,7 +4,7 @@ import { Logger } from '../config/logger.config';
 
 const logger = new Logger('Db Connection');
 
-export const db = configService.get<Database>('DATABASE');
+const db = configService.get<Database>('DATABASE');
 export const dbserver = db.ENABLED
   ? mongoose.createConnection(db.CONNECTION.URI, {
       dbName: db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api',

@@ -1146,8 +1146,8 @@ export class WAStartupService {
     let outputAudio: string;
 
     if (isURL(audio)) {
-      outputAudio = `${join(process.cwd(), 'temp', 'audio.opus')}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', 'audio.mp3')}`;
+      outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', 'audioTemp.mp3')}`;
 
       const response = await axios.get(audio, { responseType: 'arraybuffer' });
       fs.writeFileSync(tempAudioPath, response.data);
@@ -1161,7 +1161,8 @@ export class WAStartupService {
 
     return new Promise((resolve, reject) => {
       exec(
-        `${ffmpegPath.path} -i ${tempAudioPath} -c:a libopus ${outputAudio} -y`,
+        // `${ffmpegPath.path} -i ${tempAudioPath} -c:a libopus ${outputAudio} -y`,
+        `${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`,
         (error, _stdout, _stderr) => {
           fs.unlinkSync(tempAudioPath);
           if (error) reject(error);
@@ -1179,11 +1180,9 @@ export class WAStartupService {
         data.number,
         {
           audio: Buffer.from(audio, 'base64'),
-          // audio: isURL(data.audioMessage.audio)
-          //   ? { url: data.audioMessage.audio }
-          //   : Buffer.from(data.audioMessage.audio, 'base64'),
           ptt: true,
-          mimetype: 'audio/ogg; codecs=opus',
+          // mimetype: 'audio/ogg; codecs=opus',
+          mimetype: 'audio/mp4',
         },
         { presence: 'recording', delay: data?.options?.delay },
       );

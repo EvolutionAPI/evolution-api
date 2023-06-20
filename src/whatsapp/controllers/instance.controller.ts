@@ -118,7 +118,7 @@ export class InstanceController {
   public async connectToWhatsapp({ instanceName }: InstanceDto) {
     try {
       const instance = this.waMonitor.waInstances[instanceName];
-      const state = instance?.connectionStatus?.state ?? null;
+      const state = instance?.connectionStatus?.state;
 
       switch (state) {
         case 'close':
@@ -131,7 +131,7 @@ export class InstanceController {
           return await this.connectionState({ instanceName });
       }
     } catch (error) {
-      this.logger.log(error);
+      this.logger.error(error);
     }
   }
 
