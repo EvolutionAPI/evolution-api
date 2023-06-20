@@ -11,6 +11,7 @@ import {
   SendMediaDto,
   SendPollDto,
   SendReactionDto,
+  SendStickerDto,
   SendTextDto,
 } from '../dto/sendMessage.dto';
 import { WAMonitoringService } from '../services/monitor.service';
@@ -28,6 +29,13 @@ export class SendMessageController {
     }
     if (isURL(data?.mediaMessage?.media) || isBase64(data?.mediaMessage?.media)) {
       return await this.waMonitor.waInstances[instanceName].mediaMessage(data);
+    }
+    throw new BadRequestException('Owned media must be a url or base64');
+  }
+
+  public async sendSticker({ instanceName }: InstanceDto, data: SendStickerDto) {
+    if (isURL(data.stickerMessage.image) || isBase64(data.stickerMessage.image)) {
+      return await this.waMonitor.waInstances[instanceName].mediaSticker(data);
     }
     throw new BadRequestException('Owned media must be a url or base64');
   }

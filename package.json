@@ -67,6 +67,7 @@
     "qrcode": "^1.5.1",
     "qrcode-terminal": "^0.12.0",
     "redis": "^4.6.5",
+    "sharp": "^0.30.7",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

@@ -9,6 +9,7 @@ import {
   mediaMessageSchema,
   pollMessageSchema,
   reactionMessageSchema,
+  stickerMessageSchema,
   textMessageSchema,
 } from '../../validate/validate.schema';
 import {
@@ -21,6 +22,7 @@ import {
   SendMediaDto,
   SendPollDto,
   SendReactionDto,
+  SendStickerDto,
   SendTextDto,
 } from '../dto/sendMessage.dto';
 import { sendMessageController } from '../whatsapp.module';
@@ -129,6 +131,16 @@ export class MessageRouter extends RouterBroker {
           ClassRef: SendLinkPreviewDto,
           execute: (instance, data) =>
             sendMessageController.sendLinkPreview(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('sendSticker'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<SendStickerDto>({
+          request: req,
+          schema: stickerMessageSchema,
+          ClassRef: SendStickerDto,
+          execute: (instance, data) => sendMessageController.sendSticker(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

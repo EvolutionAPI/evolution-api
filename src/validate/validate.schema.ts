@@ -210,6 +210,24 @@ export const mediaMessageSchema: JSONSchema7 = {
   required: ['mediaMessage', 'number'],
 };
 
+export const stickerMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    options: { ...optionsSchema },
+    stickerMessage: {
+      type: 'object',
+      properties: {
+        image: { type: 'string' },
+      },
+      required: ['image'],
+      ...isNotEmpty('image'),
+    },
+  },
+  required: ['stickerMessage', 'number'],
+};
+
 export const audioMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

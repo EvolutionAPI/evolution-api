@@ -62,6 +62,12 @@ export class MediaMessage {
 export class SendMediaDto extends Metadata {
   mediaMessage: MediaMessage;
 }
+class Sticker {
+  image: string;
+}
+export class SendStickerDto extends Metadata {
+  stickerMessage: Sticker;
+}
 
 class Audio {
   audio: string;

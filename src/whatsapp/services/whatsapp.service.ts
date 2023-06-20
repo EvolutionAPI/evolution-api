@@ -83,6 +83,7 @@ import {
   SendTextDto,
   SendPollDto,
   SendLinkPreviewDto,
+  SendStickerDto,
 } from '../dto/sendMessage.dto';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import {
@@ -118,6 +119,8 @@ import { WebhookRaw } from '../models/webhook.model';
 import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
+import { promisify } from 'util';
+import sharp from 'sharp';
 
 export class WAStartupService {
   constructor(
@@ -783,7 +786,6 @@ export class WAStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
-      console.log('messages.update args: ', args);
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
         1: 'PENDING',
@@ -1050,7 +1052,12 @@ export class WAStartupService {
           quoted,
         };
 
-        if (!message['audio'] && !message['poll'] && !message['linkPreview']) {
+        if (
+          !message['audio'] &&
+          !message['poll'] &&
+          !message['linkPreview'] &&
+          !message['sticker']
+        ) {
           if (!message['audio']) {
             return await this.client.sendMessage(
               sender,
@@ -1193,6 +1200,41 @@ export class WAStartupService {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString() || error);
     }
+  }
+
+  private async convertToWebP(image: string) {
+    try {
+      let imagePath: string;
+      const outputPath = `${join(process.cwd(), 'temp', 'sticker.webp')}`;
+
+      if (isBase64(image)) {
+        const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
+        await sharp(imageBuffer).toFile(imagePath);
+      } else {
+        const response = await axios.get(image, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(response.data, 'binary');
+        imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
+        await sharp(imageBuffer).toFile(imagePath);
+      }
+      await sharp(imagePath).webp().toFile(outputPath);
+
+      return outputPath;
+    } catch (error) {
+      console.error('Erro ao converter a imagem para WebP:', error);
+    }
+  }
+
+  public async mediaSticker(data: SendStickerDto) {
+    const convert = await this.convertToWebP(data.stickerMessage.image);
+    return await this.sendMessageWithTyping(
+      data.number,
+      {
+        sticker: { url: convert },
+      },
+      data?.options,
+    );
   }
 
   public async mediaMessage(data: SendMediaDto) {
