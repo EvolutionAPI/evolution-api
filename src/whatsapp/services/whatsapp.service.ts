@@ -234,14 +234,14 @@ export class WAStartupService {
           baseURL = this.localWebhook.url;
         }
 
-        // this.logger.log({
-        //   local: WAStartupService.name + '.sendDataWebhook-local',
-        //   url: baseURL,
-        //   event,
-        //   instance: this.instance.name,
-        //   data,
-        //   destination: this.localWebhook.url,
-        // });
+        this.logger.log({
+          local: WAStartupService.name + '.sendDataWebhook-local',
+          url: baseURL,
+          event,
+          instance: this.instance.name,
+          data,
+          destination: this.localWebhook.url,
+        });
 
         try {
           if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
@@ -289,14 +289,14 @@ export class WAStartupService {
           localUrl = this.localWebhook.url;
         }
 
-        // this.logger.log({
-        //   local: WAStartupService.name + '.sendDataWebhook-global',
-        //   url: globalURL,
-        //   event,
-        //   instance: this.instance.name,
-        //   data,
-        //   destination: localUrl,
-        // });
+        this.logger.log({
+          local: WAStartupService.name + '.sendDataWebhook-global',
+          url: globalURL,
+          event,
+          instance: this.instance.name,
+          data,
+          destination: localUrl,
+        });
 
         try {
           if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
