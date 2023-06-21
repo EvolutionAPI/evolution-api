@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { INSTANCE_DIR } from '../../config/path.config';
-import { db, dbserver } from '../../db/db.connect';
+import { dbserver } from '../../db/db.connect';
 import {
   BadRequestException,
   ForbiddenException,
@@ -10,9 +10,20 @@ import {
 } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { waMonitor } from '../whatsapp.module';
+import { Database, Redis, configService } from '../../config/env.config';
+import { RedisCache } from '../../db/redis.client';
 
 async function getInstance(instanceName: string) {
-  const exists = waMonitor.waInstances[instanceName];
+  const db = configService.get<Database>('DATABASE');
+  const redisConf = configService.get<Redis>('REDIS');
+
+  const exists = !!waMonitor.waInstances[instanceName];
+
+  if (redisConf.ENABLED) {
+    const cache = new RedisCache(redisConf, instanceName);
+    const keyExists = await cache.keyExists();
+    return exists || keyExists;
+  }
 
   if (db.ENABLED) {
     const collection = dbserver

@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { join } from 'path';
 import { SRC_DIR } from './path.config';
+import { isBooleanString } from 'class-validator';
 
 export type HttpServer = { TYPE: 'http' | 'https'; PORT: number };
 
@@ -28,8 +29,16 @@ export type SaveData = {
 };
 
 export type StoreConf = {
+  MESSAGES: boolean;
+  MESSAGE_UP: boolean;
+  CONTACTS: boolean;
+  CHATS: boolean;
+};
+
+export type CleanStoreConf = {
   CLEANING_INTERVAL: number;
   MESSAGES: boolean;
+  MESSAGE_UP: boolean;
   CONTACTS: boolean;
   CHATS: boolean;
 };
@@ -82,6 +91,7 @@ export type Instance = {
 };
 export type Auth = {
   API_KEY: ApiKey;
+  EXPOSE_IN_FETCH_INSTANCES: boolean;
   JWT: Jwt;
   TYPE: 'jwt' | 'apikey';
   INSTANCE: Instance;
@@ -105,6 +115,7 @@ export interface Env {
   CORS: Cors;
   SSL_CONF: SslConf;
   STORE: StoreConf;
+  CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
   REDIS: Redis;
   LOG: Log;
@@ -134,7 +145,7 @@ export class ConfigService {
     this.env.PRODUCTION = process.env?.NODE_ENV === 'PROD';
     if (process.env?.DOCKER_ENV === 'true') {
       this.env.SERVER.TYPE = 'http';
-      this.env.SERVER.PORT = Number.parseInt(process.env?.SERVER_PORT ?? '8080');
+      this.env.SERVER.PORT = 8080;
     }
   }
 
@@ -158,12 +169,19 @@ export class ConfigService {
         FULLCHAIN: process.env?.SSL_CONF_FULLCHAIN,
       },
       STORE: {
-        CLEANING_INTERVAL: Number.isInteger(process.env?.STORE_CLEANING_TERMINAL)
-          ? Number.parseInt(process.env.STORE_CLEANING_TERMINAL)
-          : undefined,
-        MESSAGES: process.env?.STORE_MESSAGE === 'true',
+        MESSAGES: process.env?.STORE_MESSAGES === 'true',
+        MESSAGE_UP: process.env?.STORE_MESSAGE_UP === 'true',
         CONTACTS: process.env?.STORE_CONTACTS === 'true',
         CHATS: process.env?.STORE_CHATS === 'true',
+      },
+      CLEAN_STORE: {
+        CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_TERMINAL)
+          ? Number.parseInt(process.env.CLEAN_STORE_CLEANING_TERMINAL)
+          : undefined,
+        MESSAGES: process.env?.CLEAN_STORE_MESSAGES === 'true',
+        MESSAGE_UP: process.env?.CLEAN_STORE_MESSAGE_UP === 'true',
+        CONTACTS: process.env?.CLEAN_STORE_CONTACTS === 'true',
+        CHATS: process.env?.CLEAN_STORE_CHATS === 'true',
       },
       DATABASE: {
         CONNECTION: {
@@ -189,10 +207,9 @@ export class ConfigService {
         LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],
         COLOR: process.env?.LOG_COLOR === 'true',
       },
-      DEL_INSTANCE:
-        typeof process.env?.DEL_INSTANCE === 'boolean'
-          ? process.env.DEL_INSTANCE === 'true'
-          : Number.parseInt(process.env.DEL_INSTANCE),
+      DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
+        ? process.env.DEL_INSTANCE === 'true'
+        : Number.parseInt(process.env.DEL_INSTANCE),
       WEBHOOK: {
         GLOBAL: {
           URL: process.env?.WEBHOOK_GLOBAL_URL,
@@ -234,6 +251,8 @@ export class ConfigService {
         API_KEY: {
           KEY: process.env.AUTHENTICATION_API_KEY,
         },
+        EXPOSE_IN_FETCH_INSTANCES:
+          process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
         JWT: {
           EXPIRIN_IN: Number.isInteger(process.env?.AUTHENTICATION_JWT_EXPIRIN_IN)
             ? Number.parseInt(process.env.AUTHENTICATION_JWT_EXPIRIN_IN)

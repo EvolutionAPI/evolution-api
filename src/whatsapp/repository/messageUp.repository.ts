@@ -1,4 +1,4 @@
-import { ConfigService } from '../../config/env.config';
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { IMessageUpModel, MessageUpdateRaw } from '../models';
 import { IInsert, Repository } from '../abstract/abstract.repository';
 import { join } from 'path';
@@ -28,13 +28,21 @@ export class MessageUpRepository extends Repository {
         return { insertCount: insert.length };
       }
 
-      data.forEach((update) => {
-        this.writeStore<MessageUpdateRaw>({
-          path: join(this.storePath, 'message-up', update.owner),
-          fileName: update.id,
-          data: update,
+      const store = this.configService.get<StoreConf>('STORE');
+
+      if (store.MESSAGE_UP) {
+        data.forEach((update) => {
+          this.writeStore<MessageUpdateRaw>({
+            path: join(this.storePath, 'message-up', update.owner),
+            fileName: update.id,
+            data: update,
+          });
         });
-      });
+
+        return { insertCount: data.length };
+      }
+
+      return { insertCount: 0 };
     } catch (error) {
       return error;
     }

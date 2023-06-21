@@ -29,17 +29,19 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
+  getAggregateVotesInPollMessage,
 } from '@evolution/base';
 import {
   Auth,
+  CleanStoreConf,
   ConfigService,
   ConfigSessionPhone,
   Database,
   QrCode,
   Redis,
-  StoreConf,
   Webhook,
 } from '../../config/env.config';
+import fs from 'fs';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
 import { existsSync, readFileSync } from 'fs';
@@ -53,7 +55,8 @@ import { Boom } from '@hapi/boom';
 import EventEmitter2 from 'eventemitter2';
 import { release } from 'os';
 import P from 'pino';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
+import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
 import { ContactRaw } from '../models/contact.model';
@@ -73,12 +76,14 @@ import {
   SendTextDto,
   SendPollDto,
   SendLinkPreviewDto,
+  SendStickerDto,
 } from '../dto/sendMessage.dto';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import {
   ArchiveChatDto,
   DeleteMessage,
   OnWhatsAppDto,
+  PrivacySettingDto,
   ReadMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
@@ -97,6 +102,8 @@ import {
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
   GroupToggleEphemeralDto,
+  GroupSubjectDto,
+  GroupDescriptionDto,
 } from '../dto/group.dto';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
@@ -105,6 +112,7 @@ import { WebhookRaw } from '../models/webhook.model';
 import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
+import sharp from 'sharp';
 
 export class WAStartupService {
   constructor(
@@ -195,6 +203,7 @@ export class WAStartupService {
     const data = await this.repository.webhook.find(this.instanceName);
     this.localWebhook.url = data?.url;
     this.localWebhook.enabled = data?.enabled;
+    this.localWebhook.events = data?.events;
   }
 
   public async setWebhook(data: WebhookRaw) {
@@ -207,14 +216,16 @@ export class WAStartupService {
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
-    const webhook = this.configService.get<Webhook>('WEBHOOK');
+    const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
+    const webhookLocal = this.localWebhook.events;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
 
-    if (webhook.EVENTS[we]) {
+    if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
       if (local && instance.MODE !== 'container') {
         const { WEBHOOK_BY_EVENTS } = instance;
+
         let baseURL;
 
         if (WEBHOOK_BY_EVENTS) {
@@ -222,6 +233,16 @@ export class WAStartupService {
         } else {
           baseURL = this.localWebhook.url;
         }
+
+        this.logger.log({
+          local: WAStartupService.name + '.sendDataWebhook-local',
+          url: baseURL,
+          event,
+          instance: this.instance.name,
+          data,
+          destination: this.localWebhook.url,
+        });
+
         try {
           if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
             const httpService = axios.create({ baseURL });
@@ -246,52 +267,60 @@ export class WAStartupService {
           });
         }
       }
-      const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
-      let globalURL;
+    }
 
-      if (webhook.GLOBAL.WEBHOOK_BY_EVENTS) {
-        globalURL = `${globalWebhook.URL}/${transformedWe}`;
-      } else {
-        globalURL = globalWebhook.URL;
-      }
+    if (webhookGlobal.GLOBAL?.ENABLED) {
+      if (webhookGlobal.EVENTS[we]) {
+        const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
 
-      let localUrl;
+        let globalURL;
 
-      if (instance.MODE === 'container') {
-        localUrl = instance.WEBHOOK_URL;
-      } else {
-        localUrl = this.localWebhook.url;
-      }
+        if (webhookGlobal.GLOBAL.WEBHOOK_BY_EVENTS) {
+          globalURL = `${globalWebhook.URL}/${transformedWe}`;
+        } else {
+          globalURL = globalWebhook.URL;
+        }
 
-      this.logger.log({
-        url: globalURL,
-        event,
-        instance: this.instance.name,
-        data,
-        destination: localUrl,
-      });
-      try {
-        if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
-          const httpService = axios.create({ baseURL: globalURL });
-          await httpService.post('', {
-            event,
-            instance: this.instance.name,
-            data,
-            destination: localUrl,
+        let localUrl;
+
+        if (instance.MODE === 'container') {
+          localUrl = instance.WEBHOOK_URL;
+        } else {
+          localUrl = this.localWebhook.url;
+        }
+
+        this.logger.log({
+          local: WAStartupService.name + '.sendDataWebhook-global',
+          url: globalURL,
+          event,
+          instance: this.instance.name,
+          data,
+          destination: localUrl,
+        });
+
+        try {
+          if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
+            const httpService = axios.create({ baseURL: globalURL });
+            await httpService.post('', {
+              event,
+              instance: this.instance.name,
+              data,
+              destination: localUrl,
+            });
+          }
+        } catch (error) {
+          this.logger.error({
+            local: WAStartupService.name + '.sendDataWebhook-global',
+            message: error?.message,
+            hostName: error?.hostname,
+            syscall: error?.syscall,
+            code: error?.code,
+            error: error?.errno,
+            stack: error?.stack,
+            name: error?.name,
+            url: globalURL,
           });
         }
-      } catch (error) {
-        this.logger.error({
-          local: WAStartupService.name + '.sendDataWebhook-global',
-          message: error?.message,
-          hostName: error?.hostname,
-          syscall: error?.syscall,
-          code: error?.code,
-          error: error?.errno,
-          stack: error?.stack,
-          name: error?.name,
-          url: globalURL,
-        });
       }
     }
   }
@@ -411,24 +440,24 @@ export class WAStartupService {
   }
 
   private cleanStore() {
-    const store = this.configService.get<StoreConf>('STORE');
+    const cleanStore = this.configService.get<CleanStoreConf>('CLEAN_STORE');
     const database = this.configService.get<Database>('DATABASE');
-    if (store?.CLEANING_INTERVAL && !database.ENABLED) {
+    if (cleanStore?.CLEANING_INTERVAL && !database.ENABLED) {
       setInterval(() => {
         try {
-          for (const [key, value] of Object.entries(store)) {
+          for (const [key, value] of Object.entries(cleanStore)) {
             if (value === true) {
               execSync(
                 `rm -rf ${join(
                   this.storePath,
-                  key.toLowerCase(),
+                  key.toLowerCase().replace('_', '-'),
                   this.instance.wuid,
                 )}/*.json`,
               );
             }
           }
         } catch (error) {}
-      }, (store?.CLEANING_INTERVAL ?? 3600) * 1000);
+      }, (cleanStore?.CLEANING_INTERVAL ?? 3600) * 1000);
     }
   }
 
@@ -455,7 +484,7 @@ export class WAStartupService {
 
       const { version } = await fetchLatestBaileysVersion();
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      const browser: WABrowserDescription = [session.CLIENT, 'Chrome', release()];
 
       const socketConfig: UserFacingSocketConfig = {
         auth: {
@@ -716,6 +745,18 @@ export class WAStartupService {
       };
       for await (const { key, update } of args) {
         if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
+          if (update.pollUpdates) {
+            const pollCreation = await this.getMessage(key);
+            console.log('pollCreation: ', pollCreation);
+            if (pollCreation) {
+              const pollMessage = getAggregateVotesInPollMessage({
+                message: pollCreation as proto.IMessage,
+                pollUpdates: update.pollUpdates,
+              });
+              console.log('pollMessage: ', pollMessage);
+            }
+          }
+
           const message: MessageUpdateRaw = {
             ...key,
             status: status[update.status],
@@ -960,7 +1001,12 @@ export class WAStartupService {
           quoted,
         };
 
-        if (!message['audio'] && !message['poll'] && !message['linkPreview']) {
+        if (
+          !message['audio'] &&
+          !message['poll'] &&
+          !message['linkPreview'] &&
+          !message['sticker']
+        ) {
           if (!message['audio']) {
             return await this.client.sendMessage(
               sender,
@@ -1105,6 +1151,42 @@ export class WAStartupService {
     }
   }
 
+  private async convertToWebP(image: string) {
+    try {
+      let imagePath: string;
+      const outputPath = `${join(process.cwd(), 'temp', 'sticker.webp')}`;
+
+      if (isBase64(image)) {
+        const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
+        await sharp(imageBuffer).toFile(imagePath);
+      } else {
+        const response = await axios.get(image, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(response.data, 'binary');
+        imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
+        await sharp(imageBuffer).toFile(imagePath);
+      }
+
+      await sharp(imagePath).webp().toFile(outputPath);
+
+      return outputPath;
+    } catch (error) {
+      console.error('Erro ao converter a imagem para WebP:', error);
+    }
+  }
+
+  public async mediaSticker(data: SendStickerDto) {
+    const convert = await this.convertToWebP(data.stickerMessage.image);
+    return await this.sendMessageWithTyping(
+      data.number,
+      {
+        sticker: { url: convert },
+      },
+      data?.options,
+    );
+  }
+
   public async mediaMessage(data: SendMediaDto) {
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
@@ -1115,18 +1197,54 @@ export class WAStartupService {
     );
   }
 
+  private async processAudio(audio: string) {
+    let tempAudioPath: string;
+    let outputAudio: string;
+
+    if (isURL(audio)) {
+      outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', 'audioTemp.mp3')}`;
+
+      const response = await axios.get(audio, { responseType: 'arraybuffer' });
+      fs.writeFileSync(tempAudioPath, response.data);
+    } else {
+      outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', 'audioTemp.mp3')}`;
+
+      const audioBuffer = Buffer.from(audio, 'base64');
+      fs.writeFileSync(tempAudioPath, audioBuffer);
+    }
+
+    return new Promise((resolve, reject) => {
+      exec(
+        // `${ffmpegPath.path} -i ${tempAudioPath} -c:a libopus ${outputAudio} -y`,
+        `${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`,
+        (error, _stdout, _stderr) => {
+          fs.unlinkSync(tempAudioPath);
+          if (error) reject(error);
+          resolve(outputAudio);
+        },
+      );
+    });
+  }
+
   public async audioWhatsapp(data: SendAudioDto) {
-    return this.sendMessageWithTyping<AnyMessageContent>(
-      data.number,
-      {
-        audio: isURL(data.audioMessage.audio)
-          ? { url: data.audioMessage.audio }
-          : Buffer.from(data.audioMessage.audio, 'base64'),
-        ptt: true,
-        mimetype: 'audio/ogg; codecs=opus',
-      },
-      { presence: 'recording', delay: data?.options?.delay },
-    );
+    const convert = await this.processAudio(data.audioMessage.audio);
+    if (typeof convert === 'string') {
+      const audio = fs.readFileSync(convert).toString('base64');
+      return this.sendMessageWithTyping<AnyMessageContent>(
+        data.number,
+        {
+          audio: Buffer.from(audio, 'base64'),
+          ptt: true,
+          // mimetype: 'audio/ogg; codecs=opus',
+          mimetype: 'audio/mp4',
+        },
+        { presence: 'recording', delay: data?.options?.delay },
+      );
+    } else {
+      throw new InternalServerErrorException(convert);
+    }
   }
 
   public async buttonMessage(data: SendButtonDto) {
@@ -1442,7 +1560,31 @@ export class WAStartupService {
     return await this.repository.chat.find({ where: { owner: this.instance.wuid } });
   }
 
-  public async getBusinessProfile(number: string) {
+  public async fetchPrivacySettings() {
+    return await this.client.fetchPrivacySettings();
+  }
+
+  public async updatePrivacySettings(settings: PrivacySettingDto) {
+    try {
+      await this.client.updateReadReceiptsPrivacy(settings.privacySettings.readreceipts);
+      await this.client.updateProfilePicturePrivacy(settings.privacySettings.profile);
+      await this.client.updateStatusPrivacy(settings.privacySettings.status);
+      await this.client.updateOnlinePrivacy(settings.privacySettings.online);
+      await this.client.updateLastSeenPrivacy(settings.privacySettings.last);
+      await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
+
+      // reinicia a instancia
+
+      return { update: 'success', data: await this.client.fetchPrivacySettings() };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating privacy settings',
+        error.toString(),
+      );
+    }
+  }
+
+  public async fetchBusinessProfile(number: string) {
     try {
       let jid;
 
@@ -1562,7 +1704,36 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException('Error creating group', error.toString());
+      throw new InternalServerErrorException(
+        'Error update group picture',
+        error.toString(),
+      );
+    }
+  }
+
+  public async updateGroupSubject(data: GroupSubjectDto) {
+    try {
+      await this.client.groupUpdateSubject(data.groupJid, data.subject);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating group subject',
+        error.toString(),
+      );
+    }
+  }
+
+  public async updateGroupDescription(data: GroupDescriptionDto) {
+    try {
+      await this.client.groupUpdateDescription(data.groupJid, data.description);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error updating group description',
+        error.toString(),
+      );
     }
   }
 
@@ -1573,6 +1744,14 @@ export class WAStartupService {
       if (reply === 'inner') {
         return;
       }
+      throw new NotFoundException('Error fetching group', error.toString());
+    }
+  }
+
+  public async fetchAllGroups() {
+    try {
+      return await this.client.groupFetchAllParticipating();
+    } catch (error) {
       throw new NotFoundException('Error fetching group', error.toString());
     }
   }
@@ -1589,6 +1768,14 @@ export class WAStartupService {
   public async inviteInfo(id: GroupInvite) {
     try {
       return await this.client.groupGetInviteInfo(id.inviteCode);
+    } catch (error) {
+      throw new NotFoundException('No invite info', id.inviteCode);
+    }
+  }
+
+  public async acceptInvite(id: GroupInvite) {
+    try {
+      return await this.client.groupAcceptInvite(id.inviteCode);
     } catch (error) {
       throw new NotFoundException('No invite info', id.inviteCode);
     }

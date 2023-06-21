@@ -27,6 +27,36 @@ export const instanceNameSchema: JSONSchema7 = {
   properties: {
     instanceName: { type: 'string' },
     webhook: { type: 'string' },
+    events: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'string',
+        enum: [
+          'APPLICATION_STARTUP',
+          'QRCODE_UPDATED',
+          'MESSAGES_SET',
+          'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'SEND_MESSAGE',
+          'CONTACTS_SET',
+          'CONTACTS_UPSERT',
+          'CONTACTS_UPDATE',
+          'PRESENCE_UPDATE',
+          'CHATS_SET',
+          'CHATS_UPSERT',
+          'CHATS_UPDATE',
+          'CHATS_DELETE',
+          'GROUPS_UPSERT',
+          'GROUP_UPDATE',
+          'GROUP_PARTICIPANTS_UPDATE',
+          'CONNECTION_UPDATE',
+          'NEW_JWT_TOKEN',
+        ],
+      },
+    },
+    qrcode: { type: 'boolean', enum: [true, false] },
+    token: { type: 'string' },
   },
   ...isNotEmpty('instanceName'),
 };
@@ -178,6 +208,24 @@ export const mediaMessageSchema: JSONSchema7 = {
     },
   },
   required: ['mediaMessage', 'number'],
+};
+
+export const stickerMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    options: { ...optionsSchema },
+    stickerMessage: {
+      type: 'object',
+      properties: {
+        image: { type: 'string' },
+      },
+      required: ['image'],
+      ...isNotEmpty('image'),
+    },
+  },
+  required: ['stickerMessage', 'number'],
 };
 
 export const audioMessageSchema: JSONSchema7 = {
@@ -406,6 +454,36 @@ export const readMessageSchema: JSONSchema7 = {
     },
   },
   required: ['readMessages'],
+};
+
+export const privacySettingsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    privacySettings: {
+      type: 'object',
+      properties: {
+        readreceipts: { type: 'string', enum: ['all', 'none'] },
+        profile: {
+          type: 'string',
+          enum: ['all', 'contacts', 'contact_blacklist', 'none'],
+        },
+        status: {
+          type: 'string',
+          enum: ['all', 'contacts', 'contact_blacklist', 'none'],
+        },
+        online: { type: 'string', enum: ['all', 'match_last_seen'] },
+        last: { type: 'string', enum: ['all', 'contacts', 'contact_blacklist', 'none'] },
+        groupadd: {
+          type: 'string',
+          enum: ['all', 'contacts', 'contact_blacklist', 'none'],
+        },
+      },
+      required: ['readreceipts', 'profile', 'status', 'online', 'last', 'groupadd'],
+      ...isNotEmpty('readreceipts', 'profile', 'status', 'online', 'last', 'groupadd'),
+    },
+  },
+  required: ['privacySettings'],
 };
 
 export const archiveChatSchema: JSONSchema7 = {
@@ -650,7 +728,7 @@ export const toggleEphemeralSchema: JSONSchema7 = {
   ...isNotEmpty('groupJid', 'expiration'),
 };
 
-export const updateGroupPicture: JSONSchema7 = {
+export const updateGroupPictureSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
@@ -661,6 +739,28 @@ export const updateGroupPicture: JSONSchema7 = {
   ...isNotEmpty('groupJid', 'image'),
 };
 
+export const updateGroupSubjectSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    groupJid: { type: 'string' },
+    subject: { type: 'string' },
+  },
+  required: ['groupJid', 'subject'],
+  ...isNotEmpty('groupJid', 'subject'),
+};
+
+export const updateGroupDescriptionSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    groupJid: { type: 'string' },
+    description: { type: 'string' },
+  },
+  required: ['groupJid', 'description'],
+  ...isNotEmpty('groupJid', 'description'),
+};
+
 // Webhook Schema
 export const webhookSchema: JSONSchema7 = {
   $id: v4(),
@@ -668,6 +768,34 @@ export const webhookSchema: JSONSchema7 = {
   properties: {
     url: { type: 'string' },
     enabled: { type: 'boolean', enum: [true, false] },
+    events: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'string',
+        enum: [
+          'APPLICATION_STARTUP',
+          'QRCODE_UPDATED',
+          'MESSAGES_SET',
+          'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'SEND_MESSAGE',
+          'CONTACTS_SET',
+          'CONTACTS_UPSERT',
+          'CONTACTS_UPDATE',
+          'PRESENCE_UPDATE',
+          'CHATS_SET',
+          'CHATS_UPSERT',
+          'CHATS_UPDATE',
+          'CHATS_DELETE',
+          'GROUPS_UPSERT',
+          'GROUP_UPDATE',
+          'GROUP_PARTICIPANTS_UPDATE',
+          'CONNECTION_UPDATE',
+          'NEW_JWT_TOKEN',
+        ],
+      },
+    },
   },
   required: ['url', 'enabled'],
   ...isNotEmpty('url'),

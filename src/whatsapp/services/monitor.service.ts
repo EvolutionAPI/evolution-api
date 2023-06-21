@@ -4,7 +4,13 @@ import { INSTANCE_DIR } from '../../config/path.config';
 import EventEmitter2 from 'eventemitter2';
 import { join } from 'path';
 import { Logger } from '../../config/logger.config';
-import { ConfigService, Database, DelInstance, Redis } from '../../config/env.config';
+import {
+  Auth,
+  ConfigService,
+  Database,
+  DelInstance,
+  Redis,
+} from '../../config/env.config';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { NotFoundException } from '../../exceptions';
 import { Db } from 'mongodb';
@@ -60,16 +66,56 @@ export class WAMonitoringService {
     const instances: any[] = [];
 
     for await (const [key, value] of Object.entries(this.waInstances)) {
-      if (value && value.connectionStatus.state === 'open') {
-        instances.push({
-          instance: {
-            instanceName: key,
-            owner: value.wuid,
-            profileName: (await value.getProfileName()) || 'not loaded',
-            profilePictureUrl: value.profilePictureUrl,
-            status: (await value.getProfileStatus()) || '',
-          },
-        });
+      if (value) {
+        if (value.connectionStatus.state === 'open') {
+          let apikey: string;
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            const tokenStore = await this.repository.auth.find(key);
+            apikey = tokenStore.apikey || 'Apikey not found';
+
+            instances.push({
+              instance: {
+                instanceName: key,
+                owner: value.wuid,
+                profileName: (await value.getProfileName()) || 'not loaded',
+                profilePictureUrl: value.profilePictureUrl,
+                status: (await value.getProfileStatus()) || '',
+                apikey,
+              },
+            });
+          } else {
+            instances.push({
+              instance: {
+                instanceName: key,
+                owner: value.wuid,
+                profileName: (await value.getProfileName()) || 'not loaded',
+                profilePictureUrl: value.profilePictureUrl,
+                status: (await value.getProfileStatus()) || '',
+              },
+            });
+          }
+        } else {
+          let apikey: string;
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            const tokenStore = await this.repository.auth.find(key);
+            apikey = tokenStore.apikey || 'Apikey not found';
+
+            instances.push({
+              instance: {
+                instanceName: key,
+                status: value.connectionStatus.state,
+                apikey,
+              },
+            });
+          } else {
+            instances.push({
+              instance: {
+                instanceName: key,
+                status: value.connectionStatus.state,
+              },
+            });
+          }
+        }
       }
     }
 
@@ -176,6 +222,8 @@ export class WAMonitoringService {
           }
 
           await set(dirent.name);
+        } else {
+          initInstance();
         }
       }
     } catch (error) {

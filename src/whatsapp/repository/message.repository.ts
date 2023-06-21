@@ -1,4 +1,4 @@
-import { ConfigService } from '../../config/env.config';
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { join } from 'path';
 import { IMessageModel, MessageRaw } from '../models';
 import { IInsert, Repository } from '../abstract/abstract.repository';
@@ -47,7 +47,9 @@ export class MessageRepository extends Repository {
         return { insertCount: insert.length };
       }
 
-      if (saveDb) {
+      const store = this.configService.get<StoreConf>('STORE');
+
+      if (store.MESSAGES) {
         data.forEach((msg) =>
           this.writeStore<MessageRaw>({
             path: join(this.storePath, 'messages', msg.owner),

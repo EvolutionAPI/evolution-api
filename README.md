@@ -1,22 +1,19 @@
 <h1 align="center">Evolution Api</h1>
-<!--
-</br>
-<hr style="height: 5px;background: #007500;margin: 20px 0;box-shadow: 0px 3px 5px 0px rgb(204 204 204);">-->
 
-<!-- <div align="center"> -->
+<div align="center">
 
-<!-- [![Telegram Group](https://img.shields.io/badge/Group-Telegram-%2333C1FF)](#)
-[![Whatsapp Group](https://img.shields.io/badge/Group-WhatsApp-%2322BC18)](#)
+<!-- [![Telegram Group](https://img.shields.io/badge/Group-Telegram-%2333C1FF)](#)-->
+<!-- [![Whatsapp Group](https://img.shields.io/badge/Group-WhatsApp-%2322BC18)](#)  -->
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](./LICENSE)
-[![Support](https://img.shields.io/badge/Buy%20me-coffe-orange)](https://app.picpay.com/user/davidsongomes1998) -->
+[![Support](https://img.shields.io/badge/Buy%20me-coffe-orange)](https://app.picpay.com/user/davidsongomes1998)
 
-<!-- </div> -->
+</div>
   
-<!-- <div align="center"><img src="./public/images/cover.png"></div>-> -->
+<div align="center"><img src="./public/images/cover.png"></div>
 
 ## WhatsApp-Api-NodeJs
 
-This project is based on the [CodeChat](https://github.com/code-chat-br/whatsapp-api). The original project is an implementation of [Baileys](https://github.com/adiwajshing/Baileys), serving as a Restful API service that controls WhatsApp functions.</br> 
+This project is based on the [CodeChat](https://github.com/code-chat-br/whatsapp-api). The original project is an implementation of [Baileys](https://github.com/WhiskeySockets/Baileys), serving as a Restful API service that controls WhatsApp functions.</br> 
 The code allows the creation of multiservice chats, service bots, or any other system that utilizes WhatsApp. The documentation provides instructions on how to set up and use the project, as well as additional information about its features and configuration options.
 
 ## Infrastructure
@@ -44,7 +41,7 @@ sudo usermod -aG docker ${USER}
 ### Nodejs installation
 
 ```sh
-nvm install 16.17.0
+nvm install 16.18.1
 ```
 
 ### pm2 installation
@@ -72,7 +69,7 @@ Using the database is optional.
 
 Cloning the Repository
 ```
-git clone https://github.com/code-chat-br/whatsapp-api.git
+git clone https://github.com/EvolutionAPI/evolution-api.git
 ```
 
 Go to the project directory and install all dependencies.</br>
@@ -91,7 +88,7 @@ npm run start
 npm run start:prod
 
 # pm2
-pm2 start 'npm run start:prod' --name ApiCodechat
+pm2 start 'npm run start:prod' --name ApiEvolution
 ```
 ## Authentication
 
@@ -121,7 +118,7 @@ Content-Type: application/json
 apikey: t8OOEeISKzpmc3jjcMqBWYSaJH2PIxns
 
 {
-  "instanceName": "codechat"
+  "instanceName": "evolution"
 }
 ```
 ##### cURL
@@ -131,7 +128,7 @@ curl --location --request POST 'http://localhost:8080/instance/create' \
 --header 'Content-Type: application/json' \
 --header 'apikey: t8OOEeISKzpmc3jjcMqBWYSaJH2PIxns' \
 --data-raw '{
-  "instanceName": "codechat"
+  "instanceName": "evolution"
 }'
 ```
 ### Response
@@ -139,7 +136,7 @@ curl --location --request POST 'http://localhost:8080/instance/create' \
 ```ts
 {
   "instance": {
-    "instanceName": "codechat",
+    "instanceName": "evolution",
     "status": "created"
   },
   "hash": {
@@ -155,23 +152,23 @@ curl --location --request POST 'http://localhost:8080/instance/create' \
 ##### HTTP
 
 ```http
-GET /instance/connect/codechat HTTP/1.1
+GET /instance/connect/evolution HTTP/1.1
 Host: localhost:8080
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9. [...]
 ```
 ```http
-GET /instance/connect/codechat HTTP/1.1
+GET /instance/connect/evolution HTTP/1.1
 Host: localhost:8080
 apikey: 88513847-1B0E-4188-8D76-4A2750C9B6C3
 ```
 ##### cURL
 
 ```bash
-curl --location --request GET 'http://localhost:8080/instance/connect/codechat' \
+curl --location --request GET 'http://localhost:8080/instance/connect/evolution' \
 --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9. [...]'
 ```
 ```bash
-curl --location --request GET 'http://localhost:8080/instance/connect/codechat' \
+curl --location --request GET 'http://localhost:8080/instance/connect/evolution' \
 --header 'apikey: 88513847-1B0E-4188-8D76-4A2750C9B6C3'
 ```
 
@@ -188,7 +185,7 @@ curl --location --request GET 'http://localhost:8080/instance/connect/codechat' 
   - [docker run](./docker.sh)
   - [docker-compose](./docker-compose.yml)
   - [env for docker](./Docker/.env)
-  - [DockerHub-codechat/api](https://hub.docker.com/r/codechat/api)
+  - [DockerHub Evolution API](https://hub.docker.com/repository/docker/davidsongomes/evolution-api)
 
 After building the application, in the same directory as the files above, run the following command:
 ```sh
@@ -198,17 +195,17 @@ docker-compose up
 |     |   |
 |-----|---|
 | Send Text | ✔ |
-| Send Buttons | ✔ |
 | Send Template | ❌ |
 | Send Media: audio - video - image - document - gif <br></br>base64: ```true``` | ✔ |
 | Send Media File | ❌ |
 | Send Audio type WhatsApp | ✔ |
 | Send Location | ✔ |
-| Send List | ✔ |
 | Send Link Preview | ✔ |
 | Send Contact | ✔ |
 | Send Reaction - emoji | ✔ |
 | Send Poll Message | ✔ |
+| Send Buttons (Deprecated) | ❌ |
+| Send List (Deprecated) | ❌ |
 
 ## Postman collections
   - [Postman Json](./postman.json)
@@ -236,6 +233,33 @@ docker-compose up
 | GROUP_PARTICIPANTS_UPDATE | group-participants.update | JSON | Notifies when an action occurs involving a participant</br>'add' | 'remove' | 'promote' | 'demote' |
 | NEW_TOKEN | new.jwt | JSON | Notifies when the token (jwt) is updated
 
+## Webhook Routes
+When enabling the WEBHOOK_BY_EVENTS options in the global and local webhooks, the following paths will be added at the end of the webhook.
+<br><br>
+Example:
+
+https://sub.domain.com/webhook-test/exclusive-webhook-code/qrcode-updated
+
+| Name | Path |
+|------|-------|
+| APPLICATION_STARTUP | /application-startup |
+| QRCODE_UPDATED | /qrcode-updated |
+| CONNECTION_UPDATE | /connection-update |
+| MESSAGES_SET | /messages-set |
+| MESSAGES_UPSERT | /messages-upsert |
+| MESSAGES_UPDATE | /messages-update |
+| SEND_MESSAGE | /send-message |
+| CONTACTS_SET | /contacts-set |
+| CONTACTS_UPSERT | /contacts-upsert |
+| CONTACTS_UPDATE | /contacts-update |
+| PRESENCE_UPDATE | /presence-update |
+| CHATS_SET | /chats-set |
+| CHATS_UPDATE | /chats-update |
+| CHATS_UPSERT | /chats-upsert |
+| GROUPS_UPSERT | /groups-upsert |
+| GROUPS_UPDATE | /groups-update |
+| GROUP_PARTICIPANTS_UPDATE | /groups-participants-update |
+| NEW_TOKEN | /new-token |
 ## Env File
 
 See additional settings that can be applied through the **env** file by clicking **[here](./src/dev-env.yml)**.
@@ -253,8 +277,6 @@ This code is in no way affiliated with WhatsApp. Use at your own discretion. Don
 This code was produced based on the baileys library and it is still under development.
 
 # Donate to the project.
-
-#### Pix: 2b526ada-4ef4-4db4-bbeb-f60da2421fce
 
 #### PicPay
 

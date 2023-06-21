@@ -56,14 +56,14 @@ export class AuthService {
     return { jwt: token };
   }
 
-  private async apikey(instance: InstanceDto) {
-    const apikey = v4().toUpperCase();
+  private async apikey(instance: InstanceDto, token?: string) {
+    const apikey = token ? token : v4().toUpperCase();
 
     const auth = await this.repository.auth.create({ apikey }, instance.instanceName);
 
     if (auth['error']) {
       this.logger.error({
-        localError: AuthService.name + '.jwt',
+        localError: AuthService.name + '.apikey',
         error: auth['error'],
       });
       throw new BadRequestException('Authentication error', auth['error']?.toString());
@@ -72,9 +72,11 @@ export class AuthService {
     return { apikey };
   }
 
-  public async generateHash(instance: InstanceDto) {
+  public async generateHash(instance: InstanceDto, token?: string) {
     const options = this.configService.get<Auth>('AUTHENTICATION');
-    return (await this[options.TYPE](instance)) as { jwt: string } | { apikey: string };
+    return (await this[options.TYPE](instance, token)) as
+      | { jwt: string }
+      | { apikey: string };
   }
 
   public async refreshToken({ oldToken }: OldToken) {

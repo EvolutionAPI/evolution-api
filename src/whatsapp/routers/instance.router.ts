@@ -7,7 +7,6 @@ import { HttpStatus } from './index.router';
 import { OldToken } from '../services/auth.service';
 import { Auth, ConfigService, Database } from '../../config/env.config';
 import { dbserver } from '../../db/db.connect';
-import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 
 export class InstanceRouter extends RouterBroker {
   constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {

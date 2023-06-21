@@ -9,6 +9,7 @@ import { WAMonitoringService } from '../services/monitor.service';
 import { WAStartupService } from '../services/whatsapp.service';
 import { WebhookService } from '../services/webhook.service';
 import { Logger } from '../../config/logger.config';
+import { wa } from '../types/wa.types';
 
 export class InstanceController {
   constructor(
@@ -22,12 +23,16 @@ export class InstanceController {
 
   private readonly logger = new Logger(InstanceController.name);
 
-  public async createInstance({ instanceName, webhook }: InstanceDto) {
-    //verifica se modo da instancia é container
+  public async createInstance({
+    instanceName,
+    webhook,
+    events,
+    qrcode,
+    token,
+  }: InstanceDto) {
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
     if (mode === 'container') {
-      //verifica se ja existe uma instancia criada com qualquer nome
       if (Object.keys(this.waMonitor.waInstances).length > 0) {
         throw new BadRequestException([
           'Instance already created',
@@ -44,13 +49,20 @@ export class InstanceController {
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
-      const hash = await this.authService.generateHash({
-        instanceName: instance.instanceName,
-      });
+      const hash = await this.authService.generateHash(
+        {
+          instanceName: instance.instanceName,
+        },
+        token,
+      );
+
+      let getEvents: string[];
 
       if (webhook) {
         try {
-          this.webhookService.create(instance, { enabled: true, url: webhook });
+          this.webhookService.create(instance, { enabled: true, url: webhook, events });
+
+          getEvents = (await this.webhookService.find(instance)).events;
         } catch (error) {
           this.logger.log(error);
         }
@@ -63,6 +75,7 @@ export class InstanceController {
         },
         hash,
         webhook,
+        events: getEvents,
       };
     } else {
       const instance = new WAStartupService(
@@ -74,16 +87,31 @@ export class InstanceController {
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
-      const hash = await this.authService.generateHash({
-        instanceName: instance.instanceName,
-      });
+      const hash = await this.authService.generateHash(
+        {
+          instanceName: instance.instanceName,
+        },
+        token,
+      );
+
+      let getEvents: string[];
 
       if (webhook) {
         try {
-          this.webhookService.create(instance, { enabled: true, url: webhook });
+          this.webhookService.create(instance, { enabled: true, url: webhook, events });
+
+          getEvents = (await this.webhookService.find(instance)).events;
         } catch (error) {
           this.logger.log(error);
         }
+      }
+
+      let getQrcode: wa.QrCode;
+
+      if (qrcode) {
+        await instance.connectToWhatsapp();
+        await delay(2000);
+        getQrcode = instance.qrCode;
       }
 
       return {
@@ -93,6 +121,8 @@ export class InstanceController {
         },
         hash,
         webhook,
+        events: getEvents,
+        qrcode: getQrcode,
       };
     }
   }
@@ -100,7 +130,7 @@ export class InstanceController {
   public async connectToWhatsapp({ instanceName }: InstanceDto) {
     try {
       const instance = this.waMonitor.waInstances[instanceName];
-      const state = instance.connectionStatus?.state;
+      const state = instance?.connectionStatus?.state;
 
       switch (state) {
         case 'close':
@@ -113,12 +143,12 @@ export class InstanceController {
           return await this.connectionState({ instanceName });
       }
     } catch (error) {
-      this.logger.log(error);
+      this.logger.error(error);
     }
   }
 
   public async connectionState({ instanceName }: InstanceDto) {
-    return this.waMonitor.waInstances[instanceName].connectionStatus;
+    return this.waMonitor.waInstances[instanceName]?.connectionStatus;
   }
 
   public async fetchInstances({ instanceName }: InstanceDto) {

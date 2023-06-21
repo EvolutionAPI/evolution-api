@@ -1,8 +1,10 @@
 import {
   CreateGroupDto,
+  GroupDescriptionDto,
   GroupInvite,
   GroupJid,
   GroupPictureDto,
+  GroupSubjectDto,
   GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
@@ -23,8 +25,27 @@ export class GroupController {
     );
   }
 
+  public async updateGroupSubject(instance: InstanceDto, update: GroupSubjectDto) {
+    return await this.waMonitor.waInstances[instance.instanceName].updateGroupSubject(
+      update,
+    );
+  }
+
+  public async updateGroupDescription(
+    instance: InstanceDto,
+    update: GroupDescriptionDto,
+  ) {
+    return await this.waMonitor.waInstances[instance.instanceName].updateGroupDescription(
+      update,
+    );
+  }
+
   public async findGroupInfo(instance: InstanceDto, groupJid: GroupJid) {
     return await this.waMonitor.waInstances[instance.instanceName].findGroup(groupJid);
+  }
+
+  public async fetchAllGroups(instance: InstanceDto) {
+    return await this.waMonitor.waInstances[instance.instanceName].fetchAllGroups();
   }
 
   public async inviteCode(instance: InstanceDto, groupJid: GroupJid) {
@@ -33,6 +54,12 @@ export class GroupController {
 
   public async inviteInfo(instance: InstanceDto, inviteCode: GroupInvite) {
     return await this.waMonitor.waInstances[instance.instanceName].inviteInfo(inviteCode);
+  }
+
+  public async acceptInvite(instance: InstanceDto, inviteCode: GroupInvite) {
+    return await this.waMonitor.waInstances[instance.instanceName].acceptInvite(
+      inviteCode,
+    );
   }
 
   public async revokeInviteCode(instance: InstanceDto, groupJid: GroupJid) {

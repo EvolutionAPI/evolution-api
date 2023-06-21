@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { ConfigService } from '../../config/env.config';
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
 import { opendirSync, readFileSync, rmSync } from 'fs';
 import { ChatRaw, IChatModel } from '../models';
@@ -27,15 +27,21 @@ export class ChatRepository extends Repository {
         return { insertCount: insert.length };
       }
 
-      data.forEach((chat) => {
-        this.writeStore<ChatRaw>({
-          path: join(this.storePath, 'chats', chat.owner),
-          fileName: chat.id,
-          data: chat,
-        });
-      });
+      const store = this.configService.get<StoreConf>('STORE');
 
-      return { insertCount: data.length };
+      if (store.CHATS) {
+        data.forEach((chat) => {
+          this.writeStore<ChatRaw>({
+            path: join(this.storePath, 'chats', chat.owner),
+            fileName: chat.id,
+            data: chat,
+          });
+        });
+
+        return { insertCount: data.length };
+      }
+
+      return { insertCount: 0 };
     } catch (error) {
       return error;
     } finally {

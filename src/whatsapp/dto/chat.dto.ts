@@ -1,3 +1,9 @@
+import {
+  WAPrivacyOnlineValue,
+  WAPrivacyValue,
+  WAReadReceiptsValue,
+} from '@evolution/base';
+
 export class OnWhatsAppDto {
   constructor(
     public readonly jid: string,
@@ -45,6 +51,19 @@ class LastMessage {
 export class ArchiveChatDto {
   lastMessage: LastMessage;
   archive: boolean;
+}
+
+class PrivacySetting {
+  readreceipts: WAReadReceiptsValue;
+  profile: WAPrivacyValue;
+  status: WAPrivacyValue;
+  online: WAPrivacyOnlineValue;
+  last: WAPrivacyValue;
+  groupadd: WAPrivacyValue;
+}
+
+export class PrivacySettingDto {
+  privacySettings: PrivacySetting;
 }
 
 export class DeleteMessage {

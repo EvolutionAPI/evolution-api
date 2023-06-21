@@ -25,6 +25,13 @@ export class RedisCache {
     }
   }
 
+  public async keyExists(key?: string) {
+    if (key) {
+      return !!(await this.instanceKeys()).find((i) => i === key);
+    }
+    return !!(await this.instanceKeys()).find((i) => i === this.instanceName);
+  }
+
   public async writeData(field: string, data: any) {
     try {
       const json = JSON.stringify(data, BufferJSON.replacer);

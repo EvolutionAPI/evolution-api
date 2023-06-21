@@ -5,6 +5,7 @@ import {
   deleteMessageSchema,
   messageUpSchema,
   messageValidateSchema,
+  privacySettingsSchema,
   profileNameSchema,
   profilePictureSchema,
   profileStatusSchema,
@@ -15,6 +16,7 @@ import {
   ArchiveChatDto,
   DeleteMessage,
   NumberDto,
+  PrivacySettingDto,
   ProfileNameDto,
   ProfilePictureDto,
   ProfileStatusDto,
@@ -140,12 +142,34 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       // Profile routes
-      .post(this.routerPath('getBusinessProfile'), ...guards, async (req, res) => {
+      .get(this.routerPath('fetchPrivacySettings'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: null,
+          ClassRef: InstanceDto,
+          execute: (instance) => chatController.fetchPrivacySettings(instance),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
+      .put(this.routerPath('updatePrivacySettings'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<PrivacySettingDto>({
+          request: req,
+          schema: privacySettingsSchema,
+          ClassRef: PrivacySettingDto,
+          execute: (instance, data) =>
+            chatController.updatePrivacySettings(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('fetchBusinessProfile'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
           schema: profilePictureSchema,
           ClassRef: ProfilePictureDto,
-          execute: (instance, data) => chatController.getBusinessProfile(instance, data),
+          execute: (instance, data) =>
+            chatController.fetchBusinessProfile(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);
