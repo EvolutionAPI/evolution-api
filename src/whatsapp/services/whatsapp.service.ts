@@ -691,10 +691,10 @@ export class WAStartupService {
 
       this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
-      await this.repository.message.insert(
-        [...messagesRaw],
-        database.SAVE_DATA.OLD_MESSAGE,
-      );
+      // await this.repository.message.insert(
+      //   [...messagesRaw],
+      //   database.SAVE_DATA.OLD_MESSAGE,
+      // );
       messages = undefined;
     },
 

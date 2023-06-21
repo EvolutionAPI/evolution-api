@@ -26,6 +26,7 @@
 * fixed the problem of not disabling the global webhook by the variable
 * Adjustment in the recording of temporary files and periodic cleaning
 * Fix for container mode also work only with files
+* Remove recording of old messages on sync
 
 # 1.0.9 (2023-06-10)
 
