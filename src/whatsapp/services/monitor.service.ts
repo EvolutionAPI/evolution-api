@@ -16,7 +16,6 @@ import { NotFoundException } from '../../exceptions';
 import { Db } from 'mongodb';
 import { RedisCache } from '../../db/redis.client';
 import { initInstance } from '../whatsapp.module';
-import { ValidationError } from 'class-validator';
 
 export class WAMonitoringService {
   constructor(
@@ -50,9 +49,19 @@ export class WAMonitoringService {
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
     if (typeof time === 'number' && time > 0) {
-      setTimeout(() => {
+      setTimeout(async () => {
         if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
-          delete this.waInstances[instance];
+          if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
+            await this.waInstances[instance]?.client?.logout(
+              'Log out instance: ' + instance,
+            );
+            this.waInstances[instance]?.client?.ws?.close();
+            this.waInstances[instance]?.client?.end(undefined);
+            delete this.waInstances[instance];
+          } else {
+            delete this.waInstances[instance];
+            this.eventEmitter.emit('remove.instance', instance, 'inner');
+          }
         }
       }, 1000 * 60 * time);
     }
@@ -156,7 +165,7 @@ export class WAMonitoringService {
     }, 3600 * 1000 * 2);
   }
 
-  private async cleaningUp(instanceName: string) {
+  public async cleaningUp(instanceName: string) {
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       await this.repository.dbServer.connect();
       const collections: any[] = await this.dbInstance.collections();

@@ -27,7 +27,7 @@ import { WebhookRepository } from './repository/webhook.repository';
 import { WebhookModel } from './models/webhook.model';
 import { AuthRepository } from './repository/auth.repository';
 import { WAStartupService } from './services/whatsapp.service';
-import { delay } from '@evolution/base';
+import { delay } from '@whiskeysockets/baileys';
 import { Events } from './types/wa.types';
 
 const logger = new Logger('WA MODULE');

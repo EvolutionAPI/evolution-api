@@ -1,4 +1,4 @@
-import { proto } from '@evolution/base';
+import { proto } from '@whiskeysockets/baileys';
 import {
   ArchiveChatDto,
   DeleteMessage,

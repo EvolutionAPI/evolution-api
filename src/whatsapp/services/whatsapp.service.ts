@@ -30,7 +30,7 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
   getAggregateVotesInPollMessage,
-} from '@evolution/base';
+} from '@whiskeysockets/baileys';
 import {
   Auth,
   CleanStoreConf,

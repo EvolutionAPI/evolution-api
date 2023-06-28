@@ -4,6 +4,7 @@ import { IInsert, Repository } from '../abstract/abstract.repository';
 import { IAuthModel, AuthRaw } from '../models';
 import { readFileSync } from 'fs';
 import { AUTH_DIR } from '../../config/path.config';
+import { InstanceDto } from '../dto/instance.dto';
 
 export class AuthRepository extends Repository {
   constructor(
