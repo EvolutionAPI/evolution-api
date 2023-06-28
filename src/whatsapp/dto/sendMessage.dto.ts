@@ -1,4 +1,4 @@
-import { proto, WAPresence } from '@evolution/base';
+import { proto, WAPresence } from '@whiskeysockets/baileys';
 
 export class Quoted {
   key: proto.IMessageKey;

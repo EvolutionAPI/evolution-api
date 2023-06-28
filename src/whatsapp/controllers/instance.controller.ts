@@ -1,4 +1,4 @@
-import { delay } from '@evolution/base';
+import { delay } from '@whiskeysockets/baileys';
 import EventEmitter2 from 'eventemitter2';
 import { Auth, ConfigService } from '../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
@@ -40,6 +40,8 @@ export class InstanceController {
           'Only one instance can be created',
         ]);
       }
+
+      await this.authService.checkDuplicateToken(token);
 
       const instance = new WAStartupService(
         this.configService,
@@ -84,6 +86,8 @@ export class InstanceController {
         events: getEvents,
       };
     } else {
+      await this.authService.checkDuplicateToken(token);
+
       const instance = new WAStartupService(
         this.configService,
         this.eventEmitter,
@@ -159,6 +163,26 @@ export class InstanceController {
     }
   }
 
+  public async restartInstance({ instanceName }: InstanceDto) {
+    try {
+      delete this.waMonitor.waInstances[instanceName];
+      console.log(this.waMonitor.waInstances[instanceName]);
+      const instance = new WAStartupService(
+        this.configService,
+        this.eventEmitter,
+        this.repository,
+      );
+
+      instance.instanceName = instanceName;
+      await instance.connectToWhatsapp();
+      this.waMonitor.waInstances[instance.instanceName] = instance;
+
+      return { error: false, message: 'Instance restarted' };
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   public async connectionState({ instanceName }: InstanceDto) {
     return this.waMonitor.waInstances[instanceName]?.connectionStatus;
   }
@@ -195,8 +219,15 @@ export class InstanceController {
       ]);
     }
     try {
-      delete this.waMonitor.waInstances[instanceName];
-      return { error: false, message: 'Instance deleted' };
+      if (stateConn.state === 'connecting') {
+        await this.logout({ instanceName });
+        delete this.waMonitor.waInstances[instanceName];
+        return { error: false, message: 'Instance deleted' };
+      } else {
+        delete this.waMonitor.waInstances[instanceName];
+        this.eventEmitter.emit('remove.instance', instanceName, 'inner');
+        return { error: false, message: 'Instance deleted' };
+      }
     } catch (error) {
       throw new BadRequestException(error.toString());
     }

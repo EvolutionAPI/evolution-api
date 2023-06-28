@@ -8,6 +8,9 @@
 ### Fixed
 
 * Adjust dockerfile variables
+* Fixed baileys version in package.json
+* Fixed problem that did not validate if the token passed in create instance already existed
+* Fixed problem that does not delete instance files in server mode
 
 # 1.1.0 (2023-06-21 11:17)
 

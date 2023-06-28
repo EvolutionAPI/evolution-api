@@ -72,6 +72,18 @@ export class AuthService {
     return { apikey };
   }
 
+  public async checkDuplicateToken(token: string) {
+    const instances = await this.waMonitor.instanceInfo();
+
+    const instance = instances.find((instance) => instance.instance.apikey === token);
+
+    if (instance) {
+      throw new BadRequestException('Token already exists');
+    }
+
+    return true;
+  }
+
   public async generateHash(instance: InstanceDto, token?: string) {
     const options = this.configService.get<Auth>('AUTHENTICATION');
     return (await this[options.TYPE](instance, token)) as
