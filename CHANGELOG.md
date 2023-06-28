@@ -1,3 +1,10 @@
+# 1.1.2 (2023-06-28 13:43)
+
+### Fixed
+
+* Fixed problem that did not validate if the token passed in create instance already existed
+* Fixed problem that does not delete instance files in server mode
+
 # 1.1.1 (2023-06-28 10:27)
 
 ### Features
