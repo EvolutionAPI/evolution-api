@@ -27,6 +27,7 @@ export const instanceNameSchema: JSONSchema7 = {
   properties: {
     instanceName: { type: 'string' },
     webhook: { type: 'string' },
+    webhook_by_events: { type: 'boolean' },
     events: {
       type: 'array',
       minItems: 1,
@@ -663,6 +664,28 @@ export const groupJidSchema: JSONSchema7 = {
   },
   required: ['groupJid'],
   ...isNotEmpty('groupJid'),
+};
+
+export const groupSendInviteSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    groupJid: { type: 'string' },
+    description: { type: 'string' },
+    numbers: {
+      type: 'array',
+      minItems: 1,
+      uniqueItems: true,
+      items: {
+        type: 'string',
+        minLength: 10,
+        pattern: '\\d+',
+        description: '"numbers" must be an array of numeric strings',
+      },
+    },
+  },
+  required: ['groupJid', 'description', 'numbers'],
+  ...isNotEmpty('groupJid', 'description', 'numbers'),
 };
 
 export const groupInviteSchema: JSONSchema7 = {

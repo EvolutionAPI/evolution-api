@@ -104,6 +104,7 @@ import {
   GroupToggleEphemeralDto,
   GroupSubjectDto,
   GroupDescriptionDto,
+  GroupSendInvite,
 } from '../dto/group.dto';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
@@ -204,6 +205,7 @@ export class WAStartupService {
     this.localWebhook.url = data?.url;
     this.localWebhook.enabled = data?.enabled;
     this.localWebhook.events = data?.events;
+    this.localWebhook.webhook_by_events = data?.webhook_by_events;
   }
 
   public async setWebhook(data: WebhookRaw) {
@@ -224,11 +226,9 @@ export class WAStartupService {
 
     if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
       if (local && instance.MODE !== 'container') {
-        const { WEBHOOK_BY_EVENTS } = instance;
-
         let baseURL;
 
-        if (WEBHOOK_BY_EVENTS) {
+        if (this.localWebhook.webhook_by_events) {
           baseURL = `${this.localWebhook.url}/${transformedWe}`;
         } else {
           baseURL = this.localWebhook.url;
@@ -484,7 +484,7 @@ export class WAStartupService {
 
       const { version } = await fetchLatestBaileysVersion();
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, 'Chrome', release()];
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
       const socketConfig: UserFacingSocketConfig = {
         auth: {
@@ -1773,11 +1773,28 @@ export class WAStartupService {
     }
   }
 
-  public async acceptInvite(id: GroupInvite) {
+  public async sendInvite(id: GroupSendInvite) {
     try {
-      return await this.client.groupAcceptInvite(id.inviteCode);
+      const inviteCode = await this.inviteCode({ groupJid: id.groupJid });
+      const inviteUrl = inviteCode.inviteUrl;
+      const numbers = id.numbers.map((number) => this.createJid(number));
+      const description = id.description ?? '';
+
+      const msg = `${description}\n${inviteUrl}`;
+
+      const message = {
+        linkPreview: {
+          text: msg,
+        },
+      };
+
+      for await (const number of numbers) {
+        await this.sendMessageWithTyping(number, message);
+      }
+
+      return { send: true, inviteUrl };
     } catch (error) {
-      throw new NotFoundException('No invite info', id.inviteCode);
+      throw new NotFoundException('No send invite');
     }
   }
 
@@ -1831,7 +1848,7 @@ export class WAStartupService {
         update.groupJid,
         update.expiration,
       );
-      return { toggleEphemeral: toggleEphemeral };
+      return { success: true };
     } catch (error) {
       throw new BadRequestException('Error updating setting', error.toString());
     }

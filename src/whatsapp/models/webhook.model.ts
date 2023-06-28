@@ -6,6 +6,7 @@ export class WebhookRaw {
   url?: string;
   enabled?: boolean;
   events?: string[];
+  webhook_by_events?: boolean;
 }
 
 const webhookSchema = new Schema<WebhookRaw>({

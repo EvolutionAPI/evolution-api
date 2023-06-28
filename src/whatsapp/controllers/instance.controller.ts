@@ -26,6 +26,7 @@ export class InstanceController {
   public async createInstance({
     instanceName,
     webhook,
+    webhook_by_events,
     events,
     qrcode,
     token,
@@ -60,7 +61,12 @@ export class InstanceController {
 
       if (webhook) {
         try {
-          this.webhookService.create(instance, { enabled: true, url: webhook, events });
+          this.webhookService.create(instance, {
+            enabled: true,
+            url: webhook,
+            events,
+            webhook_by_events,
+          });
 
           getEvents = (await this.webhookService.find(instance)).events;
         } catch (error) {
@@ -98,7 +104,12 @@ export class InstanceController {
 
       if (webhook) {
         try {
-          this.webhookService.create(instance, { enabled: true, url: webhook, events });
+          this.webhookService.create(instance, {
+            enabled: true,
+            url: webhook,
+            events,
+            webhook_by_events,
+          });
 
           getEvents = (await this.webhookService.find(instance)).events;
         } catch (error) {
@@ -121,6 +132,7 @@ export class InstanceController {
         },
         hash,
         webhook,
+        webhook_by_events,
         events: getEvents,
         qrcode: getQrcode,
       };
