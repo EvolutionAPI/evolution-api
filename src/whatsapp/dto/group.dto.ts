@@ -27,6 +27,12 @@ export class GroupInvite {
   inviteCode: string;
 }
 
+export class GroupSendInvite {
+  groupJid: string;
+  description: string;
+  numbers: string[];
+}
+
 export class GroupUpdateParticipantDto extends GroupJid {
   action: 'add' | 'remove' | 'promote' | 'demote';
   participants: string[];

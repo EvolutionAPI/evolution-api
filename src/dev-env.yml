@@ -41,7 +41,7 @@ LOG:
 # Determine how long the instance should be deleted from memory in case of no connection.
 # Default time: 5 minutes
 # If you don't even want an expiration, enter the value false
-DEL_INSTANCE: false # or false
+DEL_INSTANCE: 5 # or false
 
 # Temporary data storage
 STORE:
@@ -112,7 +112,7 @@ WEBHOOK:
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection
   CLIENT: 'Evolution API'
-  NAME: Chrome # firefox | edge | opera | safari
+  NAME: chrome # chrome | firefox | edge | opera | safari
 
 # Set qrcode display limit
 QRCODE:
@@ -120,11 +120,11 @@ QRCODE:
 
 # Defines an authentication type for the api
 AUTHENTICATION:
-  TYPE: apikey # or jwt apikey
+  TYPE: apikey # jwt or apikey
   # Define a global apikey to access all instances
   API_KEY:
     # OBS: This key must be inserted in the request header to create an instance.
-    KEY: B6D711FC-DE4D-4FD5-9365-44120E713976
+    KEY: B6D711FCDE4D4FD5936544120E713976
   # Expose the api key on return from fetch instances
   EXPOSE_IN_FETCH_INSTANCES: true
   # Set the secret key to encrypt and decrypt your token and its expiration time.
@@ -134,7 +134,6 @@ AUTHENTICATION:
   # Set the instance name and webhook url to create an instance in init the application
   INSTANCE:
   # With this option activated, you work with a url per webhook event, respecting the local url and the name of each event
-    WEBHOOK_BY_EVENTS: false
     MODE: server # container or server
     # if you are using container mode, set the container name and the webhook url to default instance
     NAME: evolution

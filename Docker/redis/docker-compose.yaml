@@ -1,0 +1,27 @@
+version: '3.3'
+
+networks:
+  evolution-net:
+    driver: bridge
+
+services:
+  redis:
+    image: redis:latest
+    command: >
+      redis-server
+      --port 6379
+      --appendonly yes
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --appendfsync everysec
+    volumes:
+      - evolution_redis:/data
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - evolution-net
+
+volumes:
+  evolution_redis:

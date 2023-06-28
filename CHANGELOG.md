@@ -1,3 +1,14 @@
+# 1.1.1 (2023-06-28 10:27)
+
+### Features
+
+* Added group invitation sending
+* Added webhook configuration per event in the individual instance registration
+
+### Fixed
+
+* Adjust dockerfile variables
+
 # 1.1.0 (2023-06-21 11:17)
 
 ### Features

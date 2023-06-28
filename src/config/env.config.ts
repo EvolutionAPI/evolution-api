@@ -87,7 +87,6 @@ export type Instance = {
   NAME: string;
   WEBHOOK_URL: string;
   MODE: string;
-  WEBHOOK_BY_EVENTS: boolean;
 };
 export type Auth = {
   API_KEY: ApiKey;
@@ -263,8 +262,6 @@ export class ConfigService {
           NAME: process.env.AUTHENTICATION_INSTANCE_NAME,
           WEBHOOK_URL: process.env.AUTHENTICATION_INSTANCE_WEBHOOK_URL,
           MODE: process.env.AUTHENTICATION_INSTANCE_MODE,
-          WEBHOOK_BY_EVENTS:
-            process.env.AUTHENTICATION_INSTANCE_WEBHOOK_BY_EVENTS === 'true',
         },
       },
     };

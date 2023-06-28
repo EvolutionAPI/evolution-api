@@ -4,6 +4,7 @@ import {
   GroupInvite,
   GroupJid,
   GroupPictureDto,
+  GroupSendInvite,
   GroupSubjectDto,
   GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
@@ -56,10 +57,8 @@ export class GroupController {
     return await this.waMonitor.waInstances[instance.instanceName].inviteInfo(inviteCode);
   }
 
-  public async acceptInvite(instance: InstanceDto, inviteCode: GroupInvite) {
-    return await this.waMonitor.waInstances[instance.instanceName].acceptInvite(
-      inviteCode,
-    );
+  public async sendInvite(instance: InstanceDto, data: GroupSendInvite) {
+    return await this.waMonitor.waInstances[instance.instanceName].sendInvite(data);
   }
 
   public async revokeInviteCode(instance: InstanceDto, groupJid: GroupJid) {
