@@ -30,6 +30,7 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
   getAggregateVotesInPollMessage,
+  makeInMemoryStore,
 } from '@whiskeysockets/baileys';
 import {
   Auth,
@@ -486,10 +487,11 @@ export class WAStartupService {
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
+      const store = makeInMemoryStore({ logger: P({ level: 'error' }) });
+
       const socketConfig: UserFacingSocketConfig = {
         auth: {
           creds: this.instance.authState.state.creds,
-          /** caching makes the store faster to send/recv messages */
           keys: makeCacheableSignalKeyStore(
             this.instance.authState.state.keys,
             P({ level: 'error' }),
@@ -1205,7 +1207,10 @@ export class WAStartupService {
       outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
       tempAudioPath = `${join(process.cwd(), 'temp', 'audioTemp.mp3')}`;
 
-      const response = await axios.get(audio, { responseType: 'arraybuffer' });
+      const timestamp = new Date().getTime();
+      const url = `${audio}?timestamp=${timestamp}`;
+
+      const response = await axios.get(url, { responseType: 'arraybuffer' });
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
       outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
@@ -1642,7 +1647,10 @@ export class WAStartupService {
     try {
       let pic: WAMediaUpload;
       if (isURL(picture)) {
-        pic = (await axios.get(picture, { responseType: 'arraybuffer' })).data;
+        const timestamp = new Date().getTime();
+        const url = `${picture}?timestamp=${timestamp}`;
+
+        pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
       } else if (isBase64(picture)) {
         pic = Buffer.from(picture, 'base64');
       } else {
@@ -1694,7 +1702,10 @@ export class WAStartupService {
     try {
       let pic: WAMediaUpload;
       if (isURL(picture.image)) {
-        pic = (await axios.get(picture.image, { responseType: 'arraybuffer' })).data;
+        const timestamp = new Date().getTime();
+        const url = `${picture.image}?timestamp=${timestamp}`;
+
+        pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
       } else if (isBase64(picture.image)) {
         pic = Buffer.from(picture.image, 'base64');
       } else {
