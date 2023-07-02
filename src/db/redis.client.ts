@@ -79,4 +79,20 @@ export class RedisCache {
       this.logger.error(error);
     }
   }
+
+  public async closeConnection() {
+    try {
+      await this.client.quit();
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  public async destructor() {
+    await this.closeConnection();
+  }
+
+  public async destroy() {
+    await this.destructor();
+  }
 }
