@@ -50,6 +50,7 @@ export class MessageUpdateRaw {
   datetime?: number;
   status?: wa.StatusMessage;
   owner: string;
+  pollUpdates?: any;
 }
 
 const messageUpdateSchema = new Schema<MessageUpdateRaw>({

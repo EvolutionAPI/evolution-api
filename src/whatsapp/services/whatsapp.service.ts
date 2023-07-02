@@ -135,6 +135,7 @@ export class WAStartupService {
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
   private endSession = false;
+  private store = makeInMemoryStore({ logger: P({ level: 'error' }) });
 
   public set instanceName(name: string) {
     if (!name) {
@@ -440,6 +441,15 @@ export class WAStartupService {
     }
   }
 
+  private async getMessageStore(key: proto.IMessageKey) {
+    if (this.store) {
+      const msg = await this.store.loadMessage(key.remoteJid!, key.id!);
+      return msg?.message || undefined;
+    }
+
+    return proto.Message.fromObject({});
+  }
+
   private cleanStore() {
     const cleanStore = this.configService.get<CleanStoreConf>('CLEAN_STORE');
     const database = this.configService.get<Database>('DATABASE');
@@ -455,6 +465,7 @@ export class WAStartupService {
                   this.instance.wuid,
                 )}/*.json`,
               );
+              this.store?.writeToFile(`${this.storePath}/baileys_store_multi.json`);
             }
           }
         } catch (error) {}
@@ -487,7 +498,7 @@ export class WAStartupService {
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
-      const store = makeInMemoryStore({ logger: P({ level: 'error' }) });
+      this.store?.readFromFile(`${this.storePath}/baileys_store_multi.json`);
 
       const socketConfig: UserFacingSocketConfig = {
         auth: {
@@ -505,7 +516,8 @@ export class WAStartupService {
         qrTimeout: 40_000,
         emitOwnEvents: false,
         msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: this.getMessage as any,
+        getMessage: async (key) =>
+          (await this.getMessageStore(key)) as Promise<proto.IMessage>,
         generateHighQualityLinkPreview: true,
         syncFullHistory: true,
         userDevicesCache: this.userDevicesCache,
@@ -537,6 +549,8 @@ export class WAStartupService {
       this.endSession = false;
 
       this.client = makeWASocket(socketConfig);
+
+      this.store?.bind(this.client.ev);
 
       this.eventHandler();
 
@@ -693,10 +707,6 @@ export class WAStartupService {
 
       this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
-      // await this.repository.message.insert(
-      //   [...messagesRaw],
-      //   database.SAVE_DATA.OLD_MESSAGE,
-      // );
       messages = undefined;
     },
 
@@ -747,15 +757,14 @@ export class WAStartupService {
       };
       for await (const { key, update } of args) {
         if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
+          let pollUpdates: any;
           if (update.pollUpdates) {
-            const pollCreation = await this.getMessage(key);
-            console.log('pollCreation: ', pollCreation);
+            const pollCreation = await this.getMessageStore(key);
             if (pollCreation) {
-              const pollMessage = getAggregateVotesInPollMessage({
+              pollUpdates = getAggregateVotesInPollMessage({
                 message: pollCreation as proto.IMessage,
                 pollUpdates: update.pollUpdates,
               });
-              console.log('pollMessage: ', pollMessage);
             }
           }
 
@@ -764,6 +773,7 @@ export class WAStartupService {
             status: status[update.status],
             datetime: Date.now(),
             owner: this.instance.wuid,
+            pollUpdates,
           };
 
           await this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
@@ -1043,17 +1053,10 @@ export class WAStartupService {
 
       messageSent['messageType'] = getContentType(messageSent.message);
 
-      this.logger.log(messageSent);
-
-      this.sendDataWebhook(Events.SEND_MESSAGE, messageSent).catch((error) =>
-        this.logger.error(error),
-      );
-      this.repository.message
-        .insert(
-          [{ ...messageSent, owner: this.instance.wuid }],
-          this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE,
-        )
-        .catch((error) => this.logger.error(error));
+      this.client.ev.emit('messages.upsert', {
+        messages: [messageSent],
+        type: 'notify',
+      });
 
       return messageSent;
     } catch (error) {
@@ -1464,8 +1467,6 @@ export class WAStartupService {
       const msg = m?.message
         ? m
         : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
-
-      console.log(msg);
 
       for (const subtype of MessageSubtype) {
         if (msg.message[subtype]) {
