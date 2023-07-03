@@ -39,7 +39,7 @@ services:
       - DATABASE_SAVE_MESSAGE_UPDATE=true
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
-      - REDIS_ENABLED=false
+      - REDIS_ENABLED=true
       - REDIS_URI=redis://redis:6379/1
       - REDIS_PREFIX_KEY=evolution
       # Webhook Settings

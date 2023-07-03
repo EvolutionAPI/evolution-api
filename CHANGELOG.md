@@ -5,6 +5,7 @@
 * Added timestamp internally in urls to avoid caching
 * Correction in decryption of poll votes
 * Change in the way the api sent and saved the sent messages, now it goes in the messages.upsert event
+* Fixed cash when sending stickers via url
 
 # 1.1.2 (2023-06-28 13:43)
 

@@ -1167,13 +1167,18 @@ export class WAStartupService {
         imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
         await sharp(imageBuffer).toFile(imagePath);
       } else {
-        const response = await axios.get(image, { responseType: 'arraybuffer' });
+        const timestamp = new Date().getTime();
+        const url = `${image}?timestamp=${timestamp}`;
+
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
         const imageBuffer = Buffer.from(response.data, 'binary');
         imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
         await sharp(imageBuffer).toFile(imagePath);
       }
 
       await sharp(imagePath).webp().toFile(outputPath);
+
+      fs.unlinkSync(imagePath);
 
       return outputPath;
     } catch (error) {
@@ -1183,13 +1188,17 @@ export class WAStartupService {
 
   public async mediaSticker(data: SendStickerDto) {
     const convert = await this.convertToWebP(data.stickerMessage.image);
-    return await this.sendMessageWithTyping(
+    const result = await this.sendMessageWithTyping(
       data.number,
       {
         sticker: { url: convert },
       },
       data?.options,
     );
+
+    fs.unlinkSync(convert);
+
+    return result;
   }
 
   public async mediaMessage(data: SendMediaDto) {
@@ -1225,7 +1234,6 @@ export class WAStartupService {
 
     return new Promise((resolve, reject) => {
       exec(
-        // `${ffmpegPath.path} -i ${tempAudioPath} -c:a libopus ${outputAudio} -y`,
         `${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`,
         (error, _stdout, _stderr) => {
           fs.unlinkSync(tempAudioPath);
@@ -1245,7 +1253,6 @@ export class WAStartupService {
         {
           audio: Buffer.from(audio, 'base64'),
           ptt: true,
-          // mimetype: 'audio/ogg; codecs=opus',
           mimetype: 'audio/mp4',
         },
         { presence: 'recording', delay: data?.options?.delay },
