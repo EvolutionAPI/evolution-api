@@ -36,12 +36,14 @@ LOG:
     - LOG
     - VERBOSE
     - DARK
+    - WEBHOOKS
   COLOR: true
+  BAILEYS: error # "fatal" | "error" | "warn" | "info" | "debug" | "trace"
 
 # Determine how long the instance should be deleted from memory in case of no connection.
 # Default time: 5 minutes
 # If you don't even want an expiration, enter the value false
-DEL_INSTANCE: 5 # or false
+DEL_INSTANCE: false # or false
 
 # Temporary data storage
 STORE:

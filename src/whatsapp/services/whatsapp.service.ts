@@ -87,6 +87,7 @@ import {
   PrivacySettingDto,
   ReadMessageDto,
   WhatsAppNumberDto,
+  getBase64FromMediaMessageDto,
 } from '../dto/chat.dto';
 import { MessageQuery } from '../repository/message.repository';
 import { ContactQuery } from '../repository/contact.repository';
@@ -116,6 +117,7 @@ import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import sharp from 'sharp';
 import { RedisCache } from '../../db/redis.client';
+import { Log } from '../../config/env.config';
 
 export class WAStartupService {
   constructor(
@@ -137,7 +139,8 @@ export class WAStartupService {
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
   private endSession = false;
-  private store = makeInMemoryStore({ logger: P({ level: 'error' }) });
+  private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
+  private store = makeInMemoryStore({ logger: P({ level: this.logBaileys }) });
 
   public set instanceName(name: string) {
     if (!name) {
@@ -154,7 +157,7 @@ export class WAStartupService {
   public get instanceName() {
     return this.instance.name;
   }
-  s;
+
   public get wuid() {
     return this.instance.wuid;
   }
@@ -238,14 +241,16 @@ export class WAStartupService {
           baseURL = this.localWebhook.url;
         }
 
-        this.logger.log({
-          local: WAStartupService.name + '.sendDataWebhook-local',
-          url: baseURL,
-          event,
-          instance: this.instance.name,
-          data,
-          destination: this.localWebhook.url,
-        });
+        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+          this.logger.log({
+            local: WAStartupService.name + '.sendDataWebhook-local',
+            url: baseURL,
+            event,
+            instance: this.instance.name,
+            data,
+            destination: this.localWebhook.url,
+          });
+        }
 
         try {
           if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
@@ -293,14 +298,16 @@ export class WAStartupService {
           localUrl = this.localWebhook.url;
         }
 
-        this.logger.log({
-          local: WAStartupService.name + '.sendDataWebhook-global',
-          url: globalURL,
-          event,
-          instance: this.instance.name,
-          data,
-          destination: localUrl,
-        });
+        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+          this.logger.log({
+            local: WAStartupService.name + '.sendDataWebhook-global',
+            url: globalURL,
+            event,
+            instance: this.instance.name,
+            data,
+            destination: localUrl,
+          });
+        }
 
         try {
           if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
@@ -409,6 +416,7 @@ export class WAStartupService {
           instance: this.instance.name,
           status: 'removed',
         });
+        this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
       }
@@ -444,7 +452,7 @@ export class WAStartupService {
 
   private async getMessageStore(key: proto.IMessageKey) {
     if (this.store) {
-      const msg = await this.store.loadMessage(key.remoteJid!, key.id!);
+      const msg = await this.store.loadMessage(key.remoteJid, key.id);
       return msg?.message || undefined;
     }
 
@@ -466,7 +474,6 @@ export class WAStartupService {
                   this.instance.wuid,
                 )}/*.json`,
               );
-              this.store?.writeToFile(`${this.storePath}/baileys_store_multi.json`);
             }
           }
         } catch (error) {}
@@ -500,7 +507,11 @@ export class WAStartupService {
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
-      this.store?.readFromFile(`${this.storePath}/baileys_store_multi.json`);
+      this.store?.readFromFile(`${this.storePath}/baileys/store.json`);
+
+      setInterval(() => {
+        this.store?.writeToFile(`${this.storePath}/baileys/store.json`);
+      }, 10_000);
 
       const socketConfig: UserFacingSocketConfig = {
         auth: {
@@ -510,7 +521,7 @@ export class WAStartupService {
             P({ level: 'error' }),
           ),
         },
-        logger: P({ level: 'error' }),
+        logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
         browser,
         version,
@@ -724,7 +735,11 @@ export class WAStartupService {
     ) => {
       const received = messages[0];
 
-      if (type !== 'notify' || received.message?.protocolMessage) {
+      if (
+        type !== 'notify' ||
+        received.message?.protocolMessage ||
+        received.message?.pollUpdateMessage
+      ) {
         return;
       }
 
@@ -742,7 +757,7 @@ export class WAStartupService {
         source: getDevice(received.key.id),
       };
 
-      this.logger.log(received);
+      this.logger.log(messageRaw);
 
       await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
       await this.repository.message.insert([messageRaw], database.SAVE_DATA.NEW_MESSAGE);
@@ -758,7 +773,11 @@ export class WAStartupService {
         5: 'PLAYED',
       };
       for await (const { key, update } of args) {
-        if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
+        if (
+          key.remoteJid !== 'status@broadcast' &&
+          !key?.remoteJid?.match(/(:\d+)/) &&
+          !key.fromMe
+        ) {
           let pollUpdates: any;
           if (update.pollUpdates) {
             const pollCreation = await this.getMessageStore(key);
@@ -1053,10 +1072,19 @@ export class WAStartupService {
         );
       })();
 
-      messageSent['messageType'] = getContentType(messageSent.message);
+      const messageRaw: proto.IWebMessageInfo = {
+        key: messageSent.key,
+        messageTimestamp: Long.isLong(messageSent.messageTimestamp)
+          ? messageSent.messageTimestamp?.toNumber()
+          : messageSent.messageTimestamp,
+        pushName: messageSent.pushName,
+        broadcast: messageSent.broadcast,
+        status: 2,
+        message: { ...messageSent.message },
+      };
 
       this.client.ev.emit('messages.upsert', {
-        messages: [messageSent],
+        messages: [messageRaw],
         type: 'notify',
       });
 
@@ -1471,11 +1499,18 @@ export class WAStartupService {
     }
   }
 
-  public async getBase64FromMediaMessage(m: proto.IWebMessageInfo) {
+  public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto) {
     try {
+      const m = data?.message;
+      const convertToMp4 = data?.convertToMp4 ?? false;
+
       const msg = m?.message
         ? m
         : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
+
+      if (!msg) {
+        throw 'Message not found';
+      }
 
       for (const subtype of MessageSubtype) {
         if (msg.message[subtype]) {
@@ -1511,6 +1546,29 @@ export class WAStartupService {
           reuploadRequest: this.client.updateMediaMessage,
         },
       );
+      const typeMessage = getContentType(msg.message);
+
+      // if for audioMessage converte para mp3
+      if (convertToMp4 && typeMessage === 'audioMessage') {
+        const convert = await this.processAudio(buffer.toString('base64'));
+
+        if (typeof convert === 'string') {
+          const audio = fs.readFileSync(convert).toString('base64');
+
+          return {
+            mediaType,
+            fileName: mediaMessage['fileName'],
+            caption: mediaMessage['caption'],
+            size: {
+              fileLength: mediaMessage['fileLength'],
+              height: mediaMessage['height'],
+              width: mediaMessage['width'],
+            },
+            mimetype: 'audio/mp4',
+            base64: Buffer.from(audio, 'base64').toString('base64'),
+          };
+        }
+      }
 
       return {
         mediaType,

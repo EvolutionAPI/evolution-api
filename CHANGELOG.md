@@ -1,5 +1,10 @@
 # 1.1.3 (homolog)
 
+### Features
+
+* Added configuration for Baileys log level in env
+* Added audio to mp4 converter in optionally get Base64 From MediaMessage
+
 ### Fixed
 
 * Added timestamp internally in urls to avoid caching
@@ -8,6 +13,7 @@
 * Fixed cash when sending stickers via url
 * Improved how Redis works for instances
 * Fixed problem when disconnecting the instance it removes the instance
+* Fixed problem sending ack when preview is done by me
 
 # 1.1.2 (2023-06-28 13:43)
 

@@ -14,10 +14,12 @@ services:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store
     environment:
+      - LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS
+      - LOG_BAILEYS=error
       # Determine how long the instance should be deleted from memory in case of no connection.
       # Default time: 5 minutes
       # If you don't even want an expiration, enter the value false
-      - DEL_INSTANCE=5 # or false
+      - DEL_INSTANCE=false # 5 or false
       # Temporary data storage
       - STORE_MESSAGES=true
       - STORE_MESSAGE_UP=true

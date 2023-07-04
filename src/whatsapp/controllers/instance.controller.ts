@@ -207,7 +207,6 @@ export class InstanceController {
       );
 
       this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
-      this.waMonitor.waInstances[instanceName]?.client?.end(undefined);
 
       return { error: false, message: 'Instance logged out' };
     } catch (error) {

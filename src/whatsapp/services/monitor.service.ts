@@ -253,6 +253,13 @@ export class WAMonitoringService {
         this.logger.warn(`Instance "${instanceName}" - REMOVED`);
       }
     });
+    this.eventEmitter.on('logout.instance', async (instanceName: string) => {
+      try {
+        this.cleaningUp(instanceName);
+      } finally {
+        this.logger.warn(`Instance "${instanceName}" - LOGOUT`);
+      }
+    });
   }
 
   private noConnection() {

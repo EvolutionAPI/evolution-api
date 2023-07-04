@@ -9,6 +9,7 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   WhatsAppNumberDto,
+  getBase64FromMediaMessageDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { ContactQuery } from '../repository/contact.repository';
@@ -45,11 +46,9 @@ export class ChatController {
 
   public async getBase64FromMediaMessage(
     { instanceName }: InstanceDto,
-    message: proto.IWebMessageInfo,
+    data: getBase64FromMediaMessageDto,
   ) {
-    return await this.waMonitor.waInstances[instanceName].getBase64FromMediaMessage(
-      message,
-    );
+    return await this.waMonitor.waInstances[instanceName].getBase64FromMediaMessage(data);
   }
 
   public async fetchMessages({ instanceName }: InstanceDto, query: MessageQuery) {

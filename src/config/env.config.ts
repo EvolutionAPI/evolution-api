@@ -13,10 +13,22 @@ export type Cors = {
   CREDENTIALS: boolean;
 };
 
-export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK';
+export type LogBaileys = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+export type LogLevel =
+  | 'ERROR'
+  | 'WARN'
+  | 'DEBUG'
+  | 'INFO'
+  | 'LOG'
+  | 'VERBOSE'
+  | 'DARK'
+  | 'WEBHOOKS';
+
 export type Log = {
   LEVEL: LogLevel[];
   COLOR: boolean;
+  BAILEYS: LogBaileys;
 };
 
 export type SaveData = {
@@ -204,6 +216,7 @@ export class ConfigService {
       LOG: {
         LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],
         COLOR: process.env?.LOG_COLOR === 'true',
+        BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
         ? process.env.DEL_INSTANCE === 'true'
