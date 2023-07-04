@@ -5,10 +5,16 @@ import { Logger } from '../config/logger.config';
 const logger = new Logger('Db Connection');
 
 const db = configService.get<Database>('DATABASE');
-export const dbserver = db.ENABLED
-  ? mongoose.createConnection(db.CONNECTION.URI, {
+export const dbserver = (() => {
+  if (db.ENABLED) {
+    const dbs = mongoose.createConnection(db.CONNECTION.URI, {
       dbName: db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api',
-    })
-  : null;
+    });
+    logger.info('ON - dbName: ' + dbs['$dbName']);
+    process.on('beforeExit', () => {
+      dbserver.destroy(true, (error) => logger.error(error));
+    });
 
-db.ENABLED ? logger.info('ON - dbName: ' + dbserver['$dbName']) : null;
+    return dbs;
+  }
+})();

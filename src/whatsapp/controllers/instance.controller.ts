@@ -10,6 +10,7 @@ import { WAStartupService } from '../services/whatsapp.service';
 import { WebhookService } from '../services/webhook.service';
 import { Logger } from '../../config/logger.config';
 import { wa } from '../types/wa.types';
+import { RedisCache } from '../../db/redis.client';
 
 export class InstanceController {
   constructor(
@@ -19,6 +20,7 @@ export class InstanceController {
     private readonly eventEmitter: EventEmitter2,
     private readonly authService: AuthService,
     private readonly webhookService: WebhookService,
+    private readonly cache: RedisCache,
   ) {}
 
   private readonly logger = new Logger(InstanceController.name);
@@ -47,6 +49,7 @@ export class InstanceController {
         this.configService,
         this.eventEmitter,
         this.repository,
+        this.cache,
       );
       instance.instanceName = instanceName;
       this.waMonitor.waInstances[instance.instanceName] = instance;
@@ -92,6 +95,7 @@ export class InstanceController {
         this.configService,
         this.eventEmitter,
         this.repository,
+        this.cache,
       );
       instance.instanceName = instanceName;
       this.waMonitor.waInstances[instance.instanceName] = instance;
@@ -171,6 +175,7 @@ export class InstanceController {
         this.configService,
         this.eventEmitter,
         this.repository,
+        this.cache,
       );
 
       instance.instanceName = instanceName;

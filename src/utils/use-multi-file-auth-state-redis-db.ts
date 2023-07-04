@@ -9,16 +9,11 @@ import { RedisCache } from '../db/redis.client';
 import { Logger } from '../config/logger.config';
 import { Redis } from '../config/env.config';
 
-export async function useMultiFileAuthStateRedisDb(
-  redisEnv: Partial<Redis>,
-  instanceName: string,
-): Promise<{
+export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
   state: AuthenticationState;
   saveCreds: () => Promise<void>;
 }> {
   const logger = new Logger(useMultiFileAuthStateRedisDb.name);
-
-  const cache = new RedisCache(redisEnv, instanceName);
 
   const writeData = async (data: any, key: string): Promise<any> => {
     try {

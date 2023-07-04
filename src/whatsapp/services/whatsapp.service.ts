@@ -115,12 +115,14 @@ import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import sharp from 'sharp';
+import { RedisCache } from '../../db/redis.client';
 
 export class WAStartupService {
   constructor(
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     private readonly repository: RepositoryBroker,
+    private readonly cache: RedisCache,
   ) {
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
@@ -478,7 +480,8 @@ export class WAStartupService {
     const redis = this.configService.get<Redis>('REDIS');
 
     if (redis?.ENABLED) {
-      return await useMultiFileAuthStateRedisDb(redis, this.instance.name);
+      this.cache.reference = this.instance.name;
+      return await useMultiFileAuthStateRedisDb(this.cache);
     }
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {

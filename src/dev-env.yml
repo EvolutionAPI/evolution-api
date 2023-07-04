@@ -93,7 +93,6 @@ WEBHOOK:
     MESSAGES_SET: true
     MESSAGES_UPSERT: true
     MESSAGES_UPDATE: true
-    SEND_MESSAGE: true
     CONTACTS_SET: true
     CONTACTS_UPSERT: true
     CONTACTS_UPDATE: true

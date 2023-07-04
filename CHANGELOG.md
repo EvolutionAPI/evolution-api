@@ -6,6 +6,7 @@
 * Correction in decryption of poll votes
 * Change in the way the api sent and saved the sent messages, now it goes in the messages.upsert event
 * Fixed cash when sending stickers via url
+* Improved how Redis works for instances
 
 # 1.1.2 (2023-06-28 13:43)
 
