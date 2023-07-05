@@ -30,7 +30,6 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
   getAggregateVotesInPollMessage,
-  makeInMemoryStore,
 } from '@whiskeysockets/baileys';
 import {
   Auth,
@@ -141,7 +140,6 @@ export class WAStartupService {
   private readonly userDevicesCache: CacheStore = new NodeCache();
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
-  private store = makeInMemoryStore({ logger: P({ level: this.logBaileys }) });
 
   public set instanceName(name: string) {
     if (!name) {
@@ -481,19 +479,28 @@ export class WAStartupService {
       if (full) {
         return webMessageInfo[0];
       }
+      if (webMessageInfo[0].message?.pollCreationMessage) {
+        const messageSecretBase64 =
+          webMessageInfo[0].message?.messageContextInfo?.messageSecret;
+
+        if (typeof messageSecretBase64 === 'string') {
+          const messageSecret = Buffer.from(messageSecretBase64, 'base64');
+
+          const msg = {
+            messageContextInfo: {
+              messageSecret,
+            },
+            pollCreationMessage: webMessageInfo[0].message?.pollCreationMessage,
+          };
+
+          return msg;
+        }
+      }
+
       return webMessageInfo[0].message;
     } catch (error) {
       return { conversation: '' };
     }
-  }
-
-  private async getMessageStore(key: proto.IMessageKey) {
-    if (this.store) {
-      const msg = await this.store.loadMessage(key.remoteJid, key.id);
-      return msg?.message || undefined;
-    }
-
-    return proto.Message.fromObject({});
   }
 
   private cleanStore() {
@@ -551,12 +558,6 @@ export class WAStartupService {
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
-      this.store?.readFromFile(`${this.storePath}/baileys/store.json`);
-
-      setInterval(() => {
-        this.store?.writeToFile(`${this.storePath}/baileys/store.json`);
-      }, 10_000);
-
       const socketConfig: UserFacingSocketConfig = {
         auth: {
           creds: this.instance.authState.state.creds,
@@ -574,7 +575,7 @@ export class WAStartupService {
         emitOwnEvents: false,
         msgRetryCounterCache: this.msgRetryCounterCache,
         getMessage: async (key) =>
-          (await this.getMessageStore(key)) as Promise<proto.IMessage>,
+          (await this.getMessage(key)) as Promise<proto.IMessage>,
         generateHighQualityLinkPreview: true,
         syncFullHistory: true,
         userDevicesCache: this.userDevicesCache,
@@ -606,8 +607,6 @@ export class WAStartupService {
       this.endSession = false;
 
       this.client = makeWASocket(socketConfig);
-
-      this.store?.bind(this.client.ev);
 
       this.eventHandler();
 
@@ -824,7 +823,7 @@ export class WAStartupService {
         ) {
           let pollUpdates: any;
           if (update.pollUpdates) {
-            const pollCreation = await this.getMessageStore(key);
+            const pollCreation = await this.getMessage(key);
             if (pollCreation) {
               pollUpdates = getAggregateVotesInPollMessage({
                 message: pollCreation as proto.IMessage,
@@ -1598,7 +1597,6 @@ export class WAStartupService {
       );
       const typeMessage = getContentType(msg.message);
 
-      // if for audioMessage converte para mp3
       if (convertToMp4 && typeMessage === 'audioMessage') {
         const number = msg.key.remoteJid.split('@')[0];
         const convert = await this.processAudio(buffer.toString('base64'), number);

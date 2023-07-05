@@ -11,15 +11,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-/store/auth/apikey/*
-/store/auth/jwt/*
-/store/baileys/*
-/store/chats/*
-/store/contacts/*
-/store/message-up/*
-/store/messages/*
-/store/webhook/*
-
 /docker-compose-data
 
 # Package
@@ -41,5 +32,6 @@ lerna-debug.log*
 !/instances/.gitkeep
 /test/
 /src/env.yml
+/store
 
 /temp/*

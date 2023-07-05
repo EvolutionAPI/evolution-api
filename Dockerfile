@@ -1,5 +1,9 @@
 FROM node:16.18-alpine
 
+LABEL version="1.1.3" description="Api to control whatsapp features through http requests." 
+LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
+LABEL contact="contato@agenciadgcode.com"
+
 RUN apk update && apk upgrade && \
     apk add --no-cache git
 

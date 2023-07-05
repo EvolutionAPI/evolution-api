@@ -47,6 +47,7 @@ export const repository = new RepositoryBroker(
   messageUpdateRepository,
   webhookRepository,
   authRepository,
+  configService,
   dbserver?.getClient(),
 );
 
