@@ -1428,6 +1428,7 @@ export class WAStartupService {
       return (
         'BEGIN:VCARD\n' +
         'VERSION:3.0\n' +
+        `N:${contact.fullName}\n` +
         `FN:${contact.fullName}\n` +
         `ORG:${contact.organization};\n` +
         `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` +
