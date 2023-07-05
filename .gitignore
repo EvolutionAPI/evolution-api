@@ -11,7 +11,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-/store/*
+# /store/*
 /docker-compose-data
 
 # Package
