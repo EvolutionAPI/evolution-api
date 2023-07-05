@@ -14,6 +14,7 @@
 * Improved how Redis works for instances
 * Fixed problem when disconnecting the instance it removes the instance
 * Fixed problem sending ack when preview is done by me
+* Adjust in store files
 
 # 1.1.2 (2023-06-28 13:43)
 
