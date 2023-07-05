@@ -1230,16 +1230,16 @@ export class WAStartupService {
     }
   }
 
-  private async convertToWebP(image: string) {
+  private async convertToWebP(image: string, number: string) {
     try {
       let imagePath: string;
-      const timestamp = new Date().getTime();
-      const outputPath = `${join(process.cwd(), 'temp', `${timestamp}.webp`)}`;
+      const hash = `${number}-${new Date().getTime()}`;
+      const outputPath = `${join(process.cwd(), 'temp', `${hash}.webp`)}`;
 
       if (isBase64(image)) {
         const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
-        imagePath = `${join(process.cwd(), 'temp', `temp-${timestamp}.png`)}`;
+        imagePath = `${join(process.cwd(), 'temp', `temp-${hash}.png`)}`;
         await sharp(imageBuffer).toFile(imagePath);
       } else {
         const timestamp = new Date().getTime();
@@ -1247,7 +1247,7 @@ export class WAStartupService {
 
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         const imageBuffer = Buffer.from(response.data, 'binary');
-        imagePath = `${join(process.cwd(), 'temp', `temp-${timestamp}.png`)}`;
+        imagePath = `${join(process.cwd(), 'temp', `temp-${hash}.png`)}`;
         await sharp(imageBuffer).toFile(imagePath);
       }
 
@@ -1262,7 +1262,7 @@ export class WAStartupService {
   }
 
   public async mediaSticker(data: SendStickerDto) {
-    const convert = await this.convertToWebP(data.stickerMessage.image);
+    const convert = await this.convertToWebP(data.stickerMessage.image, data.number);
     const result = await this.sendMessageWithTyping(
       data.number,
       {
@@ -1286,23 +1286,23 @@ export class WAStartupService {
     );
   }
 
-  private async processAudio(audio: string) {
+  private async processAudio(audio: string, number: string) {
     let tempAudioPath: string;
     let outputAudio: string;
+    const hash = `${number}-${new Date().getTime()}`;
 
     if (isURL(audio)) {
-      const timestamp = new Date().getTime();
-      outputAudio = `${join(process.cwd(), 'temp', `${timestamp}.mp4`)}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${timestamp}.mp3`)}`;
+      outputAudio = `${join(process.cwd(), 'temp', `${hash}.mp4`)}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${hash}.mp3`)}`;
 
+      const timestamp = new Date().getTime();
       const url = `${audio}?timestamp=${timestamp}`;
 
       const response = await axios.get(url, { responseType: 'arraybuffer' });
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
-      const timestamp = new Date().getTime();
-      outputAudio = `${join(process.cwd(), 'temp', `${timestamp}.mp4`)}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${timestamp}.mp3`)}`;
+      outputAudio = `${join(process.cwd(), 'temp', `${hash}.mp4`)}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${hash}.mp3`)}`;
 
       const audioBuffer = Buffer.from(audio, 'base64');
       fs.writeFileSync(tempAudioPath, audioBuffer);
@@ -1321,7 +1321,7 @@ export class WAStartupService {
   }
 
   public async audioWhatsapp(data: SendAudioDto) {
-    const convert = await this.processAudio(data.audioMessage.audio);
+    const convert = await this.processAudio(data.audioMessage.audio, data.number);
     if (typeof convert === 'string') {
       const audio = fs.readFileSync(convert).toString('base64');
       const result = this.sendMessageWithTyping<AnyMessageContent>(
@@ -1600,7 +1600,8 @@ export class WAStartupService {
 
       // if for audioMessage converte para mp3
       if (convertToMp4 && typeMessage === 'audioMessage') {
-        const convert = await this.processAudio(buffer.toString('base64'));
+        const number = msg.key.remoteJid.split('@')[0];
+        const convert = await this.processAudio(buffer.toString('base64'), number);
 
         if (typeof convert === 'string') {
           const audio = fs.readFileSync(convert).toString('base64');
