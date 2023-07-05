@@ -126,6 +126,7 @@ export class WAStartupService {
     private readonly repository: RepositoryBroker,
     private readonly cache: RedisCache,
   ) {
+    this.logger.verbose('WAStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
   }
@@ -148,6 +149,7 @@ export class WAStartupService {
       return;
     }
     this.instance.name = name;
+    this.logger.verbose(`Instance '${this.instance.name}' initialized`);
     this.sendDataWebhook(Events.STATUS_INSTANCE, {
       instance: this.instance.name,
       status: 'created',
@@ -163,9 +165,12 @@ export class WAStartupService {
   }
 
   public async getProfileName() {
+    this.logger.verbose('Getting profile name');
     let profileName = this.client.user?.name ?? this.client.user?.verifiedName;
     if (!profileName) {
+      this.logger.verbose('Profile name not found, trying to get from database');
       if (this.configService.get<Database>('DATABASE').ENABLED) {
+        this.logger.verbose('Database enabled, trying to get from database');
         const collection = dbserver
           .getClient()
           .db(
@@ -175,10 +180,12 @@ export class WAStartupService {
           .collection(this.instanceName);
         const data = await collection.findOne({ _id: 'creds' });
         if (data) {
+          this.logger.verbose('Profile name found in database');
           const creds = JSON.parse(JSON.stringify(data), BufferJSON.reviver);
           profileName = creds.me?.name || creds.me?.verifiedName;
         }
       } else if (existsSync(join(INSTANCE_DIR, this.instanceName, 'creds.json'))) {
+        this.logger.verbose('Profile name found in file');
         const creds = JSON.parse(
           readFileSync(join(INSTANCE_DIR, this.instanceName, 'creds.json'), {
             encoding: 'utf-8',
@@ -187,20 +194,26 @@ export class WAStartupService {
         profileName = creds.me?.name || creds.me?.verifiedName;
       }
     }
+
+    this.logger.verbose(`Profile name: ${profileName}`);
     return profileName;
   }
 
   public async getProfileStatus() {
+    this.logger.verbose('Getting profile status');
     const status = await this.client.fetchStatus(this.instance.wuid);
 
+    this.logger.verbose(`Profile status: ${status.status}`);
     return status.status;
   }
 
   public get profilePictureUrl() {
+    this.logger.verbose('Getting profile picture url');
     return this.instance.profilePictureUrl;
   }
 
   public get qrCode(): wa.QrCode {
+    this.logger.verbose('Getting qrcode');
     return {
       code: this.instance.qrcode?.code,
       base64: this.instance.qrcode?.base64,
@@ -208,20 +221,44 @@ export class WAStartupService {
   }
 
   private async loadWebhook() {
+    this.logger.verbose('Loading webhook');
     const data = await this.repository.webhook.find(this.instanceName);
     this.localWebhook.url = data?.url;
+    this.logger.verbose(`Webhook url: ${this.localWebhook.url}`);
+
     this.localWebhook.enabled = data?.enabled;
+    this.logger.verbose(`Webhook enabled: ${this.localWebhook.enabled}`);
+
     this.localWebhook.events = data?.events;
+    this.logger.verbose(`Webhook events: ${this.localWebhook.events}`);
+
     this.localWebhook.webhook_by_events = data?.webhook_by_events;
+    this.logger.verbose(`Webhook by events: ${this.localWebhook.webhook_by_events}`);
+
+    this.logger.verbose('Webhook loaded');
   }
 
   public async setWebhook(data: WebhookRaw) {
+    this.logger.verbose('Setting webhook');
     await this.repository.webhook.create(data, this.instanceName);
+    this.logger.verbose(`Webhook url: ${data.url}`);
+    this.logger.verbose(`Webhook events: ${data.events}`);
     Object.assign(this.localWebhook, data);
+    this.logger.verbose('Webhook set');
   }
 
   public async findWebhook() {
-    return await this.repository.webhook.find(this.instanceName);
+    this.logger.verbose('Finding webhook');
+    const data = await this.repository.webhook.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Webhook not found');
+      throw new NotFoundException('Webhook not found');
+    }
+
+    this.logger.verbose(`Webhook url: ${data.url}`);
+    this.logger.verbose(`Webhook events: ${data.events}`);
+    return data;
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
@@ -469,6 +506,13 @@ export class WAStartupService {
             if (value === true) {
               execSync(
                 `rm -rf ${join(
+                  this.storePath,
+                  key.toLowerCase().replace('_', '-'),
+                  this.instance.wuid,
+                )}/*.json`,
+              );
+              this.logger.verbose(
+                `Cleaned ${join(
                   this.storePath,
                   key.toLowerCase().replace('_', '-'),
                   this.instance.wuid,
@@ -1189,12 +1233,13 @@ export class WAStartupService {
   private async convertToWebP(image: string) {
     try {
       let imagePath: string;
-      const outputPath = `${join(process.cwd(), 'temp', 'sticker.webp')}`;
+      const timestamp = new Date().getTime();
+      const outputPath = `${join(process.cwd(), 'temp', `${timestamp}.webp`)}`;
 
       if (isBase64(image)) {
         const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
-        imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
+        imagePath = `${join(process.cwd(), 'temp', `temp-${timestamp}.png`)}`;
         await sharp(imageBuffer).toFile(imagePath);
       } else {
         const timestamp = new Date().getTime();
@@ -1202,7 +1247,7 @@ export class WAStartupService {
 
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         const imageBuffer = Buffer.from(response.data, 'binary');
-        imagePath = `${join(process.cwd(), 'temp', 'temp-sticker.png')}`;
+        imagePath = `${join(process.cwd(), 'temp', `temp-${timestamp}.png`)}`;
         await sharp(imageBuffer).toFile(imagePath);
       }
 
