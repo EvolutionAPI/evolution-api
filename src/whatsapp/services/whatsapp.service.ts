@@ -1291,17 +1291,18 @@ export class WAStartupService {
     let outputAudio: string;
 
     if (isURL(audio)) {
-      outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', 'audioTemp.mp3')}`;
-
       const timestamp = new Date().getTime();
+      outputAudio = `${join(process.cwd(), 'temp', `${timestamp}.mp4`)}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${timestamp}.mp3`)}`;
+
       const url = `${audio}?timestamp=${timestamp}`;
 
       const response = await axios.get(url, { responseType: 'arraybuffer' });
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
-      outputAudio = `${join(process.cwd(), 'temp', 'audio.mp4')}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', 'audioTemp.mp3')}`;
+      const timestamp = new Date().getTime();
+      outputAudio = `${join(process.cwd(), 'temp', `${timestamp}.mp4`)}`;
+      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${timestamp}.mp3`)}`;
 
       const audioBuffer = Buffer.from(audio, 'base64');
       fs.writeFileSync(tempAudioPath, audioBuffer);
@@ -1323,7 +1324,7 @@ export class WAStartupService {
     const convert = await this.processAudio(data.audioMessage.audio);
     if (typeof convert === 'string') {
       const audio = fs.readFileSync(convert).toString('base64');
-      return this.sendMessageWithTyping<AnyMessageContent>(
+      const result = this.sendMessageWithTyping<AnyMessageContent>(
         data.number,
         {
           audio: Buffer.from(audio, 'base64'),
@@ -1332,6 +1333,10 @@ export class WAStartupService {
         },
         { presence: 'recording', delay: data?.options?.delay },
       );
+
+      fs.unlinkSync(convert);
+
+      return result;
     } else {
       throw new InternalServerErrorException(convert);
     }
