@@ -4,6 +4,7 @@
 
 * Added configuration for Baileys log level in env
 * Added audio to mp4 converter in optionally get Base64 From MediaMessage
+* Added organization name in vcard
 
 ### Fixed
 
