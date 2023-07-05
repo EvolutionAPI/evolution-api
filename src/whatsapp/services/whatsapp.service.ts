@@ -1425,20 +1425,15 @@ export class WAStartupService {
     const message: proto.IMessage = {};
 
     const vcard = (contact: ContactMessage) => {
-      return (
+      const result =
         'BEGIN:VCARD\n' +
         'VERSION:3.0\n' +
-        'FN:' +
-        contact.fullName +
-        '\n' +
-        'item1.TEL;waid=' +
-        contact.wuid +
-        ':' +
-        contact.phoneNumber +
-        '\n' +
-        'item1.X-ABLabel:Celular\n' +
-        'END:VCARD'
-      );
+        `FN:${contact.fullName}\n` +
+        `ORG:${contact.organization};\n` +
+        `TEL;type=CELL;type=VOICE;waid=${contact.wuid}:${contact.wuid}\n` +
+        'END:VCARD';
+
+      return result;
     };
 
     if (data.contactMessage.length === 1) {

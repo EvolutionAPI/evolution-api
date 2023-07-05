@@ -379,6 +379,7 @@ export const contactMessageSchema: JSONSchema7 = {
             description: '"wuid" must be a numeric string',
           },
           phoneNumber: { type: 'string', minLength: 10 },
+          organization: { type: 'string' },
         },
         required: ['fullName', 'wuid', 'phoneNumber'],
         ...isNotEmpty('fullName'),
