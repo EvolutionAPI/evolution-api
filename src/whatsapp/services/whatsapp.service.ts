@@ -78,6 +78,7 @@ import {
   SendLinkPreviewDto,
   SendStickerDto,
   SendStatusDto,
+  StatusMessage,
 } from '../dto/sendMessage.dto';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import {
@@ -1236,7 +1237,7 @@ export class WAStartupService {
           !message['poll'] &&
           !message['linkPreview'] &&
           !message['sticker'] &&
-          !message['status']
+          !sender.includes('@broadcast')
         ) {
           if (!message['audio']) {
             this.logger.verbose('Sending message');
@@ -1265,17 +1266,16 @@ export class WAStartupService {
           );
         }
 
-        if (message['status']) {
+        if (sender.includes('@broadcast')) {
           this.logger.verbose('Sending message');
+          console.log(message['status']);
           return await this.client.sendMessage(
             sender,
+            message['status'].content as unknown as AnyMessageContent,
             {
-              text: message['status'].text,
-            } as unknown as AnyMessageContent,
-            {
-              backgroundColor: message['status'].backgroundColor,
-              font: message['status'].font,
-              statusJidList: message['status'].statusJidList,
+              backgroundColor: message['status'].option.backgroundColor,
+              font: message['status'].option.font,
+              statusJidList: message['status'].option.statusJidList,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1357,10 +1357,89 @@ export class WAStartupService {
     );
   }
 
+  private async formatStatusMessage(status: StatusMessage) {
+    if (!status.type) {
+      throw new BadRequestException('Type is required');
+    }
+
+    if (!status.content) {
+      throw new BadRequestException('Content is required');
+    }
+
+    if (
+      !status.statusJidList ||
+      !Array.isArray(status.statusJidList) ||
+      !status.statusJidList.length
+    ) {
+      throw new BadRequestException('Status jid list is required');
+    }
+
+    if (status.type === 'text') {
+      if (!status.backgroundColor) {
+        throw new BadRequestException('Background color is required');
+      }
+
+      if (!status.font) {
+        throw new BadRequestException('Font is required');
+      }
+
+      return {
+        content: {
+          text: status.content,
+        },
+        option: {
+          backgroundColor: status.backgroundColor,
+          font: status.font,
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'image') {
+      return {
+        content: {
+          image: {
+            url: status.content,
+          },
+          caption: status.caption,
+        },
+        option: {
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'video') {
+      return {
+        content: {
+          video: {
+            url: status.content,
+          },
+          caption: status.caption,
+        },
+        option: {
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'audio') {
+      return {
+        content: {
+          audio: {
+            url: status.content,
+          },
+        },
+        option: {
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+
+    throw new BadRequestException('Type not found');
+  }
+
   public async statusMessage(data: SendStatusDto) {
     this.logger.verbose('Sending status message');
     return await this.sendMessageWithTyping('status@broadcast', {
-      status: data.statusMessage,
+      status: await this.formatStatusMessage(data.statusMessage),
     });
   }
 

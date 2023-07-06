@@ -196,7 +196,9 @@ export const statusMessageSchema: JSONSchema7 = {
     statusMessage: {
       type: 'object',
       properties: {
-        text: { type: 'string' },
+        type: { type: 'string', enum: ['text', 'image', 'audio', 'video'] },
+        content: { type: 'string' },
+        caption: { type: 'string' },
         backgroundColor: { type: 'string' },
         font: { type: 'integer', minimum: 0, maximum: 5 },
         statusJidList: {
@@ -210,8 +212,8 @@ export const statusMessageSchema: JSONSchema7 = {
           },
         },
       },
-      required: ['text', 'backgroundColor', 'font', 'statusJidList'],
-      ...isNotEmpty('text', 'backgroundColor', 'font', 'statusJidList'),
+      required: ['type', 'content', 'statusJidList'],
+      ...isNotEmpty('type', 'content', 'statusJidList'),
     },
   },
   required: ['statusMessage'],

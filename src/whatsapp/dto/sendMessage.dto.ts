@@ -32,11 +32,13 @@ class linkPreviewMessage {
   text: string;
 }
 
-class StatusMessage {
-  text: string;
-  backgroundColor: string;
-  font: number;
+export class StatusMessage {
+  type: string;
+  content: string;
   statusJidList: string[];
+  caption?: string;
+  backgroundColor?: string;
+  font?: number;
 }
 
 class PollMessage {
