@@ -6,6 +6,7 @@
 * Added audio to mp4 converter in optionally get Base64 From MediaMessage
 * Added organization name in vcard
 * Added email in vcard
+* Added url in vcard
 
 ### Fixed
 
