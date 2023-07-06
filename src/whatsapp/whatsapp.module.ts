@@ -29,6 +29,7 @@ import { AuthRepository } from './repository/auth.repository';
 import { WAStartupService } from './services/whatsapp.service';
 import { delay } from '@whiskeysockets/baileys';
 import { Events } from './types/wa.types';
+import { RedisCache } from '../db/redis.client';
 
 const logger = new Logger('WA MODULE');
 
@@ -46,10 +47,18 @@ export const repository = new RepositoryBroker(
   messageUpdateRepository,
   webhookRepository,
   authRepository,
+  configService,
   dbserver?.getClient(),
 );
 
-export const waMonitor = new WAMonitoringService(eventEmitter, configService, repository);
+export const cache = new RedisCache();
+
+export const waMonitor = new WAMonitoringService(
+  eventEmitter,
+  configService,
+  repository,
+  cache,
+);
 
 const authService = new AuthService(configService, waMonitor, repository);
 
@@ -64,6 +73,7 @@ export const instanceController = new InstanceController(
   eventEmitter,
   authService,
   webhookService,
+  cache,
 );
 export const viewsController = new ViewsController(waMonitor, configService);
 export const sendMessageController = new SendMessageController(waMonitor);
@@ -71,10 +81,11 @@ export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
 
 export async function initInstance() {
-  const instance = new WAStartupService(configService, eventEmitter, repository);
+  const instance = new WAStartupService(configService, eventEmitter, repository, cache);
 
   const mode = configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
+  logger.verbose('Sending data webhook for event: ' + Events.APPLICATION_STARTUP);
   instance.sendDataWebhook(
     Events.APPLICATION_STARTUP,
     {
@@ -85,9 +96,14 @@ export async function initInstance() {
   );
 
   if (mode === 'container') {
+    logger.verbose('Application startup in container mode');
+
     const instanceName = configService.get<Auth>('AUTHENTICATION').INSTANCE.NAME;
+    logger.verbose('Instance name: ' + instanceName);
+
     const instanceWebhook =
       configService.get<Auth>('AUTHENTICATION').INSTANCE.WEBHOOK_URL;
+    logger.verbose('Instance webhook: ' + instanceWebhook);
 
     instance.instanceName = instanceName;
 
@@ -96,13 +112,17 @@ export async function initInstance() {
 
     const hash = await authService.generateHash({
       instanceName: instance.instanceName,
+      token: configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
     });
+    logger.verbose('Hash generated: ' + hash);
 
     if (instanceWebhook) {
+      logger.verbose('Creating webhook for instance: ' + instanceName);
       try {
         webhookService.create(instance, { enabled: true, url: instanceWebhook });
+        logger.verbose('Webhook created');
       } catch (error) {
-        this.logger.log(error);
+        logger.log(error);
       }
     }
 
@@ -120,7 +140,7 @@ export async function initInstance() {
           return await this.connectionState({ instanceName });
       }
     } catch (error) {
-      this.logger.log(error);
+      logger.log(error);
     }
 
     const result = {

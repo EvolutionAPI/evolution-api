@@ -16,8 +16,6 @@ function initWA() {
 }
 
 function bootstrap() {
-  initWA();
-
   const logger = new Logger('SERVER');
   const app = express();
 
@@ -34,8 +32,8 @@ function bootstrap() {
       methods: [...configService.get<Cors>('CORS').METHODS],
       credentials: configService.get<Cors>('CORS').CREDENTIALS,
     }),
-    urlencoded({ extended: true, limit: '50mb' }),
-    json({ limit: '50mb' }),
+    urlencoded({ extended: true, limit: '136mb' }),
+    json({ limit: '136mb' }),
     compression(),
   );
 
@@ -72,6 +70,8 @@ function bootstrap() {
   server.listen(httpServer.PORT, () =>
     logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT),
   );
+
+  initWA();
 
   onUnexpectedError();
 }

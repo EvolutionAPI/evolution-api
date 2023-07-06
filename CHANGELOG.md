@@ -1,3 +1,25 @@
+# 1.1.3 (2023-07-06 11:43)
+
+### Features
+
+* Added configuration for Baileys log level in env
+* Added audio to mp4 converter in optionally get Base64 From MediaMessage
+* Added organization name in vcard
+* Added email in vcard
+* Added url in vcard
+* Added verbose logs
+
+### Fixed
+
+* Added timestamp internally in urls to avoid caching
+* Correction in decryption of poll votes
+* Change in the way the api sent and saved the sent messages, now it goes in the messages.upsert event
+* Fixed cash when sending stickers via url
+* Improved how Redis works for instances
+* Fixed problem when disconnecting the instance it removes the instance
+* Fixed problem sending ack when preview is done by me
+* Adjust in store files
+
 # 1.1.2 (2023-06-28 13:43)
 
 ### Fixed

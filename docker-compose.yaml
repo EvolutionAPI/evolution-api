@@ -14,10 +14,12 @@ services:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store
     environment:
+      - LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS
+      - LOG_BAILEYS=error
       # Determine how long the instance should be deleted from memory in case of no connection.
       # Default time: 5 minutes
       # If you don't even want an expiration, enter the value false
-      - DEL_INSTANCE=5 # or false
+      - DEL_INSTANCE=false # 5 or false
       # Temporary data storage
       - STORE_MESSAGES=true
       - STORE_MESSAGE_UP=true
@@ -39,7 +41,7 @@ services:
       - DATABASE_SAVE_MESSAGE_UPDATE=true
       - DATABASE_SAVE_DATA_CONTACTS=true
       - DATABASE_SAVE_DATA_CHATS=true
-      - REDIS_ENABLED=false
+      - REDIS_ENABLED=true
       - REDIS_URI=redis://redis:6379/1
       - REDIS_PREFIX_KEY=evolution
       # Webhook Settings
@@ -55,7 +57,6 @@ services:
       - WEBHOOK_EVENTS_MESSAGES_SET=true
       - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
       - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
-      - WEBHOOK_EVENTS_SEND_MESSAGE=true
       - WEBHOOK_EVENTS_CONTACTS_SET=true
       - WEBHOOK_EVENTS_CONTACTS_UPSERT=true
       - WEBHOOK_EVENTS_CONTACTS_UPDATE=true

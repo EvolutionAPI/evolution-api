@@ -67,7 +67,6 @@ export class Logger {
     this.configService.get<Log>('LOG').LEVEL.forEach((level) => types.push(Type[level]));
 
     const typeValue = typeof value;
-
     if (types.includes(type)) {
       if (configService.get<Log>('LOG').COLOR) {
         console.log(

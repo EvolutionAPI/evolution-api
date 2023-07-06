@@ -13,10 +13,22 @@ export type Cors = {
   CREDENTIALS: boolean;
 };
 
-export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK';
+export type LogBaileys = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+
+export type LogLevel =
+  | 'ERROR'
+  | 'WARN'
+  | 'DEBUG'
+  | 'INFO'
+  | 'LOG'
+  | 'VERBOSE'
+  | 'DARK'
+  | 'WEBHOOKS';
+
 export type Log = {
   LEVEL: LogLevel[];
   COLOR: boolean;
+  BAILEYS: LogBaileys;
 };
 
 export type SaveData = {
@@ -65,7 +77,6 @@ export type EventsWebhook = {
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
   MESSAGES_UPDATE: boolean;
-  SEND_MESSAGE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -149,7 +160,9 @@ export class ConfigService {
   }
 
   private envYaml(): Env {
-    return load(readFileSync(join(SRC_DIR, 'env.yml'), { encoding: 'utf-8' })) as Env;
+    return load(
+      readFileSync(join(process.cwd(), 'src', 'env.yml'), { encoding: 'utf-8' }),
+    ) as Env;
   }
 
   private envProcess(): Env {
@@ -205,6 +218,7 @@ export class ConfigService {
       LOG: {
         LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],
         COLOR: process.env?.LOG_COLOR === 'true',
+        BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
         ? process.env.DEL_INSTANCE === 'true'
@@ -221,7 +235,6 @@ export class ConfigService {
           MESSAGES_SET: process.env?.WEBHOOK_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.WEBHOOK_EVENTS_MESSAGES_UPSERT === 'true',
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
-          SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
           CONTACTS_SET: process.env?.WEBHOOK_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.WEBHOOK_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.WEBHOOK_EVENTS_CONTACTS_UPSERT === 'true',

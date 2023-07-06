@@ -9,7 +9,7 @@ import {
   NotFoundException,
 } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
-import { waMonitor } from '../whatsapp.module';
+import { cache, waMonitor } from '../whatsapp.module';
 import { Database, Redis, configService } from '../../config/env.config';
 import { RedisCache } from '../../db/redis.client';
 
@@ -20,7 +20,6 @@ async function getInstance(instanceName: string) {
   const exists = !!waMonitor.waInstances[instanceName];
 
   if (redisConf.ENABLED) {
-    const cache = new RedisCache(redisConf, instanceName);
     const keyExists = await cache.keyExists();
     return exists || keyExists;
   }

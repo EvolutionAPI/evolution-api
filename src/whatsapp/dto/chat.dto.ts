@@ -2,6 +2,7 @@ import {
   WAPrivacyOnlineValue,
   WAPrivacyValue,
   WAReadReceiptsValue,
+  proto,
 } from '@whiskeysockets/baileys';
 
 export class OnWhatsAppDto {
@@ -10,6 +11,11 @@ export class OnWhatsAppDto {
     public readonly exists: boolean,
     public readonly name?: string,
   ) {}
+}
+
+export class getBase64FromMediaMessageDto {
+  message: proto.WebMessageInfo;
+  convertToMp4?: boolean;
 }
 
 export class WhatsAppNumberDto {

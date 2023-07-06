@@ -22,6 +22,7 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   WhatsAppNumberDto,
+  getBase64FromMediaMessageDto,
 } from '../dto/chat.dto';
 import { ContactQuery } from '../repository/contact.repository';
 import { MessageQuery } from '../repository/message.repository';
@@ -101,10 +102,10 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('getBase64FromMediaMessage'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<proto.IWebMessageInfo>({
+        const response = await this.dataValidate<getBase64FromMediaMessageDto>({
           request: req,
           schema: null,
-          ClassRef: Object,
+          ClassRef: getBase64FromMediaMessageDto,
           execute: (instance, data) =>
             chatController.getBase64FromMediaMessage(instance, data),
         });

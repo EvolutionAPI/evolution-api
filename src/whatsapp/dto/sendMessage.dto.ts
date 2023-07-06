@@ -125,6 +125,9 @@ export class ContactMessage {
   fullName: string;
   wuid: string;
   phoneNumber: string;
+  organization?: string;
+  email?: string;
+  url?: string;
 }
 export class SendContactDto extends Metadata {
   contactMessage: ContactMessage[];
