@@ -1,3 +1,9 @@
+# 1.1.4 (homolog)
+
+### Features
+
+* Route to send status broadcast
+
 # 1.1.3 (2023-07-06 11:43)
 
 ### Features

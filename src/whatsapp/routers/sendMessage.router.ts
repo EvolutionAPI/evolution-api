@@ -9,6 +9,7 @@ import {
   mediaMessageSchema,
   pollMessageSchema,
   reactionMessageSchema,
+  statusMessageSchema,
   stickerMessageSchema,
   textMessageSchema,
 } from '../../validate/validate.schema';
@@ -22,6 +23,7 @@ import {
   SendMediaDto,
   SendPollDto,
   SendReactionDto,
+  SendStatusDto,
   SendStickerDto,
   SendTextDto,
 } from '../dto/sendMessage.dto';
@@ -120,6 +122,16 @@ export class MessageRouter extends RouterBroker {
           schema: pollMessageSchema,
           ClassRef: SendPollDto,
           execute: (instance, data) => sendMessageController.sendPoll(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('sendStatus'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<SendStatusDto>({
+          request: req,
+          schema: statusMessageSchema,
+          ClassRef: SendStatusDto,
+          execute: (instance, data) => sendMessageController.sendStatus(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

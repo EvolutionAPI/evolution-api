@@ -32,6 +32,13 @@ class linkPreviewMessage {
   text: string;
 }
 
+class StatusMessage {
+  text: string;
+  backgroundColor: string;
+  font: number;
+  statusJidList: string[];
+}
+
 class PollMessage {
   name: string;
   selectableCount: number;
@@ -44,6 +51,10 @@ export class SendTextDto extends Metadata {
 
 export class SendLinkPreviewDto extends Metadata {
   linkPreview: linkPreviewMessage;
+}
+
+export class SendStatusDto extends Metadata {
+  statusMessage: StatusMessage;
 }
 
 export class SendPollDto extends Metadata {

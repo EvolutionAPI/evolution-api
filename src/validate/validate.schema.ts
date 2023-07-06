@@ -189,6 +189,34 @@ export const pollMessageSchema: JSONSchema7 = {
   required: ['pollMessage', 'number'],
 };
 
+export const statusMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    statusMessage: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        backgroundColor: { type: 'string' },
+        font: { type: 'integer', minimum: 0, maximum: 5 },
+        statusJidList: {
+          type: 'array',
+          minItems: 1,
+          uniqueItems: true,
+          items: {
+            type: 'string',
+            pattern: '^\\d+',
+            description: '"statusJidList" must be an array of numeric strings',
+          },
+        },
+      },
+      required: ['text', 'backgroundColor', 'font', 'statusJidList'],
+      ...isNotEmpty('text', 'backgroundColor', 'font', 'statusJidList'),
+    },
+  },
+  required: ['statusMessage'],
+};
+
 export const mediaMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

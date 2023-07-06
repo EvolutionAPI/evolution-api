@@ -11,6 +11,7 @@ import {
   SendMediaDto,
   SendPollDto,
   SendReactionDto,
+  SendStatusDto,
   SendStickerDto,
   SendTextDto,
 } from '../dto/sendMessage.dto';
@@ -78,6 +79,10 @@ export class SendMessageController {
 
   public async sendPoll({ instanceName }: InstanceDto, data: SendPollDto) {
     return await this.waMonitor.waInstances[instanceName].pollMessage(data);
+  }
+
+  public async sendStatus({ instanceName }: InstanceDto, data: SendStatusDto) {
+    return await this.waMonitor.waInstances[instanceName].statusMessage(data);
   }
 
   public async sendLinkPreview({ instanceName }: InstanceDto, data: SendLinkPreviewDto) {

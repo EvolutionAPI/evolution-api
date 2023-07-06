@@ -77,6 +77,7 @@ import {
   SendPollDto,
   SendLinkPreviewDto,
   SendStickerDto,
+  SendStatusDto,
 } from '../dto/sendMessage.dto';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import {
@@ -1098,6 +1099,11 @@ export class WAStartupService {
       return number;
     }
 
+    if (number.includes('@broadcast')) {
+      this.logger.verbose('Number already contains @broadcast');
+      return number;
+    }
+
     const formattedBRNumber = this.formatBRNumber(number);
     if (formattedBRNumber !== number) {
       this.logger.verbose(
@@ -1152,7 +1158,7 @@ export class WAStartupService {
 
     const jid = this.createJid(number);
     const isWA = (await this.whatsappNumber({ numbers: [jid] }))[0];
-    if (!isWA.exists && !isJidGroup(isWA.jid)) {
+    if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
     }
 
@@ -1229,7 +1235,8 @@ export class WAStartupService {
           !message['audio'] &&
           !message['poll'] &&
           !message['linkPreview'] &&
-          !message['sticker']
+          !message['sticker'] &&
+          !message['status']
         ) {
           if (!message['audio']) {
             this.logger.verbose('Sending message');
@@ -1255,6 +1262,21 @@ export class WAStartupService {
               text: message['linkPreview'].text,
             } as unknown as AnyMessageContent,
             option as unknown as MiscMessageGenerationOptions,
+          );
+        }
+
+        if (message['status']) {
+          this.logger.verbose('Sending message');
+          return await this.client.sendMessage(
+            sender,
+            {
+              text: message['status'].text,
+            } as unknown as AnyMessageContent,
+            {
+              backgroundColor: message['status'].backgroundColor,
+              font: message['status'].font,
+              statusJidList: message['status'].statusJidList,
+            } as unknown as MiscMessageGenerationOptions,
           );
         }
 
@@ -1333,6 +1355,13 @@ export class WAStartupService {
       },
       data?.options,
     );
+  }
+
+  public async statusMessage(data: SendStatusDto) {
+    this.logger.verbose('Sending status message');
+    return await this.sendMessageWithTyping('status@broadcast', {
+      status: data.statusMessage,
+    });
   }
 
   private async prepareMediaMessage(mediaMessage: MediaMessage) {
