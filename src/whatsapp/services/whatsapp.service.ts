@@ -119,6 +119,7 @@ import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-st
 import sharp from 'sharp';
 import { RedisCache } from '../../db/redis.client';
 import { Log } from '../../config/env.config';
+import ProxyAgent from 'proxy-agent';
 
 export class WAStartupService {
   constructor(
@@ -1421,16 +1422,27 @@ export class WAStartupService {
       };
     }
     if (status.type === 'audio') {
-      return {
-        content: {
-          audio: {
-            url: status.content,
+      const convert = await this.processAudio(status.content, 'status@broadcast');
+      if (typeof convert === 'string') {
+        const audio = fs.readFileSync(convert).toString('base64');
+
+        const result = {
+          content: {
+            audio: Buffer.from(audio, 'base64'),
+            ptt: true,
+            mimetype: 'audio/mp4',
           },
-        },
-        option: {
-          statusJidList: status.statusJidList,
-        },
-      };
+          option: {
+            statusJidList: status.statusJidList,
+          },
+        };
+
+        fs.unlinkSync(convert);
+
+        return result;
+      } else {
+        throw new InternalServerErrorException(convert);
+      }
     }
 
     throw new BadRequestException('Type not found');
