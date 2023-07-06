@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DavidsonGomes/evolution-api.git"
+    "url": "git+https://github.com/EvolutionAPI/evolution-api.git"
   },
   "keywords": [
     "chat",
@@ -36,9 +36,9 @@
   },
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/DavidsonGomes/evolution-api/issues"
+    "url": "https://github.com/EvolutionAPI/evolution-api/issues"
   },
-  "homepage": "https://github.com/DavidsonGomes/evolution-api#readme",
+  "homepage": "https://github.com/EvolutionAPI/evolution-api#readme",
   "dependencies": {
     "@whiskeysockets/baileys": "github:EvolutionAPI/Baileys",
     "@adiwajshing/keyed-db": "^0.2.4",
