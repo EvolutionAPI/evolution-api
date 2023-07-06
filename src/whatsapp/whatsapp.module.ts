@@ -85,6 +85,7 @@ export async function initInstance() {
 
   const mode = configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
+  logger.verbose('Sending data webhook for event: ' + Events.APPLICATION_STARTUP);
   instance.sendDataWebhook(
     Events.APPLICATION_STARTUP,
     {
@@ -95,9 +96,14 @@ export async function initInstance() {
   );
 
   if (mode === 'container') {
+    logger.verbose('Application startup in container mode');
+
     const instanceName = configService.get<Auth>('AUTHENTICATION').INSTANCE.NAME;
+    logger.verbose('Instance name: ' + instanceName);
+
     const instanceWebhook =
       configService.get<Auth>('AUTHENTICATION').INSTANCE.WEBHOOK_URL;
+    logger.verbose('Instance webhook: ' + instanceWebhook);
 
     instance.instanceName = instanceName;
 
@@ -106,13 +112,17 @@ export async function initInstance() {
 
     const hash = await authService.generateHash({
       instanceName: instance.instanceName,
+      token: configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
     });
+    logger.verbose('Hash generated: ' + hash);
 
     if (instanceWebhook) {
+      logger.verbose('Creating webhook for instance: ' + instanceName);
       try {
         webhookService.create(instance, { enabled: true, url: instanceWebhook });
+        logger.verbose('Webhook created');
       } catch (error) {
-        this.logger.log(error);
+        logger.log(error);
       }
     }
 
@@ -130,7 +140,7 @@ export async function initInstance() {
           return await this.connectionState({ instanceName });
       }
     } catch (error) {
-      this.logger.log(error);
+      logger.log(error);
     }
 
     const result = {

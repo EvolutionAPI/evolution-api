@@ -24,6 +24,8 @@ export class WAMonitoringService {
     private readonly repository: RepositoryBroker,
     private readonly cache: RedisCache,
   ) {
+    this.logger.verbose('instance created');
+
     this.removeInstance();
     this.noConnection();
     this.delInstanceFiles();
@@ -47,6 +49,10 @@ export class WAMonitoringService {
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
     if (typeof time === 'number' && time > 0) {
+      this.logger.verbose(
+        `Instance "${instance}" don't have connection, will be removed in ${time} minutes`,
+      );
+
       setTimeout(async () => {
         if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
           if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
@@ -66,6 +72,7 @@ export class WAMonitoringService {
   }
 
   public async instanceInfo(instanceName?: string) {
+    this.logger.verbose('get instance info');
     if (instanceName && !this.waInstances[instanceName]) {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
@@ -74,9 +81,14 @@ export class WAMonitoringService {
 
     for await (const [key, value] of Object.entries(this.waInstances)) {
       if (value) {
+        this.logger.verbose('get instance info: ' + key);
         if (value.connectionStatus.state === 'open') {
+          this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
           let apikey: string;
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            this.logger.verbose(
+              'instance: ' + key + ' - hash exposed in fetch instances',
+            );
             const tokenStore = await this.repository.auth.find(key);
             apikey = tokenStore.apikey || 'Apikey not found';
 
@@ -91,6 +103,9 @@ export class WAMonitoringService {
               },
             });
           } else {
+            this.logger.verbose(
+              'instance: ' + key + ' - hash not exposed in fetch instances',
+            );
             instances.push({
               instance: {
                 instanceName: key,
@@ -102,8 +117,14 @@ export class WAMonitoringService {
             });
           }
         } else {
+          this.logger.verbose(
+            'instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state,
+          );
           let apikey: string;
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            this.logger.verbose(
+              'instance: ' + key + ' - hash exposed in fetch instances',
+            );
             const tokenStore = await this.repository.auth.find(key);
             apikey = tokenStore.apikey || 'Apikey not found';
 
@@ -115,6 +136,9 @@ export class WAMonitoringService {
               },
             });
           } else {
+            this.logger.verbose(
+              'instance: ' + key + ' - hash not exposed in fetch instances',
+            );
             instances.push({
               instance: {
                 instanceName: key,
@@ -126,10 +150,13 @@ export class WAMonitoringService {
       }
     }
 
+    this.logger.verbose('return instance info: ' + instances.length);
+
     return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
   }
 
   private delInstanceFiles() {
+    this.logger.verbose('cron to delete instance files started');
     setInterval(async () => {
       if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
         const collections = await this.dbInstance.collections();
@@ -141,6 +168,7 @@ export class WAMonitoringService {
               { _id: { $regex: /^session-.*/ } },
             ],
           });
+          this.logger.verbose('instance files deleted: ' + name);
         });
       } else if (this.redis.ENABLED) {
       } else {
@@ -158,6 +186,7 @@ export class WAMonitoringService {
                 });
               }
             });
+            this.logger.verbose('instance files deleted: ' + dirent.name);
           }
         }
       }
@@ -165,7 +194,9 @@ export class WAMonitoringService {
   }
 
   public async cleaningUp(instanceName: string) {
+    this.logger.verbose('cleaning up instance: ' + instanceName);
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+      this.logger.verbose('cleaning up instance in database: ' + instanceName);
       await this.repository.dbServer.connect();
       const collections: any[] = await this.dbInstance.collections();
       if (collections.length > 0) {
@@ -175,14 +206,18 @@ export class WAMonitoringService {
     }
 
     if (this.redis.ENABLED) {
+      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
       this.cache.reference = instanceName;
       await this.cache.delAll();
       return;
     }
+
+    this.logger.verbose('cleaning up instance in files: ' + instanceName);
     rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
   }
 
   public async loadInstance() {
+    this.logger.verbose('load instances');
     const set = async (name: string) => {
       const instance = new WAStartupService(
         this.configService,
@@ -191,38 +226,50 @@ export class WAMonitoringService {
         this.cache,
       );
       instance.instanceName = name;
+      this.logger.verbose('instance loaded: ' + name);
+
       await instance.connectToWhatsapp();
+      this.logger.verbose('connectToWhatsapp: ' + name);
+
       this.waInstances[name] = instance;
     };
 
     try {
       if (this.redis.ENABLED) {
+        this.logger.verbose('redis enabled');
         await this.cache.connect(this.redis as Redis);
         const keys = await this.cache.instanceKeys();
         if (keys?.length > 0) {
+          this.logger.verbose('reading instance keys and setting instances');
           keys.forEach(async (k) => await set(k.split(':')[1]));
         } else {
+          this.logger.verbose('no instance keys found');
           initInstance();
         }
         return;
       }
 
       if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+        this.logger.verbose('database enabled');
         await this.repository.dbServer.connect();
         const collections: any[] = await this.dbInstance.collections();
         if (collections.length > 0) {
+          this.logger.verbose('reading collections and setting instances');
           collections.forEach(
             async (coll) => await set(coll.namespace.replace(/^[\w-]+\./, '')),
           );
         } else {
+          this.logger.verbose('no collections found');
           initInstance();
         }
         return;
       }
 
+      this.logger.verbose('store in files enabled');
       const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
       for await (const dirent of dir) {
         if (dirent.isDirectory()) {
+          this.logger.verbose('reading instance files and setting instances');
           const files = readdirSync(join(INSTANCE_DIR, dirent.name), {
             encoding: 'utf-8',
           });
@@ -233,6 +280,7 @@ export class WAMonitoringService {
 
           await set(dirent.name);
         } else {
+          this.logger.verbose('no instance files found');
           initInstance();
         }
       }
@@ -243,18 +291,23 @@ export class WAMonitoringService {
 
   private removeInstance() {
     this.eventEmitter.on('remove.instance', async (instanceName: string) => {
+      this.logger.verbose('remove instance: ' + instanceName);
       try {
+        this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
         this.waInstances[instanceName] = undefined;
       } catch {}
 
       try {
+        this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - REMOVED`);
       }
     });
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
+      this.logger.verbose('logout instance: ' + instanceName);
       try {
+        this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - LOGOUT`);
@@ -263,9 +316,13 @@ export class WAMonitoringService {
   }
 
   private noConnection() {
+    this.logger.verbose('checking instances without connection');
     this.eventEmitter.on('no.connection', async (instanceName) => {
       try {
+        this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
         this.waInstances[instanceName] = undefined;
+
+        this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
       } catch (error) {
         this.logger.error({

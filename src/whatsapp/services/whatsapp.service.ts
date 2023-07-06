@@ -142,12 +142,15 @@ export class WAStartupService {
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
   public set instanceName(name: string) {
+    this.logger.verbose(`Initializing instance '${name}'`);
     if (!name) {
+      this.logger.verbose('Instance name not found, generating random name with uuid');
       this.instance.name = v4();
       return;
     }
     this.instance.name = name;
     this.logger.verbose(`Instance '${this.instance.name}' initialized`);
+    this.logger.verbose('Sending instance status to webhook');
     this.sendDataWebhook(Events.STATUS_INSTANCE, {
       instance: this.instance.name,
       status: 'created',
@@ -155,10 +158,12 @@ export class WAStartupService {
   }
 
   public get instanceName() {
+    this.logger.verbose('Getting instance name');
     return this.instance.name;
   }
 
   public get wuid() {
+    this.logger.verbose('Getting remoteJid of instance');
     return this.instance.wuid;
   }
 
@@ -266,8 +271,9 @@ export class WAStartupService {
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
 
-    if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
-      if (local && instance.MODE !== 'container') {
+    if (local && instance.MODE !== 'container') {
+      if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
+        this.logger.verbose('Sending data to webhook local');
         let baseURL;
 
         if (this.localWebhook.webhook_by_events) {
@@ -315,6 +321,7 @@ export class WAStartupService {
 
     if (webhookGlobal.GLOBAL?.ENABLED) {
       if (webhookGlobal.EVENTS[we]) {
+        this.logger.verbose('Sending data to webhook global');
         const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
 
         let globalURL;
@@ -376,29 +383,39 @@ export class WAStartupService {
     connection,
     lastDisconnect,
   }: Partial<ConnectionState>) {
+    this.logger.verbose('Connection update');
     if (qr) {
+      this.logger.verbose('QR code found');
       if (this.instance.qrcode.count === this.configService.get<QrCode>('QRCODE').LIMIT) {
+        this.logger.verbose('QR code limit reached');
+
+        this.logger.verbose('Sending data to webhook in event QRCODE_UPDATED');
         this.sendDataWebhook(Events.QRCODE_UPDATED, {
           message: 'QR code limit reached, please login again',
           statusCode: DisconnectReason.badSession,
         });
 
+        this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
         this.sendDataWebhook(Events.CONNECTION_UPDATE, {
           instance: this.instance.name,
           state: 'refused',
           statusReason: DisconnectReason.connectionClosed,
         });
 
+        this.logger.verbose('Sending data to webhook in event STATUS_INSTANCE');
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
           status: 'removed',
         });
 
+        this.logger.verbose('endSession defined as true');
         this.endSession = true;
 
+        this.logger.verbose('Emmiting event logout.instance');
         return this.eventEmitter.emit('no.connection', this.instance.name);
       }
 
+      this.logger.verbose('Incrementing QR code count');
       this.instance.qrcode.count++;
 
       const optsQrcode: QRCodeToDataURLOptions = {
@@ -408,6 +425,7 @@ export class WAStartupService {
         color: { light: '#ffffff', dark: '#198754' },
       };
 
+      this.logger.verbose('Generating QR code');
       qrcode.toDataURL(qr, optsQrcode, (error, base64) => {
         if (error) {
           this.logger.error('Qrcode generate failed:' + error.toString());
@@ -422,6 +440,7 @@ export class WAStartupService {
         });
       });
 
+      this.logger.verbose('Generating QR code in terminal');
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
@@ -431,10 +450,13 @@ export class WAStartupService {
     }
 
     if (connection) {
+      this.logger.verbose('Connection found');
       this.stateConnection = {
         state: connection,
         statusReason: (lastDisconnect?.error as Boom)?.output?.statusCode ?? 200,
       };
+
+      this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
       this.sendDataWebhook(Events.CONNECTION_UPDATE, {
         instance: this.instance.name,
         ...this.stateConnection,
@@ -442,22 +464,30 @@ export class WAStartupService {
     }
 
     if (connection === 'close') {
+      this.logger.verbose('Connection closed');
       const shouldReconnect =
         (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
       if (shouldReconnect) {
+        this.logger.verbose('Reconnecting to whatsapp');
         await this.connectToWhatsapp();
       } else {
+        this.logger.verbose('Do not reconnect to whatsapp');
+        this.logger.verbose('Sending data to webhook in event STATUS_INSTANCE');
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
           status: 'removed',
         });
+
+        this.logger.verbose('Emittin event logout.instance');
         this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
+        this.logger.verbose('Connection closed');
       }
     }
 
     if (connection === 'open') {
+      this.logger.verbose('Connection opened');
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       this.instance.profilePictureUrl = (
         await this.profilePicture(this.instance.wuid)
@@ -472,14 +502,17 @@ export class WAStartupService {
   }
 
   private async getMessage(key: proto.IMessageKey, full = false) {
+    this.logger.verbose('Getting message with key: ' + JSON.stringify(key));
     try {
       const webMessageInfo = (await this.repository.message.find({
         where: { owner: this.instance.wuid, key: { id: key.id } },
       })) as unknown as proto.IWebMessageInfo[];
       if (full) {
+        this.logger.verbose('Returning full message');
         return webMessageInfo[0];
       }
       if (webMessageInfo[0].message?.pollCreationMessage) {
+        this.logger.verbose('Returning poll message');
         const messageSecretBase64 =
           webMessageInfo[0].message?.messageContextInfo?.messageSecret;
 
@@ -497,6 +530,7 @@ export class WAStartupService {
         }
       }
 
+      this.logger.verbose('Returning message');
       return webMessageInfo[0].message;
     } catch (error) {
       return { conversation: '' };
@@ -504,9 +538,11 @@ export class WAStartupService {
   }
 
   private cleanStore() {
+    this.logger.verbose('Cronjob to clean store initialized');
     const cleanStore = this.configService.get<CleanStoreConf>('CLEAN_STORE');
     const database = this.configService.get<Database>('DATABASE');
     if (cleanStore?.CLEANING_INTERVAL && !database.ENABLED) {
+      this.logger.verbose('Cronjob to clean store enabled');
       setInterval(() => {
         try {
           for (const [key, value] of Object.entries(cleanStore)) {
@@ -533,30 +569,37 @@ export class WAStartupService {
   }
 
   private async defineAuthState() {
+    this.logger.verbose('Defining auth state');
     const db = this.configService.get<Database>('DATABASE');
     const redis = this.configService.get<Redis>('REDIS');
 
     if (redis?.ENABLED) {
+      this.logger.verbose('Redis enabled');
       this.cache.reference = this.instance.name;
       return await useMultiFileAuthStateRedisDb(this.cache);
     }
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {
+      this.logger.verbose('Database enabled');
       return await useMultiFileAuthStateDb(this.instance.name);
     }
 
+    this.logger.verbose('Store file enabled');
     return await useMultiFileAuthState(join(INSTANCE_DIR, this.instance.name));
   }
 
   public async connectToWhatsapp(): Promise<WASocket> {
+    this.logger.verbose('Connecting to whatsapp');
     try {
       this.loadWebhook();
 
       this.instance.authState = await this.defineAuthState();
 
       const { version } = await fetchLatestBaileysVersion();
+      this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
       const socketConfig: UserFacingSocketConfig = {
         auth: {
@@ -606,9 +649,15 @@ export class WAStartupService {
 
       this.endSession = false;
 
+      this.logger.verbose('Creating socket');
+
       this.client = makeWASocket(socketConfig);
 
+      this.logger.verbose('Socket created');
+
       this.eventHandler();
+
+      this.logger.verbose('Socket event handler initialized');
 
       return this.client;
     } catch (error) {
@@ -619,10 +668,14 @@ export class WAStartupService {
 
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[], database: Database) => {
+      this.logger.verbose('Event received: chats.upsert');
+
+      this.logger.verbose('Finding chats in database');
       const chatsRepository = await this.repository.chat.find({
         where: { owner: this.instance.wuid },
       });
 
+      this.logger.verbose('Verifying if chats exists in database to insert');
       const chatsRaw: ChatRaw[] = [];
       for await (const chat of chats) {
         if (chatsRepository.find((cr) => cr.id === chat.id)) {
@@ -632,7 +685,10 @@ export class WAStartupService {
         chatsRaw.push({ id: chat.id, owner: this.instance.wuid });
       }
 
+      this.logger.verbose('Sending data to webhook in event CHATS_UPSERT');
       await this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
+
+      this.logger.verbose('Inserting chats in database');
       await this.repository.chat.insert(chatsRaw, database.SAVE_DATA.CHATS);
     },
 
@@ -645,14 +701,19 @@ export class WAStartupService {
         }
       >[],
     ) => {
+      this.logger.verbose('Event received: chats.update');
       const chatsRaw: ChatRaw[] = chats.map((chat) => {
         return { id: chat.id, owner: this.instance.wuid };
       });
 
+      this.logger.verbose('Sending data to webhook in event CHATS_UPDATE');
       await this.sendDataWebhook(Events.CHATS_UPDATE, chatsRaw);
     },
 
     'chats.delete': async (chats: string[]) => {
+      this.logger.verbose('Event received: chats.delete');
+
+      this.logger.verbose('Deleting chats in database');
       chats.forEach(
         async (chat) =>
           await this.repository.chat.delete({
@@ -660,16 +721,21 @@ export class WAStartupService {
           }),
       );
 
+      this.logger.verbose('Sending data to webhook in event CHATS_DELETE');
       await this.sendDataWebhook(Events.CHATS_DELETE, [...chats]);
     },
   };
 
   private readonly contactHandle = {
     'contacts.upsert': async (contacts: Contact[], database: Database) => {
+      this.logger.verbose('Event received: contacts.upsert');
+
+      this.logger.verbose('Finding contacts in database');
       const contactsRepository = await this.repository.contact.find({
         where: { owner: this.instance.wuid },
       });
 
+      this.logger.verbose('Verifying if contacts exists in database to insert');
       const contactsRaw: ContactRaw[] = [];
       for await (const contact of contacts) {
         if (contactsRepository.find((cr) => cr.id === contact.id)) {
@@ -684,11 +750,17 @@ export class WAStartupService {
         });
       }
 
+      this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
       await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
+
+      this.logger.verbose('Inserting contacts in database');
       await this.repository.contact.insert(contactsRaw, database.SAVE_DATA.CONTACTS);
     },
 
     'contacts.update': async (contacts: Partial<Contact>[]) => {
+      this.logger.verbose('Event received: contacts.update');
+
+      this.logger.verbose('Verifying if contacts exists in database to update');
       const contactsRaw: ContactRaw[] = [];
       for await (const contact of contacts) {
         contactsRaw.push({
@@ -699,6 +771,7 @@ export class WAStartupService {
         });
       }
 
+      this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
     },
   };
@@ -717,7 +790,9 @@ export class WAStartupService {
       },
       database: Database,
     ) => {
+      this.logger.verbose('Event received: messaging-history.set');
       if (isLatest) {
+        this.logger.verbose('isLatest defined as true');
         const chatsRaw: ChatRaw[] = chats.map((chat) => {
           return {
             id: chat.id,
@@ -726,7 +801,10 @@ export class WAStartupService {
           };
         });
 
+        this.logger.verbose('Sending data to webhook in event CHATS_SET');
         await this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
+
+        this.logger.verbose('Inserting chats in database');
         await this.repository.chat.insert(chatsRaw, database.SAVE_DATA.CHATS);
       }
 
@@ -761,6 +839,7 @@ export class WAStartupService {
         });
       }
 
+      this.logger.verbose('Sending data to webhook in event MESSAGES_SET');
       this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
       messages = undefined;
@@ -776,6 +855,7 @@ export class WAStartupService {
       },
       database: Database,
     ) => {
+      this.logger.verbose('Event received: messages.upsert');
       const received = messages[0];
 
       if (
@@ -783,6 +863,7 @@ export class WAStartupService {
         received.message?.protocolMessage ||
         received.message?.pollUpdateMessage
       ) {
+        this.logger.verbose('message rejected');
         return;
       }
 
@@ -802,11 +883,15 @@ export class WAStartupService {
 
       this.logger.log(messageRaw);
 
+      this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
       await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
+
+      this.logger.verbose('Inserting message in database');
       await this.repository.message.insert([messageRaw], database.SAVE_DATA.NEW_MESSAGE);
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
+      this.logger.verbose('Event received: messages.update');
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
         1: 'PENDING',
@@ -840,7 +925,10 @@ export class WAStartupService {
             pollUpdates,
           };
 
+          this.logger.verbose('Sending data to webhook in event MESSAGES_UPDATE');
           await this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
+
+          this.logger.verbose('Inserting message in database');
           await this.repository.messageUpdate.insert(
             [message],
             database.SAVE_DATA.MESSAGE_UPDATE,
@@ -852,10 +940,16 @@ export class WAStartupService {
 
   private readonly groupHandler = {
     'groups.upsert': (groupMetadata: GroupMetadata[]) => {
+      this.logger.verbose('Event received: groups.upsert');
+
+      this.logger.verbose('Sending data to webhook in event GROUPS_UPSERT');
       this.sendDataWebhook(Events.GROUPS_UPSERT, groupMetadata);
     },
 
     'groups.update': (groupMetadataUpdate: Partial<GroupMetadata>[]) => {
+      this.logger.verbose('Event received: groups.update');
+
+      this.logger.verbose('Sending data to webhook in event GROUPS_UPDATE');
       this.sendDataWebhook(Events.GROUPS_UPDATE, groupMetadataUpdate);
     },
 
@@ -864,79 +958,97 @@ export class WAStartupService {
       participants: string[];
       action: ParticipantAction;
     }) => {
+      this.logger.verbose('Event received: group-participants.update');
+
+      this.logger.verbose('Sending data to webhook in event GROUP_PARTICIPANTS_UPDATE');
       this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
     },
   };
 
   private eventHandler() {
+    this.logger.verbose('Initializing event handler');
     this.client.ev.process((events) => {
       if (!this.endSession) {
         const database = this.configService.get<Database>('DATABASE');
 
         if (events['connection.update']) {
+          this.logger.verbose('Listening event: connection.update');
           this.connectionUpdate(events['connection.update']);
         }
 
         if (events['creds.update']) {
+          this.logger.verbose('Listening event: creds.update');
           this.instance.authState.saveCreds();
         }
 
         if (events['messaging-history.set']) {
+          this.logger.verbose('Listening event: messaging-history.set');
           const payload = events['messaging-history.set'];
           this.messageHandle['messaging-history.set'](payload, database);
         }
 
         if (events['messages.upsert']) {
+          this.logger.verbose('Listening event: messages.upsert');
           const payload = events['messages.upsert'];
           this.messageHandle['messages.upsert'](payload, database);
         }
 
         if (events['messages.update']) {
+          this.logger.verbose('Listening event: messages.update');
           const payload = events['messages.update'];
           this.messageHandle['messages.update'](payload, database);
         }
 
         if (events['presence.update']) {
+          this.logger.verbose('Listening event: presence.update');
           const payload = events['presence.update'];
           this.sendDataWebhook(Events.PRESENCE_UPDATE, payload);
         }
 
         if (events['groups.upsert']) {
+          this.logger.verbose('Listening event: groups.upsert');
           const payload = events['groups.upsert'];
           this.groupHandler['groups.upsert'](payload);
         }
 
         if (events['groups.update']) {
+          this.logger.verbose('Listening event: groups.update');
           const payload = events['groups.update'];
           this.groupHandler['groups.update'](payload);
         }
 
         if (events['group-participants.update']) {
+          this.logger.verbose('Listening event: group-participants.update');
           const payload = events['group-participants.update'];
           this.groupHandler['group-participants.update'](payload);
         }
 
         if (events['chats.upsert']) {
+          this.logger.verbose('Listening event: chats.upsert');
           const payload = events['chats.upsert'];
           this.chatHandle['chats.upsert'](payload, database);
         }
 
         if (events['chats.update']) {
+          this.logger.verbose('Listening event: chats.update');
           const payload = events['chats.update'];
           this.chatHandle['chats.update'](payload);
         }
 
         if (events['chats.delete']) {
+          this.logger.verbose('Listening event: chats.delete');
           const payload = events['chats.delete'];
           this.chatHandle['chats.delete'](payload);
         }
 
         if (events['contacts.upsert']) {
+          this.logger.verbose('Listening event: contacts.upsert');
           const payload = events['contacts.upsert'];
           this.contactHandle['contacts.upsert'](payload, database);
         }
 
         if (events['contacts.update']) {
+          this.logger.verbose('Listening event: contacts.update');
           const payload = events['contacts.update'];
           this.contactHandle['contacts.update'](payload);
         }
@@ -980,35 +1092,50 @@ export class WAStartupService {
   }
 
   private createJid(number: string): string {
+    this.logger.verbose('Creating jid with number: ' + number);
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
+      this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
       return number;
     }
 
     const formattedBRNumber = this.formatBRNumber(number);
     if (formattedBRNumber !== number) {
+      this.logger.verbose(
+        'Jid created is whatsapp in format BR: ' + `${formattedBRNumber}@s.whatsapp.net`,
+      );
       return `${formattedBRNumber}@s.whatsapp.net`;
     }
 
     const formattedMXARNumber = this.formatMXOrARNumber(number);
     if (formattedMXARNumber !== number) {
+      this.logger.verbose(
+        'Jid created is whatsapp in format MXAR: ' +
+          `${formattedMXARNumber}@s.whatsapp.net`,
+      );
       return `${formattedMXARNumber}@s.whatsapp.net`;
     }
 
     if (number.includes('-')) {
+      this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
       return `${number}@g.us`;
     }
 
+    this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
     return `${number}@s.whatsapp.net`;
   }
 
   public async profilePicture(number: string) {
     const jid = this.createJid(number);
+
+    this.logger.verbose('Getting profile picture with jid: ' + jid);
     try {
+      this.logger.verbose('Getting profile picture url');
       return {
         wuid: jid,
         profilePictureUrl: await this.client.profilePictureUrl(jid, 'image'),
       };
     } catch (error) {
+      this.logger.verbose('Profile picture not found');
       return {
         wuid: jid,
         profilePictureUrl: null,
@@ -1021,6 +1148,8 @@ export class WAStartupService {
     message: T,
     options?: Options,
   ) {
+    this.logger.verbose('Sending message with typing');
+
     const jid = this.createJid(number);
     const isWA = (await this.whatsappNumber({ numbers: [jid] }))[0];
     if (!isWA.exists && !isJidGroup(isWA.jid)) {
@@ -1031,6 +1160,7 @@ export class WAStartupService {
 
     if (isJidGroup(sender)) {
       try {
+        this.logger.verbose('Getting group metadata');
         await this.client.groupMetadata(sender);
       } catch (error) {
         throw new NotFoundException('Group not found');
@@ -1039,29 +1169,47 @@ export class WAStartupService {
 
     try {
       if (options?.delay) {
+        this.logger.verbose('Delaying message');
+
         await this.client.presenceSubscribe(sender);
+        this.logger.verbose('Subscribing to presence');
+
         await this.client.sendPresenceUpdate(options?.presence ?? 'composing', jid);
+        this.logger.verbose(
+          'Sending presence update: ' + options?.presence ?? 'composing',
+        );
+
         await delay(options.delay);
+        this.logger.verbose('Set delay: ' + options.delay);
+
         await this.client.sendPresenceUpdate('paused', sender);
+        this.logger.verbose('Sending presence update: paused');
       }
 
       let quoted: WAMessage;
 
       if (options?.quoted) {
         quoted = options?.quoted;
+        this.logger.verbose('Quoted message');
       }
 
       let mentions: string[];
 
       if (options?.mentions) {
+        this.logger.verbose('Mentions defined');
+
         if (!Array.isArray(options.mentions.mentioned) && !options.mentions.everyOne) {
           throw new BadRequestException('Mentions must be an array');
         }
 
         if (options.mentions.everyOne) {
+          this.logger.verbose('Mentions everyone');
+
           const groupMetadata = await this.client.groupMetadata(sender);
           mentions = groupMetadata.participants.map((participant) => participant.id);
+          this.logger.verbose('Getting group metadata for mentions');
         } else {
+          this.logger.verbose('Mentions manually defined');
           mentions = options.mentions.mentioned.map((mention) => {
             const jid = this.createJid(mention);
             if (isJidGroup(jid)) {
@@ -1084,6 +1232,7 @@ export class WAStartupService {
           !message['sticker']
         ) {
           if (!message['audio']) {
+            this.logger.verbose('Sending message');
             return await this.client.sendMessage(
               sender,
               {
@@ -1099,6 +1248,7 @@ export class WAStartupService {
         }
 
         if (message['linkPreview']) {
+          this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
             {
@@ -1108,6 +1258,7 @@ export class WAStartupService {
           );
         }
 
+        this.logger.verbose('Sending message');
         return await this.client.sendMessage(
           sender,
           message as unknown as AnyMessageContent,
@@ -1140,11 +1291,13 @@ export class WAStartupService {
 
   // Instance Controller
   public get connectionStatus() {
+    this.logger.verbose('Getting connection status');
     return this.stateConnection;
   }
 
   // Send Message Controller
   public async textMessage(data: SendTextDto) {
+    this.logger.verbose('Sending text message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1155,6 +1308,7 @@ export class WAStartupService {
   }
 
   public async linkPreview(data: SendLinkPreviewDto) {
+    this.logger.verbose('Sending link preview');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1167,6 +1321,7 @@ export class WAStartupService {
   }
 
   public async pollMessage(data: SendPollDto) {
+    this.logger.verbose('Sending poll message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1182,6 +1337,7 @@ export class WAStartupService {
 
   private async prepareMediaMessage(mediaMessage: MediaMessage) {
     try {
+      this.logger.verbose('Preparing media message');
       const prepareMedia = await prepareWAMessageMedia(
         {
           [mediaMessage.mediatype]: isURL(mediaMessage.media)
@@ -1192,11 +1348,16 @@ export class WAStartupService {
       );
 
       const mediaType = mediaMessage.mediatype + 'Message';
+      this.logger.verbose('Media type: ' + mediaType);
 
       if (mediaMessage.mediatype === 'document' && !mediaMessage.fileName) {
+        this.logger.verbose(
+          'If media type is document and file name is not defined then',
+        );
         const regex = new RegExp(/.*\/(.+?)\./);
         const arrayMatch = regex.exec(mediaMessage.media);
         mediaMessage.fileName = arrayMatch[1];
+        this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
 
       let mimetype: string;
@@ -1207,17 +1368,21 @@ export class WAStartupService {
         mimetype = getMIMEType(mediaMessage.fileName);
       }
 
+      this.logger.verbose('Mimetype: ' + mimetype);
+
       prepareMedia[mediaType].caption = mediaMessage?.caption;
       prepareMedia[mediaType].mimetype = mimetype;
       prepareMedia[mediaType].fileName = mediaMessage.fileName;
 
       if (mediaMessage.mediatype === 'video') {
+        this.logger.verbose('Is media type video then set gif playback as false');
         prepareMedia[mediaType].jpegThumbnail = Uint8Array.from(
           readFileSync(join(process.cwd(), 'public', 'images', 'video-cover.png')),
         );
         prepareMedia[mediaType].gifPlayback = false;
       }
 
+      this.logger.verbose('Generating wa message from content');
       return generateWAMessageFromContent(
         '',
         { [mediaType]: { ...prepareMedia[mediaType] } },
@@ -1231,28 +1396,48 @@ export class WAStartupService {
 
   private async convertToWebP(image: string, number: string) {
     try {
+      this.logger.verbose('Converting image to WebP to sticker');
+
       let imagePath: string;
       const hash = `${number}-${new Date().getTime()}`;
+      this.logger.verbose('Hash to image name: ' + hash);
+
       const outputPath = `${join(process.cwd(), 'temp', `${hash}.webp`)}`;
+      this.logger.verbose('Output path: ' + outputPath);
 
       if (isBase64(image)) {
+        this.logger.verbose('Image is base64');
+
         const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
         imagePath = `${join(process.cwd(), 'temp', `temp-${hash}.png`)}`;
+        this.logger.verbose('Image path: ' + imagePath);
+
         await sharp(imageBuffer).toFile(imagePath);
+        this.logger.verbose('Image created');
       } else {
+        this.logger.verbose('Image is url');
+
         const timestamp = new Date().getTime();
         const url = `${image}?timestamp=${timestamp}`;
+        this.logger.verbose('including timestamp in url: ' + url);
 
         const response = await axios.get(url, { responseType: 'arraybuffer' });
+        this.logger.verbose('Getting image from url');
+
         const imageBuffer = Buffer.from(response.data, 'binary');
         imagePath = `${join(process.cwd(), 'temp', `temp-${hash}.png`)}`;
+        this.logger.verbose('Image path: ' + imagePath);
+
         await sharp(imageBuffer).toFile(imagePath);
+        this.logger.verbose('Image created');
       }
 
       await sharp(imagePath).webp().toFile(outputPath);
+      this.logger.verbose('Image converted to WebP');
 
       fs.unlinkSync(imagePath);
+      this.logger.verbose('Temp image deleted');
 
       return outputPath;
     } catch (error) {
@@ -1261,6 +1446,7 @@ export class WAStartupService {
   }
 
   public async mediaSticker(data: SendStickerDto) {
+    this.logger.verbose('Sending media sticker');
     const convert = await this.convertToWebP(data.stickerMessage.image, data.number);
     const result = await this.sendMessageWithTyping(
       data.number,
@@ -1271,11 +1457,13 @@ export class WAStartupService {
     );
 
     fs.unlinkSync(convert);
+    this.logger.verbose('Converted image deleted');
 
     return result;
   }
 
   public async mediaMessage(data: SendMediaDto) {
+    this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
     return await this.sendMessageWithTyping(
@@ -1286,33 +1474,57 @@ export class WAStartupService {
   }
 
   private async processAudio(audio: string, number: string) {
+    this.logger.verbose('Processing audio');
     let tempAudioPath: string;
     let outputAudio: string;
+
     const hash = `${number}-${new Date().getTime()}`;
+    this.logger.verbose('Hash to audio name: ' + hash);
 
     if (isURL(audio)) {
+      this.logger.verbose('Audio is url');
+
       outputAudio = `${join(process.cwd(), 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(process.cwd(), 'temp', `temp-${hash}.mp3`)}`;
+
+      this.logger.verbose('Output audio path: ' + outputAudio);
+      this.logger.verbose('Temp audio path: ' + tempAudioPath);
 
       const timestamp = new Date().getTime();
       const url = `${audio}?timestamp=${timestamp}`;
 
+      this.logger.verbose('Including timestamp in url: ' + url);
+
       const response = await axios.get(url, { responseType: 'arraybuffer' });
+      this.logger.verbose('Getting audio from url');
+
       fs.writeFileSync(tempAudioPath, response.data);
+      this.logger.verbose('Temp audio created');
     } else {
+      this.logger.verbose('Audio is base64');
+
       outputAudio = `${join(process.cwd(), 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(process.cwd(), 'temp', `temp-${hash}.mp3`)}`;
 
+      this.logger.verbose('Output audio path: ' + outputAudio);
+      this.logger.verbose('Temp audio path: ' + tempAudioPath);
+
       const audioBuffer = Buffer.from(audio, 'base64');
       fs.writeFileSync(tempAudioPath, audioBuffer);
+      this.logger.verbose('Temp audio created');
     }
 
+    this.logger.verbose('Converting audio to mp4');
     return new Promise((resolve, reject) => {
       exec(
         `${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`,
         (error, _stdout, _stderr) => {
           fs.unlinkSync(tempAudioPath);
+          this.logger.verbose('Temp audio deleted');
+
           if (error) reject(error);
+
+          this.logger.verbose('Audio converted to mp4');
           resolve(outputAudio);
         },
       );
@@ -1320,6 +1532,7 @@ export class WAStartupService {
   }
 
   public async audioWhatsapp(data: SendAudioDto) {
+    this.logger.verbose('Sending audio whatsapp');
     const convert = await this.processAudio(data.audioMessage.audio, data.number);
     if (typeof convert === 'string') {
       const audio = fs.readFileSync(convert).toString('base64');
@@ -1334,6 +1547,7 @@ export class WAStartupService {
       );
 
       fs.unlinkSync(convert);
+      this.logger.verbose('Converted audio deleted');
 
       return result;
     } else {
@@ -1342,6 +1556,7 @@ export class WAStartupService {
   }
 
   public async buttonMessage(data: SendButtonDto) {
+    this.logger.verbose('Sending button message');
     const embeddedMedia: any = {};
     let mediatype = 'TEXT';
 
@@ -1390,6 +1605,7 @@ export class WAStartupService {
   }
 
   public async locationMessage(data: SendLocationDto) {
+    this.logger.verbose('Sending location message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1405,6 +1621,7 @@ export class WAStartupService {
   }
 
   public async listMessage(data: SendListDto) {
+    this.logger.verbose('Sending list message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1422,9 +1639,11 @@ export class WAStartupService {
   }
 
   public async contactMessage(data: SendContactDto) {
+    this.logger.verbose('Sending contact message');
     const message: proto.IMessage = {};
 
     const vcard = (contact: ContactMessage) => {
+      this.logger.verbose('Creating vcard');
       let result =
         'BEGIN:VCARD\n' +
         'VERSION:3.0\n' +
@@ -1432,14 +1651,17 @@ export class WAStartupService {
         `FN:${contact.fullName}\n`;
 
       if (contact.organization) {
+        this.logger.verbose('Organization defined');
         result += `ORG:${contact.organization};\n`;
       }
 
       if (contact.email) {
+        this.logger.verbose('Email defined');
         result += `EMAIL:${contact.email}\n`;
       }
 
       if (contact.url) {
+        this.logger.verbose('Url defined');
         result += `URL:${contact.url}\n`;
       }
 
@@ -1448,6 +1670,7 @@ export class WAStartupService {
         'item1.X-ABLabel:Celular\n' +
         'END:VCARD';
 
+      this.logger.verbose('Vcard created');
       return result;
     };
 
@@ -1472,6 +1695,7 @@ export class WAStartupService {
   }
 
   public async reactionMessage(data: SendReactionDto) {
+    this.logger.verbose('Sending reaction message');
     return await this.sendMessageWithTyping(data.reactionMessage.key.remoteJid, {
       reactionMessage: {
         key: data.reactionMessage.key,
@@ -1482,6 +1706,8 @@ export class WAStartupService {
 
   // Chat Controller
   public async whatsappNumber(data: WhatsAppNumberDto) {
+    this.logger.verbose('Getting whatsapp number');
+
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
       const jid = this.createJid(number);
@@ -1502,6 +1728,7 @@ export class WAStartupService {
   }
 
   public async markMessageAsRead(data: ReadMessageDto) {
+    this.logger.verbose('Marking message as read');
     try {
       const keys: proto.IMessageKey[] = [];
       data.readMessages.forEach((read) => {
@@ -1521,6 +1748,7 @@ export class WAStartupService {
   }
 
   public async archiveChat(data: ArchiveChatDto) {
+    this.logger.verbose('Archiving chat');
     try {
       data.lastMessage.messageTimestamp =
         data.lastMessage?.messageTimestamp ?? Date.now();
@@ -1548,6 +1776,7 @@ export class WAStartupService {
   }
 
   public async deleteMessage(del: DeleteMessage) {
+    this.logger.verbose('Deleting message');
     try {
       return await this.client.sendMessage(del.remoteJid, { delete: del });
     } catch (error) {
@@ -1559,6 +1788,7 @@ export class WAStartupService {
   }
 
   public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto) {
+    this.logger.verbose('Getting base64 from media message');
     try {
       const m = data?.message;
       const convertToMp4 = data?.convertToMp4 ?? false;
@@ -1596,6 +1826,7 @@ export class WAStartupService {
         msg.message = JSON.parse(JSON.stringify(msg.message));
       }
 
+      this.logger.verbose('Downloading media message');
       const buffer = await downloadMediaMessage(
         { key: msg?.key, message: msg?.message },
         'buffer',
@@ -1608,13 +1839,15 @@ export class WAStartupService {
       const typeMessage = getContentType(msg.message);
 
       if (convertToMp4 && typeMessage === 'audioMessage') {
+        this.logger.verbose('Converting audio to mp4');
         const number = msg.key.remoteJid.split('@')[0];
         const convert = await this.processAudio(buffer.toString('base64'), number);
 
         if (typeof convert === 'string') {
           const audio = fs.readFileSync(convert).toString('base64');
+          this.logger.verbose('Audio converted to mp4');
 
-          return {
+          const result = {
             mediaType,
             fileName: mediaMessage['fileName'],
             caption: mediaMessage['caption'],
@@ -1626,9 +1859,16 @@ export class WAStartupService {
             mimetype: 'audio/mp4',
             base64: Buffer.from(audio, 'base64').toString('base64'),
           };
+
+          fs.unlinkSync(convert);
+          this.logger.verbose('Converted audio deleted');
+
+          this.logger.verbose('Media message downloaded');
+          return result;
         }
       }
 
+      this.logger.verbose('Media message downloaded');
       return {
         mediaType,
         fileName: mediaMessage['fileName'],
@@ -1648,6 +1888,7 @@ export class WAStartupService {
   }
 
   public async fetchContacts(query: ContactQuery) {
+    this.logger.verbose('Fetching contacts');
     if (query?.where) {
       query.where.owner = this.instance.wuid;
     } else {
@@ -1661,6 +1902,7 @@ export class WAStartupService {
   }
 
   public async fetchMessages(query: MessageQuery) {
+    this.logger.verbose('Fetching messages');
     if (query?.where) {
       query.where.owner = this.instance.wuid;
     } else {
@@ -1675,6 +1917,7 @@ export class WAStartupService {
   }
 
   public async fetchStatusMessage(query: MessageUpQuery) {
+    this.logger.verbose('Fetching status messages');
     if (query?.where) {
       query.where.owner = this.instance.wuid;
     } else {
@@ -1689,21 +1932,35 @@ export class WAStartupService {
   }
 
   public async fetchChats() {
+    this.logger.verbose('Fetching chats');
     return await this.repository.chat.find({ where: { owner: this.instance.wuid } });
   }
 
   public async fetchPrivacySettings() {
+    this.logger.verbose('Fetching privacy settings');
     return await this.client.fetchPrivacySettings();
   }
 
   public async updatePrivacySettings(settings: PrivacySettingDto) {
+    this.logger.verbose('Updating privacy settings');
     try {
       await this.client.updateReadReceiptsPrivacy(settings.privacySettings.readreceipts);
+      this.logger.verbose('Read receipts privacy updated');
+
       await this.client.updateProfilePicturePrivacy(settings.privacySettings.profile);
+      this.logger.verbose('Profile picture privacy updated');
+
       await this.client.updateStatusPrivacy(settings.privacySettings.status);
+      this.logger.verbose('Status privacy updated');
+
       await this.client.updateOnlinePrivacy(settings.privacySettings.online);
+      this.logger.verbose('Online privacy updated');
+
       await this.client.updateLastSeenPrivacy(settings.privacySettings.last);
+      this.logger.verbose('Last seen privacy updated');
+
       await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
+      this.logger.verbose('Groups add privacy updated');
 
       // reinicia a instancia
 
@@ -1717,6 +1974,7 @@ export class WAStartupService {
   }
 
   public async fetchBusinessProfile(number: string) {
+    this.logger.verbose('Fetching business profile');
     try {
       let jid;
 
@@ -1727,6 +1985,7 @@ export class WAStartupService {
       }
 
       const profile = await this.client.getBusinessProfile(jid);
+      this.logger.verbose('Trying to get business profile');
 
       if (!profile) {
         return {
@@ -1735,6 +1994,7 @@ export class WAStartupService {
         };
       }
 
+      this.logger.verbose('Business profile fetched');
       return profile;
     } catch (error) {
       throw new InternalServerErrorException(
@@ -1745,6 +2005,7 @@ export class WAStartupService {
   }
 
   public async updateProfileName(name: string) {
+    this.logger.verbose('Updating profile name to ' + name);
     try {
       await this.client.updateProfileName(name);
 
@@ -1758,6 +2019,7 @@ export class WAStartupService {
   }
 
   public async updateProfileStatus(status: string) {
+    this.logger.verbose('Updating profile status to: ' + status);
     try {
       await this.client.updateProfileStatus(status);
 
@@ -1771,19 +2033,27 @@ export class WAStartupService {
   }
 
   public async updateProfilePicture(picture: string) {
+    this.logger.verbose('Updating profile picture');
     try {
       let pic: WAMediaUpload;
       if (isURL(picture)) {
+        this.logger.verbose('Picture is url');
+
         const timestamp = new Date().getTime();
         const url = `${picture}?timestamp=${timestamp}`;
+        this.logger.verbose('Including timestamp in url: ' + url);
 
         pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
+        this.logger.verbose('Getting picture from url');
       } else if (isBase64(picture)) {
+        this.logger.verbose('Picture is base64');
         pic = Buffer.from(picture, 'base64');
+        this.logger.verbose('Getting picture from base64');
       } else {
         throw new BadRequestException('"profilePicture" must be a url or a base64');
       }
       await this.client.updateProfilePicture(this.instance.wuid, pic);
+      this.logger.verbose('Profile picture updated');
 
       return { update: 'success' };
     } catch (error) {
@@ -1795,6 +2065,7 @@ export class WAStartupService {
   }
 
   public async removeProfilePicture() {
+    this.logger.verbose('Removing profile picture');
     try {
       await this.client.removeProfilePicture(this.instance.wuid);
 
@@ -1809,14 +2080,19 @@ export class WAStartupService {
 
   // Group
   public async createGroup(create: CreateGroupDto) {
+    this.logger.verbose('Creating group: ' + create.subject);
     try {
       const participants = create.participants.map((p) => this.createJid(p));
       const { id } = await this.client.groupCreate(create.subject, participants);
+      this.logger.verbose('Group created: ' + id);
+
       if (create?.description) {
+        this.logger.verbose('Updating group description: ' + create.description);
         await this.client.groupUpdateDescription(id, create.description);
       }
 
       const group = await this.client.groupMetadata(id);
+      this.logger.verbose('Getting group metadata');
 
       return { groupMetadata: group };
     } catch (error) {
@@ -1826,19 +2102,27 @@ export class WAStartupService {
   }
 
   public async updateGroupPicture(picture: GroupPictureDto) {
+    this.logger.verbose('Updating group picture');
     try {
       let pic: WAMediaUpload;
       if (isURL(picture.image)) {
+        this.logger.verbose('Picture is url');
+
         const timestamp = new Date().getTime();
         const url = `${picture.image}?timestamp=${timestamp}`;
+        this.logger.verbose('Including timestamp in url: ' + url);
 
         pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
+        this.logger.verbose('Getting picture from url');
       } else if (isBase64(picture.image)) {
+        this.logger.verbose('Picture is base64');
         pic = Buffer.from(picture.image, 'base64');
+        this.logger.verbose('Getting picture from base64');
       } else {
         throw new BadRequestException('"profilePicture" must be a url or a base64');
       }
       await this.client.updateProfilePicture(picture.groupJid, pic);
+      this.logger.verbose('Group picture updated');
 
       return { update: 'success' };
     } catch (error) {
@@ -1850,6 +2134,7 @@ export class WAStartupService {
   }
 
   public async updateGroupSubject(data: GroupSubjectDto) {
+    this.logger.verbose('Updating group subject to: ' + data.subject);
     try {
       await this.client.groupUpdateSubject(data.groupJid, data.subject);
 
@@ -1863,6 +2148,7 @@ export class WAStartupService {
   }
 
   public async updateGroupDescription(data: GroupDescriptionDto) {
+    this.logger.verbose('Updating group description to: ' + data.description);
     try {
       await this.client.groupUpdateDescription(data.groupJid, data.description);
 
@@ -1876,6 +2162,7 @@ export class WAStartupService {
   }
 
   public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
+    this.logger.verbose('Fetching group');
     try {
       return await this.client.groupMetadata(id.groupJid);
     } catch (error) {
@@ -1887,6 +2174,7 @@ export class WAStartupService {
   }
 
   public async fetchAllGroups() {
+    this.logger.verbose('Fetching all groups');
     try {
       return await this.client.groupFetchAllParticipating();
     } catch (error) {
@@ -1895,6 +2183,7 @@ export class WAStartupService {
   }
 
   public async inviteCode(id: GroupJid) {
+    this.logger.verbose('Fetching invite code for group: ' + id.groupJid);
     try {
       const code = await this.client.groupInviteCode(id.groupJid);
       return { inviteUrl: `https://chat.whatsapp.com/${code}`, inviteCode: code };
@@ -1904,6 +2193,7 @@ export class WAStartupService {
   }
 
   public async inviteInfo(id: GroupInvite) {
+    this.logger.verbose('Fetching invite info for code: ' + id.inviteCode);
     try {
       return await this.client.groupGetInviteInfo(id.inviteCode);
     } catch (error) {
@@ -1912,13 +2202,18 @@ export class WAStartupService {
   }
 
   public async sendInvite(id: GroupSendInvite) {
+    this.logger.verbose('Sending invite for group: ' + id.groupJid);
     try {
       const inviteCode = await this.inviteCode({ groupJid: id.groupJid });
+      this.logger.verbose('Getting invite code: ' + inviteCode.inviteCode);
+
       const inviteUrl = inviteCode.inviteUrl;
+      this.logger.verbose('Invite url: ' + inviteUrl);
+
       const numbers = id.numbers.map((number) => this.createJid(number));
       const description = id.description ?? '';
 
-      const msg = `${description}\n${inviteUrl}`;
+      const msg = `${description}\n\n${inviteUrl}`;
 
       const message = {
         linkPreview: {
@@ -1930,6 +2225,8 @@ export class WAStartupService {
         await this.sendMessageWithTyping(number, message);
       }
 
+      this.logger.verbose('Invite sent for numbers: ' + numbers.join(', '));
+
       return { send: true, inviteUrl };
     } catch (error) {
       throw new NotFoundException('No send invite');
@@ -1937,6 +2234,7 @@ export class WAStartupService {
   }
 
   public async revokeInviteCode(id: GroupJid) {
+    this.logger.verbose('Revoking invite code for group: ' + id.groupJid);
     try {
       const inviteCode = await this.client.groupRevokeInvite(id.groupJid);
       return { revoked: true, inviteCode };
@@ -1946,6 +2244,7 @@ export class WAStartupService {
   }
 
   public async findParticipants(id: GroupJid) {
+    this.logger.verbose('Fetching participants for group: ' + id.groupJid);
     try {
       const participants = (await this.client.groupMetadata(id.groupJid)).participants;
       return { participants };
@@ -1955,6 +2254,7 @@ export class WAStartupService {
   }
 
   public async updateGParticipant(update: GroupUpdateParticipantDto) {
+    this.logger.verbose('Updating participants');
     try {
       const participants = update.participants.map((p) => this.createJid(p));
       const updateParticipants = await this.client.groupParticipantsUpdate(
@@ -1969,6 +2269,7 @@ export class WAStartupService {
   }
 
   public async updateGSetting(update: GroupUpdateSettingDto) {
+    this.logger.verbose('Updating setting for group: ' + update.groupJid);
     try {
       const updateSetting = await this.client.groupSettingUpdate(
         update.groupJid,
@@ -1981,6 +2282,7 @@ export class WAStartupService {
   }
 
   public async toggleEphemeral(update: GroupToggleEphemeralDto) {
+    this.logger.verbose('Toggling ephemeral for group: ' + update.groupJid);
     try {
       const toggleEphemeral = await this.client.groupToggleEphemeral(
         update.groupJid,
@@ -1993,6 +2295,7 @@ export class WAStartupService {
   }
 
   public async leaveGroup(id: GroupJid) {
+    this.logger.verbose('Leaving group: ' + id.groupJid);
     try {
       await this.client.groupLeave(id.groupJid);
       return { groupJid: id.groupJid, leave: true };

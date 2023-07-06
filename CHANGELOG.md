@@ -7,6 +7,7 @@
 * Added organization name in vcard
 * Added email in vcard
 * Added url in vcard
+* Added verbose logs
 
 ### Fixed
 
