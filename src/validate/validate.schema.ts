@@ -381,6 +381,7 @@ export const contactMessageSchema: JSONSchema7 = {
           phoneNumber: { type: 'string', minLength: 10 },
           organization: { type: 'string' },
           email: { type: 'string' },
+          url: { type: 'string' },
         },
         required: ['fullName', 'wuid', 'phoneNumber'],
         ...isNotEmpty('fullName'),

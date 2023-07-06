@@ -1439,6 +1439,10 @@ export class WAStartupService {
         result += `EMAIL:${contact.email}\n`;
       }
 
+      if (contact.url) {
+        result += `URL:${contact.url}\n`;
+      }
+
       result +=
         `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` +
         'item1.X-ABLabel:Celular\n' +
