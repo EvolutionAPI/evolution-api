@@ -216,6 +216,8 @@ export class WAMonitoringService {
     rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
   }
 
+  public async clearStoreFiles(instanceName: string) {}
+
   public async loadInstance() {
     this.logger.verbose('load instances');
     const set = async (name: string) => {
@@ -300,6 +302,7 @@ export class WAMonitoringService {
       try {
         this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
+        this.clearStoreFiles(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - REMOVED`);
       }

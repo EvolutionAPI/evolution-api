@@ -2,7 +2,11 @@
 
 ### Features
 
-* Route to send status broadcast
+* Route to send status broadcast¼
+
+### Fixed
+
+* Adjusted set in webhook to go empty when enabled false
 
 # 1.1.3 (2023-07-06 11:43)
 

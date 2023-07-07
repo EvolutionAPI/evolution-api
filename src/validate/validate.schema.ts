@@ -30,7 +30,7 @@ export const instanceNameSchema: JSONSchema7 = {
     webhook_by_events: { type: 'boolean' },
     events: {
       type: 'array',
-      minItems: 1,
+      minItems: 0,
       items: {
         type: 'string',
         enum: [
@@ -825,7 +825,7 @@ export const webhookSchema: JSONSchema7 = {
     enabled: { type: 'boolean', enum: [true, false] },
     events: {
       type: 'array',
-      minItems: 1,
+      minItems: 0,
       items: {
         type: 'string',
         enum: [
