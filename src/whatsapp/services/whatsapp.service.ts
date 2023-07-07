@@ -30,6 +30,7 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
   getAggregateVotesInPollMessage,
+  Browsers,
 } from '@whiskeysockets/baileys';
 import {
   Auth,
@@ -554,14 +555,14 @@ export class WAStartupService {
                 `rm -rf ${join(
                   this.storePath,
                   key.toLowerCase().replace('_', '-'),
-                  this.instance.wuid,
+                  this.instance.name,
                 )}/*.json`,
               );
               this.logger.verbose(
                 `Cleaned ${join(
                   this.storePath,
                   key.toLowerCase().replace('_', '-'),
-                  this.instance.wuid,
+                  this.instance.name,
                 )}/*.json`,
               );
             }
@@ -601,7 +602,8 @@ export class WAStartupService {
       const { version } = await fetchLatestBaileysVersion();
       this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      // const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      const browser: WABrowserDescription = Browsers.appropriate(session.CLIENT);
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
       const socketConfig: UserFacingSocketConfig = {
@@ -692,7 +694,11 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
 
       this.logger.verbose('Inserting chats in database');
-      await this.repository.chat.insert(chatsRaw, database.SAVE_DATA.CHATS);
+      await this.repository.chat.insert(
+        chatsRaw,
+        this.instance.name,
+        database.SAVE_DATA.CHATS,
+      );
     },
 
     'chats.update': async (
@@ -757,7 +763,11 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
       this.logger.verbose('Inserting contacts in database');
-      await this.repository.contact.insert(contactsRaw, database.SAVE_DATA.CONTACTS);
+      await this.repository.contact.insert(
+        contactsRaw,
+        this.instance.name,
+        database.SAVE_DATA.CONTACTS,
+      );
     },
 
     'contacts.update': async (contacts: Partial<Contact>[]) => {
@@ -808,7 +818,11 @@ export class WAStartupService {
         await this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         this.logger.verbose('Inserting chats in database');
-        await this.repository.chat.insert(chatsRaw, database.SAVE_DATA.CHATS);
+        await this.repository.chat.insert(
+          chatsRaw,
+          this.instance.name,
+          database.SAVE_DATA.CHATS,
+        );
       }
 
       const messagesRaw: MessageRaw[] = [];
@@ -890,7 +904,11 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
       this.logger.verbose('Inserting message in database');
-      await this.repository.message.insert([messageRaw], database.SAVE_DATA.NEW_MESSAGE);
+      await this.repository.message.insert(
+        [messageRaw],
+        this.instance.name,
+        database.SAVE_DATA.NEW_MESSAGE,
+      );
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
@@ -934,6 +952,7 @@ export class WAStartupService {
           this.logger.verbose('Inserting message in database');
           await this.repository.messageUpdate.insert(
             [message],
+            this.instance.name,
             database.SAVE_DATA.MESSAGE_UPDATE,
           );
         }

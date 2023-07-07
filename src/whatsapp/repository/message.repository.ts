@@ -17,7 +17,11 @@ export class MessageRepository extends Repository {
     super(configService);
   }
 
-  public async insert(data: MessageRaw[], saveDb = false): Promise<IInsert> {
+  public async insert(
+    data: MessageRaw[],
+    instanceName: string,
+    saveDb = false,
+  ): Promise<IInsert> {
     if (!Array.isArray(data) || data.length === 0) {
       return;
     }
@@ -52,7 +56,7 @@ export class MessageRepository extends Repository {
       if (store.MESSAGES) {
         data.forEach((msg) =>
           this.writeStore<MessageRaw>({
-            path: join(this.storePath, 'messages', msg.owner),
+            path: join(this.storePath, 'messages', instanceName),
             fileName: msg.key.id,
             data: msg,
           }),

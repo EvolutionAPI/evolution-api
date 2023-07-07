@@ -7,6 +7,7 @@
 ### Fixed
 
 * Adjusted set in webhook to go empty when enabled false
+* Adjust in store files
 
 # 1.1.3 (2023-07-06 11:43)
 

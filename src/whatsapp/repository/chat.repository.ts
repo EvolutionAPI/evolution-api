@@ -16,7 +16,11 @@ export class ChatRepository extends Repository {
     super(configService);
   }
 
-  public async insert(data: ChatRaw[], saveDb = false): Promise<IInsert> {
+  public async insert(
+    data: ChatRaw[],
+    instanceName: string,
+    saveDb = false,
+  ): Promise<IInsert> {
     if (data.length === 0) {
       return;
     }
@@ -32,7 +36,7 @@ export class ChatRepository extends Repository {
       if (store.CHATS) {
         data.forEach((chat) => {
           this.writeStore<ChatRaw>({
-            path: join(this.storePath, 'chats', chat.owner),
+            path: join(this.storePath, 'chats', instanceName),
             fileName: chat.id,
             data: chat,
           });
