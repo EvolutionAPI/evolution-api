@@ -2,7 +2,7 @@
 
 ### Features
 
-* Route to send status broadcast¼
+* Route to send status broadcast
 
 ### Fixed
 
