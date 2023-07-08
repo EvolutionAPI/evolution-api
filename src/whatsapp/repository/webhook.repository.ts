@@ -3,6 +3,7 @@ import { ConfigService } from '../../config/env.config';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { IWebhookModel, WebhookRaw } from '../models';
+import { Logger } from '../../config/logger.config';
 
 export class WebhookRepository extends Repository {
   constructor(
@@ -12,16 +13,24 @@ export class WebhookRepository extends Repository {
     super(configService);
   }
 
+  private readonly logger = new Logger('WebhookRepository');
+
   public async create(data: WebhookRaw, instance: string): Promise<IInsert> {
     try {
+      this.logger.verbose('creating webhook');
       if (this.dbSettings.ENABLED) {
+        this.logger.verbose('saving webhook to db');
         const insert = await this.webhookModel.replaceOne(
           { _id: instance },
           { ...data },
           { upsert: true },
         );
+
+        this.logger.verbose('webhook saved to db: ' + insert.modifiedCount + ' webhook');
         return { insertCount: insert.modifiedCount };
       }
+
+      this.logger.verbose('saving webhook to store');
 
       this.writeStore<WebhookRaw>({
         path: join(this.storePath, 'webhook'),
@@ -29,6 +38,14 @@ export class WebhookRepository extends Repository {
         data,
       });
 
+      this.logger.verbose(
+        'webhook saved to store in path: ' +
+          join(this.storePath, 'webhook') +
+          '/' +
+          instance,
+      );
+
+      this.logger.verbose('webhook created');
       return { insertCount: 1 };
     } catch (error) {
       return error;
@@ -37,10 +54,13 @@ export class WebhookRepository extends Repository {
 
   public async find(instance: string): Promise<WebhookRaw> {
     try {
+      this.logger.verbose('finding webhook');
       if (this.dbSettings.ENABLED) {
+        this.logger.verbose('finding webhook in db');
         return await this.webhookModel.findOne({ _id: instance });
       }
 
+      this.logger.verbose('finding webhook in store');
       return JSON.parse(
         readFileSync(join(this.storePath, 'webhook', instance + '.json'), {
           encoding: 'utf-8',

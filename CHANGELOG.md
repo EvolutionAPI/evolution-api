@@ -11,6 +11,7 @@
 * Adjusted set in webhook to go empty when enabled false
 * Adjust in store files
 * Fixed the problem when do not save contacts when receive messages
+* Changed owner of the jid for instanceName
 
 # 1.1.3 (2023-07-06 11:43)
 

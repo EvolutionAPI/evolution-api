@@ -3,6 +3,7 @@ import { join } from 'path';
 import { IMessageModel, MessageRaw } from '../models';
 import { IInsert, Repository } from '../abstract/abstract.repository';
 import { opendirSync, readFileSync } from 'fs';
+import { Logger } from '../../config/logger.config';
 
 export class MessageQuery {
   where: MessageRaw;
@@ -17,17 +18,23 @@ export class MessageRepository extends Repository {
     super(configService);
   }
 
+  private readonly logger = new Logger('MessageRepository');
+
   public async insert(
     data: MessageRaw[],
     instanceName: string,
     saveDb = false,
   ): Promise<IInsert> {
+    this.logger.verbose('inserting messages');
+
     if (!Array.isArray(data) || data.length === 0) {
+      this.logger.verbose('no messages to insert');
       return;
     }
 
     try {
       if (this.dbSettings.ENABLED && saveDb) {
+        this.logger.verbose('saving messages to db');
         const cleanedData = data.map((obj) => {
           const cleanedObj = { ...obj };
           if ('extendedTextMessage' in obj.message) {
@@ -48,23 +55,37 @@ export class MessageRepository extends Repository {
         });
 
         const insert = await this.messageModel.insertMany([...cleanedData]);
+
+        this.logger.verbose('messages saved to db: ' + insert.length + ' messages');
         return { insertCount: insert.length };
       }
+
+      this.logger.verbose('saving messages to store');
 
       const store = this.configService.get<StoreConf>('STORE');
 
       if (store.MESSAGES) {
-        data.forEach((msg) =>
-          this.writeStore<MessageRaw>({
-            path: join(this.storePath, 'messages', instanceName),
-            fileName: msg.key.id,
-            data: msg,
-          }),
-        );
+        this.logger.verbose('saving messages to store');
 
+        data.forEach((message) => {
+          this.writeStore({
+            path: join(this.storePath, 'messages', instanceName),
+            fileName: message.key.id,
+            data: message,
+          });
+          this.logger.verbose(
+            'messages saved to store in path: ' +
+              join(this.storePath, 'messages', instanceName) +
+              '/' +
+              message.key.id,
+          );
+        });
+
+        this.logger.verbose('messages saved to store: ' + data.length + ' messages');
         return { insertCount: data.length };
       }
 
+      this.logger.verbose('messages not saved to store');
       return { insertCount: 0 };
     } catch (error) {
       console.log('ERROR: ', error);
@@ -76,21 +97,26 @@ export class MessageRepository extends Repository {
 
   public async find(query: MessageQuery) {
     try {
+      this.logger.verbose('finding messages');
       if (this.dbSettings.ENABLED) {
+        this.logger.verbose('finding messages in db');
         if (query?.where?.key) {
           for (const [k, v] of Object.entries(query.where.key)) {
             query.where['key.' + k] = v;
           }
           delete query?.where?.key;
         }
+
         return await this.messageModel
           .find({ ...query.where })
           .sort({ messageTimestamp: -1 })
           .limit(query?.limit ?? 0);
       }
 
+      this.logger.verbose('finding messages in store');
       const messages: MessageRaw[] = [];
       if (query?.where?.key?.id) {
+        this.logger.verbose('finding messages in store by id');
         messages.push(
           JSON.parse(
             readFileSync(
@@ -105,6 +131,7 @@ export class MessageRepository extends Repository {
           ),
         );
       } else {
+        this.logger.verbose('finding messages in store by owner');
         const openDir = opendirSync(join(this.storePath, 'messages', query.where.owner), {
           encoding: 'utf-8',
         });
@@ -123,6 +150,7 @@ export class MessageRepository extends Repository {
         }
       }
 
+      this.logger.verbose('messages found in store: ' + messages.length + ' messages');
       return messages
         .sort((x, y) => {
           return (y.messageTimestamp as number) - (x.messageTimestamp as number);

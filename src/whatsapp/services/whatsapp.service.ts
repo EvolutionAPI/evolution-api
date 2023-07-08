@@ -509,7 +509,7 @@ export class WAStartupService {
     this.logger.verbose('Getting message with key: ' + JSON.stringify(key));
     try {
       const webMessageInfo = (await this.repository.message.find({
-        where: { owner: this.instance.wuid, key: { id: key.id } },
+        where: { owner: this.instance.name, key: { id: key.id } },
       })) as unknown as proto.IWebMessageInfo[];
       if (full) {
         this.logger.verbose('Returning full message');
@@ -677,7 +677,7 @@ export class WAStartupService {
 
       this.logger.verbose('Finding chats in database');
       const chatsRepository = await this.repository.chat.find({
-        where: { owner: this.instance.wuid },
+        where: { owner: this.instance.name },
       });
 
       this.logger.verbose('Verifying if chats exists in database to insert');
@@ -726,7 +726,7 @@ export class WAStartupService {
       chats.forEach(
         async (chat) =>
           await this.repository.chat.delete({
-            where: { owner: this.instance.wuid, id: chat },
+            where: { owner: this.instance.name, id: chat },
           }),
       );
 
@@ -741,7 +741,7 @@ export class WAStartupService {
 
       this.logger.verbose('Finding contacts in database');
       const contactsRepository = await this.repository.contact.find({
-        where: { owner: this.instance.wuid },
+        where: { owner: this.instance.name },
       });
 
       this.logger.verbose('Verifying if contacts exists in database to insert');
@@ -755,7 +755,7 @@ export class WAStartupService {
           id: contact.id,
           pushName: contact?.name || contact?.verifiedName,
           profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         });
       }
 
@@ -780,24 +780,19 @@ export class WAStartupService {
           id: contact.id,
           pushName: contact?.name ?? contact?.verifiedName,
           profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         });
-
-        this.logger.verbose('Updating contacts in database');
-        await this.repository.contact.update(
-          {
-            id: contact.id,
-            pushName: contact?.name ?? contact?.verifiedName,
-            profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
-            owner: this.instance.wuid,
-          },
-          this.instance.name,
-          database.SAVE_DATA.CONTACTS,
-        );
       }
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
+
+      this.logger.verbose('Updating contacts in database');
+      await this.repository.contact.update(
+        contactsRaw,
+        this.instance.name,
+        database.SAVE_DATA.CONTACTS,
+      );
     },
   };
 
@@ -821,7 +816,7 @@ export class WAStartupService {
         const chatsRaw: ChatRaw[] = chats.map((chat) => {
           return {
             id: chat.id,
-            owner: this.instance.wuid,
+            owner: this.instance.name,
             lastMsgTimestamp: chat.lastMessageRecvTimestamp,
           };
         });
@@ -839,7 +834,7 @@ export class WAStartupService {
 
       const messagesRaw: MessageRaw[] = [];
       const messagesRepository = await this.repository.message.find({
-        where: { owner: this.instance.wuid },
+        where: { owner: this.instance.name },
       });
       for await (const [, m] of Object.entries(messages)) {
         if (!m.message) {
@@ -847,7 +842,7 @@ export class WAStartupService {
         }
         if (
           messagesRepository.find(
-            (mr) => mr.owner === this.instance.wuid && mr.key.id === m.key.id,
+            (mr) => mr.owner === this.instance.name && mr.key.id === m.key.id,
           )
         ) {
           continue;
@@ -864,7 +859,7 @@ export class WAStartupService {
           message: { ...m.message },
           messageType: getContentType(m.message),
           messageTimestamp: m.messageTimestamp as number,
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         });
       }
 
@@ -906,7 +901,7 @@ export class WAStartupService {
         message: { ...received.message },
         messageType: getContentType(received.message),
         messageTimestamp: received.messageTimestamp as number,
-        owner: this.instance.wuid,
+        owner: this.instance.name,
         source: getDevice(received.key.id),
       };
 
@@ -924,8 +919,21 @@ export class WAStartupService {
 
       this.logger.verbose('Verifying contact from message');
       const contact = await this.repository.contact.find({
-        where: { owner: this.instance.wuid, id: received.key.remoteJid },
+        where: { owner: this.instance.name, id: received.key.remoteJid },
       });
+
+      const contactRaw: ContactRaw = {
+        id: received.key.remoteJid,
+        pushName: received.pushName,
+        profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
+          .profilePictureUrl,
+        owner: this.instance.name,
+      };
+
+      if (contactRaw.id === 'status@broadcast') {
+        this.logger.verbose('Contact is status@broadcast');
+        return;
+      }
 
       if (contact?.length) {
         this.logger.verbose('Contact found in database');
@@ -934,7 +942,7 @@ export class WAStartupService {
           pushName: contact[0].pushName,
           profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
             .profilePictureUrl,
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         };
 
         this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
@@ -942,7 +950,7 @@ export class WAStartupService {
 
         this.logger.verbose('Updating contact in database');
         await this.repository.contact.update(
-          contactRaw,
+          [contactRaw],
           this.instance.name,
           database.SAVE_DATA.CONTACTS,
         );
@@ -950,13 +958,6 @@ export class WAStartupService {
       }
 
       this.logger.verbose('Contact not found in database');
-      const contactRaw: ContactRaw = {
-        id: received.key.remoteJid,
-        pushName: received.pushName,
-        profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
-          .profilePictureUrl,
-        owner: this.instance.wuid,
-      };
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
       await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
@@ -1000,7 +1001,7 @@ export class WAStartupService {
             ...key,
             status: status[update.status],
             datetime: Date.now(),
-            owner: this.instance.wuid,
+            owner: this.instance.name,
             pollUpdates,
           };
 
@@ -1436,6 +1437,8 @@ export class WAStartupService {
   }
 
   private async formatStatusMessage(status: StatusMessage) {
+    this.logger.verbose('Formatting status message');
+
     if (!status.type) {
       throw new BadRequestException('Type is required');
     }
@@ -1445,17 +1448,23 @@ export class WAStartupService {
     }
 
     if (status.allContacts) {
+      this.logger.verbose('All contacts defined as true');
+
+      this.logger.verbose('Getting contacts from database');
       const contacts = await this.repository.contact.find({
-        where: { owner: this.instance.wuid },
+        where: { owner: this.instance.name },
       });
 
       if (!contacts.length) {
         throw new BadRequestException('Contacts not found');
       }
 
+      this.logger.verbose('Getting contacts with push name');
       status.statusJidList = contacts
         .filter((contact) => contact.pushName)
         .map((contact) => contact.id);
+
+      this.logger.verbose(status.statusJidList);
     }
 
     if (!status.statusJidList?.length && !status.allContacts) {
@@ -1463,6 +1472,8 @@ export class WAStartupService {
     }
 
     if (status.type === 'text') {
+      this.logger.verbose('Type defined as text');
+
       if (!status.backgroundColor) {
         throw new BadRequestException('Background color is required');
       }
@@ -1483,6 +1494,8 @@ export class WAStartupService {
       };
     }
     if (status.type === 'image') {
+      this.logger.verbose('Type defined as image');
+
       return {
         content: {
           image: {
@@ -1496,6 +1509,8 @@ export class WAStartupService {
       };
     }
     if (status.type === 'video') {
+      this.logger.verbose('Type defined as video');
+
       return {
         content: {
           video: {
@@ -1509,8 +1524,12 @@ export class WAStartupService {
       };
     }
     if (status.type === 'audio') {
+      this.logger.verbose('Type defined as audio');
+
+      this.logger.verbose('Processing audio');
       const convert = await this.processAudio(status.content, 'status@broadcast');
       if (typeof convert === 'string') {
+        this.logger.verbose('Audio processed');
         const audio = fs.readFileSync(convert).toString('base64');
 
         const result = {
@@ -2097,11 +2116,11 @@ export class WAStartupService {
   public async fetchContacts(query: ContactQuery) {
     this.logger.verbose('Fetching contacts');
     if (query?.where) {
-      query.where.owner = this.instance.wuid;
+      query.where.owner = this.instance.name;
     } else {
       query = {
         where: {
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         },
       };
     }
@@ -2111,11 +2130,11 @@ export class WAStartupService {
   public async fetchMessages(query: MessageQuery) {
     this.logger.verbose('Fetching messages');
     if (query?.where) {
-      query.where.owner = this.instance.wuid;
+      query.where.owner = this.instance.name;
     } else {
       query = {
         where: {
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         },
         limit: query?.limit,
       };
@@ -2126,11 +2145,11 @@ export class WAStartupService {
   public async fetchStatusMessage(query: MessageUpQuery) {
     this.logger.verbose('Fetching status messages');
     if (query?.where) {
-      query.where.owner = this.instance.wuid;
+      query.where.owner = this.instance.name;
     } else {
       query = {
         where: {
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         },
         limit: query?.limit,
       };
@@ -2140,7 +2159,7 @@ export class WAStartupService {
 
   public async fetchChats() {
     this.logger.verbose('Fetching chats');
-    return await this.repository.chat.find({ where: { owner: this.instance.wuid } });
+    return await this.repository.chat.find({ where: { owner: this.instance.name } });
   }
 
   public async fetchPrivacySettings() {
