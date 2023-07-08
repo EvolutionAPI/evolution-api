@@ -12,6 +12,7 @@
 * Adjust in store files
 * Fixed the problem when do not save contacts when receive messages
 * Changed owner of the jid for instanceName
+* Create .env for installation in docker
 
 # 1.1.3 (2023-07-06 11:43)
 
