@@ -104,9 +104,11 @@ export class RedisCache {
   public async delAll(hash?: string) {
     try {
       this.logger.verbose('instance delAll: ' + hash);
-      return await this.client.del(
+      const result = await this.client.del(
         hash || this.redisEnv.PREFIX_KEY + ':' + this.instanceName,
       );
+
+      return result;
     } catch (error) {
       this.logger.error(error);
     }

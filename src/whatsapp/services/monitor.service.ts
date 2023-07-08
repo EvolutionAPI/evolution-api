@@ -1,6 +1,6 @@
 import { opendirSync, readdirSync, rmSync } from 'fs';
 import { WAStartupService } from './whatsapp.service';
-import { INSTANCE_DIR } from '../../config/path.config';
+import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import EventEmitter2 from 'eventemitter2';
 import { join } from 'path';
 import { Logger } from '../../config/logger.config';
@@ -16,6 +16,7 @@ import { NotFoundException } from '../../exceptions';
 import { Db } from 'mongodb';
 import { initInstance } from '../whatsapp.module';
 import { RedisCache } from '../../db/redis.client';
+import { execSync } from 'child_process';
 
 export class WAMonitoringService {
   constructor(
@@ -216,6 +217,24 @@ export class WAMonitoringService {
     rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
   }
 
+  public async cleaningStoreFiles(instanceName: string) {
+    this.logger.verbose('cleaning store files instance: ' + instanceName);
+
+    if (!this.db.ENABLED) {
+      const instance = this.waInstances[instanceName];
+
+      rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+
+      execSync(`rm -rf ${join(STORE_DIR, 'chats', instanceName)}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'contacts', instanceName)}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'message-up', instanceName)}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'messages', instanceName)}`);
+
+      execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
+    }
+  }
+
   public async loadInstance() {
     this.logger.verbose('load instances');
     const set = async (name: string) => {
@@ -300,6 +319,7 @@ export class WAMonitoringService {
       try {
         this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
+        this.cleaningStoreFiles(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - REMOVED`);
       }

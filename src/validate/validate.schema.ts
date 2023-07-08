@@ -30,7 +30,7 @@ export const instanceNameSchema: JSONSchema7 = {
     webhook_by_events: { type: 'boolean' },
     events: {
       type: 'array',
-      minItems: 1,
+      minItems: 0,
       items: {
         type: 'string',
         enum: [
@@ -187,6 +187,37 @@ export const pollMessageSchema: JSONSchema7 = {
     },
   },
   required: ['pollMessage', 'number'],
+};
+
+export const statusMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    statusMessage: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['text', 'image', 'audio', 'video'] },
+        content: { type: 'string' },
+        caption: { type: 'string' },
+        backgroundColor: { type: 'string' },
+        font: { type: 'integer', minimum: 0, maximum: 5 },
+        statusJidList: {
+          type: 'array',
+          minItems: 1,
+          uniqueItems: true,
+          items: {
+            type: 'string',
+            pattern: '^\\d+',
+            description: '"statusJidList" must be an array of numeric strings',
+          },
+        },
+        allContacts: { type: 'boolean', enum: [true, false] },
+      },
+      required: ['type', 'content'],
+      ...isNotEmpty('type', 'content'),
+    },
+  },
+  required: ['statusMessage'],
 };
 
 export const mediaMessageSchema: JSONSchema7 = {
@@ -795,7 +826,7 @@ export const webhookSchema: JSONSchema7 = {
     enabled: { type: 'boolean', enum: [true, false] },
     events: {
       type: 'array',
-      minItems: 1,
+      minItems: 0,
       items: {
         type: 'string',
         enum: [

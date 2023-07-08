@@ -2,6 +2,8 @@
 /dist
 /node_modules
 
+/Docker/.env
+
 # Logs
 logs/**.json
 *.log
@@ -12,6 +14,7 @@ yarn-error.log*
 lerna-debug.log*
 
 /docker-compose-data
+/docker-data
 
 # Package
 /yarn.lock

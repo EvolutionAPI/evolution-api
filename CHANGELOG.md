@@ -1,3 +1,19 @@
+# 1.1.4 (2023-07-08 11:01)
+
+### Features
+
+* Route to send status broadcast
+* Added verbose logs
+* Insert allContacts in payload of endpoint sendStatus
+
+### Fixed
+
+* Adjusted set in webhook to go empty when enabled false
+* Adjust in store files
+* Fixed the problem when do not save contacts when receive messages
+* Changed owner of the jid for instanceName
+* Create .env for installation in docker
+
 # 1.1.3 (2023-07-06 11:43)
 
 ### Features

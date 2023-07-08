@@ -30,6 +30,7 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
   getAggregateVotesInPollMessage,
+  Browsers,
 } from '@whiskeysockets/baileys';
 import {
   Auth,
@@ -77,6 +78,8 @@ import {
   SendPollDto,
   SendLinkPreviewDto,
   SendStickerDto,
+  SendStatusDto,
+  StatusMessage,
 } from '../dto/sendMessage.dto';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import {
@@ -117,6 +120,7 @@ import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-st
 import sharp from 'sharp';
 import { RedisCache } from '../../db/redis.client';
 import { Log } from '../../config/env.config';
+import ProxyAgent from 'proxy-agent';
 
 export class WAStartupService {
   constructor(
@@ -505,7 +509,7 @@ export class WAStartupService {
     this.logger.verbose('Getting message with key: ' + JSON.stringify(key));
     try {
       const webMessageInfo = (await this.repository.message.find({
-        where: { owner: this.instance.wuid, key: { id: key.id } },
+        where: { owner: this.instance.name, key: { id: key.id } },
       })) as unknown as proto.IWebMessageInfo[];
       if (full) {
         this.logger.verbose('Returning full message');
@@ -551,14 +555,14 @@ export class WAStartupService {
                 `rm -rf ${join(
                   this.storePath,
                   key.toLowerCase().replace('_', '-'),
-                  this.instance.wuid,
+                  this.instance.name,
                 )}/*.json`,
               );
               this.logger.verbose(
                 `Cleaned ${join(
                   this.storePath,
                   key.toLowerCase().replace('_', '-'),
-                  this.instance.wuid,
+                  this.instance.name,
                 )}/*.json`,
               );
             }
@@ -598,7 +602,8 @@ export class WAStartupService {
       const { version } = await fetchLatestBaileysVersion();
       this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      // const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      const browser: WABrowserDescription = Browsers.appropriate(session.CLIENT);
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
       const socketConfig: UserFacingSocketConfig = {
@@ -672,7 +677,7 @@ export class WAStartupService {
 
       this.logger.verbose('Finding chats in database');
       const chatsRepository = await this.repository.chat.find({
-        where: { owner: this.instance.wuid },
+        where: { owner: this.instance.name },
       });
 
       this.logger.verbose('Verifying if chats exists in database to insert');
@@ -689,7 +694,11 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
 
       this.logger.verbose('Inserting chats in database');
-      await this.repository.chat.insert(chatsRaw, database.SAVE_DATA.CHATS);
+      await this.repository.chat.insert(
+        chatsRaw,
+        this.instance.name,
+        database.SAVE_DATA.CHATS,
+      );
     },
 
     'chats.update': async (
@@ -717,7 +726,7 @@ export class WAStartupService {
       chats.forEach(
         async (chat) =>
           await this.repository.chat.delete({
-            where: { owner: this.instance.wuid, id: chat },
+            where: { owner: this.instance.name, id: chat },
           }),
       );
 
@@ -732,7 +741,7 @@ export class WAStartupService {
 
       this.logger.verbose('Finding contacts in database');
       const contactsRepository = await this.repository.contact.find({
-        where: { owner: this.instance.wuid },
+        where: { owner: this.instance.name },
       });
 
       this.logger.verbose('Verifying if contacts exists in database to insert');
@@ -746,7 +755,7 @@ export class WAStartupService {
           id: contact.id,
           pushName: contact?.name || contact?.verifiedName,
           profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         });
       }
 
@@ -754,10 +763,14 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
       this.logger.verbose('Inserting contacts in database');
-      await this.repository.contact.insert(contactsRaw, database.SAVE_DATA.CONTACTS);
+      await this.repository.contact.insert(
+        contactsRaw,
+        this.instance.name,
+        database.SAVE_DATA.CONTACTS,
+      );
     },
 
-    'contacts.update': async (contacts: Partial<Contact>[]) => {
+    'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
       this.logger.verbose('Event received: contacts.update');
 
       this.logger.verbose('Verifying if contacts exists in database to update');
@@ -767,12 +780,19 @@ export class WAStartupService {
           id: contact.id,
           pushName: contact?.name ?? contact?.verifiedName,
           profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         });
       }
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
+
+      this.logger.verbose('Updating contacts in database');
+      await this.repository.contact.update(
+        contactsRaw,
+        this.instance.name,
+        database.SAVE_DATA.CONTACTS,
+      );
     },
   };
 
@@ -796,7 +816,7 @@ export class WAStartupService {
         const chatsRaw: ChatRaw[] = chats.map((chat) => {
           return {
             id: chat.id,
-            owner: this.instance.wuid,
+            owner: this.instance.name,
             lastMsgTimestamp: chat.lastMessageRecvTimestamp,
           };
         });
@@ -805,12 +825,16 @@ export class WAStartupService {
         await this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         this.logger.verbose('Inserting chats in database');
-        await this.repository.chat.insert(chatsRaw, database.SAVE_DATA.CHATS);
+        await this.repository.chat.insert(
+          chatsRaw,
+          this.instance.name,
+          database.SAVE_DATA.CHATS,
+        );
       }
 
       const messagesRaw: MessageRaw[] = [];
       const messagesRepository = await this.repository.message.find({
-        where: { owner: this.instance.wuid },
+        where: { owner: this.instance.name },
       });
       for await (const [, m] of Object.entries(messages)) {
         if (!m.message) {
@@ -818,7 +842,7 @@ export class WAStartupService {
         }
         if (
           messagesRepository.find(
-            (mr) => mr.owner === this.instance.wuid && mr.key.id === m.key.id,
+            (mr) => mr.owner === this.instance.name && mr.key.id === m.key.id,
           )
         ) {
           continue;
@@ -835,7 +859,7 @@ export class WAStartupService {
           message: { ...m.message },
           messageType: getContentType(m.message),
           messageTimestamp: m.messageTimestamp as number,
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         });
       }
 
@@ -877,7 +901,7 @@ export class WAStartupService {
         message: { ...received.message },
         messageType: getContentType(received.message),
         messageTimestamp: received.messageTimestamp as number,
-        owner: this.instance.wuid,
+        owner: this.instance.name,
         source: getDevice(received.key.id),
       };
 
@@ -887,7 +911,63 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
       this.logger.verbose('Inserting message in database');
-      await this.repository.message.insert([messageRaw], database.SAVE_DATA.NEW_MESSAGE);
+      await this.repository.message.insert(
+        [messageRaw],
+        this.instance.name,
+        database.SAVE_DATA.NEW_MESSAGE,
+      );
+
+      this.logger.verbose('Verifying contact from message');
+      const contact = await this.repository.contact.find({
+        where: { owner: this.instance.name, id: received.key.remoteJid },
+      });
+
+      const contactRaw: ContactRaw = {
+        id: received.key.remoteJid,
+        pushName: received.pushName,
+        profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
+          .profilePictureUrl,
+        owner: this.instance.name,
+      };
+
+      if (contactRaw.id === 'status@broadcast') {
+        this.logger.verbose('Contact is status@broadcast');
+        return;
+      }
+
+      if (contact?.length) {
+        this.logger.verbose('Contact found in database');
+        const contactRaw: ContactRaw = {
+          id: received.key.remoteJid,
+          pushName: contact[0].pushName,
+          profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
+            .profilePictureUrl,
+          owner: this.instance.name,
+        };
+
+        this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
+        await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
+
+        this.logger.verbose('Updating contact in database');
+        await this.repository.contact.update(
+          [contactRaw],
+          this.instance.name,
+          database.SAVE_DATA.CONTACTS,
+        );
+        return;
+      }
+
+      this.logger.verbose('Contact not found in database');
+
+      this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
+      await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
+
+      this.logger.verbose('Inserting contact in database');
+      await this.repository.contact.insert(
+        [contactRaw],
+        this.instance.name,
+        database.SAVE_DATA.CONTACTS,
+      );
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
@@ -921,7 +1001,7 @@ export class WAStartupService {
             ...key,
             status: status[update.status],
             datetime: Date.now(),
-            owner: this.instance.wuid,
+            owner: this.instance.name,
             pollUpdates,
           };
 
@@ -931,6 +1011,7 @@ export class WAStartupService {
           this.logger.verbose('Inserting message in database');
           await this.repository.messageUpdate.insert(
             [message],
+            this.instance.name,
             database.SAVE_DATA.MESSAGE_UPDATE,
           );
         }
@@ -1050,7 +1131,7 @@ export class WAStartupService {
         if (events['contacts.update']) {
           this.logger.verbose('Listening event: contacts.update');
           const payload = events['contacts.update'];
-          this.contactHandle['contacts.update'](payload);
+          this.contactHandle['contacts.update'](payload, database);
         }
       }
     });
@@ -1095,6 +1176,11 @@ export class WAStartupService {
     this.logger.verbose('Creating jid with number: ' + number);
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
+      return number;
+    }
+
+    if (number.includes('@broadcast')) {
+      this.logger.verbose('Number already contains @broadcast');
       return number;
     }
 
@@ -1152,7 +1238,7 @@ export class WAStartupService {
 
     const jid = this.createJid(number);
     const isWA = (await this.whatsappNumber({ numbers: [jid] }))[0];
-    if (!isWA.exists && !isJidGroup(isWA.jid)) {
+    if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
     }
 
@@ -1229,7 +1315,8 @@ export class WAStartupService {
           !message['audio'] &&
           !message['poll'] &&
           !message['linkPreview'] &&
-          !message['sticker']
+          !message['sticker'] &&
+          !sender.includes('@broadcast')
         ) {
           if (!message['audio']) {
             this.logger.verbose('Sending message');
@@ -1255,6 +1342,20 @@ export class WAStartupService {
               text: message['linkPreview'].text,
             } as unknown as AnyMessageContent,
             option as unknown as MiscMessageGenerationOptions,
+          );
+        }
+
+        if (sender.includes('@broadcast')) {
+          this.logger.verbose('Sending message');
+          console.log(message['status']);
+          return await this.client.sendMessage(
+            sender,
+            message['status'].content as unknown as AnyMessageContent,
+            {
+              backgroundColor: message['status'].option.backgroundColor,
+              font: message['status'].option.font,
+              statusJidList: message['status'].option.statusJidList,
+            } as unknown as MiscMessageGenerationOptions,
           );
         }
 
@@ -1333,6 +1434,131 @@ export class WAStartupService {
       },
       data?.options,
     );
+  }
+
+  private async formatStatusMessage(status: StatusMessage) {
+    this.logger.verbose('Formatting status message');
+
+    if (!status.type) {
+      throw new BadRequestException('Type is required');
+    }
+
+    if (!status.content) {
+      throw new BadRequestException('Content is required');
+    }
+
+    if (status.allContacts) {
+      this.logger.verbose('All contacts defined as true');
+
+      this.logger.verbose('Getting contacts from database');
+      const contacts = await this.repository.contact.find({
+        where: { owner: this.instance.name },
+      });
+
+      if (!contacts.length) {
+        throw new BadRequestException('Contacts not found');
+      }
+
+      this.logger.verbose('Getting contacts with push name');
+      status.statusJidList = contacts
+        .filter((contact) => contact.pushName)
+        .map((contact) => contact.id);
+
+      this.logger.verbose(status.statusJidList);
+    }
+
+    if (!status.statusJidList?.length && !status.allContacts) {
+      throw new BadRequestException('StatusJidList is required');
+    }
+
+    if (status.type === 'text') {
+      this.logger.verbose('Type defined as text');
+
+      if (!status.backgroundColor) {
+        throw new BadRequestException('Background color is required');
+      }
+
+      if (!status.font) {
+        throw new BadRequestException('Font is required');
+      }
+
+      return {
+        content: {
+          text: status.content,
+        },
+        option: {
+          backgroundColor: status.backgroundColor,
+          font: status.font,
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'image') {
+      this.logger.verbose('Type defined as image');
+
+      return {
+        content: {
+          image: {
+            url: status.content,
+          },
+          caption: status.caption,
+        },
+        option: {
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'video') {
+      this.logger.verbose('Type defined as video');
+
+      return {
+        content: {
+          video: {
+            url: status.content,
+          },
+          caption: status.caption,
+        },
+        option: {
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'audio') {
+      this.logger.verbose('Type defined as audio');
+
+      this.logger.verbose('Processing audio');
+      const convert = await this.processAudio(status.content, 'status@broadcast');
+      if (typeof convert === 'string') {
+        this.logger.verbose('Audio processed');
+        const audio = fs.readFileSync(convert).toString('base64');
+
+        const result = {
+          content: {
+            audio: Buffer.from(audio, 'base64'),
+            ptt: true,
+            mimetype: 'audio/mp4',
+          },
+          option: {
+            statusJidList: status.statusJidList,
+          },
+        };
+
+        fs.unlinkSync(convert);
+
+        return result;
+      } else {
+        throw new InternalServerErrorException(convert);
+      }
+    }
+
+    throw new BadRequestException('Type not found');
+  }
+
+  public async statusMessage(data: SendStatusDto) {
+    this.logger.verbose('Sending status message');
+    return await this.sendMessageWithTyping('status@broadcast', {
+      status: await this.formatStatusMessage(data.statusMessage),
+    });
   }
 
   private async prepareMediaMessage(mediaMessage: MediaMessage) {
@@ -1890,11 +2116,11 @@ export class WAStartupService {
   public async fetchContacts(query: ContactQuery) {
     this.logger.verbose('Fetching contacts');
     if (query?.where) {
-      query.where.owner = this.instance.wuid;
+      query.where.owner = this.instance.name;
     } else {
       query = {
         where: {
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         },
       };
     }
@@ -1904,11 +2130,11 @@ export class WAStartupService {
   public async fetchMessages(query: MessageQuery) {
     this.logger.verbose('Fetching messages');
     if (query?.where) {
-      query.where.owner = this.instance.wuid;
+      query.where.owner = this.instance.name;
     } else {
       query = {
         where: {
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         },
         limit: query?.limit,
       };
@@ -1919,11 +2145,11 @@ export class WAStartupService {
   public async fetchStatusMessage(query: MessageUpQuery) {
     this.logger.verbose('Fetching status messages');
     if (query?.where) {
-      query.where.owner = this.instance.wuid;
+      query.where.owner = this.instance.name;
     } else {
       query = {
         where: {
-          owner: this.instance.wuid,
+          owner: this.instance.name,
         },
         limit: query?.limit,
       };
@@ -1933,7 +2159,7 @@ export class WAStartupService {
 
   public async fetchChats() {
     this.logger.verbose('Fetching chats');
-    return await this.repository.chat.find({ where: { owner: this.instance.wuid } });
+    return await this.repository.chat.find({ where: { owner: this.instance.name } });
   }
 
   public async fetchPrivacySettings() {

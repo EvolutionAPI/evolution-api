@@ -6,7 +6,8 @@ import { ROOT_DIR } from '../../config/path.config';
 export type IInsert = { insertCount: number };
 
 export interface IRepository {
-  insert(data: any, saveDb?: boolean): Promise<IInsert>;
+  insert(data: any, instanceName: string, saveDb?: boolean): Promise<IInsert>;
+  update(data: any, instanceName: string, saveDb?: boolean): Promise<IInsert>;
   find(query: any): Promise<any>;
   delete(query: any, force?: boolean): Promise<any>;
 
@@ -45,9 +46,14 @@ export abstract class Repository implements IRepository {
     }
   };
 
-  public insert(data: any, saveDb = false): Promise<IInsert> {
+  public insert(data: any, instanceName: string, saveDb = false): Promise<IInsert> {
     throw new Error('Method not implemented.');
   }
+
+  public update(data: any, instanceName: string, saveDb = false): Promise<IInsert> {
+    throw new Error('Method not implemented.');
+  }
+
   public find(query: any): Promise<any> {
     throw new Error('Method not implemented.');
   }

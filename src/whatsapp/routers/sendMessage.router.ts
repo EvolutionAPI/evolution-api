@@ -9,6 +9,7 @@ import {
   mediaMessageSchema,
   pollMessageSchema,
   reactionMessageSchema,
+  statusMessageSchema,
   stickerMessageSchema,
   textMessageSchema,
 } from '../../validate/validate.schema';
@@ -22,18 +23,28 @@ import {
   SendMediaDto,
   SendPollDto,
   SendReactionDto,
+  SendStatusDto,
   SendStickerDto,
   SendTextDto,
 } from '../dto/sendMessage.dto';
 import { sendMessageController } from '../whatsapp.module';
 import { RouterBroker } from '../abstract/abstract.router';
 import { HttpStatus } from './index.router';
+import { Logger } from '../../config/logger.config';
+
+const logger = new Logger('MessageRouter');
 
 export class MessageRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('sendText'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendText');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendTextDto>({
           request: req,
           schema: textMessageSchema,
@@ -44,6 +55,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendMedia'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendMedia');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendMediaDto>({
           request: req,
           schema: mediaMessageSchema,
@@ -54,6 +71,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendWhatsAppAudio'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendWhatsAppAudio');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendAudioDto>({
           request: req,
           schema: audioMessageSchema,
@@ -65,6 +88,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendButtons'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendButtons');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendButtonDto>({
           request: req,
           schema: buttonMessageSchema,
@@ -75,6 +104,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendLocation'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendLocation');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendLocationDto>({
           request: req,
           schema: locationMessageSchema,
@@ -85,6 +120,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendList'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendList');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendListDto>({
           request: req,
           schema: listMessageSchema,
@@ -95,6 +136,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendContact'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendContact');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendContactDto>({
           request: req,
           schema: contactMessageSchema,
@@ -105,6 +152,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendReaction'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendReaction');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendReactionDto>({
           request: req,
           schema: reactionMessageSchema,
@@ -115,6 +168,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendPoll'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendPoll');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendPollDto>({
           request: req,
           schema: pollMessageSchema,
@@ -124,7 +183,29 @@ export class MessageRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
+      .post(this.routerPath('sendStatus'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendStatus');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<SendStatusDto>({
+          request: req,
+          schema: statusMessageSchema,
+          ClassRef: SendStatusDto,
+          execute: (instance, data) => sendMessageController.sendStatus(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
       .post(this.routerPath('sendLinkPreview'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendLinkPreview');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendLinkPreviewDto>({
           request: req,
           schema: linkPreviewSchema,
@@ -136,6 +217,12 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendSticker'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendSticker');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<SendStickerDto>({
           request: req,
           schema: stickerMessageSchema,
