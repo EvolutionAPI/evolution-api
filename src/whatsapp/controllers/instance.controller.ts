@@ -33,9 +33,13 @@ export class InstanceController {
     qrcode,
     token,
   }: InstanceDto) {
+    this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
+
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
     if (mode === 'container') {
+      this.logger.verbose('container mode');
+
       if (Object.keys(this.waMonitor.waInstances).length > 0) {
         throw new BadRequestException([
           'Instance already created',
@@ -43,8 +47,10 @@ export class InstanceController {
         ]);
       }
 
+      this.logger.verbose('checking duplicate token');
       await this.authService.checkDuplicateToken(token);
 
+      this.logger.verbose('creating instance');
       const instance = new WAStartupService(
         this.configService,
         this.eventEmitter,
@@ -52,9 +58,12 @@ export class InstanceController {
         this.cache,
       );
       instance.instanceName = instanceName;
+      this.logger.verbose('instance: ' + instance.instanceName + ' created');
+
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
+      this.logger.verbose('generating hash');
       const hash = await this.authService.generateHash(
         {
           instanceName: instance.instanceName,
@@ -62,9 +71,12 @@ export class InstanceController {
         token,
       );
 
+      this.logger.verbose('hash: ' + hash + ' generated');
+
       let getEvents: string[];
 
       if (webhook) {
+        this.logger.verbose('creating webhook');
         try {
           this.webhookService.create(instance, {
             enabled: true,
@@ -79,6 +91,17 @@ export class InstanceController {
         }
       }
 
+      this.logger.verbose('instance created');
+      this.logger.verbose({
+        instance: {
+          instanceName: instance.instanceName,
+          status: 'created',
+        },
+        hash,
+        webhook,
+        events: getEvents,
+      });
+
       return {
         instance: {
           instanceName: instance.instanceName,
@@ -89,8 +112,12 @@ export class InstanceController {
         events: getEvents,
       };
     } else {
+      this.logger.verbose('server mode');
+
+      this.logger.verbose('checking duplicate token');
       await this.authService.checkDuplicateToken(token);
 
+      this.logger.verbose('creating instance');
       const instance = new WAStartupService(
         this.configService,
         this.eventEmitter,
@@ -98,9 +125,13 @@ export class InstanceController {
         this.cache,
       );
       instance.instanceName = instanceName;
+
+      this.logger.verbose('instance: ' + instance.instanceName + ' created');
+
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
+      this.logger.verbose('generating hash');
       const hash = await this.authService.generateHash(
         {
           instanceName: instance.instanceName,
@@ -108,9 +139,12 @@ export class InstanceController {
         token,
       );
 
+      this.logger.verbose('hash: ' + hash + ' generated');
+
       let getEvents: string[];
 
       if (webhook) {
+        this.logger.verbose('creating webhook');
         try {
           this.webhookService.create(instance, {
             enabled: true,
@@ -128,10 +162,24 @@ export class InstanceController {
       let getQrcode: wa.QrCode;
 
       if (qrcode) {
+        this.logger.verbose('creating qrcode');
         await instance.connectToWhatsapp();
         await delay(2000);
         getQrcode = instance.qrCode;
       }
+
+      this.logger.verbose('instance created');
+      this.logger.verbose({
+        instance: {
+          instanceName: instance.instanceName,
+          status: 'created',
+        },
+        hash,
+        webhook,
+        webhook_by_events,
+        events: getEvents,
+        qrcode: getQrcode,
+      });
 
       return {
         instance: {
@@ -149,11 +197,18 @@ export class InstanceController {
 
   public async connectToWhatsapp({ instanceName }: InstanceDto) {
     try {
+      this.logger.verbose(
+        'requested connectToWhatsapp from ' + instanceName + ' instance',
+      );
+
       const instance = this.waMonitor.waInstances[instanceName];
       const state = instance?.connectionStatus?.state;
 
+      this.logger.verbose('state: ' + state);
+
       switch (state) {
         case 'close':
+          this.logger.verbose('connecting');
           await instance.connectToWhatsapp();
           await delay(2000);
           return instance.qrCode;
@@ -169,8 +224,12 @@ export class InstanceController {
 
   public async restartInstance({ instanceName }: InstanceDto) {
     try {
+      this.logger.verbose('requested restartInstance from ' + instanceName + ' instance');
+
+      this.logger.verbose('deleting instance: ' + instanceName);
       delete this.waMonitor.waInstances[instanceName];
-      console.log(this.waMonitor.waInstances[instanceName]);
+
+      this.logger.verbose('creating instance: ' + instanceName);
       const instance = new WAStartupService(
         this.configService,
         this.eventEmitter,
@@ -179,6 +238,10 @@ export class InstanceController {
       );
 
       instance.instanceName = instanceName;
+
+      this.logger.verbose('instance: ' + instance.instanceName + ' created');
+
+      this.logger.verbose('connecting instance: ' + instanceName);
       await instance.connectToWhatsapp();
       this.waMonitor.waInstances[instance.instanceName] = instance;
 
@@ -189,11 +252,14 @@ export class InstanceController {
   }
 
   public async connectionState({ instanceName }: InstanceDto) {
+    this.logger.verbose('requested connectionState from ' + instanceName + ' instance');
     return this.waMonitor.waInstances[instanceName]?.connectionStatus;
   }
 
   public async fetchInstances({ instanceName }: InstanceDto) {
+    this.logger.verbose('requested fetchInstances from ' + instanceName + ' instance');
     if (instanceName) {
+      this.logger.verbose('instanceName: ' + instanceName);
       return this.waMonitor.instanceInfo(instanceName);
     }
 
@@ -201,11 +267,14 @@ export class InstanceController {
   }
 
   public async logout({ instanceName }: InstanceDto) {
+    this.logger.verbose('requested logout from ' + instanceName + ' instance');
     try {
+      this.logger.verbose('logging out instance: ' + instanceName);
       await this.waMonitor.waInstances[instanceName]?.client?.logout(
         'Log out instance: ' + instanceName,
       );
 
+      this.logger.verbose('close connection instance: ' + instanceName);
       this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
 
       return { error: false, message: 'Instance logged out' };
@@ -215,7 +284,9 @@ export class InstanceController {
   }
 
   public async deleteInstance({ instanceName }: InstanceDto) {
+    this.logger.verbose('requested deleteInstance from ' + instanceName + ' instance');
     const stateConn = await this.connectionState({ instanceName });
+
     if (stateConn.state === 'open') {
       throw new BadRequestException([
         'Deletion failed',
@@ -224,10 +295,14 @@ export class InstanceController {
     }
     try {
       if (stateConn.state === 'connecting') {
+        this.logger.verbose('logging out instance: ' + instanceName);
+
         await this.logout({ instanceName });
         delete this.waMonitor.waInstances[instanceName];
         return { error: false, message: 'Instance deleted' };
       } else {
+        this.logger.verbose('deleting instance: ' + instanceName);
+
         delete this.waMonitor.waInstances[instanceName];
         this.eventEmitter.emit('remove.instance', instanceName, 'inner');
         return { error: false, message: 'Instance deleted' };
@@ -238,6 +313,7 @@ export class InstanceController {
   }
 
   public async refreshToken(_: InstanceDto, oldToken: OldToken) {
+    this.logger.verbose('requested refreshToken');
     return await this.authService.refreshToken(oldToken);
   }
 }

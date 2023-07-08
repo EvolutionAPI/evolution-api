@@ -7,6 +7,9 @@ import { HttpStatus } from './index.router';
 import { OldToken } from '../services/auth.service';
 import { Auth, ConfigService, Database } from '../../config/env.config';
 import { dbserver } from '../../db/db.connect';
+import { Logger } from '../../config/logger.config';
+
+const logger = new Logger('InstanceRouter');
 
 export class InstanceRouter extends RouterBroker {
   constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
@@ -14,6 +17,12 @@ export class InstanceRouter extends RouterBroker {
     const auth = configService.get<Auth>('AUTHENTICATION');
     this.router
       .post('/create', ...guards, async (req, res) => {
+        logger.verbose('request received in createInstance');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
@@ -24,6 +33,12 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('restart'), ...guards, async (req, res) => {
+        logger.verbose('request received in restartInstance');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
@@ -34,6 +49,12 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('connect'), ...guards, async (req, res) => {
+        logger.verbose('request received in connectInstance');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
@@ -44,6 +65,12 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('connectionState'), ...guards, async (req, res) => {
+        logger.verbose('request received in connectionState');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
@@ -54,6 +81,12 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('fetchInstances', false), ...guards, async (req, res) => {
+        logger.verbose('request received in fetchInstances');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: null,
@@ -64,6 +97,12 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .delete(this.routerPath('logout'), ...guards, async (req, res) => {
+        logger.verbose('request received in logoutInstances');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
@@ -74,6 +113,12 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .delete(this.routerPath('delete'), ...guards, async (req, res) => {
+        logger.verbose('request received in deleteInstances');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
@@ -86,6 +131,12 @@ export class InstanceRouter extends RouterBroker {
 
     if (auth.TYPE === 'jwt') {
       this.router.put('/refreshToken', async (req, res) => {
+        logger.verbose('request received in refreshToken');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
         const response = await this.dataValidate<OldToken>({
           request: req,
           schema: oldTokenSchema,
@@ -98,6 +149,12 @@ export class InstanceRouter extends RouterBroker {
     }
 
     this.router.delete('/deleteDatabase', async (req, res) => {
+      logger.verbose('request received in deleteDatabase');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
       const db = this.configService.get<Database>('DATABASE');
       if (db.ENABLED) {
         try {
