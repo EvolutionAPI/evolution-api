@@ -3,12 +3,14 @@
 ### Features
 
 * Route to send status broadcast
+* Added verbose logs
+* Insert allContacts in payload of endpoint sendStatus
 
 ### Fixed
 
 * Adjusted set in webhook to go empty when enabled false
 * Adjust in store files
-* Added verbose logs
+* Fixed the problem when do not save contacts when receive messages
 
 # 1.1.3 (2023-07-06 11:43)
 

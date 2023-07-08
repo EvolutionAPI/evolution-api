@@ -53,6 +53,40 @@ export class ContactRepository extends Repository {
     }
   }
 
+  public async update(
+    data: ContactRaw,
+    instanceName: string,
+    saveDb = false,
+  ): Promise<IInsert> {
+    try {
+      if (this.dbSettings.ENABLED && saveDb) {
+        const contact = await this.contactModel.findOneAndUpdate(
+          { id: data.id },
+          { ...data },
+        );
+        return { insertCount: contact ? 1 : 0 };
+      }
+
+      const store = this.configService.get<StoreConf>('STORE');
+
+      if (store.CONTACTS) {
+        this.writeStore({
+          path: join(this.storePath, 'contacts', instanceName),
+          fileName: data.id,
+          data,
+        });
+
+        return { insertCount: 1 };
+      }
+
+      return { insertCount: 0 };
+    } catch (error) {
+      return error;
+    } finally {
+      data = undefined;
+    }
+  }
+
   public async find(query: ContactQuery): Promise<ContactRaw[]> {
     try {
       if (this.dbSettings.ENABLED) {

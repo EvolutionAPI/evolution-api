@@ -35,7 +35,8 @@ class linkPreviewMessage {
 export class StatusMessage {
   type: string;
   content: string;
-  statusJidList: string[];
+  statusJidList?: string[];
+  allContacts?: boolean;
   caption?: string;
   backgroundColor?: string;
   font?: number;

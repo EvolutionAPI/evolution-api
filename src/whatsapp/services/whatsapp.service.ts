@@ -770,7 +770,7 @@ export class WAStartupService {
       );
     },
 
-    'contacts.update': async (contacts: Partial<Contact>[]) => {
+    'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
       this.logger.verbose('Event received: contacts.update');
 
       this.logger.verbose('Verifying if contacts exists in database to update');
@@ -782,6 +782,18 @@ export class WAStartupService {
           profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
           owner: this.instance.wuid,
         });
+
+        this.logger.verbose('Updating contacts in database');
+        await this.repository.contact.update(
+          {
+            id: contact.id,
+            pushName: contact?.name ?? contact?.verifiedName,
+            profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
+            owner: this.instance.wuid,
+          },
+          this.instance.name,
+          database.SAVE_DATA.CONTACTS,
+        );
       }
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
@@ -908,6 +920,52 @@ export class WAStartupService {
         [messageRaw],
         this.instance.name,
         database.SAVE_DATA.NEW_MESSAGE,
+      );
+
+      this.logger.verbose('Verifying contact from message');
+      const contact = await this.repository.contact.find({
+        where: { owner: this.instance.wuid, id: received.key.remoteJid },
+      });
+
+      if (contact?.length) {
+        this.logger.verbose('Contact found in database');
+        const contactRaw: ContactRaw = {
+          id: received.key.remoteJid,
+          pushName: contact[0].pushName,
+          profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
+            .profilePictureUrl,
+          owner: this.instance.wuid,
+        };
+
+        this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
+        await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
+
+        this.logger.verbose('Updating contact in database');
+        await this.repository.contact.update(
+          contactRaw,
+          this.instance.name,
+          database.SAVE_DATA.CONTACTS,
+        );
+        return;
+      }
+
+      this.logger.verbose('Contact not found in database');
+      const contactRaw: ContactRaw = {
+        id: received.key.remoteJid,
+        pushName: received.pushName,
+        profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
+          .profilePictureUrl,
+        owner: this.instance.wuid,
+      };
+
+      this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
+      await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
+
+      this.logger.verbose('Inserting contact in database');
+      await this.repository.contact.insert(
+        [contactRaw],
+        this.instance.name,
+        database.SAVE_DATA.CONTACTS,
       );
     },
 
@@ -1072,7 +1130,7 @@ export class WAStartupService {
         if (events['contacts.update']) {
           this.logger.verbose('Listening event: contacts.update');
           const payload = events['contacts.update'];
-          this.contactHandle['contacts.update'](payload);
+          this.contactHandle['contacts.update'](payload, database);
         }
       }
     });
@@ -1386,12 +1444,22 @@ export class WAStartupService {
       throw new BadRequestException('Content is required');
     }
 
-    if (
-      !status.statusJidList ||
-      !Array.isArray(status.statusJidList) ||
-      !status.statusJidList.length
-    ) {
-      throw new BadRequestException('Status jid list is required');
+    if (status.allContacts) {
+      const contacts = await this.repository.contact.find({
+        where: { owner: this.instance.wuid },
+      });
+
+      if (!contacts.length) {
+        throw new BadRequestException('Contacts not found');
+      }
+
+      status.statusJidList = contacts
+        .filter((contact) => contact.pushName)
+        .map((contact) => contact.id);
+    }
+
+    if (!status.statusJidList?.length && !status.allContacts) {
+      throw new BadRequestException('StatusJidList is required');
     }
 
     if (status.type === 'text') {
