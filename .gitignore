@@ -2,7 +2,7 @@
 /dist
 /node_modules
 
-# /Docker/.env
+/Docker/.env
 
 # Logs
 logs/**.json
