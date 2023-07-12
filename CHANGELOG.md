@@ -1,3 +1,10 @@
+# 1.1.6 (homolog)
+
+### Fixed
+
+* Adjusts in docker-compose files
+* Adjusts in number validation for AR and MX numbers
+
 # 1.1.5 (2023-07-12 07:17)
 
 ### Fixed

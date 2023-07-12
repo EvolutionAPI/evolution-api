@@ -1160,6 +1160,8 @@ export class WAStartupService {
         }
         return match[1] === '52' ? '52' + match[3] : '54' + match[3];
       }
+
+      return jid;
     }
     return jid;
   }
@@ -1177,12 +1179,14 @@ export class WAStartupService {
         }
         return match[1] + match[2] + match[3];
       }
+      return jid;
     } else {
       return jid;
     }
   }
 
   private createJid(number: string): string {
+    console.log(number);
     this.logger.verbose('Creating jid with number: ' + number);
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
@@ -1203,6 +1207,8 @@ export class WAStartupService {
     }
 
     const formattedMXARNumber = this.formatMXOrARNumber(number);
+    console.log(formattedMXARNumber, number);
+
     if (formattedMXARNumber !== number) {
       this.logger.verbose(
         'Jid created is whatsapp in format MXAR: ' +
@@ -1951,16 +1957,22 @@ export class WAStartupService {
 
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
+      console.log('number', number);
       const jid = this.createJid(number);
+      console.log('jid', jid);
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
         onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, group?.subject));
       } else {
-        try {
-          const result = (await this.client.onWhatsApp(jid))[0];
+        const verify = await this.client.onWhatsApp(jid);
+
+        const result = verify[0];
+
+        if (!result) {
+          onWhatsapp.push(new OnWhatsAppDto(jid, false));
+        } else {
+          console.log('onWhatsapp', result);
           onWhatsapp.push(new OnWhatsAppDto(result.jid, result.exists));
-        } catch (error) {
-          onWhatsapp.push(new OnWhatsAppDto(number, false));
         }
       }
     }

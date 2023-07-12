@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "1.1.4",
+  "version": "1.1.6",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/src/main.js",
   "scripts": {
@@ -43,7 +43,7 @@
     "@adiwajshing/keyed-db": "^0.2.4",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@hapi/boom": "^10.0.1",
-    "@whiskeysockets/baileys": "github:EvolutionAPI/Baileys",
+    "@whiskeysockets/baileys": "github:vphelipe/WhiskeySockets-Baileys#master",
     "axios": "^1.3.5",
     "class-validator": "^0.13.2",
     "compression": "^1.7.4",
