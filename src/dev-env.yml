@@ -78,7 +78,8 @@ REDIS:
   URI: 'redis://localhost:6379'
   PREFIX_KEY: 'evolution'
 
-# Webhook Settings
+# Global Webhook Settings
+# Each instance's Webhook URL and events will be requested at the time it is created
 WEBHOOK:
   # Define a global webhook that will listen for enabled events from all instances
   GLOBAL:
