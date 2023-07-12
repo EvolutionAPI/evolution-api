@@ -1,3 +1,10 @@
+# 1.1.5 (2023-07-12 07:17)
+
+### Fixed
+
+* Adjusts in temp folder
+* Return with event send_message
+
 # 1.1.4 (2023-07-08 11:01)
 
 ### Features
