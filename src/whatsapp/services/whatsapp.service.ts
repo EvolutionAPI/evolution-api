@@ -1367,21 +1367,43 @@ export class WAStartupService {
         );
       })();
 
-      const messageRaw: proto.IWebMessageInfo = {
+      // const messageRaw: proto.IWebMessageInfo = {
+      //   key: messageSent.key,
+      //   messageTimestamp: Long.isLong(messageSent.messageTimestamp)
+      //     ? messageSent.messageTimestamp?.toNumber()
+      //     : messageSent.messageTimestamp,
+      //   pushName: messageSent.pushName,
+      //   broadcast: messageSent.broadcast,
+      //   status: 2,
+      //   message: { ...messageSent.message },
+      // };
+
+      // this.client.ev.emit('messages.upsert', {
+      //   messages: [messageRaw],
+      //   type: 'notify',
+      // });
+
+      const messageRaw: MessageRaw = {
         key: messageSent.key,
-        messageTimestamp: Long.isLong(messageSent.messageTimestamp)
-          ? messageSent.messageTimestamp?.toNumber()
-          : messageSent.messageTimestamp,
         pushName: messageSent.pushName,
-        broadcast: messageSent.broadcast,
-        status: 2,
         message: { ...messageSent.message },
+        messageType: getContentType(messageSent.message),
+        messageTimestamp: messageSent.messageTimestamp as number,
+        owner: this.instance.name,
+        source: getDevice(messageSent.key.id),
       };
 
-      this.client.ev.emit('messages.upsert', {
-        messages: [messageRaw],
-        type: 'notify',
-      });
+      this.logger.log(messageRaw);
+
+      this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
+      await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
+
+      this.logger.verbose('Inserting message in database');
+      await this.repository.message.insert(
+        [messageRaw],
+        this.instance.name,
+        this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE,
+      );
 
       return messageSent;
     } catch (error) {
@@ -1628,7 +1650,7 @@ export class WAStartupService {
       const hash = `${number}-${new Date().getTime()}`;
       this.logger.verbose('Hash to image name: ' + hash);
 
-      const outputPath = `${join(process.cwd(), 'temp', `${hash}.webp`)}`;
+      const outputPath = `${join(this.storePath, 'temp', `${hash}.webp`)}`;
       this.logger.verbose('Output path: ' + outputPath);
 
       if (isBase64(image)) {
@@ -1636,7 +1658,7 @@ export class WAStartupService {
 
         const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
-        imagePath = `${join(process.cwd(), 'temp', `temp-${hash}.png`)}`;
+        imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
         this.logger.verbose('Image path: ' + imagePath);
 
         await sharp(imageBuffer).toFile(imagePath);
@@ -1652,7 +1674,7 @@ export class WAStartupService {
         this.logger.verbose('Getting image from url');
 
         const imageBuffer = Buffer.from(response.data, 'binary');
-        imagePath = `${join(process.cwd(), 'temp', `temp-${hash}.png`)}`;
+        imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
         this.logger.verbose('Image path: ' + imagePath);
 
         await sharp(imageBuffer).toFile(imagePath);
@@ -1710,8 +1732,8 @@ export class WAStartupService {
     if (isURL(audio)) {
       this.logger.verbose('Audio is url');
 
-      outputAudio = `${join(process.cwd(), 'temp', `${hash}.mp4`)}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${hash}.mp3`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
+      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
       this.logger.verbose('Temp audio path: ' + tempAudioPath);
@@ -1725,12 +1747,11 @@ export class WAStartupService {
       this.logger.verbose('Getting audio from url');
 
       fs.writeFileSync(tempAudioPath, response.data);
-      this.logger.verbose('Temp audio created');
     } else {
       this.logger.verbose('Audio is base64');
 
-      outputAudio = `${join(process.cwd(), 'temp', `${hash}.mp4`)}`;
-      tempAudioPath = `${join(process.cwd(), 'temp', `temp-${hash}.mp3`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
+      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
       this.logger.verbose('Temp audio path: ' + tempAudioPath);

@@ -6,6 +6,7 @@ export enum Events {
   QRCODE_UPDATED = 'qrcode.updated',
   CONNECTION_UPDATE = 'connection.update',
   STATUS_INSTANCE = 'status.instance',
+  SEND_MESSAGE = 'send.message',
   MESSAGES_SET = 'messages.set',
   MESSAGES_UPSERT = 'messages.upsert',
   MESSAGES_UPDATE = 'messages.update',

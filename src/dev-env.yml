@@ -61,7 +61,7 @@ CLEAN_STORE:
 
 # Permanent data storage
 DATABASE:
-  ENABLED: true
+  ENABLED: false
   CONNECTION:
     URI: 'mongodb://root:root@localhost:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true'
     DB_PREFIX_NAME: evolution
@@ -69,14 +69,14 @@ DATABASE:
   SAVE_DATA:
     INSTANCE: false
     OLD_MESSAGE: false
-    NEW_MESSAGE: true
-    MESSAGE_UPDATE: true
-    CONTACTS: true
-    CHATS: true
+    NEW_MESSAGE: false
+    MESSAGE_UPDATE: false
+    CONTACTS: false
+    CHATS: false
 
 REDIS:
-  ENABLED: true
-  URI: 'redis://localhost:6379/1'
+  ENABLED: false
+  URI: 'redis://localhost:6379'
   PREFIX_KEY: 'evolution'
 
 # Webhook Settings
@@ -84,13 +84,13 @@ WEBHOOK:
   # Define a global webhook that will listen for enabled events from all instances
   GLOBAL:
     URL: <url>
-    ENABLED: true
+    ENABLED: false
     # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
     WEBHOOK_BY_EVENTS: false
   # Automatically maps webhook paths
   # Set the events you want to hear  
   EVENTS:
-    APPLICATION_STARTUP: true
+    APPLICATION_STARTUP: false
     QRCODE_UPDATED: true
     MESSAGES_SET: true
     MESSAGES_UPSERT: true
@@ -108,7 +108,7 @@ WEBHOOK:
     GROUP_PARTICIPANTS_UPDATE: true
     CONNECTION_UPDATE: true
     # This event fires every time a new token is requested via the refresh route
-    NEW_JWT_TOKEN: true
+    NEW_JWT_TOKEN: false
 
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection
