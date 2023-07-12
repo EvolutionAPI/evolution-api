@@ -63,6 +63,9 @@ export class RepositoryBroker {
 
       this.logger.verbose('creating webhook path: ' + join(storePath, 'webhook'));
       execSync(`mkdir -p ${join(storePath, 'webhook')}`);
+
+      this.logger.verbose('creating temp path: ' + join(storePath, 'temp'));
+      execSync(`mkdir -p ${join(storePath, 'temp')}`);
     }
   }
 }
