@@ -12,10 +12,6 @@ services:
       redis-server
       --port 6379
       --appendonly yes
-      --save 900 1
-      --save 300 10
-      --save 60 10000
-      --appendfsync everysec
     volumes:
       - evolution_redis:/data
     ports:

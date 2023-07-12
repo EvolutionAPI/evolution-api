@@ -4,6 +4,7 @@
 
 * Adjusts in docker-compose files
 * Adjusts in number validation for AR and MX numbers
+* Adjusts in env files, removed save old_messages
 
 # 1.1.5 (2023-07-12 07:17)
 

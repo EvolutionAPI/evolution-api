@@ -68,7 +68,6 @@ DATABASE:
   # Choose the data you want to save in the application's database or store
   SAVE_DATA:
     INSTANCE: false
-    OLD_MESSAGE: false
     NEW_MESSAGE: false
     MESSAGE_UPDATE: false
     CONTACTS: false
