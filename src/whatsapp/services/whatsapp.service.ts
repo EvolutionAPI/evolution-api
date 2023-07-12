@@ -1186,7 +1186,6 @@ export class WAStartupService {
   }
 
   private createJid(number: string): string {
-    console.log(number);
     this.logger.verbose('Creating jid with number: ' + number);
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
@@ -1207,7 +1206,6 @@ export class WAStartupService {
     }
 
     const formattedMXARNumber = this.formatMXOrARNumber(number);
-    console.log(formattedMXARNumber, number);
 
     if (formattedMXARNumber !== number) {
       this.logger.verbose(
@@ -1253,7 +1251,9 @@ export class WAStartupService {
     this.logger.verbose('Sending message with typing');
 
     const jid = this.createJid(number);
-    const isWA = (await this.whatsappNumber({ numbers: [jid] }))[0];
+    const numberWA = await this.whatsappNumber({ numbers: [jid] });
+    const isWA = numberWA[0];
+
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
     }
@@ -1263,7 +1263,9 @@ export class WAStartupService {
     if (isJidGroup(sender)) {
       try {
         this.logger.verbose('Getting group metadata');
-        await this.client.groupMetadata(sender);
+        const metadata = await this.client.groupMetadata(sender);
+
+        console.log('metadata', metadata);
       } catch (error) {
         throw new NotFoundException('Group not found');
       }
@@ -1363,7 +1365,6 @@ export class WAStartupService {
 
         if (sender.includes('@broadcast')) {
           this.logger.verbose('Sending message');
-          console.log(message['status']);
           return await this.client.sendMessage(
             sender,
             message['status'].content as unknown as AnyMessageContent,
@@ -1957,11 +1958,12 @@ export class WAStartupService {
 
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
-      console.log('number', number);
       const jid = this.createJid(number);
-      console.log('jid', jid);
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
+
+        if (!group) throw new BadRequestException('Group not found');
+
         onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, group?.subject));
       } else {
         const verify = await this.client.onWhatsApp(jid);
@@ -1971,7 +1973,6 @@ export class WAStartupService {
         if (!result) {
           onWhatsapp.push(new OnWhatsAppDto(jid, false));
         } else {
-          console.log('onWhatsapp', result);
           onWhatsapp.push(new OnWhatsAppDto(result.jid, result.exists));
         }
       }

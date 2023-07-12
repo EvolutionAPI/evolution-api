@@ -5,6 +5,7 @@
 * Adjusts in docker-compose files
 * Adjusts in number validation for AR and MX numbers
 * Adjusts in env files, removed save old_messages
+* Fix when sending a message to a group I don't belong returns a bad request
 
 # 1.1.5 (2023-07-12 07:17)
 
