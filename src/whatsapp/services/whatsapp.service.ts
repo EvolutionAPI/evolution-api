@@ -984,12 +984,20 @@ export class WAStartupService {
         if (
           key.remoteJid !== 'status@broadcast' &&
           !key?.remoteJid?.match(/(:\d+)/) &&
-          !key.fromMe
+          key.fromMe
         ) {
+          this.logger.verbose('Message update is valid');
+
           let pollUpdates: any;
           if (update.pollUpdates) {
+            this.logger.verbose('Poll update found');
+
+            this.logger.verbose('Getting poll message');
             const pollCreation = await this.getMessage(key);
+            this.logger.verbose(pollCreation);
+
             if (pollCreation) {
+              this.logger.verbose('Getting aggregate votes in poll message');
               pollUpdates = getAggregateVotesInPollMessage({
                 message: pollCreation as proto.IMessage,
                 pollUpdates: update.pollUpdates,
@@ -1004,6 +1012,8 @@ export class WAStartupService {
             owner: this.instance.name,
             pollUpdates,
           };
+
+          this.logger.verbose(message);
 
           this.logger.verbose('Sending data to webhook in event MESSAGES_UPDATE');
           await this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
@@ -1367,22 +1377,6 @@ export class WAStartupService {
         );
       })();
 
-      // const messageRaw: proto.IWebMessageInfo = {
-      //   key: messageSent.key,
-      //   messageTimestamp: Long.isLong(messageSent.messageTimestamp)
-      //     ? messageSent.messageTimestamp?.toNumber()
-      //     : messageSent.messageTimestamp,
-      //   pushName: messageSent.pushName,
-      //   broadcast: messageSent.broadcast,
-      //   status: 2,
-      //   message: { ...messageSent.message },
-      // };
-
-      // this.client.ev.emit('messages.upsert', {
-      //   messages: [messageRaw],
-      //   type: 'notify',
-      // });
-
       const messageRaw: MessageRaw = {
         key: messageSent.key,
         pushName: messageSent.pushName,
@@ -1395,8 +1389,8 @@ export class WAStartupService {
 
       this.logger.log(messageRaw);
 
-      this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
-      await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
+      this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
+      await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
       this.logger.verbose('Inserting message in database');
       await this.repository.message.insert(
