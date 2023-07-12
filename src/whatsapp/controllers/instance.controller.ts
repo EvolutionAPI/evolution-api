@@ -8,6 +8,7 @@ import { AuthService, OldToken } from '../services/auth.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { WAStartupService } from '../services/whatsapp.service';
 import { WebhookService } from '../services/webhook.service';
+import { ChatwootService } from '../services/chatwoot.service';
 import { Logger } from '../../config/logger.config';
 import { wa } from '../types/wa.types';
 import { RedisCache } from '../../db/redis.client';
@@ -20,6 +21,7 @@ export class InstanceController {
     private readonly eventEmitter: EventEmitter2,
     private readonly authService: AuthService,
     private readonly webhookService: WebhookService,
+    private readonly chatwootService: ChatwootService,
     private readonly cache: RedisCache,
   ) {}
 
@@ -32,6 +34,9 @@ export class InstanceController {
     events,
     qrcode,
     token,
+    chatwoot_account_id,
+    chatwoot_token,
+    chatwoot_url,
   }: InstanceDto) {
     this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
 
@@ -73,34 +78,70 @@ export class InstanceController {
 
       this.logger.verbose('hash: ' + hash + ' generated');
 
-      let getEvents: string[];
+      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
+        let getEvents: string[];
 
-      if (webhook) {
-        this.logger.verbose('creating webhook');
-        try {
-          this.webhookService.create(instance, {
-            enabled: true,
-            url: webhook,
-            events,
-            webhook_by_events,
-          });
+        if (webhook) {
+          this.logger.verbose('creating webhook');
+          try {
+            this.webhookService.create(instance, {
+              enabled: true,
+              url: webhook,
+              events,
+              webhook_by_events,
+            });
 
-          getEvents = (await this.webhookService.find(instance)).events;
-        } catch (error) {
-          this.logger.log(error);
+            getEvents = (await this.webhookService.find(instance)).events;
+          } catch (error) {
+            this.logger.log(error);
+          }
         }
+
+        this.logger.verbose('instance created');
+        this.logger.verbose({
+          instance: {
+            instanceName: instance.instanceName,
+            status: 'created',
+          },
+          hash,
+          webhook,
+          events: getEvents,
+        });
+
+        return {
+          instance: {
+            instanceName: instance.instanceName,
+            status: 'created',
+          },
+          hash,
+          webhook,
+          events: getEvents,
+        };
       }
 
-      this.logger.verbose('instance created');
-      this.logger.verbose({
-        instance: {
-          instanceName: instance.instanceName,
-          status: 'created',
-        },
-        hash,
-        webhook,
-        events: getEvents,
-      });
+      if (!chatwoot_account_id) {
+        throw new BadRequestException('account_id is required');
+      }
+
+      if (!chatwoot_token) {
+        throw new BadRequestException('token is required');
+      }
+
+      if (!chatwoot_url) {
+        throw new BadRequestException('url is required');
+      }
+
+      try {
+        this.chatwootService.create(instance, {
+          enabled: true,
+          account_id: chatwoot_account_id,
+          token: chatwoot_token,
+          url: chatwoot_url,
+          name_inbox: instance.instanceName,
+        });
+      } catch (error) {
+        this.logger.log(error);
+      }
 
       return {
         instance: {
@@ -108,8 +149,13 @@ export class InstanceController {
           status: 'created',
         },
         hash,
-        webhook,
-        events: getEvents,
+        chatwoot: {
+          enabled: true,
+          account_id: chatwoot_account_id,
+          token: chatwoot_token,
+          url: chatwoot_url,
+          name_inbox: instance.instanceName,
+        },
       };
     } else {
       this.logger.verbose('server mode');
@@ -141,45 +187,83 @@ export class InstanceController {
 
       this.logger.verbose('hash: ' + hash + ' generated');
 
-      let getEvents: string[];
+      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
+        let getEvents: string[];
 
-      if (webhook) {
-        this.logger.verbose('creating webhook');
-        try {
-          this.webhookService.create(instance, {
-            enabled: true,
-            url: webhook,
-            events,
-            webhook_by_events,
-          });
+        if (webhook) {
+          this.logger.verbose('creating webhook');
+          try {
+            this.webhookService.create(instance, {
+              enabled: true,
+              url: webhook,
+              events,
+              webhook_by_events,
+            });
 
-          getEvents = (await this.webhookService.find(instance)).events;
-        } catch (error) {
-          this.logger.log(error);
+            getEvents = (await this.webhookService.find(instance)).events;
+          } catch (error) {
+            this.logger.log(error);
+          }
         }
+
+        let getQrcode: wa.QrCode;
+
+        if (qrcode) {
+          this.logger.verbose('creating qrcode');
+          await instance.connectToWhatsapp();
+          await delay(2000);
+          getQrcode = instance.qrCode;
+        }
+
+        this.logger.verbose('instance created');
+        this.logger.verbose({
+          instance: {
+            instanceName: instance.instanceName,
+            status: 'created',
+          },
+          hash,
+          webhook,
+          webhook_by_events,
+          events: getEvents,
+          qrcode: getQrcode,
+        });
+
+        return {
+          instance: {
+            instanceName: instance.instanceName,
+            status: 'created',
+          },
+          hash,
+          webhook,
+          webhook_by_events,
+          events: getEvents,
+          qrcode: getQrcode,
+        };
       }
 
-      let getQrcode: wa.QrCode;
-
-      if (qrcode) {
-        this.logger.verbose('creating qrcode');
-        await instance.connectToWhatsapp();
-        await delay(2000);
-        getQrcode = instance.qrCode;
+      if (!chatwoot_account_id) {
+        throw new BadRequestException('account_id is required');
       }
 
-      this.logger.verbose('instance created');
-      this.logger.verbose({
-        instance: {
-          instanceName: instance.instanceName,
-          status: 'created',
-        },
-        hash,
-        webhook,
-        webhook_by_events,
-        events: getEvents,
-        qrcode: getQrcode,
-      });
+      if (!chatwoot_token) {
+        throw new BadRequestException('token is required');
+      }
+
+      if (!chatwoot_url) {
+        throw new BadRequestException('url is required');
+      }
+
+      try {
+        this.chatwootService.create(instance, {
+          enabled: true,
+          account_id: chatwoot_account_id,
+          token: chatwoot_token,
+          url: chatwoot_url,
+          name_inbox: instance.instanceName,
+        });
+      } catch (error) {
+        this.logger.log(error);
+      }
 
       return {
         instance: {
@@ -187,10 +271,13 @@ export class InstanceController {
           status: 'created',
         },
         hash,
-        webhook,
-        webhook_by_events,
-        events: getEvents,
-        qrcode: getQrcode,
+        chatwoot: {
+          enabled: true,
+          account_id: chatwoot_account_id,
+          token: chatwoot_token,
+          url: chatwoot_url,
+          name_inbox: instance.instanceName,
+        },
       };
     }
   }

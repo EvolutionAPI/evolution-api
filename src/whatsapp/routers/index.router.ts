@@ -8,6 +8,7 @@ import { InstanceRouter } from './instance.router';
 import { MessageRouter } from './sendMessage.router';
 import { ViewsRouter } from './view.router';
 import { WebhookRouter } from './webhook.router';
+import { ChatwootRouter } from './chatwoot.router';
 
 enum HttpStatus {
   OK = 200,
@@ -32,6 +33,7 @@ router
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
-  .use('/webhook', new WebhookRouter(...guards).router);
+  .use('/webhook', new WebhookRouter(...guards).router)
+  .use('/chatwoot', new ChatwootRouter(...guards).router);
 
 export { router, HttpStatus };

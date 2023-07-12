@@ -114,6 +114,7 @@ import { MessageUpQuery } from '../repository/messageUp.repository';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
 import Long from 'long';
 import { WebhookRaw } from '../models/webhook.model';
+import { ChatwootRaw } from '../models/chatwoot.model';
 import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
@@ -138,6 +139,7 @@ export class WAStartupService {
   private readonly instance: wa.Instance = {};
   public client: WASocket;
   private readonly localWebhook: wa.LocalWebHook = {};
+  private readonly localChatwoot: wa.LocalChatwoot = {};
   private stateConnection: wa.StateConnection = { state: 'close' };
   private readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -265,6 +267,34 @@ export class WAStartupService {
 
     this.logger.verbose(`Webhook url: ${data.url}`);
     this.logger.verbose(`Webhook events: ${data.events}`);
+    return data;
+  }
+
+  public async setChatwoot(data: ChatwootRaw) {
+    this.logger.verbose('Setting chatwoot');
+    await this.repository.chatwoot.create(data, this.instanceName);
+    this.logger.verbose(`Chatwoot account id: ${data.account_id}`);
+    this.logger.verbose(`Chatwoot token: ${data.token}`);
+    this.logger.verbose(`Chatwoot url: ${data.url}`);
+    this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
+
+    Object.assign(this.localChatwoot, data);
+    this.logger.verbose('Chatwoot set');
+  }
+
+  public async findChatwoot() {
+    this.logger.verbose('Finding chatwoot');
+    const data = await this.repository.chatwoot.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Chatwoot not found');
+      throw new NotFoundException('Chatwoot not found');
+    }
+
+    this.logger.verbose(`Chatwoot account id: ${data.account_id}`);
+    this.logger.verbose(`Chatwoot token: ${data.token}`);
+    this.logger.verbose(`Chatwoot url: ${data.url}`);
+    this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
     return data;
   }
 
