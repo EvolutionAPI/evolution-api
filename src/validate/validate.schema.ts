@@ -36,6 +36,7 @@ export const instanceNameSchema: JSONSchema7 = {
         enum: [
           'APPLICATION_STARTUP',
           'QRCODE_UPDATED',
+          'SEND_MESSAGE',
           'MESSAGES_SET',
           'MESSAGES_UPSERT',
           'MESSAGES_UPDATE',
@@ -832,6 +833,7 @@ export const webhookSchema: JSONSchema7 = {
         enum: [
           'APPLICATION_STARTUP',
           'QRCODE_UPDATED',
+          'SEND_MESSAGE',
           'MESSAGES_SET',
           'MESSAGES_UPSERT',
           'MESSAGES_UPDATE',
