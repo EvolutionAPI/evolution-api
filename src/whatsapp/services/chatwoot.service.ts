@@ -87,7 +87,6 @@ export class ChatwootService {
     instance: InstanceDto,
     phoneNumber: string,
     inboxId: number,
-    accountId: number,
     name?: string,
   ) {
     const client = await this.clientCw(instance);
