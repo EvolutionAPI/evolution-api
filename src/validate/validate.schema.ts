@@ -857,3 +857,16 @@ export const webhookSchema: JSONSchema7 = {
   required: ['url', 'enabled'],
   ...isNotEmpty('url'),
 };
+
+export const chatwootSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    account_id: { type: 'string' },
+    token: { type: 'string' },
+    url: { type: 'string' },
+  },
+  required: ['enabled', 'account_id', 'token', 'url'],
+  ...isNotEmpty('account_id', 'token', 'url'),
+};

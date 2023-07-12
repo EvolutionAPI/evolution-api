@@ -11,7 +11,7 @@ SERVER:
 
 CORS:
   ORIGIN:
-    - '*'
+    - "*"
     # - yourdomain.com
   METHODS:
     - POST
@@ -63,7 +63,7 @@ CLEAN_STORE:
 DATABASE:
   ENABLED: false
   CONNECTION:
-    URI: 'mongodb://root:root@localhost:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true'
+    URI: "mongodb://root:root@localhost:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true"
     DB_PREFIX_NAME: evolution
   # Choose the data you want to save in the application's database or store
   SAVE_DATA:
@@ -75,8 +75,8 @@ DATABASE:
 
 REDIS:
   ENABLED: false
-  URI: 'redis://localhost:6379'
-  PREFIX_KEY: 'evolution'
+  URI: "redis://localhost:6379"
+  PREFIX_KEY: "evolution"
 
 # Global Webhook Settings
 # Each instance's Webhook URL and events will be requested at the time it is created
@@ -88,7 +88,7 @@ WEBHOOK:
     # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
     WEBHOOK_BY_EVENTS: false
   # Automatically maps webhook paths
-  # Set the events you want to hear  
+  # Set the events you want to hear
   EVENTS:
     APPLICATION_STARTUP: false
     QRCODE_UPDATED: true
@@ -113,7 +113,7 @@ WEBHOOK:
 
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection
-  CLIENT: 'Evolution API'
+  CLIENT: "Evolution API"
   NAME: chrome # chrome | firefox | edge | opera | safari
 
 # Set qrcode display limit
@@ -137,8 +137,11 @@ AUTHENTICATION:
     SECRET: L=0YWt]b2w[WF>#>:&E`
   # Set the instance name and webhook url to create an instance in init the application
   INSTANCE:
-  # With this option activated, you work with a url per webhook event, respecting the local url and the name of each event
+    # With this option activated, you work with a url per webhook event, respecting the local url and the name of each event
     MODE: server # container or server
     # if you are using container mode, set the container name and the webhook url to default instance
     NAME: evolution
     WEBHOOK_URL: <url>
+    CHATWOOT_ACCOUNT_ID: 1
+    CHATWOOT_TOKEN: 123456
+    CHATWOOT_URL: <url>

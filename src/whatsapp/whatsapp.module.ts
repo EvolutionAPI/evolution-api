@@ -14,6 +14,8 @@ import { GroupController } from './controllers/group.controller';
 import { ViewsController } from './controllers/views.controller';
 import { WebhookService } from './services/webhook.service';
 import { WebhookController } from './controllers/webhook.controller';
+import { ChatwootService } from './services/chatwoot.service';
+import { ChatwootController } from './controllers/chatwoot.controller';
 import { RepositoryBroker } from './repository/repository.manager';
 import {
   AuthModel,
@@ -21,10 +23,12 @@ import {
   ContactModel,
   MessageModel,
   MessageUpModel,
+  ChatwootModel,
+  WebhookModel,
 } from './models';
 import { dbserver } from '../db/db.connect';
 import { WebhookRepository } from './repository/webhook.repository';
-import { WebhookModel } from './models/webhook.model';
+import { ChatwootRepository } from './repository/chatwoot.repository';
 import { AuthRepository } from './repository/auth.repository';
 import { WAStartupService } from './services/whatsapp.service';
 import { delay } from '@whiskeysockets/baileys';
@@ -38,6 +42,7 @@ const chatRepository = new ChatRepository(ChatModel, configService);
 const contactRepository = new ContactRepository(ContactModel, configService);
 const messageUpdateRepository = new MessageUpRepository(MessageUpModel, configService);
 const webhookRepository = new WebhookRepository(WebhookModel, configService);
+const chatwootRepository = new ChatwootRepository(ChatwootModel, configService);
 const authRepository = new AuthRepository(AuthModel, configService);
 
 export const repository = new RepositoryBroker(
@@ -46,6 +51,7 @@ export const repository = new RepositoryBroker(
   contactRepository,
   messageUpdateRepository,
   webhookRepository,
+  chatwootRepository,
   authRepository,
   configService,
   dbserver?.getClient(),
@@ -66,6 +72,10 @@ const webhookService = new WebhookService(waMonitor);
 
 export const webhookController = new WebhookController(webhookService);
 
+const chatwootService = new ChatwootService(waMonitor);
+
+export const chatwootController = new ChatwootController(chatwootService);
+
 export const instanceController = new InstanceController(
   waMonitor,
   configService,
@@ -73,6 +83,7 @@ export const instanceController = new InstanceController(
   eventEmitter,
   authService,
   webhookService,
+  chatwootService,
   cache,
 );
 export const viewsController = new ViewsController(waMonitor, configService);

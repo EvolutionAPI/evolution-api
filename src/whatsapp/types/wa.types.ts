@@ -41,6 +41,14 @@ export declare namespace wa {
     webhook_by_events?: boolean;
   };
 
+  export type LocalChatwoot = {
+    enabled?: boolean;
+    account_id?: string;
+    token?: string;
+    url?: string;
+    name_inbox?: string;
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';
