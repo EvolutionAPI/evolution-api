@@ -3,6 +3,7 @@ import { dbserver } from '../../db/db.connect';
 
 export class ChatwootRaw {
   _id?: string;
+  enabled?: boolean;
   account_id?: string;
   token?: string;
   url?: string;
@@ -11,6 +12,7 @@ export class ChatwootRaw {
 
 const chatwootSchema = new Schema<ChatwootRaw>({
   _id: { type: String, _id: true },
+  enabled: { type: Boolean, required: true },
   account_id: { type: String, required: true },
   token: { type: String, required: true },
   url: { type: String, required: true },

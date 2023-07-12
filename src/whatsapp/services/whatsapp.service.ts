@@ -122,6 +122,8 @@ import sharp from 'sharp';
 import { RedisCache } from '../../db/redis.client';
 import { Log } from '../../config/env.config';
 import ProxyAgent from 'proxy-agent';
+import { ChatwootService } from './chatwoot.service';
+import { waMonitor } from '../whatsapp.module';
 
 export class WAStartupService {
   constructor(
@@ -141,11 +143,13 @@ export class WAStartupService {
   private readonly localWebhook: wa.LocalWebHook = {};
   private readonly localChatwoot: wa.LocalChatwoot = {};
   private stateConnection: wa.StateConnection = { state: 'close' };
-  private readonly storePath = join(ROOT_DIR, 'store');
+  public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
+
+  private chatwootService = new ChatwootService(waMonitor);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -161,6 +165,17 @@ export class WAStartupService {
       instance: this.instance.name,
       status: 'created',
     });
+
+    if (this.localChatwoot.enabled) {
+      this.chatwootService.eventWhatsapp(
+        Events.STATUS_INSTANCE,
+        { instanceName: this.instance.name },
+        {
+          instance: this.instance.name,
+          status: 'created',
+        },
+      );
+    }
   }
 
   public get instanceName() {
@@ -268,6 +283,24 @@ export class WAStartupService {
     this.logger.verbose(`Webhook url: ${data.url}`);
     this.logger.verbose(`Webhook events: ${data.events}`);
     return data;
+  }
+
+  private async loadChatwoot() {
+    this.logger.verbose('Loading chatwoot');
+    const data = await this.repository.chatwoot.find(this.instanceName);
+    this.localChatwoot.enabled = data?.enabled;
+    this.logger.verbose(`Chatwoot enabled: ${this.localChatwoot.enabled}`);
+
+    this.localChatwoot.account_id = data?.account_id;
+    this.logger.verbose(`Chatwoot account id: ${this.localChatwoot.account_id}`);
+
+    this.localChatwoot.token = data?.token;
+    this.logger.verbose(`Chatwoot token: ${this.localChatwoot.token}`);
+
+    this.localChatwoot.url = data?.url;
+    this.logger.verbose(`Chatwoot url: ${this.localChatwoot.url}`);
+
+    this.logger.verbose('Chatwoot loaded');
   }
 
   public async setChatwoot(data: ChatwootRaw) {
@@ -429,6 +462,17 @@ export class WAStartupService {
           statusCode: DisconnectReason.badSession,
         });
 
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.QRCODE_UPDATED,
+            { instanceName: this.instance.name },
+            {
+              message: 'QR code limit reached, please login again',
+              statusCode: DisconnectReason.badSession,
+            },
+          );
+        }
+
         this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
         this.sendDataWebhook(Events.CONNECTION_UPDATE, {
           instance: this.instance.name,
@@ -441,6 +485,17 @@ export class WAStartupService {
           instance: this.instance.name,
           status: 'removed',
         });
+
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.STATUS_INSTANCE,
+            { instanceName: this.instance.name },
+            {
+              instance: this.instance.name,
+              status: 'removed',
+            },
+          );
+        }
 
         this.logger.verbose('endSession defined as true');
         this.endSession = true;
@@ -472,6 +527,16 @@ export class WAStartupService {
         this.sendDataWebhook(Events.QRCODE_UPDATED, {
           qrcode: { instance: this.instance.name, code: qr, base64 },
         });
+
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.QRCODE_UPDATED,
+            { instanceName: this.instance.name },
+            {
+              qrcode: { instance: this.instance.name, code: qr, base64 },
+            },
+          );
+        }
       });
 
       this.logger.verbose('Generating QR code in terminal');
@@ -511,6 +576,17 @@ export class WAStartupService {
           instance: this.instance.name,
           status: 'removed',
         });
+
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.STATUS_INSTANCE,
+            { instanceName: this.instance.name },
+            {
+              instance: this.instance.name,
+              status: 'removed',
+            },
+          );
+        }
 
         this.logger.verbose('Emittin event logout.instance');
         this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
@@ -626,6 +702,7 @@ export class WAStartupService {
     this.logger.verbose('Connecting to whatsapp');
     try {
       this.loadWebhook();
+      this.loadChatwoot();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -817,6 +894,14 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
+      if (this.localChatwoot.enabled) {
+        await this.chatwootService.eventWhatsapp(
+          Events.CONTACTS_UPDATE,
+          { instanceName: this.instance.name },
+          contactsRaw,
+        );
+      }
+
       this.logger.verbose('Updating contacts in database');
       await this.repository.contact.update(
         contactsRaw,
@@ -940,6 +1025,14 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
       await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
+      if (this.localChatwoot.enabled) {
+        await this.chatwootService.eventWhatsapp(
+          Events.MESSAGES_UPSERT,
+          { instanceName: this.instance.name },
+          messageRaw,
+        );
+      }
+
       this.logger.verbose('Inserting message in database');
       await this.repository.message.insert(
         [messageRaw],
@@ -977,6 +1070,14 @@ export class WAStartupService {
 
         this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
         await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
+
+        if (this.localChatwoot.enabled) {
+          await this.chatwootService.eventWhatsapp(
+            Events.CONTACTS_UPDATE,
+            { instanceName: this.instance.name },
+            contactRaw,
+          );
+        }
 
         this.logger.verbose('Updating contact in database');
         await this.repository.contact.update(

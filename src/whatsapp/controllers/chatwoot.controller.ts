@@ -45,4 +45,11 @@ export class ChatwootController {
     logger.verbose('requested findChatwoot from ' + instance.instanceName + ' instance');
     return this.chatwootService.find(instance);
   }
+
+  public async receiveWebhook(instance: InstanceDto, data: any) {
+    logger.verbose(
+      'requested receiveWebhook from ' + instance.instanceName + ' instance',
+    );
+    return this.chatwootService.receiveWebhook(instance, data);
+  }
 }

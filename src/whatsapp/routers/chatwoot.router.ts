@@ -46,11 +46,21 @@ export class ChatwootRouter extends RouterBroker {
 
         res.status(HttpStatus.OK).json(response);
       })
-      .post(this.routerPath('webhook'), ...guards, async (req, res) => {
-        const { body } = req;
-        const { instance } = req.query;
+      .post(this.routerPath('webhook'), async (req, res) => {
+        logger.verbose('request received in findChatwoot');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
 
-        res.status(HttpStatus.OK).json({ message: 'bot' });
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: instanceNameSchema,
+          ClassRef: InstanceDto,
+          execute: (instance, data) => chatwootController.receiveWebhook(instance, data),
+        });
+
+        res.status(HttpStatus.OK).json(response);
       });
   }
 
