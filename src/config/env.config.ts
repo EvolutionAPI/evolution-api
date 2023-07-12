@@ -73,10 +73,10 @@ export type Redis = {
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
-  SEND_MESSAGE: boolean;
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
   MESSAGES_UPDATE: boolean;
+  SEND_MESSAGE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -231,10 +231,10 @@ export class ConfigService {
         EVENTS: {
           APPLICATION_STARTUP: process.env?.WEBHOOK_EVENTS_APPLICATION_STARTUP === 'true',
           QRCODE_UPDATED: process.env?.WEBHOOK_EVENTS_QRCODE_UPDATED === 'true',
-          SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
           MESSAGES_SET: process.env?.WEBHOOK_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.WEBHOOK_EVENTS_MESSAGES_UPSERT === 'true',
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
+          SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
           CONTACTS_SET: process.env?.WEBHOOK_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.WEBHOOK_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.WEBHOOK_EVENTS_CONTACTS_UPSERT === 'true',
