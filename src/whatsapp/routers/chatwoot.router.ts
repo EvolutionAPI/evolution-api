@@ -4,6 +4,7 @@ import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto } from '../dto/instance.dto';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { chatwootController } from '../whatsapp.module';
+import { ChatwootService } from '../services/chatwoot.service';
 import { HttpStatus } from './index.router';
 import { Logger } from '../../config/logger.config';
 
@@ -44,6 +45,12 @@ export class ChatwootRouter extends RouterBroker {
         });
 
         res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('webhook'), ...guards, async (req, res) => {
+        const { body } = req;
+        const { instance } = req.query;
+
+        res.status(HttpStatus.OK).json({ message: 'bot' });
       });
   }
 
