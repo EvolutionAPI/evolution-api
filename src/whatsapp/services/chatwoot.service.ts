@@ -117,6 +117,87 @@ export class ChatwootService {
     return contact;
   }
 
+  public async initInstanceChatwoot(
+    instance: InstanceDto,
+    inboxName: string,
+    webhookUrl: string,
+    qrcode: boolean,
+  ) {
+    const client = await this.clientCw(instance);
+
+    if (!client) {
+      throw new Error('client not found');
+    }
+
+    const findInbox: any = await client.inboxes.list({
+      accountId: this.provider.account_id,
+    });
+
+    const checkDuplicate = findInbox.payload
+      .map((inbox) => inbox.name)
+      .includes(inboxName);
+
+    let inboxId: number;
+
+    if (!checkDuplicate) {
+      const data = {
+        type: 'api',
+        webhook_url: webhookUrl,
+      };
+
+      const inbox = await client.inboxes.create({
+        accountId: this.provider.account_id,
+        data: {
+          name: inboxName,
+          channel: data as any,
+        },
+      });
+
+      if (!inbox) {
+        return null;
+      }
+
+      inboxId = inbox.id;
+    } else {
+      const inbox = findInbox.payload.find((inbox) => inbox.name === inboxName);
+
+      inboxId = inbox.id;
+    }
+
+    const contact =
+      (await this.findContact(instance, '123456')) ||
+      ((await this.createContact(
+        instance,
+        '123456',
+        inboxId,
+        false,
+        'EvolutionAPI',
+      )) as any);
+
+    const contactId = contact.id || contact.payload.contact.id;
+
+    if (qrcode) {
+      const conversation = await client.conversations.create({
+        accountId: this.provider.account_id,
+        data: {
+          contact_id: contactId.toString(),
+          inbox_id: inboxId.toString(),
+        },
+      });
+
+      await client.messages.create({
+        accountId: this.provider.account_id,
+        conversationId: conversation.id,
+        data: {
+          content: '/iniciar',
+          message_type: 'outgoing',
+        },
+      });
+    }
+
+    return true;
+  }
+
   public async createContact(
     instance: InstanceDto,
     phoneNumber: string,

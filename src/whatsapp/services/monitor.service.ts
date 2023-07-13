@@ -129,7 +129,6 @@ export class WAMonitoringService {
                 profileName: (await value.getProfileName()) || 'not loaded',
                 profilePictureUrl: value.profilePictureUrl,
                 status: (await value.getProfileStatus()) || '',
-                chatwoot,
               },
             });
           }
@@ -161,7 +160,6 @@ export class WAMonitoringService {
               instance: {
                 instanceName: key,
                 status: value.connectionStatus.state,
-                chatwoot,
               },
             });
           }

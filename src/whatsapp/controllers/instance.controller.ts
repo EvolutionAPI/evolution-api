@@ -79,30 +79,30 @@ export class InstanceController {
 
       this.logger.verbose('hash: ' + hash + ' generated');
 
+      let getEvents: string[];
+
+      if (webhook) {
+        this.logger.verbose('creating webhook');
+        try {
+          this.webhookService.create(instance, {
+            enabled: true,
+            url: webhook,
+            events,
+            webhook_by_events,
+          });
+
+          getEvents = (await this.webhookService.find(instance)).events;
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
       if (
         !chatwoot_account_id ||
         !chatwoot_token ||
         !chatwoot_url ||
         !chatwoot_sign_msg
       ) {
-        let getEvents: string[];
-
-        if (webhook) {
-          this.logger.verbose('creating webhook');
-          try {
-            this.webhookService.create(instance, {
-              enabled: true,
-              url: webhook,
-              events,
-              webhook_by_events,
-            });
-
-            getEvents = (await this.webhookService.find(instance)).events;
-          } catch (error) {
-            this.logger.log(error);
-          }
-        }
-
         this.logger.verbose('instance created');
         this.logger.verbose({
           instance: {
@@ -141,6 +141,8 @@ export class InstanceController {
         throw new BadRequestException('sign_msg is required');
       }
 
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
       try {
         this.chatwootService.create(instance, {
           enabled: true,
@@ -150,11 +152,16 @@ export class InstanceController {
           sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
         });
+
+        this.chatwootService.initInstanceChatwoot(
+          instance,
+          instance.instanceName,
+          `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+          qrcode,
+        );
       } catch (error) {
         this.logger.log(error);
       }
-
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       return {
         instance: {
@@ -202,30 +209,30 @@ export class InstanceController {
 
       this.logger.verbose('hash: ' + hash + ' generated');
 
+      let getEvents: string[];
+
+      if (webhook) {
+        this.logger.verbose('creating webhook');
+        try {
+          this.webhookService.create(instance, {
+            enabled: true,
+            url: webhook,
+            events,
+            webhook_by_events,
+          });
+
+          getEvents = (await this.webhookService.find(instance)).events;
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
       if (
         !chatwoot_account_id ||
         !chatwoot_token ||
         !chatwoot_url ||
         !chatwoot_sign_msg
       ) {
-        let getEvents: string[];
-
-        if (webhook) {
-          this.logger.verbose('creating webhook');
-          try {
-            this.webhookService.create(instance, {
-              enabled: true,
-              url: webhook,
-              events,
-              webhook_by_events,
-            });
-
-            getEvents = (await this.webhookService.find(instance)).events;
-          } catch (error) {
-            this.logger.log(error);
-          }
-        }
-
         let getQrcode: wa.QrCode;
 
         if (qrcode) {
@@ -277,6 +284,8 @@ export class InstanceController {
         throw new BadRequestException('sign_msg is required');
       }
 
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
       try {
         this.chatwootService.create(instance, {
           enabled: true,
@@ -286,11 +295,16 @@ export class InstanceController {
           sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
         });
+
+        this.chatwootService.initInstanceChatwoot(
+          instance,
+          instance.instanceName,
+          `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+          qrcode,
+        );
       } catch (error) {
         this.logger.log(error);
       }
-
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       return {
         instance: {
@@ -298,6 +312,9 @@ export class InstanceController {
           status: 'created',
         },
         hash,
+        webhook,
+        webhook_by_events,
+        events: getEvents,
         chatwoot: {
           enabled: true,
           account_id: chatwoot_account_id,
