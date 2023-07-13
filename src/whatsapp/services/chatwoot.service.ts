@@ -61,6 +61,7 @@ export class ChatwootService {
 
     if (!provider) {
       this.logger.error('provider not found');
+      return null;
     }
 
     this.provider = provider;
