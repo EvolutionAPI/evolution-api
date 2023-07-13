@@ -74,7 +74,7 @@ export const webhookController = new WebhookController(webhookService);
 
 const chatwootService = new ChatwootService(waMonitor);
 
-export const chatwootController = new ChatwootController(chatwootService);
+export const chatwootController = new ChatwootController(chatwootService, configService);
 
 export const instanceController = new InstanceController(
   waMonitor,

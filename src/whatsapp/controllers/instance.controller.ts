@@ -1,6 +1,6 @@
 import { delay } from '@whiskeysockets/baileys';
 import EventEmitter2 from 'eventemitter2';
-import { Auth, ConfigService } from '../../config/env.config';
+import { Auth, ConfigService, HttpServer } from '../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
@@ -154,6 +154,8 @@ export class InstanceController {
         this.logger.log(error);
       }
 
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
       return {
         instance: {
           instanceName: instance.instanceName,
@@ -167,7 +169,7 @@ export class InstanceController {
           url: chatwoot_url,
           sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
-          webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
+          webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
         },
       };
     } else {
@@ -288,6 +290,8 @@ export class InstanceController {
         this.logger.log(error);
       }
 
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
       return {
         instance: {
           instanceName: instance.instanceName,
@@ -301,7 +305,7 @@ export class InstanceController {
           url: chatwoot_url,
           sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
-          webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
+          webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
         },
       };
     }

@@ -5,11 +5,15 @@ import { ChatwootDto } from '../dto/chatwoot.dto';
 import { ChatwootService } from '../services/chatwoot.service';
 import { Logger } from '../../config/logger.config';
 import { waMonitor } from '../whatsapp.module';
+import { ConfigService, HttpServer } from '../../config/env.config';
 
 const logger = new Logger('ChatwootController');
 
 export class ChatwootController {
-  constructor(private readonly chatwootService: ChatwootService) {}
+  constructor(
+    private readonly chatwootService: ChatwootService,
+    private readonly configService: ConfigService,
+  ) {}
 
   public async createChatwoot(instance: InstanceDto, data: ChatwootDto) {
     logger.verbose(
@@ -46,9 +50,11 @@ export class ChatwootController {
 
     const result = this.chatwootService.create(instance, data);
 
+    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
     const response = {
       ...result,
-      webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
+      webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
     };
 
     return response;
@@ -56,11 +62,13 @@ export class ChatwootController {
 
   public async findChatwoot(instance: InstanceDto) {
     logger.verbose('requested findChatwoot from ' + instance.instanceName + ' instance');
-    const result = this.chatwootService.find(instance);
+    const result = await this.chatwootService.find(instance);
+
+    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
     const response = {
       ...result,
-      webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
+      webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
     };
 
     return response;

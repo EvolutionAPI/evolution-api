@@ -30,7 +30,6 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
   getAggregateVotesInPollMessage,
-  Browsers,
 } from '@whiskeysockets/baileys';
 import {
   Auth,
@@ -38,6 +37,7 @@ import {
   ConfigService,
   ConfigSessionPhone,
   Database,
+  HttpServer,
   QrCode,
   Redis,
   Webhook,
@@ -343,6 +343,7 @@ export class WAStartupService {
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
+    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
     const webhookLocal = this.localWebhook.events;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
@@ -367,6 +368,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            urlServer,
           });
         }
 
@@ -378,6 +380,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              urlServer,
             });
           }
         } catch (error) {
@@ -425,6 +428,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            urlServer,
           });
         }
 
@@ -436,6 +440,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              urlServer,
             });
           }
         } catch (error) {
@@ -719,8 +724,7 @@ export class WAStartupService {
       const { version } = await fetchLatestBaileysVersion();
       this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      // const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-      const browser: WABrowserDescription = Browsers.appropriate(session.CLIENT);
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
       const socketConfig: UserFacingSocketConfig = {

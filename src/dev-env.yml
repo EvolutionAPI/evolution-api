@@ -8,6 +8,7 @@
 SERVER:
   TYPE: http # https
   PORT: 8080 # 443
+  URL: localhost
 
 CORS:
   ORIGIN:

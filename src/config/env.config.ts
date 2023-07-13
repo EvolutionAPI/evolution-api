@@ -4,7 +4,7 @@ import { join } from 'path';
 import { SRC_DIR } from './path.config';
 import { isBooleanString } from 'class-validator';
 
-export type HttpServer = { TYPE: 'http' | 'https'; PORT: number };
+export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
 
 export type HttpMethods = 'POST' | 'GET' | 'PUT' | 'DELETE';
 export type Cors = {
@@ -98,9 +98,9 @@ export type Instance = {
   NAME: string;
   WEBHOOK_URL: string;
   MODE: string;
-  CHATWOOT_ACCOUNT_ID: string;
-  CHATWOOT_TOKEN: string;
-  CHATWOOT_URL: string;
+  CHATWOOT_ACCOUNT_ID?: string;
+  CHATWOOT_TOKEN?: string;
+  CHATWOOT_URL?: string;
 };
 export type Auth = {
   API_KEY: ApiKey;
@@ -159,6 +159,7 @@ export class ConfigService {
     if (process.env?.DOCKER_ENV === 'true') {
       this.env.SERVER.TYPE = 'http';
       this.env.SERVER.PORT = 8080;
+      this.env.SERVER.URL = `http://localhost:${this.env.SERVER.PORT}`;
     }
   }
 
@@ -173,6 +174,7 @@ export class ConfigService {
       SERVER: {
         TYPE: process.env.SERVER_TYPE as 'http' | 'https',
         PORT: Number.parseInt(process.env.SERVER_PORT),
+        URL: process.env.SERVER_URL,
       },
       CORS: {
         ORIGIN: process.env.CORS_ORIGIN.split(','),
@@ -278,9 +280,10 @@ export class ConfigService {
           NAME: process.env.AUTHENTICATION_INSTANCE_NAME,
           WEBHOOK_URL: process.env.AUTHENTICATION_INSTANCE_WEBHOOK_URL,
           MODE: process.env.AUTHENTICATION_INSTANCE_MODE,
-          CHATWOOT_ACCOUNT_ID: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID,
-          CHATWOOT_TOKEN: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN,
-          CHATWOOT_URL: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_URL,
+          CHATWOOT_ACCOUNT_ID:
+            process.env.AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID || '',
+          CHATWOOT_TOKEN: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN || '',
+          CHATWOOT_URL: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_URL || '',
         },
       },
     };

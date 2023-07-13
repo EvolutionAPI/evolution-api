@@ -42,22 +42,26 @@ export class ChatwootService {
   }
 
   private async getProvider(instance: InstanceDto) {
-    const provider = await this.waMonitor.waInstances[
-      instance.instanceName
-    ].findChatwoot();
+    try {
+      const provider = await this.waMonitor.waInstances[
+        instance.instanceName
+      ].findChatwoot();
 
-    if (!provider) {
+      if (!provider) {
+        return null;
+      }
+
+      return provider;
+    } catch (error) {
       return null;
     }
-
-    return provider;
   }
 
   private async clientCw(instance: InstanceDto) {
     const provider = await this.getProvider(instance);
 
     if (!provider) {
-      throw new Error('provider not found');
+      this.logger.error('provider not found');
     }
 
     this.provider = provider;
@@ -78,7 +82,7 @@ export class ChatwootService {
     this.logger.verbose('create chatwoot: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setChatwoot(data);
 
-    return { chatwoot: { ...instance, chatwoot: data } };
+    return data;
   }
 
   public async find(instance: InstanceDto): Promise<ChatwootDto> {
@@ -581,6 +585,21 @@ export class ChatwootService {
             await waInstance?.textMessage(data);
           }
         }
+      }
+
+      if (body.message_type === 'template' && body.content_type === 'input_csat') {
+        const data: SendTextDto = {
+          number: chatId,
+          textMessage: {
+            text: body.content,
+          },
+          options: {
+            delay: 1200,
+            presence: 'composing',
+          },
+        };
+
+        await waInstance?.textMessage(data);
       }
 
       return { message: 'bot' };

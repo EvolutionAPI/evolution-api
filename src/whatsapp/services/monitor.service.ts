@@ -9,6 +9,7 @@ import {
   ConfigService,
   Database,
   DelInstance,
+  HttpServer,
   Redis,
 } from '../../config/env.config';
 import { RepositoryBroker } from '../repository/repository.manager';
@@ -83,6 +84,19 @@ export class WAMonitoringService {
     for await (const [key, value] of Object.entries(this.waInstances)) {
       if (value) {
         this.logger.verbose('get instance info: ' + key);
+        let chatwoot: any;
+
+        const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
+        const findChatwoot = await this.waInstances[key].findChatwoot();
+
+        if (findChatwoot.enabled) {
+          chatwoot = {
+            ...findChatwoot,
+            webhook_url: `${urlServer}/chatwoot/webhook/${key}`,
+          };
+        }
+
         if (value.connectionStatus.state === 'open') {
           this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
           let apikey: string;
@@ -101,6 +115,7 @@ export class WAMonitoringService {
                 profilePictureUrl: value.profilePictureUrl,
                 status: (await value.getProfileStatus()) || '',
                 apikey,
+                chatwoot,
               },
             });
           } else {
@@ -114,6 +129,7 @@ export class WAMonitoringService {
                 profileName: (await value.getProfileName()) || 'not loaded',
                 profilePictureUrl: value.profilePictureUrl,
                 status: (await value.getProfileStatus()) || '',
+                chatwoot,
               },
             });
           }
@@ -134,6 +150,7 @@ export class WAMonitoringService {
                 instanceName: key,
                 status: value.connectionStatus.state,
                 apikey,
+                chatwoot,
               },
             });
           } else {
@@ -144,6 +161,7 @@ export class WAMonitoringService {
               instance: {
                 instanceName: key,
                 status: value.connectionStatus.state,
+                chatwoot,
               },
             });
           }
