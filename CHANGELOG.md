@@ -16,6 +16,7 @@
 * Fits the format on return from the fetchAllGroups endpoint
 * Adjust in send document with caption from chatwoot
 * Fixed message with undefind in chatwoot
+* Changed message in path /
 
 # 1.1.5 (2023-07-12 07:17)
 

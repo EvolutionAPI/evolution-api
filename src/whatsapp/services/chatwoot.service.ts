@@ -389,6 +389,7 @@ export class ChatwootService {
     conversationId: number,
     content: string,
     messageType: 'incoming' | 'outgoing' | undefined,
+    privateMessage?: boolean,
     attachments?: {
       content: unknown;
       encoding: string;
@@ -404,6 +405,7 @@ export class ChatwootService {
         content: content,
         message_type: messageType,
         attachments: attachments,
+        private: privateMessage,
       },
     });
 
@@ -414,6 +416,7 @@ export class ChatwootService {
     instance: InstanceDto,
     content: string,
     messageType: 'incoming' | 'outgoing' | undefined,
+    privateMessage?: boolean,
     attachments?: {
       content: unknown;
       encoding: string;
@@ -436,6 +439,10 @@ export class ChatwootService {
         conversation?.meta?.sender?.id === contact.id && conversation.status === 'open',
     );
 
+    if (!conversation) {
+      return;
+    }
+
     const message = await client.messages.create({
       accountId: this.provider.account_id,
       conversationId: conversation.id,
@@ -443,6 +450,7 @@ export class ChatwootService {
         content: content,
         message_type: messageType,
         attachments: attachments,
+        private: privateMessage,
       },
     });
 
@@ -453,6 +461,7 @@ export class ChatwootService {
     conversationId: number,
     file: string,
     messageType: 'incoming' | 'outgoing' | undefined,
+    privateMessage: boolean,
     content?: string,
   ) {
     const data = new FormData();
@@ -462,6 +471,8 @@ export class ChatwootService {
     }
 
     data.append('message_type', messageType);
+
+    data.append('private', privateMessage);
 
     data.append('attachments[]', createReadStream(file));
 
@@ -478,10 +489,12 @@ export class ChatwootService {
 
     try {
       const { data } = await axios.request(config);
+
       unlinkSync(file);
       return data;
     } catch (error) {
       console.log(error);
+      unlinkSync(file);
     }
   }
 
@@ -635,6 +648,7 @@ export class ChatwootService {
               instance,
               `🚨 Instância ${body.inbox.name} já está conectada.`,
               'incoming',
+              false,
             );
           }
         }
@@ -647,6 +661,7 @@ export class ChatwootService {
               instance,
               `⚠️ Instância ${body.inbox.name} não existe.`,
               'incoming',
+              false,
             );
           }
 
@@ -655,6 +670,7 @@ export class ChatwootService {
               instance,
               `⚠️ Status da instância ${body.inbox.name}: *${state}*`,
               'incoming',
+              false,
             );
           }
         }
@@ -662,7 +678,7 @@ export class ChatwootService {
         if (command === 'desconectar') {
           const msgLogout = `🚨 Desconectando Whatsapp da caixa de entrada *${body.inbox.name}*: `;
 
-          await this.createBotMessage(instance, msgLogout, 'incoming');
+          await this.createBotMessage(instance, msgLogout, 'incoming', false);
           await waInstance?.client?.logout('Log out instance: ' + instance.instanceName);
           await waInstance?.client?.ws?.close();
         }
@@ -819,7 +835,7 @@ export class ChatwootService {
 
         const bodyMessage = await this.getConversationMessage(body.message);
 
-        if (!bodyMessage) {
+        if (!bodyMessage && !isMedia) {
           return;
         }
 
@@ -835,25 +851,57 @@ export class ChatwootService {
 
           const fileData = Buffer.from(downloadBase64.base64, 'base64');
 
-          const fileName = `${path.join(
-            waInstance?.storePath,
-            'chatwoot',
-            `${nameFile}`,
-          )}`;
+          const fileName = `${path.join(waInstance?.storePath, 'temp', `${nameFile}`)}`;
 
-          writeFileSync(fileName, fileData, 'utf8');
+          writeFileSync(fileName, fileData);
 
           if (body.key.remoteJid.includes('@g.us') && !body.key.fromMe) {
             const participantName = body.pushName;
 
             const content = `**${participantName}**\n\n${bodyMessage}`;
-            return await this.sendData(getConversion, fileName, messageType, content);
+            const send = await this.sendData(
+              getConversion,
+              fileName,
+              messageType,
+              false,
+              content,
+            );
+
+            if (!send) {
+              return;
+            }
+
+            this.messageCache = this.loadMessageCache();
+
+            this.messageCache.add(send.id.toString());
+
+            this.saveMessageCache();
+
+            return send;
           } else {
-            return await this.sendData(getConversion, fileName, messageType, bodyMessage);
+            const send = await this.sendData(
+              getConversion,
+              fileName,
+              messageType,
+              false,
+              bodyMessage,
+            );
+
+            if (!send) {
+              return;
+            }
+
+            this.messageCache = this.loadMessageCache();
+
+            this.messageCache.add(send.id.toString());
+
+            this.saveMessageCache();
+
+            return send;
           }
         }
 
-        if (body.key.remoteJid.includes('@g.us')) {
+        if (body.key.remoteJid.includes('@g.us') && !body.key.fromMe) {
           const participantName = body.pushName;
 
           const content = `**${participantName}**\n\n${bodyMessage}`;
@@ -863,6 +911,7 @@ export class ChatwootService {
             getConversion,
             content,
             messageType,
+            false,
           );
 
           this.messageCacheFile = path.join(
@@ -885,6 +934,7 @@ export class ChatwootService {
             getConversion,
             bodyMessage,
             messageType,
+            false,
           );
 
           this.messageCacheFile = path.join(
@@ -899,7 +949,6 @@ export class ChatwootService {
           this.messageCache.add(send.id.toString());
 
           this.saveMessageCache();
-
           return send;
         }
       }
@@ -913,13 +962,13 @@ export class ChatwootService {
         }
 
         const msgStatus = `⚡️ Status da instância ${inbox.name}: ${data.status}`;
-        await this.createBotMessage(instance, msgStatus, 'incoming');
+        await this.createBotMessage(instance, msgStatus, 'incoming', false);
       }
 
       if (event === 'connection.update') {
         if (body.state === 'open') {
           const msgConnection = `🚀 Conexão realizada com sucesso!`;
-          await this.createBotMessage(instance, msgConnection, 'incoming');
+          await this.createBotMessage(instance, msgConnection, 'incoming', false);
         }
       }
 
@@ -944,7 +993,7 @@ export class ChatwootService {
       if (event === 'qrcode.updated') {
         if (body.statusCode === 500) {
           const erroQRcode = `🚨 Limite de geração de QRCode atingido, para gerar um novo QRCode, envie a mensagem /iniciar novamente.`;
-          return await this.createBotMessage(instance, erroQRcode, 'incoming');
+          return await this.createBotMessage(instance, erroQRcode, 'incoming', false);
         } else {
           const fileData = Buffer.from(
             body?.qrcode.base64.replace('data:image/png;base64,', ''),

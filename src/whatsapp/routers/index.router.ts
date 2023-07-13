@@ -25,6 +25,12 @@ const authType = configService.get<Auth>('AUTHENTICATION').TYPE;
 const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard[authType]];
 
 router
+  .get('/', (req, res) => {
+    res.status(HttpStatus.OK).json({
+      status: HttpStatus.OK,
+      message: 'Welcome to the Evolution API, it is working!',
+    });
+  })
   .use(
     '/instance',
     new InstanceRouter(configService, ...guards).router,
