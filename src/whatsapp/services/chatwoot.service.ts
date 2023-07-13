@@ -11,7 +11,6 @@ import { SendTextDto } from '../dto/sendMessage.dto';
 import mimeTypes from 'mime-types';
 import { SendAudioDto } from '../dto/sendMessage.dto';
 import { SendMediaDto } from '../dto/sendMessage.dto';
-import NodeCache from 'node-cache';
 import { ROOT_DIR } from '../../config/path.config';
 
 export class ChatwootService {
@@ -614,6 +613,7 @@ export class ChatwootService {
     const media = [
       'imageMessage',
       'documentMessage',
+      'documentWithCaptionMessage',
       'audioMessage',
       'videoMessage',
       'stickerMessage',
@@ -632,6 +632,8 @@ export class ChatwootService {
       messageContextInfo: msg.messageContextInfo?.stanzaId,
       stickerMessage: msg.stickerMessage?.fileSha256.toString('base64'),
       documentMessage: msg.documentMessage?.caption,
+      documentWithCaptionMessage:
+        msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
       audioMessage: msg.audioMessage?.caption,
     };
 
