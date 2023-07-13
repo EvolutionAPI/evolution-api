@@ -10,6 +10,7 @@ import {
   updateGroupDescriptionSchema,
   groupInviteSchema,
   groupSendInviteSchema,
+  getParticipantsSchema,
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import {
@@ -23,6 +24,7 @@ import {
   GroupUpdateSettingDto,
   GroupToggleEphemeralDto,
   GroupSendInvite,
+  GetParticipant,
 } from '../dto/group.dto';
 import { groupController } from '../whatsapp.module';
 import { HttpStatus } from './index.router';
@@ -123,11 +125,11 @@ export class GroupRouter extends RouterBroker {
 
         logger.verbose('request query: ');
         logger.verbose(req.query);
-        const response = await this.groupNoValidate<GroupJid>({
+        const response = await this.getParticipantsValidate<GetParticipant>({
           request: req,
-          schema: {},
-          ClassRef: GroupJid,
-          execute: (instance) => groupController.fetchAllGroups(instance),
+          schema: getParticipantsSchema,
+          ClassRef: GetParticipant,
+          execute: (instance, data) => groupController.fetchAllGroups(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);

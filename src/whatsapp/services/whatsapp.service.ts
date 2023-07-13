@@ -109,6 +109,7 @@ import {
   GroupSubjectDto,
   GroupDescriptionDto,
   GroupSendInvite,
+  GetParticipant,
 } from '../dto/group.dto';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
@@ -2567,10 +2568,34 @@ export class WAStartupService {
     }
   }
 
-  public async fetchAllGroups() {
+  public async fetchAllGroups(getParticipants: GetParticipant) {
     this.logger.verbose('Fetching all groups');
     try {
-      return await this.client.groupFetchAllParticipating();
+      const fetch = Object.values(await this.client.groupFetchAllParticipating());
+
+      const groups = fetch.map((group) => {
+        const result = {
+          id: group.id,
+          subject: group.subject,
+          subjectOwner: group.subjectOwner,
+          subjectTime: group.subjectTime,
+          size: group.size,
+          creation: group.creation,
+          owner: group.owner,
+          desc: group.desc,
+          descId: group.descId,
+          restrict: group.restrict,
+          announce: group.announce,
+        };
+
+        if (getParticipants.getParticipants == 'true') {
+          result['participants'] = group.participants;
+        }
+
+        return result;
+      });
+
+      return groups;
     } catch (error) {
       throw new NotFoundException('Error fetching group', error.toString());
     }

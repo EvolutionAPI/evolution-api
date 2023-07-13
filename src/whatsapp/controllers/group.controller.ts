@@ -1,5 +1,6 @@
 import {
   CreateGroupDto,
+  GetParticipant,
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
@@ -59,11 +60,13 @@ export class GroupController {
     return await this.waMonitor.waInstances[instance.instanceName].findGroup(groupJid);
   }
 
-  public async fetchAllGroups(instance: InstanceDto) {
+  public async fetchAllGroups(instance: InstanceDto, getPaticipants: GetParticipant) {
     logger.verbose(
       'requested fetchAllGroups from ' + instance.instanceName + ' instance',
     );
-    return await this.waMonitor.waInstances[instance.instanceName].fetchAllGroups();
+    return await this.waMonitor.waInstances[instance.instanceName].fetchAllGroups(
+      getPaticipants,
+    );
   }
 
   public async inviteCode(instance: InstanceDto, groupJid: GroupJid) {

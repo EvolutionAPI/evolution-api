@@ -700,6 +700,16 @@ export const groupJidSchema: JSONSchema7 = {
   ...isNotEmpty('groupJid'),
 };
 
+export const getParticipantsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    getParticipants: { type: 'string', enum: ['true', 'false'] },
+  },
+  required: ['getParticipants'],
+  ...isNotEmpty('getParticipants'),
+};
+
 export const groupSendInviteSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
