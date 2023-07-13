@@ -1405,17 +1405,6 @@ export class WAStartupService {
 
     const sender = isJidGroup(jid) ? jid : isWA.jid;
 
-    if (isJidGroup(sender)) {
-      try {
-        this.logger.verbose('Getting group metadata');
-        const metadata = await this.client.groupMetadata(sender);
-
-        console.log('metadata', metadata);
-      } catch (error) {
-        throw new NotFoundException('Group not found');
-      }
-    }
-
     try {
       if (options?.delay) {
         this.logger.verbose('Delaying message');
@@ -1443,29 +1432,39 @@ export class WAStartupService {
       }
 
       let mentions: string[];
-
-      if (options?.mentions) {
-        this.logger.verbose('Mentions defined');
-
-        if (!Array.isArray(options.mentions.mentioned) && !options.mentions.everyOne) {
-          throw new BadRequestException('Mentions must be an array');
-        }
-
-        if (options.mentions.everyOne) {
-          this.logger.verbose('Mentions everyone');
-
+      if (isJidGroup(sender)) {
+        try {
+          this.logger.verbose('Getting group metadata');
           const groupMetadata = await this.client.groupMetadata(sender);
-          mentions = groupMetadata.participants.map((participant) => participant.id);
-          this.logger.verbose('Getting group metadata for mentions');
-        } else {
-          this.logger.verbose('Mentions manually defined');
-          mentions = options.mentions.mentioned.map((mention) => {
-            const jid = this.createJid(mention);
-            if (isJidGroup(jid)) {
-              throw new BadRequestException('Mentions must be a number');
+
+          if (options?.mentions) {
+            this.logger.verbose('Mentions defined');
+
+            if (
+              !Array.isArray(options.mentions.mentioned) &&
+              !options.mentions.everyOne
+            ) {
+              throw new BadRequestException('Mentions must be an array');
             }
-            return jid;
-          });
+
+            if (options.mentions.everyOne) {
+              this.logger.verbose('Mentions everyone');
+
+              mentions = groupMetadata.participants.map((participant) => participant.id);
+              this.logger.verbose('Getting group metadata for mentions');
+            } else {
+              this.logger.verbose('Mentions manually defined');
+              mentions = options.mentions.mentioned.map((mention) => {
+                const jid = this.createJid(mention);
+                if (isJidGroup(jid)) {
+                  throw new BadRequestException('Mentions must be a number');
+                }
+                return jid;
+              });
+            }
+          }
+        } catch (error) {
+          throw new NotFoundException('Group not found');
         }
       }
 
