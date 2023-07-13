@@ -98,11 +98,11 @@ export class ChatwootService {
     const client = await this.clientCw(instance);
 
     if (!client) {
-      throw new Error('client not found');
+      console.log('client not found');
     }
 
     if (!id) {
-      throw new Error('id is required');
+      console.log('id is required');
     }
 
     const contact = await client.contact.getContactable({
@@ -126,7 +126,7 @@ export class ChatwootService {
     const client = await this.clientCw(instance);
 
     if (!client) {
-      throw new Error('client not found');
+      console.log('client not found');
     }
 
     const findInbox: any = await client.inboxes.list({
@@ -208,7 +208,7 @@ export class ChatwootService {
     const client = await this.clientCw(instance);
 
     if (!client) {
-      throw new Error('client not found');
+      console.log('client not found');
     }
 
     let data: any = {};
@@ -241,11 +241,11 @@ export class ChatwootService {
     const client = await this.clientCw(instance);
 
     if (!client) {
-      throw new Error('client not found');
+      console.log('client not found');
     }
 
     if (!id) {
-      throw new Error('id is required');
+      console.log('id is required');
     }
 
     const contact = await client.contacts.update({
@@ -261,7 +261,7 @@ export class ChatwootService {
     const client = await this.clientCw(instance);
 
     if (!client) {
-      throw new Error('client not found');
+      console.log('client not found');
     }
 
     let query: any;
@@ -289,7 +289,7 @@ export class ChatwootService {
       const client = await this.clientCw(instance);
 
       if (!client) {
-        throw new Error('client not found');
+        console.log('client not found');
       }
 
       const isGroup = body.key.remoteJid.includes('@g.us');
@@ -371,7 +371,7 @@ export class ChatwootService {
     const client = await this.clientCw(instance);
 
     if (!client) {
-      throw new Error('client not found');
+      console.log('client not found');
     }
 
     const inbox = (await client.inboxes.list({
@@ -610,7 +610,7 @@ export class ChatwootService {
 
       return;
     } catch (error) {
-      throw new Error(error);
+      console.log(error);
     }
   }
 
@@ -803,7 +803,7 @@ export class ChatwootService {
       const client = await this.clientCw(instance);
 
       if (!client) {
-        throw new Error('client not found');
+        console.log('client not found');
       }
 
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
