@@ -866,7 +866,8 @@ export const chatwootSchema: JSONSchema7 = {
     account_id: { type: 'string' },
     token: { type: 'string' },
     url: { type: 'string' },
+    sign_msg: { type: 'boolean', enum: [true, false] },
   },
-  required: ['enabled', 'account_id', 'token', 'url'],
-  ...isNotEmpty('account_id', 'token', 'url'),
+  required: ['enabled', 'account_id', 'token', 'url', 'sign_msg'],
+  ...isNotEmpty('account_id', 'token', 'url', 'sign_msg'),
 };

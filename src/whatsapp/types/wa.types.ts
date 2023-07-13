@@ -47,6 +47,7 @@ export declare namespace wa {
     token?: string;
     url?: string;
     name_inbox?: string;
+    sign_msg?: boolean;
   };
 
   export type StateConnection = {

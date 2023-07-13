@@ -37,6 +37,7 @@ export class InstanceController {
     chatwoot_account_id,
     chatwoot_token,
     chatwoot_url,
+    chatwoot_sign_msg,
   }: InstanceDto) {
     this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
 
@@ -78,7 +79,12 @@ export class InstanceController {
 
       this.logger.verbose('hash: ' + hash + ' generated');
 
-      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
+      if (
+        !chatwoot_account_id ||
+        !chatwoot_token ||
+        !chatwoot_url ||
+        !chatwoot_sign_msg
+      ) {
         let getEvents: string[];
 
         if (webhook) {
@@ -131,12 +137,17 @@ export class InstanceController {
         throw new BadRequestException('url is required');
       }
 
+      if (!chatwoot_sign_msg) {
+        throw new BadRequestException('sign_msg is required');
+      }
+
       try {
         this.chatwootService.create(instance, {
           enabled: true,
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
+          sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
         });
       } catch (error) {
@@ -154,7 +165,9 @@ export class InstanceController {
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
+          sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
+          webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
         },
       };
     } else {
@@ -187,7 +200,12 @@ export class InstanceController {
 
       this.logger.verbose('hash: ' + hash + ' generated');
 
-      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
+      if (
+        !chatwoot_account_id ||
+        !chatwoot_token ||
+        !chatwoot_url ||
+        !chatwoot_sign_msg
+      ) {
         let getEvents: string[];
 
         if (webhook) {
@@ -253,12 +271,17 @@ export class InstanceController {
         throw new BadRequestException('url is required');
       }
 
+      if (!chatwoot_sign_msg) {
+        throw new BadRequestException('sign_msg is required');
+      }
+
       try {
         this.chatwootService.create(instance, {
           enabled: true,
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
+          sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
         });
       } catch (error) {
@@ -276,7 +299,9 @@ export class InstanceController {
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
+          sign_msg: chatwoot_sign_msg,
           name_inbox: instance.instanceName,
+          webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
         },
       };
     }

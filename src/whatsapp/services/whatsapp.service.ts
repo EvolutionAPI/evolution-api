@@ -300,6 +300,12 @@ export class WAStartupService {
     this.localChatwoot.url = data?.url;
     this.logger.verbose(`Chatwoot url: ${this.localChatwoot.url}`);
 
+    this.localChatwoot.name_inbox = data?.name_inbox;
+    this.logger.verbose(`Chatwoot inbox name: ${this.localChatwoot.name_inbox}`);
+
+    this.localChatwoot.sign_msg = data?.sign_msg;
+    this.logger.verbose(`Chatwoot sign msg: ${this.localChatwoot.sign_msg}`);
+
     this.logger.verbose('Chatwoot loaded');
   }
 
@@ -310,6 +316,7 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot token: ${data.token}`);
     this.logger.verbose(`Chatwoot url: ${data.url}`);
     this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
+    this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
 
     Object.assign(this.localChatwoot, data);
     this.logger.verbose('Chatwoot set');
@@ -328,6 +335,8 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot token: ${data.token}`);
     this.logger.verbose(`Chatwoot url: ${data.url}`);
     this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
+    this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
+
     return data;
   }
 

@@ -4,6 +4,7 @@ import { InstanceDto } from '../dto/instance.dto';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { ChatwootService } from '../services/chatwoot.service';
 import { Logger } from '../../config/logger.config';
+import { waMonitor } from '../whatsapp.module';
 
 const logger = new Logger('ChatwootController');
 
@@ -27,6 +28,10 @@ export class ChatwootController {
       if (!data.token) {
         throw new BadRequestException('token is required');
       }
+
+      if (!data.sign_msg) {
+        throw new BadRequestException('sign_msg is required');
+      }
     }
 
     if (!data.enabled) {
@@ -34,22 +39,39 @@ export class ChatwootController {
       data.account_id = '';
       data.token = '';
       data.url = '';
+      data.sign_msg = false;
     }
 
     data.name_inbox = instance.instanceName;
 
-    return this.chatwootService.create(instance, data);
+    const result = this.chatwootService.create(instance, data);
+
+    const response = {
+      ...result,
+      webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
+    };
+
+    return response;
   }
 
   public async findChatwoot(instance: InstanceDto) {
     logger.verbose('requested findChatwoot from ' + instance.instanceName + ' instance');
-    return this.chatwootService.find(instance);
+    const result = this.chatwootService.find(instance);
+
+    const response = {
+      ...result,
+      webhook_url: `/chatwoot/webhook/${instance.instanceName}`,
+    };
+
+    return response;
   }
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
     logger.verbose(
       'requested receiveWebhook from ' + instance.instanceName + ' instance',
     );
-    return this.chatwootService.receiveWebhook(instance, data);
+    const chatwootService = new ChatwootService(waMonitor);
+
+    return chatwootService.receiveWebhook(instance, data);
   }
 }

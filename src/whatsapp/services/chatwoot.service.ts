@@ -4,20 +4,42 @@ import { ChatwootDto } from '../dto/chatwoot.dto';
 import { WAMonitoringService } from './monitor.service';
 import { Logger } from '../../config/logger.config';
 import ChatwootClient from '@figuro/chatwoot-sdk';
-import { createReadStream, unlinkSync, writeFileSync } from 'fs';
+import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 import { SendTextDto } from '../dto/sendMessage.dto';
 import mimeTypes from 'mime-types';
 import { SendAudioDto } from '../dto/sendMessage.dto';
 import { SendMediaDto } from '../dto/sendMessage.dto';
+import NodeCache from 'node-cache';
+import { ROOT_DIR } from '../../config/path.config';
 
 export class ChatwootService {
-  constructor(private readonly waMonitor: WAMonitoringService) {}
+  private messageCacheFile: string;
+  private messageCache: Set<string>;
 
   private readonly logger = new Logger(ChatwootService.name);
 
   private provider: any;
+
+  constructor(private readonly waMonitor: WAMonitoringService) {
+    this.messageCache = new Set();
+  }
+
+  private loadMessageCache(): Set<string> {
+    try {
+      const cacheData = readFileSync(this.messageCacheFile, 'utf-8');
+      const cacheArray = cacheData.split('\n');
+      return new Set(cacheArray);
+    } catch (error) {
+      return new Set();
+    }
+  }
+
+  private saveMessageCache() {
+    const cacheData = Array.from(this.messageCache).join('\n');
+    writeFileSync(this.messageCacheFile, cacheData, 'utf-8');
+  }
 
   private async getProvider(instance: InstanceDto) {
     const provider = await this.waMonitor.waInstances[
@@ -436,12 +458,13 @@ export class ChatwootService {
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
+      const client = await this.clientCw(instance);
+
       if (!body?.conversation || body.private) return { message: 'bot' };
 
       const chatId = body.conversation.meta.sender.phone_number.replace('+', '');
       const messageReceived = body.content;
       const senderName = body?.sender?.name;
-      const accountId = body.account.id as number;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       if (chatId === '123456' && body.message_type === 'outgoing') {
@@ -495,27 +518,31 @@ export class ChatwootService {
         body?.conversation?.messages?.length &&
         chatId !== '123456'
       ) {
-        // if (IMPORT_MESSAGES_SENT && messages_sent.includes(body.id)) {
-        //   console.log(`🚨 Não importar mensagens enviadas, ficaria duplicado.`);
+        this.messageCacheFile = path.join(
+          ROOT_DIR,
+          'store',
+          'chatwoot',
+          `${instance.instanceName}_cache.txt`,
+        );
 
-        //   const indexMessage = messages_sent.indexOf(body.id);
-        //   messages_sent.splice(indexMessage, 1);
+        this.messageCache = this.loadMessageCache();
 
-        //   return { message: 'bot' };
-        // }
+        if (this.messageCache.has(body.id.toString())) {
+          return { message: 'bot' };
+        }
 
         let formatText: string;
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
-          // formatText = TOSIGN ? `*${senderName}*: ${messageReceived}` : messageReceived;
-          formatText = `*${senderName}*: ${messageReceived}`;
+          formatText = this.provider.sign_msg
+            ? `*${senderName}*: ${messageReceived}`
+            : messageReceived;
         }
 
         for (const message of body.conversation.messages) {
           if (message.attachments && message.attachments.length > 0) {
             for (const attachment of message.attachments) {
-              console.log(attachment);
               if (!messageReceived) {
                 formatText = null;
               }
@@ -609,7 +636,6 @@ export class ChatwootService {
         // }
 
         if (body.key.remoteJid === 'status@broadcast') {
-          console.log(`🚨 Ignorando status do whatsapp.`);
           return;
         }
 
@@ -617,7 +643,6 @@ export class ChatwootService {
         const messageType = body.key.fromMe ? 'outgoing' : 'incoming';
 
         if (!getConversion) {
-          console.log('🚨 Erro ao criar conversa');
           return;
         }
 
@@ -637,7 +662,11 @@ export class ChatwootService {
 
           const fileData = Buffer.from(downloadBase64.base64, 'base64');
 
-          const fileName = `${path.join(waInstance?.storePath, 'temp', `${nameFile}`)}`;
+          const fileName = `${path.join(
+            waInstance?.storePath,
+            'chatwoot',
+            `${nameFile}`,
+          )}`;
 
           writeFileSync(fileName, fileData, 'utf8');
 
@@ -650,6 +679,19 @@ export class ChatwootService {
           bodyMessage,
           messageType,
         );
+
+        this.messageCacheFile = path.join(
+          ROOT_DIR,
+          'store',
+          'chatwoot',
+          `${instance.instanceName}_cache.txt`,
+        );
+
+        this.messageCache = this.loadMessageCache();
+
+        this.messageCache.add(send.id.toString());
+
+        this.saveMessageCache();
 
         return send;
       }

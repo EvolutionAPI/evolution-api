@@ -4,4 +4,5 @@ export class ChatwootDto {
   token?: string;
   url?: string;
   name_inbox?: string;
+  sign_msg?: boolean;
 }
