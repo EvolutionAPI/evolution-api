@@ -1,5 +1,8 @@
-# 1.1.6 (homolog)
+# 1.2.0 (homolog)
 
+### Features
+
+* Native integration with chatwoot
 ### Fixed
 
 * Adjusts in docker-compose files
