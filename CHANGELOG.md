@@ -12,6 +12,7 @@
 * Adjusts in env files, removed save old_messages
 * Fix when sending a message to a group I don't belong returns a bad request
 * Fits the format on return from the fetchAllGroups endpoint
+* Adjust in send document with caption from chatwoot
 
 # 1.1.5 (2023-07-12 07:17)
 
