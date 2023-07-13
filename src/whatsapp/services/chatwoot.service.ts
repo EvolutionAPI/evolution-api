@@ -819,6 +819,10 @@ export class ChatwootService {
 
         const bodyMessage = await this.getConversationMessage(body.message);
 
+        if (!bodyMessage) {
+          return;
+        }
+
         if (isMedia) {
           const downloadBase64 = await waInstance?.getBase64FromMediaMessage({
             message: {
@@ -839,7 +843,7 @@ export class ChatwootService {
 
           writeFileSync(fileName, fileData, 'utf8');
 
-          if (body.key.remoteJid.includes('@g.us')) {
+          if (body.key.remoteJid.includes('@g.us') && !body.key.fromMe) {
             const participantName = body.pushName;
 
             const content = `**${participantName}**\n\n${bodyMessage}`;
