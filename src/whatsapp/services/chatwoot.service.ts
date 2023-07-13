@@ -318,8 +318,6 @@ export class ChatwootService {
             false,
             body.pushName || body.key.participant.split('@')[0],
           )) as any);
-
-        console.log('participant', participant);
       }
 
       const contact =
