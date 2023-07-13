@@ -232,6 +232,7 @@ export class WAMonitoringService {
 
       execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
     }
   }
 
