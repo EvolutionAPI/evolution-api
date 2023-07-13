@@ -159,7 +159,6 @@ export class ConfigService {
     if (process.env?.DOCKER_ENV === 'true') {
       this.env.SERVER.TYPE = 'http';
       this.env.SERVER.PORT = 8080;
-      this.env.SERVER.URL = `http://localhost:${this.env.SERVER.PORT}`;
     }
   }
 
