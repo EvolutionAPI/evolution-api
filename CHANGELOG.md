@@ -4,6 +4,7 @@
 
 * Native integration with chatwoot
 * Added returning or non-returning participants option in fetchAllGroups
+* Added group integration to chatwoot
 
 ### Fixed
 
