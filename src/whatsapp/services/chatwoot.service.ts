@@ -46,6 +46,10 @@ export class ChatwootService {
       instance.instanceName
     ].findChatwoot();
 
+    if (!provider) {
+      return null;
+    }
+
     return provider;
   }
 
@@ -102,6 +106,10 @@ export class ChatwootService {
       id,
     });
 
+    if (!contact) {
+      return null;
+    }
+
     return contact;
   }
 
@@ -125,6 +133,10 @@ export class ChatwootService {
         phone_number: `+${phoneNumber}`,
       },
     });
+
+    if (!contact) {
+      return null;
+    }
 
     return contact;
   }
@@ -536,7 +548,7 @@ export class ChatwootService {
           formatText = messageReceived;
         } else {
           formatText = this.provider.sign_msg
-            ? `*${senderName}*: ${messageReceived}`
+            ? `*${senderName}:*\n\n${messageReceived}`
             : messageReceived;
         }
 
@@ -631,10 +643,6 @@ export class ChatwootService {
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       if (event === 'messages.upsert') {
-        // if (body.key.fromMe && !IMPORT_MESSAGES_SENT) {
-        //   return;
-        // }
-
         if (body.key.remoteJid === 'status@broadcast') {
           return;
         }
@@ -699,6 +707,11 @@ export class ChatwootService {
       if (event === 'status.instance') {
         const data = body;
         const inbox = await this.getInbox(instance);
+
+        if (!inbox) {
+          return;
+        }
+
         const msgStatus = `⚡️ Status da instância ${inbox.name}: ${data.status}`;
         await this.createBotMessage(instance, msgStatus, 'incoming');
       }
