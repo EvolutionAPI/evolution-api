@@ -120,6 +120,7 @@ export class ChatwootService {
     instance: InstanceDto,
     phoneNumber: string,
     inboxId: number,
+    isGroup: boolean,
     name?: string,
   ) {
     const client = await this.clientCw(instance);
@@ -128,13 +129,23 @@ export class ChatwootService {
       throw new Error('client not found');
     }
 
-    const contact = await client.contacts.create({
-      accountId: this.provider.account_id,
-      data: {
+    let data: any = {};
+    if (!isGroup) {
+      data = {
         inbox_id: inboxId,
         name: name || phoneNumber,
         phone_number: `+${phoneNumber}`,
-      },
+      };
+    } else {
+      data = {
+        inbox_id: inboxId,
+        name: name || phoneNumber,
+        identifier: phoneNumber,
+      };
+    }
+    const contact = await client.contacts.create({
+      accountId: this.provider.account_id,
+      data,
     });
 
     if (!contact) {
@@ -171,62 +182,109 @@ export class ChatwootService {
       throw new Error('client not found');
     }
 
-    const contact = await client.contacts.search({
+    let query: any;
+
+    if (!phoneNumber.includes('@g.us')) {
+      query = `+${phoneNumber}`;
+    } else {
+      query = phoneNumber;
+    }
+
+    const contact: any = await client.contacts.search({
       accountId: this.provider.account_id,
-      q: `+${phoneNumber}`,
+      q: query,
     });
 
-    return contact.payload.find((contact) => contact.phone_number === `+${phoneNumber}`);
+    if (!phoneNumber.includes('@g.us')) {
+      return contact.payload.find((contact) => contact.phone_number === query);
+    } else {
+      return contact.payload.find((contact) => contact.identifier === query);
+    }
   }
 
   public async createConversation(instance: InstanceDto, body: any) {
-    const client = await this.clientCw(instance);
+    try {
+      const client = await this.clientCw(instance);
 
-    if (!client) {
-      throw new Error('client not found');
-    }
-
-    const chatId = body.key.remoteJid.split('@')[0];
-    const nameContact = !body.key.fromMe ? body.pushName : chatId;
-
-    const filterInbox = await this.getInbox(instance);
-
-    const contact =
-      (await this.findContact(instance, chatId)) ||
-      ((await this.createContact(instance, chatId, filterInbox.id, nameContact)) as any);
-
-    const contactId = contact.id || contact.payload.contact.id;
-
-    if (!body.key.fromMe && contact.name === chatId && nameContact !== chatId) {
-      await this.updateContact(instance, contactId, {
-        name: nameContact,
-      });
-    }
-
-    const contactConversations = (await client.contacts.listConversations({
-      accountId: this.provider.account_id,
-      id: contactId,
-    })) as any;
-
-    if (contactConversations) {
-      const conversation = contactConversations.payload.find(
-        (conversation) =>
-          conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
-      );
-      if (conversation) {
-        return conversation.id;
+      if (!client) {
+        throw new Error('client not found');
       }
+
+      const isGroup = body.key.remoteJid.includes('@g.us');
+
+      const chatId = isGroup ? body.key.remoteJid : body.key.remoteJid.split('@')[0];
+
+      let nameContact: string;
+
+      nameContact = !body.key.fromMe ? body.pushName : chatId;
+
+      const filterInbox = await this.getInbox(instance);
+
+      if (isGroup) {
+        const group = await this.waMonitor.waInstances[
+          instance.instanceName
+        ].client.groupMetadata(chatId);
+
+        nameContact = `${group.subject} (GROUP)`;
+
+        const participant =
+          (await this.findContact(instance, body.key.participant.split('@')[0])) ||
+          ((await this.createContact(
+            instance,
+            body.key.participant.split('@')[0],
+            filterInbox.id,
+            false,
+            body.pushName || body.key.participant.split('@')[0],
+          )) as any);
+
+        console.log('participant', participant);
+      }
+
+      const contact =
+        (await this.findContact(instance, chatId)) ||
+        ((await this.createContact(
+          instance,
+          chatId,
+          filterInbox.id,
+          isGroup,
+          nameContact,
+        )) as any);
+
+      const contactId = contact.id || contact.payload.contact.id;
+
+      if (!body.key.fromMe && contact.name === chatId && nameContact !== chatId) {
+        await this.updateContact(instance, contactId, {
+          name: nameContact,
+        });
+      }
+
+      const contactConversations = (await client.contacts.listConversations({
+        accountId: this.provider.account_id,
+        id: contactId,
+      })) as any;
+
+      if (contactConversations) {
+        const conversation = contactConversations.payload.find(
+          (conversation) =>
+            conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
+        );
+        if (conversation) {
+          return conversation.id;
+        }
+      }
+
+      const conversation = await client.conversations.create({
+        accountId: this.provider.account_id,
+        data: {
+          contact_id: `${contactId}`,
+          inbox_id: `${filterInbox.id}`,
+        },
+      });
+
+      return conversation.id;
+    } catch (error) {
+      console.log(error);
     }
-
-    const conversation = await client.conversations.create({
-      accountId: this.provider.account_id,
-      data: {
-        contact_id: `${contactId}`,
-        inbox_id: `${filterInbox.id}`,
-      },
-    });
-
-    return conversation.id;
   }
 
   public async getInbox(instance: InstanceDto) {
@@ -477,7 +535,9 @@ export class ChatwootService {
 
       if (!body?.conversation || body.private) return { message: 'bot' };
 
-      const chatId = body.conversation.meta.sender.phone_number.replace('+', '');
+      const chatId =
+        body.conversation.meta.sender?.phone_number?.replace('+', '') ||
+        body.conversation.meta.sender?.identifier;
       const messageReceived = body.content;
       const senderName = body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
@@ -699,30 +759,65 @@ export class ChatwootService {
 
           writeFileSync(fileName, fileData, 'utf8');
 
-          return await this.sendData(getConversion, fileName, messageType, bodyMessage);
+          if (body.key.remoteJid.includes('@g.us')) {
+            const participantName = body.pushName;
+
+            const content = `**${participantName}**\n\n${bodyMessage}`;
+            return await this.sendData(getConversion, fileName, messageType, content);
+          } else {
+            return await this.sendData(getConversion, fileName, messageType, bodyMessage);
+          }
         }
 
-        const send = await this.createMessage(
-          instance,
-          getConversion,
-          bodyMessage,
-          messageType,
-        );
+        if (body.key.remoteJid.includes('@g.us')) {
+          const participantName = body.pushName;
 
-        this.messageCacheFile = path.join(
-          ROOT_DIR,
-          'store',
-          'chatwoot',
-          `${instance.instanceName}_cache.txt`,
-        );
+          const content = `**${participantName}**\n\n${bodyMessage}`;
 
-        this.messageCache = this.loadMessageCache();
+          const send = await this.createMessage(
+            instance,
+            getConversion,
+            content,
+            messageType,
+          );
 
-        this.messageCache.add(send.id.toString());
+          this.messageCacheFile = path.join(
+            ROOT_DIR,
+            'store',
+            'chatwoot',
+            `${instance.instanceName}_cache.txt`,
+          );
 
-        this.saveMessageCache();
+          this.messageCache = this.loadMessageCache();
 
-        return send;
+          this.messageCache.add(send.id.toString());
+
+          this.saveMessageCache();
+
+          return send;
+        } else {
+          const send = await this.createMessage(
+            instance,
+            getConversion,
+            bodyMessage,
+            messageType,
+          );
+
+          this.messageCacheFile = path.join(
+            ROOT_DIR,
+            'store',
+            'chatwoot',
+            `${instance.instanceName}_cache.txt`,
+          );
+
+          this.messageCache = this.loadMessageCache();
+
+          this.messageCache.add(send.id.toString());
+
+          this.saveMessageCache();
+
+          return send;
+        }
       }
 
       if (event === 'status.instance') {
