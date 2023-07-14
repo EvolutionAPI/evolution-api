@@ -1,9 +1,5 @@
 version: '3.3'
 
-networks:
-  evolution-net:
-    driver: bridge
-
 services:
   mongodb:
     container_name: mongodb
@@ -17,11 +13,27 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
-    networks:
-      - evolution-net
     expose:
       - 27017
+
+  mongo-express:
+    image: mongo-express
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: root
+      ME_CONFIG_BASICAUTH_PASSWORD: root
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+    ports:
+      - 8081:8081
+    links:
+      - mongodb
 
 volumes:
   evolution_mongodb_data:
   evolution_mongodb_configdb:
+
+networks:
+  default:
+    name: evolution-net
+    
