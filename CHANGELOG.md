@@ -19,6 +19,7 @@
 * Changed message in path /
 * Test duplicate message media in groups chatwoot
 * Optimize send message from group with mentions
+* Fixed name of the profile status in fetchInstances
 
 # 1.1.5 (2023-07-12 07:17)
 

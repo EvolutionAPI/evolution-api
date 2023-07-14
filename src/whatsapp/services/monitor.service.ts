@@ -113,7 +113,8 @@ export class WAMonitoringService {
                 owner: value.wuid,
                 profileName: (await value.getProfileName()) || 'not loaded',
                 profilePictureUrl: value.profilePictureUrl,
-                status: (await value.getProfileStatus()) || '',
+                profileStatus: (await value.getProfileStatus()) || '',
+                status: value.connectionStatus.state,
                 apikey,
                 chatwoot,
               },
@@ -128,7 +129,8 @@ export class WAMonitoringService {
                 owner: value.wuid,
                 profileName: (await value.getProfileName()) || 'not loaded',
                 profilePictureUrl: value.profilePictureUrl,
-                status: (await value.getProfileStatus()) || '',
+                profileStatus: (await value.getProfileStatus()) || '',
+                status: value.connectionStatus.state,
               },
             });
           }
