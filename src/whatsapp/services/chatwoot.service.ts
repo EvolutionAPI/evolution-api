@@ -258,6 +258,7 @@ export class ChatwootService {
     inboxId: number,
     isGroup: boolean,
     name?: string,
+    avatar_url?: string,
   ) {
     this.logger.verbose('create contact to instance: ' + instance.instanceName);
 
@@ -275,6 +276,7 @@ export class ChatwootService {
         inbox_id: inboxId,
         name: name || phoneNumber,
         phone_number: `+${phoneNumber}`,
+        avatar_url: avatar_url,
       };
     } else {
       this.logger.verbose('create contact group in chatwoot');
@@ -282,6 +284,7 @@ export class ChatwootService {
         inbox_id: inboxId,
         name: name || phoneNumber,
         identifier: phoneNumber,
+        avatar_url: avatar_url,
       };
     }
 
@@ -404,27 +407,58 @@ export class ChatwootService {
         nameContact = `${group.subject} (GROUP)`;
 
         this.logger.verbose('find or create participant in chatwoot');
-        const participant =
-          (await this.findContact(instance, body.key.participant.split('@')[0])) ||
-          ((await this.createContact(
+
+        const picture_url = await this.waMonitor.waInstances[
+          instance.instanceName
+        ].profilePicture(body.key.participant.split('@')[0]);
+
+        const findParticipant = await this.findContact(
+          instance,
+          body.key.participant.split('@')[0],
+        );
+
+        if (findParticipant) {
+          await this.updateContact(instance, findParticipant.id, {
+            name: nameContact,
+            avatar_url: picture_url.profilePictureUrl || null,
+          });
+        } else {
+          await this.createContact(
             instance,
             body.key.participant.split('@')[0],
             filterInbox.id,
-            false,
-            body.pushName || body.key.participant.split('@')[0],
-          )) as any);
+            isGroup,
+            nameContact,
+            picture_url.profilePictureUrl || null,
+          );
+        }
       }
 
       this.logger.verbose('find or create contact in chatwoot');
-      const contact =
-        (await this.findContact(instance, chatId)) ||
-        ((await this.createContact(
+
+      const picture_url = await this.waMonitor.waInstances[
+        instance.instanceName
+      ].profilePicture(chatId);
+
+      const findContact = await this.findContact(instance, chatId);
+
+      let contact: any;
+
+      if (findContact) {
+        contact = await this.updateContact(instance, findContact.id, {
+          name: nameContact,
+          avatar_url: picture_url.profilePictureUrl || null,
+        });
+      } else {
+        contact = await this.createContact(
           instance,
           chatId,
           filterInbox.id,
           isGroup,
           nameContact,
-        )) as any);
+          picture_url.profilePictureUrl || null,
+        );
+      }
 
       if (!contact) {
         this.logger.warn('contact not found');
