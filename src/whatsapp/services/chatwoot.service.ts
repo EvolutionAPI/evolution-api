@@ -425,7 +425,7 @@ export class ChatwootService {
 
         if (findParticipant) {
           await this.updateContact(instance, findParticipant.id, {
-            name: nameContact,
+            name: body.pushName,
             avatar_url: picture_url.profilePictureUrl || null,
           });
         } else {
@@ -434,7 +434,7 @@ export class ChatwootService {
             body.key.participant.split('@')[0],
             filterInbox.id,
             isGroup,
-            nameContact,
+            body.pushName,
             picture_url.profilePictureUrl || null,
           );
         }
