@@ -1,4 +1,10 @@
-# 1.2.0 (homolog)
+# 1.2.1 (homolog)
+
+### Fixed
+
+* Adjusts in docker files
+
+# 1.2.0 (2023-07-14 15:28)
 
 ### Features
 
