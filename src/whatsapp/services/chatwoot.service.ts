@@ -43,6 +43,12 @@ export class ChatwootService {
     this.logger.verbose('message cache saved');
   }
 
+  private clearMessageCache() {
+    this.logger.verbose('clear message cache');
+    this.messageCache.clear();
+    this.saveMessageCache();
+  }
+
   private async getProvider(instance: InstanceDto) {
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
     try {
@@ -465,7 +471,9 @@ export class ChatwootService {
         return null;
       }
 
-      const contactId = contact.id || contact.payload.contact.id;
+      console.log(contact);
+
+      const contactId = contact.payload.id || contact.payload.contact.id;
 
       if (!body.key.fromMe && contact.name === chatId && nameContact !== chatId) {
         this.logger.verbose('update contact name in chatwoot');
@@ -1002,6 +1010,9 @@ export class ChatwootService {
           return { message: 'bot' };
         }
 
+        this.logger.verbose('clear cache');
+        this.clearMessageCache();
+
         this.logger.verbose('Format message to send');
         let formatText: string;
         if (senderName === null || senderName === undefined) {
@@ -1158,6 +1169,7 @@ export class ChatwootService {
       }
 
       if (event === 'messages.upsert') {
+        console.log(body);
         this.logger.verbose('event messages.upsert');
 
         if (body.key.remoteJid === 'status@broadcast') {
