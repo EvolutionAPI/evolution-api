@@ -1,5 +1,9 @@
 # 1.2.1 (homolog)
 
+### Features
+
+* Save picture url groups in chatwoot
+
 ### Fixed
 
 * Adjusts in docker files
