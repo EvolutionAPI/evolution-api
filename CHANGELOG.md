@@ -1,3 +1,28 @@
+# 1.2.0 (homolog)
+
+### Features
+
+* Native integration with chatwoot
+* Added returning or non-returning participants option in fetchAllGroups
+* Added group integration to chatwoot
+* Added automation on create instance to chatwoot
+* Added verbose logs and format chatwoot service
+
+### Fixed
+
+* Adjusts in docker-compose files
+* Adjusts in number validation for AR and MX numbers
+* Adjusts in env files, removed save old_messages
+* Fix when sending a message to a group I don't belong returns a bad request
+* Fits the format on return from the fetchAllGroups endpoint
+* Adjust in send document with caption from chatwoot
+* Fixed message with undefind in chatwoot
+* Changed message in path /
+* Test duplicate message media in groups chatwoot
+* Optimize send message from group with mentions
+* Fixed name of the profile status in fetchInstances
+* Fixed error 500 when logout in instance with status = close
+
 # 1.1.5 (2023-07-12 07:17)
 
 ### Fixed

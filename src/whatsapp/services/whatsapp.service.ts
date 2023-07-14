@@ -30,7 +30,6 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
   getAggregateVotesInPollMessage,
-  Browsers,
 } from '@whiskeysockets/baileys';
 import {
   Auth,
@@ -38,6 +37,7 @@ import {
   ConfigService,
   ConfigSessionPhone,
   Database,
+  HttpServer,
   QrCode,
   Redis,
   Webhook,
@@ -109,11 +109,13 @@ import {
   GroupSubjectDto,
   GroupDescriptionDto,
   GroupSendInvite,
+  GetParticipant,
 } from '../dto/group.dto';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
 import Long from 'long';
 import { WebhookRaw } from '../models/webhook.model';
+import { ChatwootRaw } from '../models/chatwoot.model';
 import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
@@ -121,6 +123,8 @@ import sharp from 'sharp';
 import { RedisCache } from '../../db/redis.client';
 import { Log } from '../../config/env.config';
 import ProxyAgent from 'proxy-agent';
+import { ChatwootService } from './chatwoot.service';
+import { waMonitor } from '../whatsapp.module';
 
 export class WAStartupService {
   constructor(
@@ -138,12 +142,15 @@ export class WAStartupService {
   private readonly instance: wa.Instance = {};
   public client: WASocket;
   private readonly localWebhook: wa.LocalWebHook = {};
+  private readonly localChatwoot: wa.LocalChatwoot = {};
   private stateConnection: wa.StateConnection = { state: 'close' };
-  private readonly storePath = join(ROOT_DIR, 'store');
+  public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
+
+  private chatwootService = new ChatwootService(waMonitor);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -159,6 +166,17 @@ export class WAStartupService {
       instance: this.instance.name,
       status: 'created',
     });
+
+    if (this.localChatwoot.enabled) {
+      this.chatwootService.eventWhatsapp(
+        Events.STATUS_INSTANCE,
+        { instanceName: this.instance.name },
+        {
+          instance: this.instance.name,
+          status: 'created',
+        },
+      );
+    }
   }
 
   public get instanceName() {
@@ -268,8 +286,64 @@ export class WAStartupService {
     return data;
   }
 
+  private async loadChatwoot() {
+    this.logger.verbose('Loading chatwoot');
+    const data = await this.repository.chatwoot.find(this.instanceName);
+    this.localChatwoot.enabled = data?.enabled;
+    this.logger.verbose(`Chatwoot enabled: ${this.localChatwoot.enabled}`);
+
+    this.localChatwoot.account_id = data?.account_id;
+    this.logger.verbose(`Chatwoot account id: ${this.localChatwoot.account_id}`);
+
+    this.localChatwoot.token = data?.token;
+    this.logger.verbose(`Chatwoot token: ${this.localChatwoot.token}`);
+
+    this.localChatwoot.url = data?.url;
+    this.logger.verbose(`Chatwoot url: ${this.localChatwoot.url}`);
+
+    this.localChatwoot.name_inbox = data?.name_inbox;
+    this.logger.verbose(`Chatwoot inbox name: ${this.localChatwoot.name_inbox}`);
+
+    this.localChatwoot.sign_msg = data?.sign_msg;
+    this.logger.verbose(`Chatwoot sign msg: ${this.localChatwoot.sign_msg}`);
+
+    this.logger.verbose('Chatwoot loaded');
+  }
+
+  public async setChatwoot(data: ChatwootRaw) {
+    this.logger.verbose('Setting chatwoot');
+    await this.repository.chatwoot.create(data, this.instanceName);
+    this.logger.verbose(`Chatwoot account id: ${data.account_id}`);
+    this.logger.verbose(`Chatwoot token: ${data.token}`);
+    this.logger.verbose(`Chatwoot url: ${data.url}`);
+    this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
+    this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
+
+    Object.assign(this.localChatwoot, data);
+    this.logger.verbose('Chatwoot set');
+  }
+
+  public async findChatwoot() {
+    this.logger.verbose('Finding chatwoot');
+    const data = await this.repository.chatwoot.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Chatwoot not found');
+      throw new NotFoundException('Chatwoot not found');
+    }
+
+    this.logger.verbose(`Chatwoot account id: ${data.account_id}`);
+    this.logger.verbose(`Chatwoot token: ${data.token}`);
+    this.logger.verbose(`Chatwoot url: ${data.url}`);
+    this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
+    this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
+
+    return data;
+  }
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
+    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
     const webhookLocal = this.localWebhook.events;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
@@ -294,6 +368,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            urlServer,
           });
         }
 
@@ -305,6 +380,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              urlServer,
             });
           }
         } catch (error) {
@@ -352,6 +428,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            urlServer,
           });
         }
 
@@ -363,6 +440,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              urlServer,
             });
           }
         } catch (error) {
@@ -399,6 +477,17 @@ export class WAStartupService {
           statusCode: DisconnectReason.badSession,
         });
 
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.QRCODE_UPDATED,
+            { instanceName: this.instance.name },
+            {
+              message: 'QR code limit reached, please login again',
+              statusCode: DisconnectReason.badSession,
+            },
+          );
+        }
+
         this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
         this.sendDataWebhook(Events.CONNECTION_UPDATE, {
           instance: this.instance.name,
@@ -411,6 +500,17 @@ export class WAStartupService {
           instance: this.instance.name,
           status: 'removed',
         });
+
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.STATUS_INSTANCE,
+            { instanceName: this.instance.name },
+            {
+              instance: this.instance.name,
+              status: 'removed',
+            },
+          );
+        }
 
         this.logger.verbose('endSession defined as true');
         this.endSession = true;
@@ -442,6 +542,16 @@ export class WAStartupService {
         this.sendDataWebhook(Events.QRCODE_UPDATED, {
           qrcode: { instance: this.instance.name, code: qr, base64 },
         });
+
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.QRCODE_UPDATED,
+            { instanceName: this.instance.name },
+            {
+              qrcode: { instance: this.instance.name, code: qr, base64 },
+            },
+          );
+        }
       });
 
       this.logger.verbose('Generating QR code in terminal');
@@ -481,6 +591,17 @@ export class WAStartupService {
           instance: this.instance.name,
           status: 'removed',
         });
+
+        if (this.localChatwoot.enabled) {
+          this.chatwootService.eventWhatsapp(
+            Events.STATUS_INSTANCE,
+            { instanceName: this.instance.name },
+            {
+              instance: this.instance.name,
+              status: 'removed',
+            },
+          );
+        }
 
         this.logger.verbose('Emittin event logout.instance');
         this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
@@ -596,14 +717,14 @@ export class WAStartupService {
     this.logger.verbose('Connecting to whatsapp');
     try {
       this.loadWebhook();
+      this.loadChatwoot();
 
       this.instance.authState = await this.defineAuthState();
 
       const { version } = await fetchLatestBaileysVersion();
       this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      // const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-      const browser: WABrowserDescription = Browsers.appropriate(session.CLIENT);
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
       const socketConfig: UserFacingSocketConfig = {
@@ -787,6 +908,14 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
+      if (this.localChatwoot.enabled) {
+        await this.chatwootService.eventWhatsapp(
+          Events.CONTACTS_UPDATE,
+          { instanceName: this.instance.name },
+          contactsRaw,
+        );
+      }
+
       this.logger.verbose('Updating contacts in database');
       await this.repository.contact.update(
         contactsRaw,
@@ -910,6 +1039,14 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
       await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
+      if (this.localChatwoot.enabled) {
+        await this.chatwootService.eventWhatsapp(
+          Events.MESSAGES_UPSERT,
+          { instanceName: this.instance.name },
+          messageRaw,
+        );
+      }
+
       this.logger.verbose('Inserting message in database');
       await this.repository.message.insert(
         [messageRaw],
@@ -947,6 +1084,14 @@ export class WAStartupService {
 
         this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
         await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
+
+        if (this.localChatwoot.enabled) {
+          await this.chatwootService.eventWhatsapp(
+            Events.CONTACTS_UPDATE,
+            { instanceName: this.instance.name },
+            contactRaw,
+          );
+        }
 
         this.logger.verbose('Updating contact in database');
         await this.repository.contact.update(
@@ -1160,6 +1305,8 @@ export class WAStartupService {
         }
         return match[1] === '52' ? '52' + match[3] : '54' + match[3];
       }
+
+      return jid;
     }
     return jid;
   }
@@ -1177,6 +1324,7 @@ export class WAStartupService {
         }
         return match[1] + match[2] + match[3];
       }
+      return jid;
     } else {
       return jid;
     }
@@ -1203,6 +1351,7 @@ export class WAStartupService {
     }
 
     const formattedMXARNumber = this.formatMXOrARNumber(number);
+
     if (formattedMXARNumber !== number) {
       this.logger.verbose(
         'Jid created is whatsapp in format MXAR: ' +
@@ -1247,21 +1396,14 @@ export class WAStartupService {
     this.logger.verbose('Sending message with typing');
 
     const jid = this.createJid(number);
-    const isWA = (await this.whatsappNumber({ numbers: [jid] }))[0];
+    const numberWA = await this.whatsappNumber({ numbers: [jid] });
+    const isWA = numberWA[0];
+
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
     }
 
     const sender = isJidGroup(jid) ? jid : isWA.jid;
-
-    if (isJidGroup(sender)) {
-      try {
-        this.logger.verbose('Getting group metadata');
-        await this.client.groupMetadata(sender);
-      } catch (error) {
-        throw new NotFoundException('Group not found');
-      }
-    }
 
     try {
       if (options?.delay) {
@@ -1290,29 +1432,38 @@ export class WAStartupService {
       }
 
       let mentions: string[];
+      if (isJidGroup(sender)) {
+        try {
+          if (options?.mentions) {
+            this.logger.verbose('Mentions defined');
 
-      if (options?.mentions) {
-        this.logger.verbose('Mentions defined');
-
-        if (!Array.isArray(options.mentions.mentioned) && !options.mentions.everyOne) {
-          throw new BadRequestException('Mentions must be an array');
-        }
-
-        if (options.mentions.everyOne) {
-          this.logger.verbose('Mentions everyone');
-
-          const groupMetadata = await this.client.groupMetadata(sender);
-          mentions = groupMetadata.participants.map((participant) => participant.id);
-          this.logger.verbose('Getting group metadata for mentions');
-        } else {
-          this.logger.verbose('Mentions manually defined');
-          mentions = options.mentions.mentioned.map((mention) => {
-            const jid = this.createJid(mention);
-            if (isJidGroup(jid)) {
-              throw new BadRequestException('Mentions must be a number');
+            if (
+              !Array.isArray(options.mentions.mentioned) &&
+              !options.mentions.everyOne
+            ) {
+              throw new BadRequestException('Mentions must be an array');
             }
-            return jid;
-          });
+
+            if (options.mentions.everyOne) {
+              this.logger.verbose('Mentions everyone');
+
+              this.logger.verbose('Getting group metadata');
+              const groupMetadata = await this.client.groupMetadata(sender);
+              mentions = groupMetadata.participants.map((participant) => participant.id);
+              this.logger.verbose('Getting group metadata for mentions');
+            } else {
+              this.logger.verbose('Mentions manually defined');
+              mentions = options.mentions.mentioned.map((mention) => {
+                const jid = this.createJid(mention);
+                if (isJidGroup(jid)) {
+                  throw new BadRequestException('Mentions must be a number');
+                }
+                return jid;
+              });
+            }
+          }
+        } catch (error) {
+          throw new NotFoundException('Group not found');
         }
       }
 
@@ -1357,7 +1508,6 @@ export class WAStartupService {
 
         if (sender.includes('@broadcast')) {
           this.logger.verbose('Sending message');
-          console.log(message['status']);
           return await this.client.sendMessage(
             sender,
             message['status'].content as unknown as AnyMessageContent,
@@ -1391,6 +1541,14 @@ export class WAStartupService {
 
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
+
+      // if (this.localChatwoot.enabled) {
+      //   this.chatwootService.eventWhatsapp(
+      //     Events.SEND_MESSAGE,
+      //     { instanceName: this.instance.name },
+      //     messageRaw,
+      //   );
+      // }
 
       this.logger.verbose('Inserting message in database');
       await this.repository.message.insert(
@@ -1954,13 +2112,19 @@ export class WAStartupService {
       const jid = this.createJid(number);
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
+
+        if (!group) throw new BadRequestException('Group not found');
+
         onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, group?.subject));
       } else {
-        try {
-          const result = (await this.client.onWhatsApp(jid))[0];
+        const verify = await this.client.onWhatsApp(jid);
+
+        const result = verify[0];
+
+        if (!result) {
+          onWhatsapp.push(new OnWhatsAppDto(jid, false));
+        } else {
           onWhatsapp.push(new OnWhatsAppDto(result.jid, result.exists));
-        } catch (error) {
-          onWhatsapp.push(new OnWhatsAppDto(number, false));
         }
       }
     }
@@ -2414,10 +2578,34 @@ export class WAStartupService {
     }
   }
 
-  public async fetchAllGroups() {
+  public async fetchAllGroups(getParticipants: GetParticipant) {
     this.logger.verbose('Fetching all groups');
     try {
-      return await this.client.groupFetchAllParticipating();
+      const fetch = Object.values(await this.client.groupFetchAllParticipating());
+
+      const groups = fetch.map((group) => {
+        const result = {
+          id: group.id,
+          subject: group.subject,
+          subjectOwner: group.subjectOwner,
+          subjectTime: group.subjectTime,
+          size: group.size,
+          creation: group.creation,
+          owner: group.owner,
+          desc: group.desc,
+          descId: group.descId,
+          restrict: group.restrict,
+          announce: group.announce,
+        };
+
+        if (getParticipants.getParticipants == 'true') {
+          result['participants'] = group.participants;
+        }
+
+        return result;
+      });
+
+      return groups;
     } catch (error) {
       throw new NotFoundException('Error fetching group', error.toString());
     }

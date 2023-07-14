@@ -5,4 +5,8 @@ export class InstanceDto {
   events?: string[];
   qrcode?: boolean;
   token?: string;
+  chatwoot_account_id?: string;
+  chatwoot_token?: string;
+  chatwoot_url?: string;
+  chatwoot_sign_msg?: boolean;
 }

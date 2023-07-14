@@ -23,6 +23,10 @@ export class GroupJid {
   groupJid: string;
 }
 
+export class GetParticipant {
+  getParticipants: string;
+}
+
 export class GroupInvite {
   inviteCode: string;
 }

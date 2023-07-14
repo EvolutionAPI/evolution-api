@@ -5,7 +5,7 @@ import { validate } from 'jsonschema';
 import { BadRequestException } from '../../exceptions';
 import 'express-async-errors';
 import { Logger } from '../../config/logger.config';
-import { GroupInvite, GroupJid } from '../dto/group.dto';
+import { GetParticipant, GroupInvite, GroupJid } from '../dto/group.dto';
 
 type DataValidate<T> = {
   request: Request;
@@ -156,6 +156,49 @@ export abstract class RouterBroker {
     const ref = new ClassRef();
 
     Object.assign(body, inviteCode);
+    Object.assign(ref, body);
+
+    const v = validate(ref, schema);
+
+    console.log(v, '@checkei aqui');
+
+    if (!v.valid) {
+      const message: any[] = v.errors.map(({ property, stack, schema }) => {
+        let message: string;
+        if (schema['description']) {
+          message = schema['description'];
+        } else {
+          message = stack.replace('instance.', '');
+        }
+        return {
+          property: property.replace('instance.', ''),
+          message,
+        };
+      });
+      logger.error([...message]);
+      throw new BadRequestException(...message);
+    }
+
+    return await execute(instance, ref);
+  }
+
+  public async getParticipantsValidate<T>(args: DataValidate<T>) {
+    const { request, ClassRef, schema, execute } = args;
+
+    const getParticipants = request.query as unknown as GetParticipant;
+
+    if (!getParticipants?.getParticipants) {
+      throw new BadRequestException(
+        'The getParticipants needs to be informed in the query',
+      );
+    }
+
+    const instance = request.params as unknown as InstanceDto;
+    const body = request.body;
+
+    const ref = new ClassRef();
+
+    Object.assign(body, getParticipants);
     Object.assign(ref, body);
 
     const v = validate(ref, schema);

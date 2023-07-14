@@ -9,14 +9,16 @@ services:
     container_name: mongodb
     image: mongo
     restart: always
-    volumes:
-      - evolution_mongodb_data:/data/db
-      - evolution_mongodb_configdb:/data/configdb
     ports:
       - 27017:27017
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - evolution_mongodb_data:/data/db
+      - evolution_mongodb_configdb:/data/configdb
     networks:
       - evolution-net
     expose:

@@ -6,10 +6,10 @@ export enum Events {
   QRCODE_UPDATED = 'qrcode.updated',
   CONNECTION_UPDATE = 'connection.update',
   STATUS_INSTANCE = 'status.instance',
-  SEND_MESSAGE = 'send.message',
   MESSAGES_SET = 'messages.set',
   MESSAGES_UPSERT = 'messages.upsert',
   MESSAGES_UPDATE = 'messages.update',
+  SEND_MESSAGE = 'send.message',
   CONTACTS_SET = 'contacts.set',
   CONTACTS_UPSERT = 'contacts.upsert',
   CONTACTS_UPDATE = 'contacts.update',
@@ -39,6 +39,15 @@ export declare namespace wa {
     url?: string;
     events?: string[];
     webhook_by_events?: boolean;
+  };
+
+  export type LocalChatwoot = {
+    enabled?: boolean;
+    account_id?: string;
+    token?: string;
+    url?: string;
+    name_inbox?: string;
+    sign_msg?: boolean;
   };
 
   export type StateConnection = {

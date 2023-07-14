@@ -4,7 +4,7 @@ import { join } from 'path';
 import { SRC_DIR } from './path.config';
 import { isBooleanString } from 'class-validator';
 
-export type HttpServer = { TYPE: 'http' | 'https'; PORT: number };
+export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
 
 export type HttpMethods = 'POST' | 'GET' | 'PUT' | 'DELETE';
 export type Cors = {
@@ -33,7 +33,6 @@ export type Log = {
 
 export type SaveData = {
   INSTANCE: boolean;
-  OLD_MESSAGE: boolean;
   NEW_MESSAGE: boolean;
   MESSAGE_UPDATE: boolean;
   CONTACTS: boolean;
@@ -77,6 +76,7 @@ export type EventsWebhook = {
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
   MESSAGES_UPDATE: boolean;
+  SEND_MESSAGE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -98,6 +98,9 @@ export type Instance = {
   NAME: string;
   WEBHOOK_URL: string;
   MODE: string;
+  CHATWOOT_ACCOUNT_ID?: string;
+  CHATWOOT_TOKEN?: string;
+  CHATWOOT_URL?: string;
 };
 export type Auth = {
   API_KEY: ApiKey;
@@ -170,6 +173,7 @@ export class ConfigService {
       SERVER: {
         TYPE: process.env.SERVER_TYPE as 'http' | 'https',
         PORT: Number.parseInt(process.env.SERVER_PORT),
+        URL: process.env.SERVER_URL,
       },
       CORS: {
         ORIGIN: process.env.CORS_ORIGIN.split(','),
@@ -203,7 +207,6 @@ export class ConfigService {
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
         SAVE_DATA: {
           INSTANCE: process.env?.DATABASE_SAVE_DATA_INSTANCE === 'true',
-          OLD_MESSAGE: process.env?.DATABASE_SAVE_DATA_OLD_MESSAGE === 'true',
           NEW_MESSAGE: process.env?.DATABASE_SAVE_DATA_NEW_MESSAGE === 'true',
           MESSAGE_UPDATE: process.env?.DATABASE_SAVE_MESSAGE_UPDATE === 'true',
           CONTACTS: process.env?.DATABASE_SAVE_DATA_CONTACTS === 'true',
@@ -235,6 +238,7 @@ export class ConfigService {
           MESSAGES_SET: process.env?.WEBHOOK_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.WEBHOOK_EVENTS_MESSAGES_UPSERT === 'true',
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
+          SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
           CONTACTS_SET: process.env?.WEBHOOK_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.WEBHOOK_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.WEBHOOK_EVENTS_CONTACTS_UPSERT === 'true',
@@ -275,6 +279,10 @@ export class ConfigService {
           NAME: process.env.AUTHENTICATION_INSTANCE_NAME,
           WEBHOOK_URL: process.env.AUTHENTICATION_INSTANCE_WEBHOOK_URL,
           MODE: process.env.AUTHENTICATION_INSTANCE_MODE,
+          CHATWOOT_ACCOUNT_ID:
+            process.env.AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID || '',
+          CHATWOOT_TOKEN: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN || '',
+          CHATWOOT_URL: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_URL || '',
         },
       },
     };

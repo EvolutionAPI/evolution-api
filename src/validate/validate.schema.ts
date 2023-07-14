@@ -39,6 +39,7 @@ export const instanceNameSchema: JSONSchema7 = {
           'MESSAGES_SET',
           'MESSAGES_UPSERT',
           'MESSAGES_UPDATE',
+          'SEND_MESSAGE',
           'CONTACTS_SET',
           'CONTACTS_UPSERT',
           'CONTACTS_UPDATE',
@@ -699,6 +700,16 @@ export const groupJidSchema: JSONSchema7 = {
   ...isNotEmpty('groupJid'),
 };
 
+export const getParticipantsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    getParticipants: { type: 'string', enum: ['true', 'false'] },
+  },
+  required: ['getParticipants'],
+  ...isNotEmpty('getParticipants'),
+};
+
 export const groupSendInviteSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
@@ -835,6 +846,7 @@ export const webhookSchema: JSONSchema7 = {
           'MESSAGES_SET',
           'MESSAGES_UPSERT',
           'MESSAGES_UPDATE',
+          'SEND_MESSAGE',
           'CONTACTS_SET',
           'CONTACTS_UPSERT',
           'CONTACTS_UPDATE',
@@ -854,4 +866,18 @@ export const webhookSchema: JSONSchema7 = {
   },
   required: ['url', 'enabled'],
   ...isNotEmpty('url'),
+};
+
+export const chatwootSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    account_id: { type: 'string' },
+    token: { type: 'string' },
+    url: { type: 'string' },
+    sign_msg: { type: 'boolean', enum: [true, false] },
+  },
+  required: ['enabled', 'account_id', 'token', 'url', 'sign_msg'],
+  ...isNotEmpty('account_id', 'token', 'url', 'sign_msg'),
 };

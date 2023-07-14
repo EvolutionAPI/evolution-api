@@ -4,6 +4,7 @@ import { ContactRepository } from './contact.repository';
 import { MessageUpRepository } from './messageUp.repository';
 import { MongoClient } from 'mongodb';
 import { WebhookRepository } from './webhook.repository';
+import { ChatwootRepository } from './chatwoot.repository';
 import { AuthRepository } from './auth.repository';
 import { Auth, ConfigService, Database } from '../../config/env.config';
 import { execSync } from 'child_process';
@@ -17,6 +18,7 @@ export class RepositoryBroker {
     public readonly contact: ContactRepository,
     public readonly messageUpdate: MessageUpRepository,
     public readonly webhook: WebhookRepository,
+    public readonly chatwoot: ChatwootRepository,
     public readonly auth: AuthRepository,
     private configService: ConfigService,
     dbServer?: MongoClient,
@@ -63,6 +65,9 @@ export class RepositoryBroker {
 
       this.logger.verbose('creating webhook path: ' + join(storePath, 'webhook'));
       execSync(`mkdir -p ${join(storePath, 'webhook')}`);
+
+      this.logger.verbose('creating chatwoot path: ' + join(storePath, 'chatwoot'));
+      execSync(`mkdir -p ${join(storePath, 'chatwoot')}`);
 
       this.logger.verbose('creating temp path: ' + join(storePath, 'temp'));
       execSync(`mkdir -p ${join(storePath, 'temp')}`);
