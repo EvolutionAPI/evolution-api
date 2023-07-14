@@ -404,7 +404,9 @@ export class InstanceController {
     const stateConn = await this.connectionState({ instanceName });
 
     if (stateConn.state === 'close') {
-      throw new BadRequestException('Instance already logged out');
+      throw new BadRequestException(
+        'The "' + instanceName + '" instance is not connected',
+      );
     }
 
     try {
@@ -427,10 +429,9 @@ export class InstanceController {
     const stateConn = await this.connectionState({ instanceName });
 
     if (stateConn.state === 'open') {
-      throw new BadRequestException([
-        'Deletion failed',
-        'The instance needs to be disconnected',
-      ]);
+      throw new BadRequestException(
+        'The "' + instanceName + '" instance needs to be disconnected',
+      );
     }
     try {
       if (stateConn.state === 'connecting') {
