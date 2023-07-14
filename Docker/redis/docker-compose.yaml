@@ -1,9 +1,5 @@
 version: '3.3'
 
-networks:
-  evolution-net:
-    driver: bridge
-
 services:
   redis:
     image: redis:latest
@@ -16,8 +12,17 @@ services:
       - evolution_redis:/data
     ports:
       - 6379:6379
-    networks:
-      - evolution-net
-
+  
+  rebrow:
+    image: marian/rebrow
+    ports: 
+      - 5001:5001
+    links:
+      - redis
+    
 volumes:
   evolution_redis:
+
+networks:
+  default:
+    name: evolution-net
