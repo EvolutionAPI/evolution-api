@@ -401,6 +401,12 @@ export class InstanceController {
 
   public async logout({ instanceName }: InstanceDto) {
     this.logger.verbose('requested logout from ' + instanceName + ' instance');
+    const stateConn = await this.connectionState({ instanceName });
+
+    if (stateConn.state === 'close') {
+      throw new BadRequestException('Instance already logged out');
+    }
+
     try {
       this.logger.verbose('logging out instance: ' + instanceName);
       await this.waMonitor.waInstances[instanceName]?.client?.logout(
