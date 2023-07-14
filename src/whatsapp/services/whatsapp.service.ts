@@ -1434,9 +1434,6 @@ export class WAStartupService {
       let mentions: string[];
       if (isJidGroup(sender)) {
         try {
-          this.logger.verbose('Getting group metadata');
-          const groupMetadata = await this.client.groupMetadata(sender);
-
           if (options?.mentions) {
             this.logger.verbose('Mentions defined');
 
@@ -1450,6 +1447,8 @@ export class WAStartupService {
             if (options.mentions.everyOne) {
               this.logger.verbose('Mentions everyone');
 
+              this.logger.verbose('Getting group metadata');
+              const groupMetadata = await this.client.groupMetadata(sender);
               mentions = groupMetadata.participants.map((participant) => participant.id);
               this.logger.verbose('Getting group metadata for mentions');
             } else {
