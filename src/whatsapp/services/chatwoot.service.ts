@@ -389,6 +389,7 @@ export class ChatwootService {
     conversationId: number,
     content: string,
     messageType: 'incoming' | 'outgoing' | undefined,
+    privateMessage?: boolean,
     attachments?: {
       content: unknown;
       encoding: string;
@@ -404,6 +405,7 @@ export class ChatwootService {
         content: content,
         message_type: messageType,
         attachments: attachments,
+        private: privateMessage || false,
       },
     });
 
