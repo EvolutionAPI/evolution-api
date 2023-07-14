@@ -97,12 +97,7 @@ export class InstanceController {
         }
       }
 
-      if (
-        !chatwoot_account_id ||
-        !chatwoot_token ||
-        !chatwoot_url ||
-        !chatwoot_sign_msg
-      ) {
+      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
         this.logger.verbose('instance created');
         this.logger.verbose({
           instance: {
@@ -137,10 +132,6 @@ export class InstanceController {
         throw new BadRequestException('url is required');
       }
 
-      if (!chatwoot_sign_msg) {
-        throw new BadRequestException('sign_msg is required');
-      }
-
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       try {
@@ -149,7 +140,7 @@ export class InstanceController {
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg,
+          sign_msg: chatwoot_sign_msg || false,
           name_inbox: instance.instanceName,
         });
 
@@ -174,7 +165,7 @@ export class InstanceController {
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg,
+          sign_msg: chatwoot_sign_msg || false,
           name_inbox: instance.instanceName,
           webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
         },
@@ -227,12 +218,7 @@ export class InstanceController {
         }
       }
 
-      if (
-        !chatwoot_account_id ||
-        !chatwoot_token ||
-        !chatwoot_url ||
-        !chatwoot_sign_msg
-      ) {
+      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
         let getQrcode: wa.QrCode;
 
         if (qrcode) {
@@ -280,10 +266,6 @@ export class InstanceController {
         throw new BadRequestException('url is required');
       }
 
-      if (!chatwoot_sign_msg) {
-        throw new BadRequestException('sign_msg is required');
-      }
-
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       try {
@@ -292,7 +274,7 @@ export class InstanceController {
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg,
+          sign_msg: chatwoot_sign_msg || false,
           name_inbox: instance.instanceName,
         });
 
@@ -320,7 +302,7 @@ export class InstanceController {
           account_id: chatwoot_account_id,
           token: chatwoot_token,
           url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg,
+          sign_msg: chatwoot_sign_msg || false,
           name_inbox: instance.instanceName,
           webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
         },
