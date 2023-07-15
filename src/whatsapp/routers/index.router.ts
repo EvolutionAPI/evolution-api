@@ -9,6 +9,7 @@ import { MessageRouter } from './sendMessage.router';
 import { ViewsRouter } from './view.router';
 import { WebhookRouter } from './webhook.router';
 import { ChatwootRouter } from './chatwoot.router';
+import fs from 'fs';
 
 enum HttpStatus {
   OK = 200,
@@ -24,11 +25,14 @@ const router = Router();
 const authType = configService.get<Auth>('AUTHENTICATION').TYPE;
 const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard[authType]];
 
+const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+
 router
   .get('/', (req, res) => {
     res.status(HttpStatus.OK).json({
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
+      version: packageJson.version,
     });
   })
   .use(

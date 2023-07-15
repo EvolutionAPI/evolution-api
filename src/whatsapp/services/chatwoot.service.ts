@@ -471,8 +471,6 @@ export class ChatwootService {
         return null;
       }
 
-      console.log(contact);
-
       const contactId = contact.payload.id || contact.payload.contact.id;
 
       if (!body.key.fromMe && contact.name === chatId && nameContact !== chatId) {
@@ -1169,7 +1167,6 @@ export class ChatwootService {
       }
 
       if (event === 'messages.upsert') {
-        console.log(body);
         this.logger.verbose('event messages.upsert');
 
         if (body.key.remoteJid === 'status@broadcast') {
