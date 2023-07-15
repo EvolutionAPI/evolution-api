@@ -3,6 +3,7 @@
 ### Fixed
 
 * Tweak in route "/" with version info
+* Adjusts chatwoot version
 
 ### Integrations
 
