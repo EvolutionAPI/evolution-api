@@ -1,3 +1,13 @@
+# 1.2.2 (2023-07-15 09:36)
+
+### Fixed
+
+* Tweak in route "/" with version info
+
+### Integrations
+
+- Chatwoot: v2.18.0
+
 # 1.2.1 (2023-07-14 19:04)
 
 ### Fixed
