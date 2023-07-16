@@ -6,6 +6,7 @@ then
   echo "DOCKER_ENV=$DOCKER_ENV"
   echo
 else
+  mkdir -p ./dist/src
   cp ./src/env.yml ./dist/src
 fi
 echo "> removing dist"

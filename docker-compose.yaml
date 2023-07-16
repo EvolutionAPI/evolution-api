@@ -22,5 +22,6 @@ volumes:
 
 networks:
   default:
-    name: evolution-net
+    external:
+      name: evolution-net
   

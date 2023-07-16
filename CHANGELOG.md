@@ -1,3 +1,10 @@
+# 1.2.3 (homolog)
+
+# Fixed
+ 
+* Fixed error to send message in large groups
+* Docker files adjusted
+
 # 1.2.2 (2023-07-15 09:36)
 
 ### Fixed
