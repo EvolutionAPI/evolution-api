@@ -33,12 +33,7 @@ services:
 
 volumes:
   evolution_mongodb_data:
-    name: evolution_mongodb_data
-    external: true
-
   evolution_mongodb_configdb:
-    name: evolution_mongodb_configdb
-    external: true
 
 networks:
   evolution-net:

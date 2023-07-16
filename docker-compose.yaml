@@ -18,12 +18,7 @@ services:
 
 volumes:
   evolution_instances:
-    name: evolution_instances
-    external: true
-
   evolution_store:
-    name: evolution_store
-    external: true
 
 networks:
   evolution-net:

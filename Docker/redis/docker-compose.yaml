@@ -22,8 +22,6 @@ services:
     
 volumes:
   evolution_redis:
-    name: evolution_redis
-    external: true
 
 networks:
   evolution-net:
