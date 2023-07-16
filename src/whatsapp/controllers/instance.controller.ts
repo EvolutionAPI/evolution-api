@@ -28,21 +28,18 @@ export class InstanceController {
 
   private readonly logger = new Logger(InstanceController.name);
 
-  public async createInstance(
-    {
-      instanceName,
-      webhook,
-      webhook_by_events,
-      events,
-      qrcode,
-      token,
-      chatwoot_account_id,
-      chatwoot_token,
-      chatwoot_url,
-      chatwoot_sign_msg,
-    }: InstanceDto,
-    apiURL: string,
-  ) {
+  public async createInstance({
+    instanceName,
+    webhook,
+    webhook_by_events,
+    events,
+    qrcode,
+    token,
+    chatwoot_account_id,
+    chatwoot_token,
+    chatwoot_url,
+    chatwoot_sign_msg,
+  }: InstanceDto) {
     this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
 
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
@@ -143,7 +140,7 @@ export class InstanceController {
         throw new BadRequestException('Invalid "url" property in chatwoot');
       }
 
-      const urlServer = apiURL;
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       try {
         this.chatwootService.create(instance, {
@@ -285,7 +282,7 @@ export class InstanceController {
         throw new BadRequestException('Invalid "url" property in chatwoot');
       }
 
-      const urlServer = apiURL;
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       try {
         this.chatwootService.create(instance, {

@@ -3,7 +3,7 @@ import { load } from 'js-yaml';
 import { join } from 'path';
 import { isBooleanString } from 'class-validator';
 
-export type HttpServer = { TYPE: 'http' | 'https'; PORT: number };
+export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
 
 export type HttpMethods = 'POST' | 'GET' | 'PUT' | 'DELETE';
 export type Cors = {
@@ -173,6 +173,7 @@ export class ConfigService {
       SERVER: {
         TYPE: process.env.SERVER_TYPE as 'http' | 'https',
         PORT: Number.parseInt(process.env.SERVER_PORT),
+        URL: process.env.SERVER_URL,
       },
       CORS: {
         ORIGIN: process.env.CORS_ORIGIN.split(','),
