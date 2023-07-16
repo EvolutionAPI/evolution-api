@@ -6,6 +6,7 @@
 * Docker files adjusted
 * Fixed in the postman collection the webhookByEvent parameter by webhook_by_events
 * Now it's getting the API URL directly in the request, no longer need the variable in the env file
+* Removed link preview endpoint, now it's done automatically from sending conventional text
 
 # 1.2.2 (2023-07-15 09:36)
 

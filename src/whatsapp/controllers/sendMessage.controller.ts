@@ -119,9 +119,4 @@ export class SendMessageController {
     logger.verbose('requested sendStatus from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].statusMessage(data);
   }
-
-  public async sendLinkPreview({ instanceName }: InstanceDto, data: SendLinkPreviewDto) {
-    logger.verbose('requested sendLinkPreview from ' + instanceName + ' instance');
-    return await this.waMonitor.waInstances[instanceName].linkPreview(data);
-  }
 }

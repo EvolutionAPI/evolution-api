@@ -76,7 +76,6 @@ import {
   SendReactionDto,
   SendTextDto,
   SendPollDto,
-  SendLinkPreviewDto,
   SendStickerDto,
   SendStatusDto,
   StatusMessage,
@@ -1476,8 +1475,8 @@ export class WAStartupService {
         if (
           !message['audio'] &&
           !message['poll'] &&
-          !message['linkPreview'] &&
           !message['sticker'] &&
+          !message['conversation'] &&
           !sender.includes('@broadcast')
         ) {
           if (!message['audio']) {
@@ -1496,12 +1495,13 @@ export class WAStartupService {
           }
         }
 
-        if (message['linkPreview']) {
+        if (message['conversation']) {
+          console.log(message['conversation']);
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
             {
-              text: message['linkPreview'].text,
+              text: message['conversation'],
             } as unknown as AnyMessageContent,
             option as unknown as MiscMessageGenerationOptions,
           );
@@ -1578,19 +1578,6 @@ export class WAStartupService {
       data.number,
       {
         conversation: data.textMessage.text,
-      },
-      data?.options,
-    );
-  }
-
-  public async linkPreview(data: SendLinkPreviewDto) {
-    this.logger.verbose('Sending link preview');
-    return await this.sendMessageWithTyping(
-      data.number,
-      {
-        linkPreview: {
-          text: data.linkPreview.text,
-        },
       },
       data?.options,
     );
@@ -2646,9 +2633,7 @@ export class WAStartupService {
       const msg = `${description}\n\n${inviteUrl}`;
 
       const message = {
-        linkPreview: {
-          text: msg,
-        },
+        conversation: msg,
       };
 
       for await (const number of numbers) {

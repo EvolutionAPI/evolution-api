@@ -144,24 +144,6 @@ export const textMessageSchema: JSONSchema7 = {
   required: ['textMessage', 'number'],
 };
 
-export const linkPreviewSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    number: { ...numberDefinition },
-    options: { ...optionsSchema },
-    linkPreview: {
-      type: 'object',
-      properties: {
-        text: { type: 'string' },
-      },
-      required: ['text'],
-      ...isNotEmpty('text'),
-    },
-  },
-  required: ['linkPreview', 'number'],
-};
-
 export const pollMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
