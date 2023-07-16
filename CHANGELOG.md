@@ -9,6 +9,7 @@
 * Fixed error to send message in large groups
 * Docker files adjusted
 * Fixed in the postman collection the webhookByEvent parameter by webhook_by_events
+* Added validations in create instance
 * Now it's getting the API URL directly in the request, no longer need the variable in the env file
 * Removed link preview endpoint, now it's done automatically from sending conventional text
 * Added group membership validation before sending message to groups
