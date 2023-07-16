@@ -5,7 +5,6 @@ import {
   SendAudioDto,
   SendButtonDto,
   SendContactDto,
-  SendLinkPreviewDto,
   SendListDto,
   SendLocationDto,
   SendMediaDto,
