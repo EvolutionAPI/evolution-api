@@ -12,6 +12,7 @@
 * Now it's getting the API URL directly in the request, no longer need the variable in the env file
 * Removed link preview endpoint, now it's done automatically from sending conventional text
 * Added group membership validation before sending message to groups
+* Adjusts in Dockerfile
 
 # 1.2.2 (2023-07-15 09:36)
 
