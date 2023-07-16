@@ -12,6 +12,7 @@ import { ChatwootService } from '../services/chatwoot.service';
 import { Logger } from '../../config/logger.config';
 import { wa } from '../types/wa.types';
 import { RedisCache } from '../../db/redis.client';
+import { isURL } from 'class-validator';
 
 export class InstanceController {
   constructor(
@@ -27,18 +28,21 @@ export class InstanceController {
 
   private readonly logger = new Logger(InstanceController.name);
 
-  public async createInstance({
-    instanceName,
-    webhook,
-    webhook_by_events,
-    events,
-    qrcode,
-    token,
-    chatwoot_account_id,
-    chatwoot_token,
-    chatwoot_url,
-    chatwoot_sign_msg,
-  }: InstanceDto) {
+  public async createInstance(
+    {
+      instanceName,
+      webhook,
+      webhook_by_events,
+      events,
+      qrcode,
+      token,
+      chatwoot_account_id,
+      chatwoot_token,
+      chatwoot_url,
+      chatwoot_sign_msg,
+    }: InstanceDto,
+    apiURL: string,
+  ) {
     this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
 
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
@@ -82,6 +86,9 @@ export class InstanceController {
       let getEvents: string[];
 
       if (webhook) {
+        if (!isURL(webhook, { require_tld: false })) {
+          throw new BadRequestException('Invalid "url" property in webhook');
+        }
         this.logger.verbose('creating webhook');
         try {
           this.webhookService.create(instance, {
@@ -132,7 +139,11 @@ export class InstanceController {
         throw new BadRequestException('url is required');
       }
 
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+      if (!isURL(chatwoot_url, { require_tld: false })) {
+        throw new BadRequestException('Invalid "url" property in chatwoot');
+      }
+
+      const urlServer = apiURL;
 
       try {
         this.chatwootService.create(instance, {
@@ -203,6 +214,10 @@ export class InstanceController {
       let getEvents: string[];
 
       if (webhook) {
+        if (!isURL(webhook, { require_tld: false })) {
+          throw new BadRequestException('Invalid "url" property in webhook');
+        }
+
         this.logger.verbose('creating webhook');
         try {
           this.webhookService.create(instance, {
@@ -266,7 +281,11 @@ export class InstanceController {
         throw new BadRequestException('url is required');
       }
 
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+      if (!isURL(chatwoot_url, { require_tld: false })) {
+        throw new BadRequestException('Invalid "url" property in chatwoot');
+      }
+
+      const urlServer = apiURL;
 
       try {
         this.chatwootService.create(instance, {

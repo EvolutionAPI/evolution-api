@@ -15,8 +15,6 @@ services:
     volumes:
       - evolution_mongodb_data:/data/db
       - evolution_mongodb_configdb:/data/configdb
-    networks:
-      - evolution-net
     expose:
       - 27017
 

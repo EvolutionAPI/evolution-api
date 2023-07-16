@@ -23,11 +23,15 @@ export class InstanceRouter extends RouterBroker {
 
         logger.verbose('request query: ');
         logger.verbose(req.query);
+
+        const apiURL = req.headers.host || req.hostname;
+        logger.verbose('API URL: ' + apiURL);
+
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => instanceController.createInstance(instance),
+          execute: (instance) => instanceController.createInstance(instance, apiURL),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

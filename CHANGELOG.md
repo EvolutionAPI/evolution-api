@@ -4,6 +4,8 @@
  
 * Fixed error to send message in large groups
 * Docker files adjusted
+* Fixed in the postman collection the webhookByEvent parameter by webhook_by_events
+* Now it's getting the API URL directly in the request, no longer need the variable in the env file
 
 # 1.2.2 (2023-07-15 09:36)
 
