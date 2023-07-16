@@ -1116,6 +1116,7 @@ export class WAStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
+      console.log(args);
       this.logger.verbose('Event received: messages.update');
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
@@ -1126,11 +1127,7 @@ export class WAStartupService {
         5: 'PLAYED',
       };
       for await (const { key, update } of args) {
-        if (
-          key.remoteJid !== 'status@broadcast' &&
-          !key?.remoteJid?.match(/(:\d+)/) &&
-          key.fromMe
-        ) {
+        if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
           this.logger.verbose('Message update is valid');
 
           let pollUpdates: any;
@@ -1148,6 +1145,16 @@ export class WAStartupService {
                 pollUpdates: update.pollUpdates,
               });
             }
+          }
+
+          if (status[update.status] === 'READ' && !key.fromMe) return;
+
+          if (update.message === null && update.status === undefined) {
+            this.logger.verbose('Message deleted');
+
+            this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
+            await this.sendDataWebhook(Events.MESSAGES_DELETE, key);
+            return;
           }
 
           const message: MessageUpdateRaw = {

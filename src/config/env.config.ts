@@ -76,6 +76,7 @@ export type EventsWebhook = {
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
   MESSAGES_UPDATE: boolean;
+  MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
@@ -238,6 +239,7 @@ export class ConfigService {
           MESSAGES_SET: process.env?.WEBHOOK_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.WEBHOOK_EVENTS_MESSAGES_UPSERT === 'true',
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
+          MESSAGES_DELETE: process.env?.WEBHOOK_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
           CONTACTS_SET: process.env?.WEBHOOK_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.WEBHOOK_EVENTS_CONTACTS_UPDATE === 'true',

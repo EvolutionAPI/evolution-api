@@ -96,6 +96,7 @@ WEBHOOK:
     MESSAGES_SET: true
     MESSAGES_UPSERT: true
     MESSAGES_UPDATE: true
+    MESSAGES_DELETE: true
     SEND_MESSAGE: true
     CONTACTS_SET: true
     CONTACTS_UPSERT: true
