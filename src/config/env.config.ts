@@ -98,9 +98,9 @@ export type Instance = {
   NAME: string;
   WEBHOOK_URL: string;
   MODE: string;
-  CHATWOOT_ACCOUNT_ID?: string;
-  CHATWOOT_TOKEN?: string;
-  CHATWOOT_URL?: string;
+  CHATWOOT_ACCOUNT_ID: string;
+  CHATWOOT_TOKEN: string;
+  CHATWOOT_URL: string;
 };
 export type Auth = {
   API_KEY: ApiKey;
@@ -192,7 +192,7 @@ export class ConfigService {
       CLEAN_STORE: {
         CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_TERMINAL)
           ? Number.parseInt(process.env.CLEAN_STORE_CLEANING_TERMINAL)
-          : undefined,
+          : 7200,
         MESSAGES: process.env?.CLEAN_STORE_MESSAGES === 'true',
         MESSAGE_UP: process.env?.CLEAN_STORE_MESSAGE_UP === 'true',
         CONTACTS: process.env?.CLEAN_STORE_CONTACTS === 'true',
@@ -224,7 +224,7 @@ export class ConfigService {
       },
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
         ? process.env.DEL_INSTANCE === 'true'
-        : Number.parseInt(process.env.DEL_INSTANCE),
+        : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
           URL: process.env?.WEBHOOK_GLOBAL_URL,
@@ -256,11 +256,11 @@ export class ConfigService {
         },
       },
       CONFIG_SESSION_PHONE: {
-        CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT,
-        NAME: process.env?.CONFIG_SESSION_PHONE_NAME,
+        CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT || 'Evolution API',
+        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'chrome',
       },
       QRCODE: {
-        LIMIT: Number.parseInt(process.env.QRCODE_LIMIT),
+        LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'jwt',
