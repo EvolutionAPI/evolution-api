@@ -1,6 +1,10 @@
-# 1.2.3 (homolog)
+# 1.3.0 (homolog)
 
-# Fixed
+### Features
+
+* Added messages.delete event
+
+### Fixed
  
 * Fixed error to send message in large groups
 * Docker files adjusted
@@ -8,7 +12,6 @@
 * Now it's getting the API URL directly in the request, no longer need the variable in the env file
 * Removed link preview endpoint, now it's done automatically from sending conventional text
 * Added group membership validation before sending message to groups
-* Added messages.delete event
 
 # 1.2.2 (2023-07-15 09:36)
 
