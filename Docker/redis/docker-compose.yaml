@@ -22,8 +22,10 @@ services:
     
 volumes:
   evolution_redis:
+    name: evolution_redis
+    external: true
 
 networks:
-  default:
-    external:
-      name: evolution-net
+  evolution-net:
+    name: evolution-net
+    external: true
