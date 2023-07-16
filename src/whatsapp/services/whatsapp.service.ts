@@ -741,6 +741,7 @@ export class WAStartupService {
         version,
         connectTimeoutMs: 60_000,
         qrTimeout: 40_000,
+        defaultQueryTimeoutMs: undefined,
         emitOwnEvents: false,
         msgRetryCounterCache: this.msgRetryCounterCache,
         getMessage: async (key) =>
