@@ -342,7 +342,6 @@ export class WAStartupService {
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
-    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
     const webhookLocal = this.localWebhook.events;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
@@ -367,7 +366,6 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
-            urlServer,
           });
         }
 
@@ -379,7 +377,6 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
-              urlServer,
             });
           }
         } catch (error) {
@@ -427,7 +424,6 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
-            urlServer,
           });
         }
 
@@ -439,7 +435,6 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
-              urlServer,
             });
           }
         } catch (error) {
