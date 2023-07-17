@@ -1334,29 +1334,27 @@ export class WAStartupService {
   private createJid(number: string): string {
     this.logger.verbose('Creating jid with number: ' + number);
 
-    const numberReplace = number.replace(/[^0-9]/g, '');
-
-    if (numberReplace.includes('@g.us') || numberReplace.includes('@s.whatsapp.net')) {
+    if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
-      return numberReplace;
+      return number;
     }
 
-    if (numberReplace.includes('@broadcast')) {
+    if (number.includes('@broadcast')) {
       this.logger.verbose('Number already contains @broadcast');
-      return numberReplace;
+      return number;
     }
 
-    const formattedBRNumber = this.formatBRNumber(numberReplace);
-    if (formattedBRNumber !== numberReplace) {
+    const formattedBRNumber = this.formatBRNumber(number);
+    if (formattedBRNumber !== number) {
       this.logger.verbose(
         'Jid created is whatsapp in format BR: ' + `${formattedBRNumber}@s.whatsapp.net`,
       );
       return `${formattedBRNumber}@s.whatsapp.net`;
     }
 
-    const formattedMXARNumber = this.formatMXOrARNumber(numberReplace);
+    const formattedMXARNumber = this.formatMXOrARNumber(number);
 
-    if (formattedMXARNumber !== numberReplace) {
+    if (formattedMXARNumber !== number) {
       this.logger.verbose(
         'Jid created is whatsapp in format MXAR: ' +
           `${formattedMXARNumber}@s.whatsapp.net`,
@@ -1364,13 +1362,13 @@ export class WAStartupService {
       return `${formattedMXARNumber}@s.whatsapp.net`;
     }
 
-    if (numberReplace.includes('-')) {
-      this.logger.verbose('Jid created is group: ' + `${numberReplace}@g.us`);
-      return `${numberReplace}@g.us`;
+    if (number.includes('-')) {
+      this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
+      return `${number}@g.us`;
     }
 
-    this.logger.verbose('Jid created is whatsapp: ' + `${numberReplace}@s.whatsapp.net`);
-    return `${numberReplace}@s.whatsapp.net`;
+    this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
+    return `${number}@s.whatsapp.net`;
   }
 
   public async profilePicture(number: string) {

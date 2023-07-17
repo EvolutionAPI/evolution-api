@@ -66,6 +66,18 @@ export class ChatwootController {
 
     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
+    if (Object.keys(result).length === 0) {
+      return {
+        enabled: false,
+        url: '',
+        account_id: '',
+        token: '',
+        sign_msg: false,
+        name_inbox: '',
+        webhook_url: '',
+      };
+    }
+
     const response = {
       ...result,
       webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
