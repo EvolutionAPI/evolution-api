@@ -14,6 +14,7 @@
 * Removed link preview endpoint, now it's done automatically from sending conventional text
 * Added group membership validation before sending message to groups
 * Adjusts in Dockerfile
+* Adjusts in returns in endpoints chatwoot and webhook
 
 # 1.2.2 (2023-07-15 09:36)
 
