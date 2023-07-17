@@ -1111,7 +1111,6 @@ export class WAStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
-      console.log(args);
       this.logger.verbose('Event received: messages.update');
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
@@ -1337,7 +1336,6 @@ export class WAStartupService {
 
     const numberReplace = number.replace(/[^0-9]/g, '');
 
-    console.log('number', numberReplace);
     if (numberReplace.includes('@g.us') || numberReplace.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
       return numberReplace;
@@ -1507,7 +1505,6 @@ export class WAStartupService {
         }
 
         if (message['conversation']) {
-          console.log(message['conversation']);
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,

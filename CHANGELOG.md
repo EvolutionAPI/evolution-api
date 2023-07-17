@@ -3,6 +3,7 @@
 ### Features
 
 * Added messages.delete event
+* Added restart instance endpoint
 
 ### Fixed
  
