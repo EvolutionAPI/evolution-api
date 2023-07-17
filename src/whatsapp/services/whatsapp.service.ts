@@ -343,6 +343,7 @@ export class WAStartupService {
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
+    const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
@@ -366,6 +367,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            server_url: serverUrl,
           });
         }
 
@@ -377,6 +379,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              server_url: serverUrl,
             });
           }
         } catch (error) {
@@ -390,6 +393,7 @@ export class WAStartupService {
             stack: error?.stack,
             name: error?.name,
             url: baseURL,
+            server_url: serverUrl,
           });
         }
       }
@@ -424,6 +428,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            server_url: serverUrl,
           });
         }
 
@@ -435,6 +440,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              server_url: serverUrl,
             });
           }
         } catch (error) {
@@ -448,6 +454,7 @@ export class WAStartupService {
             stack: error?.stack,
             name: error?.name,
             url: globalURL,
+            server_url: serverUrl,
           });
         }
       }
@@ -1508,6 +1515,7 @@ export class WAStartupService {
             sender,
             {
               text: message['conversation'],
+              mentions,
             } as unknown as AnyMessageContent,
             option as unknown as MiscMessageGenerationOptions,
           );

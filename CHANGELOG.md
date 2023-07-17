@@ -15,6 +15,7 @@
 * Added group membership validation before sending message to groups
 * Adjusts in Dockerfile
 * Adjusts in returns in endpoints chatwoot and webhook
+* Fixed ghost mentions in send text message
 
 # 1.2.2 (2023-07-15 09:36)
 
