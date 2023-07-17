@@ -12,6 +12,7 @@ import mimeTypes from 'mime-types';
 import { SendAudioDto } from '../dto/sendMessage.dto';
 import { SendMediaDto } from '../dto/sendMessage.dto';
 import { ROOT_DIR } from '../../config/path.config';
+import { ConfigService, HttpServer } from '../../config/env.config';
 
 export class ChatwootService {
   private messageCacheFile: string;
@@ -21,7 +22,10 @@ export class ChatwootService {
 
   private provider: any;
 
-  constructor(private readonly waMonitor: WAMonitoringService) {
+  constructor(
+    private readonly waMonitor: WAMonitoringService,
+    private readonly configService: ConfigService,
+  ) {
     this.messageCache = new Set();
   }
 
@@ -980,6 +984,39 @@ export class ChatwootService {
           this.logger.verbose('disconnect to whatsapp');
           await waInstance?.client?.logout('Log out instance: ' + instance.instanceName);
           await waInstance?.client?.ws?.close();
+        }
+
+        if (command.includes('#inbox_whatsapp')) {
+          console.log('command include #inbox_whatsapp');
+
+          const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+          const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
+
+          console.log('url server: ' + urlServer);
+          console.log('api key: ' + apiKey);
+          const data = {
+            instanceName: command.split(':')[1],
+            qrcode: true,
+            chatwoot_account_id: this.provider.account_id,
+            chatwoot_token: this.provider.token,
+            chatwoot_url: this.provider.url,
+            chatwoot_sign_msg: this.provider.sign_msg,
+          };
+
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${urlServer}/instance/create`,
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: apiKey,
+            },
+            data: data,
+          };
+
+          const { data: response } = await axios.request(config);
+
+          console.log(response);
         }
       }
 

@@ -149,7 +149,7 @@ export class WAStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
-  private chatwootService = new ChatwootService(waMonitor);
+  private chatwootService = new ChatwootService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);

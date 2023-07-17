@@ -90,7 +90,7 @@ export class ChatwootController {
     logger.verbose(
       'requested receiveWebhook from ' + instance.instanceName + ' instance',
     );
-    const chatwootService = new ChatwootService(waMonitor);
+    const chatwootService = new ChatwootService(waMonitor, this.configService);
 
     return chatwootService.receiveWebhook(instance, data);
   }
