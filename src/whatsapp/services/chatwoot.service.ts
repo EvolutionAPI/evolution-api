@@ -437,7 +437,7 @@ export class ChatwootService {
             instance,
             body.key.participant.split('@')[0],
             filterInbox.id,
-            isGroup,
+            false,
             body.pushName,
             picture_url.profilePictureUrl || null,
           );

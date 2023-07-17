@@ -17,6 +17,7 @@
 * Adjusts in Dockerfile
 * Adjusts in returns in endpoints chatwoot and webhook
 * Fixed ghost mentions in send text message
+* Fixed bug that saved contacts from groups came without number in chatwoot
 
 # 1.2.2 (2023-07-15 09:36)
 
