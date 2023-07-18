@@ -936,7 +936,7 @@ export class ChatwootService {
 
         const command = messageReceived.replace('/', '');
 
-        if (command === 'init') {
+        if (command === 'init' || command === 'iniciar') {
           this.logger.verbose('command init found');
           const state = waInstance?.connectionStatus?.state;
 
@@ -977,7 +977,7 @@ export class ChatwootService {
           }
         }
 
-        if (command === 'disconnect') {
+        if (command === 'disconnect' || command === 'desconectar') {
           this.logger.verbose('command disconnect found');
 
           const msgLogout = `🚨 Disconnecting Whatsapp from inbox *${body.inbox.name}*: `;

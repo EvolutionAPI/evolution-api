@@ -1480,7 +1480,17 @@ export class WAStartupService {
       let quoted: WAMessage;
 
       if (options?.quoted) {
-        quoted = options?.quoted;
+        const m = options?.quoted;
+
+        const msg = m?.message
+          ? m
+          : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
+
+        if (!msg) {
+          throw 'Message not found';
+        }
+
+        quoted = msg;
         this.logger.verbose('Quoted message');
       }
 
@@ -1776,8 +1786,10 @@ export class WAStartupService {
 
   public async statusMessage(data: SendStatusDto) {
     this.logger.verbose('Sending status message');
+    const status = await this.formatStatusMessage(data.statusMessage);
+
     return await this.sendMessageWithTyping('status@broadcast', {
-      status: await this.formatStatusMessage(data.statusMessage),
+      status,
     });
   }
 
