@@ -1174,7 +1174,6 @@ export class ChatwootService {
     const result = typeKey ? types[typeKey] : undefined;
 
     if (typeKey === 'contactMessage') {
-      console.log(result);
       const vCardData = result.split('\n');
       const contactInfo = {};
 

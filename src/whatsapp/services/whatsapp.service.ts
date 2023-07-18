@@ -1912,8 +1912,6 @@ export class WAStartupService {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
-    console.log('generate', generate);
-
     return await this.sendMessageWithTyping(
       data.number,
       { ...generate.message },
