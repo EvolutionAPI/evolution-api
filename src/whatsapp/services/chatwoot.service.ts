@@ -453,21 +453,24 @@ export class ChatwootService {
       const findContact = await this.findContact(instance, chatId);
 
       let contact: any;
-
-      if (findContact) {
-        contact = await this.updateContact(instance, findContact.id, {
-          name: nameContact,
-          avatar_url: picture_url.profilePictureUrl || null,
-        });
+      if (body.key.fromMe) {
+        contact = findContact;
       } else {
-        contact = await this.createContact(
-          instance,
-          chatId,
-          filterInbox.id,
-          isGroup,
-          nameContact,
-          picture_url.profilePictureUrl || null,
-        );
+        if (findContact) {
+          contact = await this.updateContact(instance, findContact.id, {
+            name: nameContact,
+            avatar_url: picture_url.profilePictureUrl || null,
+          });
+        } else {
+          contact = await this.createContact(
+            instance,
+            chatId,
+            filterInbox.id,
+            isGroup,
+            nameContact,
+            picture_url.profilePictureUrl || null,
+          );
+        }
       }
 
       if (!contact) {
@@ -475,7 +478,8 @@ export class ChatwootService {
         return null;
       }
 
-      const contactId = contact.payload.id || contact.payload.contact.id;
+      const contactId =
+        contact?.payload?.id || contact?.payload?.contact?.id || contact?.id;
 
       if (!body.key.fromMe && contact.name === chatId && nameContact !== chatId) {
         this.logger.verbose('update contact name in chatwoot');
@@ -987,13 +991,9 @@ export class ChatwootService {
         }
 
         if (command.includes('#inbox_whatsapp')) {
-          console.log('command include #inbox_whatsapp');
-
           const urlServer = this.configService.get<HttpServer>('SERVER').URL;
           const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
 
-          console.log('url server: ' + urlServer);
-          console.log('api key: ' + apiKey);
           const data = {
             instanceName: command.split(':')[1],
             qrcode: true,
@@ -1014,9 +1014,7 @@ export class ChatwootService {
             data: data,
           };
 
-          const { data: response } = await axios.request(config);
-
-          console.log(response);
+          await axios.request(config);
         }
       }
 
@@ -1101,7 +1099,6 @@ export class ChatwootService {
         body.content_type === 'input_csat' &&
         body.event === 'message_created'
       ) {
-        console.log(body);
         this.logger.verbose('check if is csat');
 
         const data: SendTextDto = {
@@ -1161,6 +1158,7 @@ export class ChatwootService {
       documentWithCaptionMessage:
         msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
       audioMessage: msg.audioMessage?.caption,
+      contactMessage: msg.contactMessage?.vcard,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1174,6 +1172,25 @@ export class ChatwootService {
 
     const result = typeKey ? types[typeKey] : undefined;
 
+    if (typeKey === 'contactMessage') {
+      const vCardData = result.split('\n');
+      const contactInfo = {};
+
+      vCardData.forEach((line) => {
+        const [key, value] = line.split(':');
+        if (key && value) {
+          contactInfo[key] = value;
+        }
+      });
+
+      const formattedContact = `**Contact:**
+        **name:** ${contactInfo['FN']}
+        **number:** ${contactInfo['item1.TEL;waid=5511952801378']}`;
+
+      this.logger.verbose('message content: ' + formattedContact);
+      return formattedContact;
+    }
+
     this.logger.verbose('message content: ' + result);
 
     return result;
@@ -1184,7 +1201,11 @@ export class ChatwootService {
 
     const types = this.getTypeMessage(msg);
 
+    console.log('types', types);
+
     const messageContent = this.getMessageContent(types);
+
+    console.log('messageContent', messageContent);
 
     this.logger.verbose('conversation message: ' + messageContent);
 
