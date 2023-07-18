@@ -9,6 +9,7 @@
 * Send contact in chatwoot
 * Send contact array in chatwoot
 * Added apiKey in webhook and serverUrl in fetchInstance if EXPOSE_IN_FETCH_INSTANCES: true
+* Translation set to default (english) in chatwoot
 
 ### Fixed
  
