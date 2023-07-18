@@ -1305,6 +1305,7 @@ export class WAStartupService {
     const regexp = new RegExp(/^(\d{2})(\d{2})\d{1}(\d{8})$/);
     if (regexp.test(jid)) {
       const match = regexp.exec(jid);
+
       if (match && (match[1] === '52' || match[1] === '54')) {
         const joker = Number.parseInt(match[3][0]);
         const ddd = Number.parseInt(match[2]);
@@ -1360,6 +1361,7 @@ export class WAStartupService {
     }
 
     const formattedMXARNumber = this.formatMXOrARNumber(number);
+    console.log(formattedMXARNumber, number);
 
     if (formattedMXARNumber !== number) {
       this.logger.verbose(
@@ -1491,7 +1493,7 @@ export class WAStartupService {
           !message['poll'] &&
           !message['sticker'] &&
           !message['conversation'] &&
-          !sender.includes('@broadcast')
+          sender !== 'status@broadcast'
         ) {
           if (!message['audio']) {
             this.logger.verbose('Sending message');
@@ -1521,7 +1523,7 @@ export class WAStartupService {
           );
         }
 
-        if (sender.includes('@broadcast')) {
+        if (sender === 'status@broadcast') {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
