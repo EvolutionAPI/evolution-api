@@ -27,6 +27,10 @@
 * Bug fix when sending mobile message change contact name to number in chatwoot
 * Bug fix when connecting whatsapp does not send confirmation message
 
+### Integrations
+
+- Chatwoot: v2.18.0
+
 # 1.2.2 (2023-07-15 09:36)
 
 ### Fixed
