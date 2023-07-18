@@ -1174,6 +1174,7 @@ export class ChatwootService {
     const result = typeKey ? types[typeKey] : undefined;
 
     if (typeKey === 'contactMessage') {
+      console.log(result);
       const vCardData = result.split('\n');
       const contactInfo = {};
 
@@ -1184,13 +1185,17 @@ export class ChatwootService {
         }
       });
 
-      const telKey = Object.keys(contactInfo).find((key) =>
-        key.startsWith('item1.TEL;waid='),
-      );
+      let formattedContact = `**Contact:**
+        **name:** ${contactInfo['FN']}`;
 
-      const formattedContact = `**Contact:**
-        **name:** ${contactInfo['FN']}
-        **number:** ${contactInfo[telKey]}`;
+      let numberCount = 1;
+      Object.keys(contactInfo).forEach((key) => {
+        if (key.startsWith('item') && key.includes('TEL;waid=')) {
+          const phoneNumber = contactInfo[key];
+          formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
+          numberCount++;
+        }
+      });
 
       this.logger.verbose('message content: ' + formattedContact);
       return formattedContact;
@@ -1208,13 +1213,17 @@ export class ChatwootService {
           }
         });
 
-        const telKey = Object.keys(contactInfo).find((key) =>
-          key.startsWith('item1.TEL;waid='),
-        );
+        let formattedContact = `**Contact:**
+            **name:** ${contact.displayName}`;
 
-        const formattedContact = `**Contact:**
-            **name:** ${contact.displayName}
-            **number:** ${contactInfo[telKey]}`;
+        let numberCount = 1;
+        Object.keys(contactInfo).forEach((key) => {
+          if (key.startsWith('item') && key.includes('TEL;waid=')) {
+            const phoneNumber = contactInfo[key];
+            formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
+            numberCount++;
+          }
+        });
 
         return formattedContact;
       });
