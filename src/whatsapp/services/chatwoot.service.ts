@@ -1558,7 +1558,7 @@ export class ChatwootService {
           this.logger.verbose('send qrcode to chatwoot');
           await this.createBotQr(
             instance,
-            'QRCode gerado com sucesso!',
+            'QRCode successfully generated!',
             'incoming',
             fileName,
           );
