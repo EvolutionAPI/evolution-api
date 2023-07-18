@@ -1444,29 +1444,29 @@ export class ChatwootService {
         }
       }
 
-      if (event === 'contacts.update') {
-        this.logger.verbose('event contacts.update');
-        const data = body;
+      // if (event === 'contacts.update') {
+      //   this.logger.verbose('event contacts.update');
+      //   const data = body;
 
-        if (data.length) {
-          this.logger.verbose('contacts found');
-          for (const item of data) {
-            const number = item.id.split('@')[0];
-            const photo = item.profilePictureUrl || null;
-            this.logger.verbose('find contact in chatwoot');
-            const find = await this.findContact(instance, number);
+      //   if (data.length) {
+      //     this.logger.verbose('contacts found');
+      //     for (const item of data) {
+      //       const number = item.id.split('@')[0];
+      //       const photo = item.profilePictureUrl || null;
+      //       this.logger.verbose('find contact in chatwoot');
+      //       const find = await this.findContact(instance, number);
 
-            if (find) {
-              this.logger.verbose('contact found');
+      //       if (find) {
+      //         this.logger.verbose('contact found');
 
-              this.logger.verbose('update contact in chatwoot');
-              await this.updateContact(instance, find.id, {
-                avatar_url: photo,
-              });
-            }
-          }
-        }
-      }
+      //         this.logger.verbose('update contact in chatwoot');
+      //         await this.updateContact(instance, find.id, {
+      //           avatar_url: photo,
+      //         });
+      //       }
+      //     }
+      //   }
+      // }
 
       if (event === 'qrcode.updated') {
         this.logger.verbose('event qrcode.updated');
