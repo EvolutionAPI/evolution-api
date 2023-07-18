@@ -348,6 +348,13 @@ export class WAStartupService {
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
 
+    const expose =
+      this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
+    const tokenStore = await this.repository.auth.find(this.instanceName);
+    const instanceApikey = tokenStore.apikey || 'Apikey not found';
+
+    const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
+
     if (local && instance.MODE !== 'container') {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         this.logger.verbose('Sending data to webhook local');
@@ -360,7 +367,7 @@ export class WAStartupService {
         }
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          this.logger.log({
+          const logData = {
             local: WAStartupService.name + '.sendDataWebhook-local',
             url: baseURL,
             event,
@@ -368,19 +375,32 @@ export class WAStartupService {
             data,
             destination: this.localWebhook.url,
             server_url: serverUrl,
-          });
+            apikey: (expose && instanceApikey) || null,
+          };
+
+          if (expose && instanceApikey) {
+            logData['apikey'] = instanceApikey;
+          }
+
+          this.logger.log(logData);
         }
 
         try {
           if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
             const httpService = axios.create({ baseURL });
-            await httpService.post('', {
+            const postData = {
               event,
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
               server_url: serverUrl,
-            });
+            };
+
+            if (expose && instanceApikey) {
+              postData['apikey'] = instanceApikey;
+            }
+
+            await httpService.post('', postData);
           }
         } catch (error) {
           this.logger.error({
@@ -421,7 +441,7 @@ export class WAStartupService {
         }
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          this.logger.log({
+          const logData = {
             local: WAStartupService.name + '.sendDataWebhook-global',
             url: globalURL,
             event,
@@ -429,19 +449,31 @@ export class WAStartupService {
             data,
             destination: localUrl,
             server_url: serverUrl,
-          });
+          };
+
+          if (expose && globalApiKey) {
+            logData['apikey'] = globalApiKey;
+          }
+
+          this.logger.log(logData);
         }
 
         try {
           if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
             const httpService = axios.create({ baseURL: globalURL });
-            await httpService.post('', {
+            const postData = {
               event,
               instance: this.instance.name,
               data,
               destination: localUrl,
               server_url: serverUrl,
-            });
+            };
+
+            if (expose && globalApiKey) {
+              postData['apikey'] = globalApiKey;
+            }
+
+            await httpService.post('', postData);
           }
         } catch (error) {
           this.logger.error({
