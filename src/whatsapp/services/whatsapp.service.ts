@@ -624,6 +624,17 @@ export class WAStartupService {
         │    CONNECTED TO WHATSAPP     │
         └──────────────────────────────┘`.replace(/^ +/gm, '  '),
       );
+
+      if (this.localChatwoot.enabled) {
+        this.chatwootService.eventWhatsapp(
+          Events.CONNECTION_UPDATE,
+          { instanceName: this.instance.name },
+          {
+            instance: this.instance.name,
+            status: 'open',
+          },
+        );
+      }
     }
   }
 

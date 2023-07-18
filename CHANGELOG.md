@@ -23,6 +23,7 @@
 * Fixed problem to receive csat in chatwoot
 * Fixed require fileName for document only in base64 for send media message
 * Bug fix when sending mobile message change contact name to number in chatwoot
+* Bug fix when connecting whatsapp does not send confirmation message
 
 # 1.2.2 (2023-07-15 09:36)
 

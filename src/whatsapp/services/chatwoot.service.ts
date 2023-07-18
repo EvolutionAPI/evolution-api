@@ -1457,7 +1457,8 @@ export class ChatwootService {
 
       if (event === 'connection.update') {
         this.logger.verbose('event connection.update');
-        if (body.state === 'open') {
+        console.log('connection.update', body);
+        if (body.status === 'open') {
           const msgConnection = `🚀 Conexão realizada com sucesso!`;
 
           this.logger.verbose('send message to chatwoot');
