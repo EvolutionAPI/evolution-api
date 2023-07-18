@@ -1159,6 +1159,7 @@ export class ChatwootService {
         msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
       audioMessage: msg.audioMessage?.caption,
       contactMessage: msg.contactMessage?.vcard,
+      contactsArrayMessage: msg.contactsArrayMessage,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1183,12 +1184,46 @@ export class ChatwootService {
         }
       });
 
+      const telKey = Object.keys(contactInfo).find((key) =>
+        key.startsWith('item1.TEL;waid='),
+      );
+
       const formattedContact = `**Contact:**
         **name:** ${contactInfo['FN']}
-        **number:** ${contactInfo['item1.TEL;waid=5511952801378']}`;
+        **number:** ${contactInfo[telKey]}`;
 
       this.logger.verbose('message content: ' + formattedContact);
       return formattedContact;
+    }
+
+    if (typeKey === 'contactsArrayMessage') {
+      const formattedContacts = result.contacts.map((contact) => {
+        const vCardData = contact.vcard.split('\n');
+        const contactInfo = {};
+
+        vCardData.forEach((line) => {
+          const [key, value] = line.split(':');
+          if (key && value) {
+            contactInfo[key] = value;
+          }
+        });
+
+        const telKey = Object.keys(contactInfo).find((key) =>
+          key.startsWith('item1.TEL;waid='),
+        );
+
+        const formattedContact = `**Contact:**
+            **name:** ${contact.displayName}
+            **number:** ${contactInfo[telKey]}`;
+
+        return formattedContact;
+      });
+
+      const formattedContactsArray = formattedContacts.join('\n\n');
+
+      this.logger.verbose('formatted contacts: ' + formattedContactsArray);
+
+      return formattedContactsArray;
     }
 
     this.logger.verbose('message content: ' + result);
@@ -1201,11 +1236,7 @@ export class ChatwootService {
 
     const types = this.getTypeMessage(msg);
 
-    console.log('types', types);
-
     const messageContent = this.getMessageContent(types);
-
-    console.log('messageContent', messageContent);
 
     this.logger.verbose('conversation message: ' + messageContent);
 
@@ -1457,7 +1488,7 @@ export class ChatwootService {
 
       if (event === 'connection.update') {
         this.logger.verbose('event connection.update');
-        console.log('connection.update', body);
+
         if (body.status === 'open') {
           const msgConnection = `🚀 Conexão estabelecida com sucesso!`;
 
