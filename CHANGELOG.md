@@ -5,6 +5,7 @@
 * Added messages.delete event
 * Added restart instance endpoint
 * Created automation for creating instances in the chatwoot bot with the command #inbox_whatsapp:<INSTANCE_NAME>
+* Change Baileys version to: 6.4.0
 
 ### Fixed
  
@@ -18,6 +19,7 @@
 * Adjusts in returns in endpoints chatwoot and webhook
 * Fixed ghost mentions in send text message
 * Fixed bug that saved contacts from groups came without number in chatwoot
+* Fixed problem to receive csat in chatwoot
 
 # 1.2.2 (2023-07-15 09:36)
 
