@@ -247,7 +247,7 @@ export class ChatwootService {
         accountId: this.provider.account_id,
         conversationId: conversation.id,
         data: {
-          content: '/iniciar',
+          content: '/init',
           message_type: 'outgoing',
         },
       });
@@ -936,8 +936,8 @@ export class ChatwootService {
 
         const command = messageReceived.replace('/', '');
 
-        if (command === 'iniciar') {
-          this.logger.verbose('command iniciar found');
+        if (command === 'init') {
+          this.logger.verbose('command init found');
           const state = waInstance?.connectionStatus?.state;
 
           if (state !== 'open') {
@@ -947,7 +947,7 @@ export class ChatwootService {
             this.logger.verbose('whatsapp already connected');
             await this.createBotMessage(
               instance,
-              `🚨 Instância ${body.inbox.name} já está conectada.`,
+              `🚨 ${body.inbox.name} instance is connected.`,
               'incoming',
             );
           }
@@ -962,7 +962,7 @@ export class ChatwootService {
             this.logger.verbose('state not found');
             await this.createBotMessage(
               instance,
-              `⚠️ Instância ${body.inbox.name} não existe.`,
+              `⚠️ ${body.inbox.name} instance not found.`,
               'incoming',
             );
           }
@@ -971,16 +971,16 @@ export class ChatwootService {
             this.logger.verbose('state: ' + state + ' found');
             await this.createBotMessage(
               instance,
-              `⚠️ Status da instância ${body.inbox.name}: *${state}*`,
+              `⚠️ ${body.inbox.name} instance status: *${state}*`,
               'incoming',
             );
           }
         }
 
-        if (command === 'desconectar') {
-          this.logger.verbose('command desconectar found');
+        if (command === 'disconnect') {
+          this.logger.verbose('command disconnect found');
 
-          const msgLogout = `🚨 Desconectando Whatsapp da caixa de entrada *${body.inbox.name}*: `;
+          const msgLogout = `🚨 Disconnecting Whatsapp from inbox *${body.inbox.name}*: `;
 
           this.logger.verbose('send message to chatwoot');
           await this.createBotMessage(instance, msgLogout, 'incoming');
@@ -1189,7 +1189,7 @@ export class ChatwootService {
 
       let numberCount = 1;
       Object.keys(contactInfo).forEach((key) => {
-        if (key.startsWith('item') && key.includes('TEL;waid=')) {
+        if (key.startsWith('item') && key.includes('TEL')) {
           const phoneNumber = contactInfo[key];
           formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
           numberCount++;
@@ -1217,7 +1217,7 @@ export class ChatwootService {
 
         let numberCount = 1;
         Object.keys(contactInfo).forEach((key) => {
-          if (key.startsWith('item') && key.includes('TEL;waid=')) {
+          if (key.startsWith('item') && key.includes('TEL')) {
             const phoneNumber = contactInfo[key];
             formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
             numberCount++;
@@ -1488,7 +1488,7 @@ export class ChatwootService {
           return;
         }
 
-        const msgStatus = `⚡️ Status da instância ${inbox.name}: ${data.status}`;
+        const msgStatus = `⚡️ Instance status ${inbox.name}: ${data.status}`;
 
         this.logger.verbose('send message to chatwoot');
         await this.createBotMessage(instance, msgStatus, 'incoming');
@@ -1498,7 +1498,7 @@ export class ChatwootService {
         this.logger.verbose('event connection.update');
 
         if (body.status === 'open') {
-          const msgConnection = `🚀 Conexão estabelecida com sucesso!`;
+          const msgConnection = `🚀 Connection successfully established!`;
 
           this.logger.verbose('send message to chatwoot');
           await this.createBotMessage(instance, msgConnection, 'incoming');
@@ -1533,7 +1533,7 @@ export class ChatwootService {
         this.logger.verbose('event qrcode.updated');
         if (body.statusCode === 500) {
           this.logger.verbose('qrcode error');
-          const erroQRcode = `🚨 Limite de geração de QRCode atingido, para gerar um novo QRCode, envie a mensagem /iniciar novamente.`;
+          const erroQRcode = `🚨 QRCode generation limit reached, to generate a new QRCode, send the /init message again.`;
 
           this.logger.verbose('send message to chatwoot');
           return await this.createBotMessage(instance, erroQRcode, 'incoming');
@@ -1563,7 +1563,7 @@ export class ChatwootService {
             fileName,
           );
 
-          const msgQrCode = `⚡️ QRCode gerado com sucesso!\n\nDigitalize este código QR nos próximos 40 segundos:`;
+          const msgQrCode = `⚡️ QRCode successfully generated!\n\nScan this QR code within the next 40 seconds:`;
 
           this.logger.verbose('send message to chatwoot');
           await this.createBotMessage(instance, msgQrCode, 'incoming');
