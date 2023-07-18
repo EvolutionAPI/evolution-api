@@ -12,6 +12,7 @@ import mimeTypes from 'mime-types';
 import { SendAudioDto } from '../dto/sendMessage.dto';
 import { SendMediaDto } from '../dto/sendMessage.dto';
 import { ROOT_DIR } from '../../config/path.config';
+import { ConfigService, HttpServer } from '../../config/env.config';
 
 export class ChatwootService {
   private messageCacheFile: string;
@@ -21,7 +22,10 @@ export class ChatwootService {
 
   private provider: any;
 
-  constructor(private readonly waMonitor: WAMonitoringService) {
+  constructor(
+    private readonly waMonitor: WAMonitoringService,
+    private readonly configService: ConfigService,
+  ) {
     this.messageCache = new Set();
   }
 
@@ -433,7 +437,7 @@ export class ChatwootService {
             instance,
             body.key.participant.split('@')[0],
             filterInbox.id,
-            isGroup,
+            false,
             body.pushName,
             picture_url.profilePictureUrl || null,
           );
@@ -449,21 +453,24 @@ export class ChatwootService {
       const findContact = await this.findContact(instance, chatId);
 
       let contact: any;
-
-      if (findContact) {
-        contact = await this.updateContact(instance, findContact.id, {
-          name: nameContact,
-          avatar_url: picture_url.profilePictureUrl || null,
-        });
+      if (body.key.fromMe) {
+        contact = findContact;
       } else {
-        contact = await this.createContact(
-          instance,
-          chatId,
-          filterInbox.id,
-          isGroup,
-          nameContact,
-          picture_url.profilePictureUrl || null,
-        );
+        if (findContact) {
+          contact = await this.updateContact(instance, findContact.id, {
+            name: nameContact,
+            avatar_url: picture_url.profilePictureUrl || null,
+          });
+        } else {
+          contact = await this.createContact(
+            instance,
+            chatId,
+            filterInbox.id,
+            isGroup,
+            nameContact,
+            picture_url.profilePictureUrl || null,
+          );
+        }
       }
 
       if (!contact) {
@@ -471,7 +478,8 @@ export class ChatwootService {
         return null;
       }
 
-      const contactId = contact.payload.id || contact.payload.contact.id;
+      const contactId =
+        contact?.payload?.id || contact?.payload?.contact?.id || contact?.id;
 
       if (!body.key.fromMe && contact.name === chatId && nameContact !== chatId) {
         this.logger.verbose('update contact name in chatwoot');
@@ -981,6 +989,33 @@ export class ChatwootService {
           await waInstance?.client?.logout('Log out instance: ' + instance.instanceName);
           await waInstance?.client?.ws?.close();
         }
+
+        if (command.includes('#inbox_whatsapp')) {
+          const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+          const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
+
+          const data = {
+            instanceName: command.split(':')[1],
+            qrcode: true,
+            chatwoot_account_id: this.provider.account_id,
+            chatwoot_token: this.provider.token,
+            chatwoot_url: this.provider.url,
+            chatwoot_sign_msg: this.provider.sign_msg,
+          };
+
+          const config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${urlServer}/instance/create`,
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: apiKey,
+            },
+            data: data,
+          };
+
+          await axios.request(config);
+        }
       }
 
       if (
@@ -1059,7 +1094,11 @@ export class ChatwootService {
         }
       }
 
-      if (body.message_type === 'template' && body.content_type === 'input_csat') {
+      if (
+        body.message_type === 'template' &&
+        body.content_type === 'input_csat' &&
+        body.event === 'message_created'
+      ) {
         this.logger.verbose('check if is csat');
 
         const data: SendTextDto = {
@@ -1119,6 +1158,7 @@ export class ChatwootService {
       documentWithCaptionMessage:
         msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
       audioMessage: msg.audioMessage?.caption,
+      contactMessage: msg.contactMessage?.vcard,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1132,6 +1172,25 @@ export class ChatwootService {
 
     const result = typeKey ? types[typeKey] : undefined;
 
+    if (typeKey === 'contactMessage') {
+      const vCardData = result.split('\n');
+      const contactInfo = {};
+
+      vCardData.forEach((line) => {
+        const [key, value] = line.split(':');
+        if (key && value) {
+          contactInfo[key] = value;
+        }
+      });
+
+      const formattedContact = `**Contact:**
+        **name:** ${contactInfo['FN']}
+        **number:** ${contactInfo['item1.TEL;waid=5511952801378']}`;
+
+      this.logger.verbose('message content: ' + formattedContact);
+      return formattedContact;
+    }
+
     this.logger.verbose('message content: ' + result);
 
     return result;
@@ -1142,7 +1201,11 @@ export class ChatwootService {
 
     const types = this.getTypeMessage(msg);
 
+    console.log('types', types);
+
     const messageContent = this.getMessageContent(types);
+
+    console.log('messageContent', messageContent);
 
     this.logger.verbose('conversation message: ' + messageContent);
 
@@ -1394,37 +1457,38 @@ export class ChatwootService {
 
       if (event === 'connection.update') {
         this.logger.verbose('event connection.update');
-        if (body.state === 'open') {
-          const msgConnection = `🚀 Conexão realizada com sucesso!`;
+        console.log('connection.update', body);
+        if (body.status === 'open') {
+          const msgConnection = `🚀 Conexão estabelecida com sucesso!`;
 
           this.logger.verbose('send message to chatwoot');
           await this.createBotMessage(instance, msgConnection, 'incoming');
         }
       }
 
-      if (event === 'contacts.update') {
-        this.logger.verbose('event contacts.update');
-        const data = body;
+      // if (event === 'contacts.update') {
+      //   this.logger.verbose('event contacts.update');
+      //   const data = body;
 
-        if (data.length) {
-          this.logger.verbose('contacts found');
-          for (const item of data) {
-            const number = item.id.split('@')[0];
-            const photo = item.profilePictureUrl || null;
-            this.logger.verbose('find contact in chatwoot');
-            const find = await this.findContact(instance, number);
+      //   if (data.length) {
+      //     this.logger.verbose('contacts found');
+      //     for (const item of data) {
+      //       const number = item.id.split('@')[0];
+      //       const photo = item.profilePictureUrl || null;
+      //       this.logger.verbose('find contact in chatwoot');
+      //       const find = await this.findContact(instance, number);
 
-            if (find) {
-              this.logger.verbose('contact found');
+      //       if (find) {
+      //         this.logger.verbose('contact found');
 
-              this.logger.verbose('update contact in chatwoot');
-              await this.updateContact(instance, find.id, {
-                avatar_url: photo,
-              });
-            }
-          }
-        }
-      }
+      //         this.logger.verbose('update contact in chatwoot');
+      //         await this.updateContact(instance, find.id, {
+      //           avatar_url: photo,
+      //         });
+      //       }
+      //     }
+      //   }
+      // }
 
       if (event === 'qrcode.updated') {
         this.logger.verbose('event qrcode.updated');

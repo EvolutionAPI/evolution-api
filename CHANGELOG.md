@@ -3,6 +3,10 @@
 ### Features
 
 * Added messages.delete event
+* Added restart instance endpoint
+* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:<INSTANCE_NAME>'
+* Change Baileys version to: 6.4.0
+* Send contact in chatwoot
 
 ### Fixed
  
@@ -12,7 +16,14 @@
 * Added validations in create instance
 * Removed link preview endpoint, now it's done automatically from sending conventional text
 * Added group membership validation before sending message to groups
-* Adjusts in Dockerfile
+* Adjusts in docker files
+* Adjusts in returns in endpoints chatwoot and webhook
+* Fixed ghost mentions in send text message
+* Fixed bug that saved contacts from groups came without number in chatwoot
+* Fixed problem to receive csat in chatwoot
+* Fixed require fileName for document only in base64 for send media message
+* Bug fix when sending mobile message change contact name to number in chatwoot
+* Bug fix when connecting whatsapp does not send confirmation message
 
 # 1.2.2 (2023-07-15 09:36)
 

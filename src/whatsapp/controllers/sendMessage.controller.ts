@@ -30,9 +30,15 @@ export class SendMessageController {
 
   public async sendMedia({ instanceName }: InstanceDto, data: SendMediaDto) {
     logger.verbose('requested sendMedia from ' + instanceName + ' instance');
-    if (isBase64(data?.mediaMessage?.media) && !data?.mediaMessage?.fileName) {
-      throw new BadRequestException('For bse64 the file name must be informed.');
+
+    if (
+      isBase64(data?.mediaMessage?.media) &&
+      !data?.mediaMessage?.fileName &&
+      data?.mediaMessage?.mediatype === 'document'
+    ) {
+      throw new BadRequestException('For base64 the file name must be informed.');
     }
+
     logger.verbose(
       'isURL: ' +
         isURL(data?.mediaMessage?.media) +

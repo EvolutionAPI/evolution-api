@@ -72,7 +72,7 @@ const webhookService = new WebhookService(waMonitor);
 
 export const webhookController = new WebhookController(webhookService);
 
-const chatwootService = new ChatwootService(waMonitor);
+const chatwootService = new ChatwootService(waMonitor, configService);
 
 export const chatwootController = new ChatwootController(chatwootService, configService);
 

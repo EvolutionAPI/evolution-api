@@ -149,7 +149,7 @@ export class WAStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
-  private chatwootService = new ChatwootService(waMonitor);
+  private chatwootService = new ChatwootService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -343,6 +343,7 @@ export class WAStartupService {
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
+    const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
@@ -366,6 +367,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            server_url: serverUrl,
           });
         }
 
@@ -377,6 +379,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              server_url: serverUrl,
             });
           }
         } catch (error) {
@@ -390,6 +393,7 @@ export class WAStartupService {
             stack: error?.stack,
             name: error?.name,
             url: baseURL,
+            server_url: serverUrl,
           });
         }
       }
@@ -424,6 +428,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            server_url: serverUrl,
           });
         }
 
@@ -435,6 +440,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              server_url: serverUrl,
             });
           }
         } catch (error) {
@@ -448,6 +454,7 @@ export class WAStartupService {
             stack: error?.stack,
             name: error?.name,
             url: globalURL,
+            server_url: serverUrl,
           });
         }
       }
@@ -617,6 +624,17 @@ export class WAStartupService {
         │    CONNECTED TO WHATSAPP     │
         └──────────────────────────────┘`.replace(/^ +/gm, '  '),
       );
+
+      if (this.localChatwoot.enabled) {
+        this.chatwootService.eventWhatsapp(
+          Events.CONNECTION_UPDATE,
+          { instanceName: this.instance.name },
+          {
+            instance: this.instance.name,
+            status: 'open',
+          },
+        );
+      }
     }
   }
 
@@ -1111,7 +1129,6 @@ export class WAStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database) => {
-      console.log(args);
       this.logger.verbose('Event received: messages.update');
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
@@ -1299,6 +1316,7 @@ export class WAStartupService {
     const regexp = new RegExp(/^(\d{2})(\d{2})\d{1}(\d{8})$/);
     if (regexp.test(jid)) {
       const match = regexp.exec(jid);
+
       if (match && (match[1] === '52' || match[1] === '54')) {
         const joker = Number.parseInt(match[3][0]);
         const ddd = Number.parseInt(match[2]);
@@ -1335,30 +1353,27 @@ export class WAStartupService {
   private createJid(number: string): string {
     this.logger.verbose('Creating jid with number: ' + number);
 
-    const numberReplace = number.replace(/[^0-9]/g, '');
-
-    console.log('number', numberReplace);
-    if (numberReplace.includes('@g.us') || numberReplace.includes('@s.whatsapp.net')) {
+    if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
-      return numberReplace;
+      return number;
     }
 
-    if (numberReplace.includes('@broadcast')) {
+    if (number.includes('@broadcast')) {
       this.logger.verbose('Number already contains @broadcast');
-      return numberReplace;
+      return number;
     }
 
-    const formattedBRNumber = this.formatBRNumber(numberReplace);
-    if (formattedBRNumber !== numberReplace) {
+    const formattedBRNumber = this.formatBRNumber(number);
+    if (formattedBRNumber !== number) {
       this.logger.verbose(
         'Jid created is whatsapp in format BR: ' + `${formattedBRNumber}@s.whatsapp.net`,
       );
       return `${formattedBRNumber}@s.whatsapp.net`;
     }
 
-    const formattedMXARNumber = this.formatMXOrARNumber(numberReplace);
+    const formattedMXARNumber = this.formatMXOrARNumber(number);
 
-    if (formattedMXARNumber !== numberReplace) {
+    if (formattedMXARNumber !== number) {
       this.logger.verbose(
         'Jid created is whatsapp in format MXAR: ' +
           `${formattedMXARNumber}@s.whatsapp.net`,
@@ -1366,13 +1381,13 @@ export class WAStartupService {
       return `${formattedMXARNumber}@s.whatsapp.net`;
     }
 
-    if (numberReplace.includes('-')) {
-      this.logger.verbose('Jid created is group: ' + `${numberReplace}@g.us`);
-      return `${numberReplace}@g.us`;
+    if (number.includes('-')) {
+      this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
+      return `${number}@g.us`;
     }
 
-    this.logger.verbose('Jid created is whatsapp: ' + `${numberReplace}@s.whatsapp.net`);
-    return `${numberReplace}@s.whatsapp.net`;
+    this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
+    return `${number}@s.whatsapp.net`;
   }
 
   public async profilePicture(number: string) {
@@ -1488,7 +1503,7 @@ export class WAStartupService {
           !message['poll'] &&
           !message['sticker'] &&
           !message['conversation'] &&
-          !sender.includes('@broadcast')
+          sender !== 'status@broadcast'
         ) {
           if (!message['audio']) {
             this.logger.verbose('Sending message');
@@ -1507,18 +1522,18 @@ export class WAStartupService {
         }
 
         if (message['conversation']) {
-          console.log(message['conversation']);
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
             {
               text: message['conversation'],
+              mentions,
             } as unknown as AnyMessageContent,
             option as unknown as MiscMessageGenerationOptions,
           );
         }
 
-        if (sender.includes('@broadcast')) {
+        if (sender === 'status@broadcast') {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
@@ -1864,6 +1879,8 @@ export class WAStartupService {
   public async mediaMessage(data: SendMediaDto) {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
+
+    console.log('generate', generate);
 
     return await this.sendMessageWithTyping(
       data.number,
