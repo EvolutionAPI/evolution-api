@@ -1361,7 +1361,6 @@ export class WAStartupService {
     }
 
     const formattedMXARNumber = this.formatMXOrARNumber(number);
-    console.log(formattedMXARNumber, number);
 
     if (formattedMXARNumber !== number) {
       this.logger.verbose(
@@ -1869,6 +1868,8 @@ export class WAStartupService {
   public async mediaMessage(data: SendMediaDto) {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
+
+    console.log('generate', generate);
 
     return await this.sendMessageWithTyping(
       data.number,

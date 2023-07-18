@@ -20,6 +20,7 @@
 * Fixed ghost mentions in send text message
 * Fixed bug that saved contacts from groups came without number in chatwoot
 * Fixed problem to receive csat in chatwoot
+* Fixed require fileName for document only in base64 for send media message
 
 # 1.2.2 (2023-07-15 09:36)
 
