@@ -4,7 +4,7 @@
 
 * Added messages.delete event
 * Added restart instance endpoint
-* Created automation for creating instances in the chatwoot bot with the command #inbox_whatsapp:<INSTANCE_NAME>
+* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:<INSTANCE_NAME>'
 * Change Baileys version to: 6.4.0
 
 ### Fixed
