@@ -15,7 +15,7 @@
 * Added validations in create instance
 * Removed link preview endpoint, now it's done automatically from sending conventional text
 * Added group membership validation before sending message to groups
-* Adjusts in Dockerfile
+* Adjusts in docker files
 * Adjusts in returns in endpoints chatwoot and webhook
 * Fixed ghost mentions in send text message
 * Fixed bug that saved contacts from groups came without number in chatwoot
