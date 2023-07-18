@@ -64,7 +64,10 @@ export class InstanceController {
         this.repository,
         this.cache,
       );
-      instance.instanceName = instanceName;
+      instance.instanceName = instanceName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .replace(' ', '');
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
 
       this.waMonitor.waInstances[instance.instanceName] = instance;
@@ -191,7 +194,10 @@ export class InstanceController {
         this.repository,
         this.cache,
       );
-      instance.instanceName = instanceName;
+      instance.instanceName = instanceName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .replace(' ', '');
 
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
 
