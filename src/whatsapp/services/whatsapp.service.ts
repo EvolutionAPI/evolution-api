@@ -1345,17 +1345,12 @@ export class WAStartupService {
 
   // Check if the number is MX or AR
   private formatMXOrARNumber(jid: string): string {
-    const regexp = new RegExp(/^(\d{2})(\d{2})\d{1}(\d{8})$/);
-    if (regexp.test(jid)) {
-      const match = regexp.exec(jid);
+    const countryCode = jid.substring(0, 2);
 
-      if (match && (match[1] === '52' || match[1] === '54')) {
-        const joker = Number.parseInt(match[3][0]);
-        const ddd = Number.parseInt(match[2]);
-        if (joker < 7 || ddd < 11) {
-          return match[0];
-        }
-        return match[1] === '52' ? '52' + match[3] : '54' + match[3];
+    if (Number(countryCode) === 52 || Number(countryCode) === 54) {
+      if (jid.length === 13) {
+        const number = countryCode + jid.substring(3);
+        return number;
       }
 
       return jid;
@@ -1395,22 +1390,31 @@ export class WAStartupService {
       return number;
     }
 
-    const formattedBRNumber = this.formatBRNumber(number);
-    if (formattedBRNumber !== number) {
-      this.logger.verbose(
-        'Jid created is whatsapp in format BR: ' + `${formattedBRNumber}@s.whatsapp.net`,
-      );
-      return `${formattedBRNumber}@s.whatsapp.net`;
+    const countryCode = number.substring(0, 2);
+
+    if (Number(countryCode) === 55) {
+      const formattedBRNumber = this.formatBRNumber(number);
+      if (formattedBRNumber !== number) {
+        this.logger.verbose(
+          'Jid created is whatsapp in format BR: ' +
+            `${formattedBRNumber}@s.whatsapp.net`,
+        );
+        return `${formattedBRNumber}@s.whatsapp.net`;
+      }
     }
 
-    const formattedMXARNumber = this.formatMXOrARNumber(number);
+    if (Number(countryCode) === 52 || Number(countryCode) === 54) {
+      console.log('numero mexicano');
 
-    if (formattedMXARNumber !== number) {
-      this.logger.verbose(
-        'Jid created is whatsapp in format MXAR: ' +
-          `${formattedMXARNumber}@s.whatsapp.net`,
-      );
-      return `${formattedMXARNumber}@s.whatsapp.net`;
+      const formattedMXARNumber = this.formatMXOrARNumber(number);
+
+      if (formattedMXARNumber !== number) {
+        this.logger.verbose(
+          'Jid created is whatsapp in format MXAR: ' +
+            `${formattedMXARNumber}@s.whatsapp.net`,
+        );
+        return `${formattedMXARNumber}@s.whatsapp.net`;
+      }
     }
 
     if (number.includes('-')) {
@@ -2168,6 +2172,7 @@ export class WAStartupService {
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
       const jid = this.createJid(number);
+      // const jid = `${number}@s.whatsapp.net`;
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
 
