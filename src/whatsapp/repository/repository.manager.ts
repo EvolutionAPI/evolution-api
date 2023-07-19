@@ -39,6 +39,7 @@ export class RepositoryBroker {
     this.logger.verbose('initializing repository without db');
     if (!this.configService.get<Database>('DATABASE').ENABLED) {
       const storePath = join(process.cwd(), 'store');
+
       this.logger.verbose('creating store path: ' + storePath);
       try {
         const authDir = join(
@@ -55,28 +56,35 @@ export class RepositoryBroker {
 
         // Check if directories exist, create them if not
         if (!fs.existsSync(authDir)) {
+          this.logger.verbose('creating auth dir: ' + authDir);
           fs.mkdirSync(authDir, { recursive: true });
         }
         if (!fs.existsSync(chatsDir)) {
+          this.logger.verbose('creating chats dir: ' + chatsDir);
           fs.mkdirSync(chatsDir, { recursive: true });
         }
         if (!fs.existsSync(contactsDir)) {
+          this.logger.verbose('creating contacts dir: ' + contactsDir);
           fs.mkdirSync(contactsDir, { recursive: true });
         }
         if (!fs.existsSync(messagesDir)) {
+          this.logger.verbose('creating messages dir: ' + messagesDir);
           fs.mkdirSync(messagesDir, { recursive: true });
         }
         if (!fs.existsSync(messageUpDir)) {
+          this.logger.verbose('creating message-up dir: ' + messageUpDir);
           fs.mkdirSync(messageUpDir, { recursive: true });
         }
         if (!fs.existsSync(webhookDir)) {
+          this.logger.verbose('creating webhook dir: ' + webhookDir);
           fs.mkdirSync(webhookDir, { recursive: true });
         }
         if (!fs.existsSync(chatwootDir)) {
+          this.logger.verbose('creating chatwoot dir: ' + chatwootDir);
           fs.mkdirSync(chatwootDir, { recursive: true });
         }
       } catch (error) {
-        console.error(error);
+        this.logger.error(error);
       }
     }
   }
