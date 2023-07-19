@@ -99,72 +99,54 @@ export class WAMonitoringService {
 
         if (value.connectionStatus.state === 'open') {
           this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
-          let apikey: string;
-          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            this.logger.verbose(
-              'instance: ' + key + ' - hash exposed in fetch instances',
-            );
-            const tokenStore = await this.repository.auth.find(key);
-            apikey = tokenStore.apikey || 'Apikey not found';
 
-            instances.push({
-              instance: {
-                instanceName: key,
-                owner: value.wuid,
-                profileName: (await value.getProfileName()) || 'not loaded',
-                profilePictureUrl: value.profilePictureUrl,
-                profileStatus: (await value.getProfileStatus()) || '',
-                status: value.connectionStatus.state,
-                apikey,
-                chatwoot,
-              },
-            });
-          } else {
-            this.logger.verbose(
-              'instance: ' + key + ' - hash not exposed in fetch instances',
-            );
-            instances.push({
-              instance: {
-                instanceName: key,
-                owner: value.wuid,
-                profileName: (await value.getProfileName()) || 'not loaded',
-                profilePictureUrl: value.profilePictureUrl,
-                profileStatus: (await value.getProfileStatus()) || '',
-                status: value.connectionStatus.state,
-              },
-            });
+          const instanceData = {
+            instance: {
+              instanceName: key,
+              owner: value.wuid,
+              profileName: (await value.getProfileName()) || 'not loaded',
+              profilePictureUrl: value.profilePictureUrl,
+              profileStatus: (await value.getProfileStatus()) || '',
+              status: value.connectionStatus.state,
+            },
+          };
+
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            instanceData.instance['serverUrl'] =
+              this.configService.get<HttpServer>('SERVER').URL;
+
+            instanceData.instance['apikey'] = (
+              await this.repository.auth.find(key)
+            ).apikey;
+
+            instanceData.instance['chatwoot'] = chatwoot;
           }
+
+          instances.push(instanceData);
         } else {
           this.logger.verbose(
             'instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state,
           );
-          let apikey: string;
-          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            this.logger.verbose(
-              'instance: ' + key + ' - hash exposed in fetch instances',
-            );
-            const tokenStore = await this.repository.auth.find(key);
-            apikey = tokenStore.apikey || 'Apikey not found';
 
-            instances.push({
-              instance: {
-                instanceName: key,
-                status: value.connectionStatus.state,
-                apikey,
-                chatwoot,
-              },
-            });
-          } else {
-            this.logger.verbose(
-              'instance: ' + key + ' - hash not exposed in fetch instances',
-            );
-            instances.push({
-              instance: {
-                instanceName: key,
-                status: value.connectionStatus.state,
-              },
-            });
+          const instanceData = {
+            instance: {
+              instanceName: key,
+              status: value.connectionStatus.state,
+            },
+          };
+
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            instanceData.instance['serverUrl'] =
+              this.configService.get<HttpServer>('SERVER').URL;
+
+            instanceData.instance['apikey'] = (
+              await this.repository.auth.find(key)
+            ).apikey;
+
+            instanceData.instance['chatwoot'] = chatwoot;
           }
+
+          instances.push(instanceData);
         }
       }
     }

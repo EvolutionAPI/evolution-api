@@ -21,6 +21,6 @@ volumes:
   evolution_store:
 
 networks:
-  default:
-    name: evolution-net
+  evolution-net:
+    external: true
   

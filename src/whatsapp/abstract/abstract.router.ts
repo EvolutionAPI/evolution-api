@@ -160,8 +160,6 @@ export abstract class RouterBroker {
 
     const v = validate(ref, schema);
 
-    console.log(v, '@checkei aqui');
-
     if (!v.valid) {
       const message: any[] = v.errors.map(({ property, stack, schema }) => {
         let message: string;
@@ -202,8 +200,6 @@ export abstract class RouterBroker {
     Object.assign(ref, body);
 
     const v = validate(ref, schema);
-
-    console.log(v, '@checkei aqui');
 
     if (!v.valid) {
       const message: any[] = v.errors.map(({ property, stack, schema }) => {

@@ -23,6 +23,7 @@ export class InstanceRouter extends RouterBroker {
 
         logger.verbose('request query: ');
         logger.verbose(req.query);
+
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,

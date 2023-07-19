@@ -11,7 +11,6 @@ import {
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../whatsapp.module';
 import { Database, Redis, configService } from '../../config/env.config';
-import { RedisCache } from '../../db/redis.client';
 
 async function getInstance(instanceName: string) {
   const db = configService.get<Database>('DATABASE');

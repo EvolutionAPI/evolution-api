@@ -1,7 +1,6 @@
 import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { join } from 'path';
-import { SRC_DIR } from './path.config';
 import { isBooleanString } from 'class-validator';
 
 export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
@@ -76,6 +75,7 @@ export type EventsWebhook = {
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
   MESSAGES_UPDATE: boolean;
+  MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
@@ -98,9 +98,9 @@ export type Instance = {
   NAME: string;
   WEBHOOK_URL: string;
   MODE: string;
-  CHATWOOT_ACCOUNT_ID?: string;
-  CHATWOOT_TOKEN?: string;
-  CHATWOOT_URL?: string;
+  CHATWOOT_ACCOUNT_ID: string;
+  CHATWOOT_TOKEN: string;
+  CHATWOOT_URL: string;
 };
 export type Auth = {
   API_KEY: ApiKey;
@@ -193,7 +193,7 @@ export class ConfigService {
       CLEAN_STORE: {
         CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_TERMINAL)
           ? Number.parseInt(process.env.CLEAN_STORE_CLEANING_TERMINAL)
-          : undefined,
+          : 7200,
         MESSAGES: process.env?.CLEAN_STORE_MESSAGES === 'true',
         MESSAGE_UP: process.env?.CLEAN_STORE_MESSAGE_UP === 'true',
         CONTACTS: process.env?.CLEAN_STORE_CONTACTS === 'true',
@@ -225,7 +225,7 @@ export class ConfigService {
       },
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
         ? process.env.DEL_INSTANCE === 'true'
-        : Number.parseInt(process.env.DEL_INSTANCE),
+        : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
           URL: process.env?.WEBHOOK_GLOBAL_URL,
@@ -238,6 +238,7 @@ export class ConfigService {
           MESSAGES_SET: process.env?.WEBHOOK_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.WEBHOOK_EVENTS_MESSAGES_UPSERT === 'true',
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
+          MESSAGES_DELETE: process.env?.WEBHOOK_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
           CONTACTS_SET: process.env?.WEBHOOK_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.WEBHOOK_EVENTS_CONTACTS_UPDATE === 'true',
@@ -256,11 +257,11 @@ export class ConfigService {
         },
       },
       CONFIG_SESSION_PHONE: {
-        CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT,
-        NAME: process.env?.CONFIG_SESSION_PHONE_NAME,
+        CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT || 'Evolution API',
+        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'chrome',
       },
       QRCODE: {
-        LIMIT: Number.parseInt(process.env.QRCODE_LIMIT),
+        LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'jwt',

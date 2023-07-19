@@ -5,7 +5,6 @@ import {
   SendAudioDto,
   SendButtonDto,
   SendContactDto,
-  SendLinkPreviewDto,
   SendListDto,
   SendLocationDto,
   SendMediaDto,
@@ -31,9 +30,15 @@ export class SendMessageController {
 
   public async sendMedia({ instanceName }: InstanceDto, data: SendMediaDto) {
     logger.verbose('requested sendMedia from ' + instanceName + ' instance');
-    if (isBase64(data?.mediaMessage?.media) && !data?.mediaMessage?.fileName) {
-      throw new BadRequestException('For bse64 the file name must be informed.');
+
+    if (
+      isBase64(data?.mediaMessage?.media) &&
+      !data?.mediaMessage?.fileName &&
+      data?.mediaMessage?.mediatype === 'document'
+    ) {
+      throw new BadRequestException('For base64 the file name must be informed.');
     }
+
     logger.verbose(
       'isURL: ' +
         isURL(data?.mediaMessage?.media) +
@@ -118,10 +123,5 @@ export class SendMessageController {
   public async sendStatus({ instanceName }: InstanceDto, data: SendStatusDto) {
     logger.verbose('requested sendStatus from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].statusMessage(data);
-  }
-
-  public async sendLinkPreview({ instanceName }: InstanceDto, data: SendLinkPreviewDto) {
-    logger.verbose('requested sendLinkPreview from ' + instanceName + ' instance');
-    return await this.waMonitor.waInstances[instanceName].linkPreview(data);
   }
 }
