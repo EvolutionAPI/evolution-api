@@ -18,9 +18,17 @@ export class WebhookService {
   public async find(instance: InstanceDto): Promise<WebhookDto> {
     try {
       this.logger.verbose('find webhook: ' + instance.instanceName);
-      return await this.waMonitor.waInstances[instance.instanceName].findWebhook();
+      const result = await this.waMonitor.waInstances[
+        instance.instanceName
+      ].findWebhook();
+
+      if (Object.keys(result).length === 0) {
+        throw new Error('Webhook not found');
+      }
+
+      return result;
     } catch (error) {
-      return { enabled: null, url: '' };
+      return { enabled: false, url: '', events: [], webhook_by_events: false };
     }
   }
 }

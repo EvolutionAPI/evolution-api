@@ -39,6 +39,7 @@ export const instanceNameSchema: JSONSchema7 = {
           'MESSAGES_SET',
           'MESSAGES_UPSERT',
           'MESSAGES_UPDATE',
+          'MESSAGES_DELETE',
           'SEND_MESSAGE',
           'CONTACTS_SET',
           'CONTACTS_UPSERT',
@@ -81,8 +82,8 @@ const quotedOptionsSchema: JSONSchema7 = {
         remoteJid: { type: 'string' },
         fromMe: { type: 'boolean', enum: [true, false] },
       },
-      required: ['id', 'remoteJid', 'fromMe'],
-      ...isNotEmpty('id', 'remoteJid'),
+      required: ['id'],
+      ...isNotEmpty('id'),
     },
     message: { type: 'object' },
   },
@@ -142,24 +143,6 @@ export const textMessageSchema: JSONSchema7 = {
     },
   },
   required: ['textMessage', 'number'],
-};
-
-export const linkPreviewSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    number: { ...numberDefinition },
-    options: { ...optionsSchema },
-    linkPreview: {
-      type: 'object',
-      properties: {
-        text: { type: 'string' },
-      },
-      required: ['text'],
-      ...isNotEmpty('text'),
-    },
-  },
-  required: ['linkPreview', 'number'],
 };
 
 export const pollMessageSchema: JSONSchema7 = {
@@ -846,6 +829,7 @@ export const webhookSchema: JSONSchema7 = {
           'MESSAGES_SET',
           'MESSAGES_UPSERT',
           'MESSAGES_UPDATE',
+          'MESSAGES_DELETE',
           'SEND_MESSAGE',
           'CONTACTS_SET',
           'CONTACTS_UPSERT',

@@ -76,7 +76,6 @@ import {
   SendReactionDto,
   SendTextDto,
   SendPollDto,
-  SendLinkPreviewDto,
   SendStickerDto,
   SendStatusDto,
   StatusMessage,
@@ -150,7 +149,7 @@ export class WAStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
-  private chatwootService = new ChatwootService(waMonitor);
+  private chatwootService = new ChatwootService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -343,11 +342,18 @@ export class WAStartupService {
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
-    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
     const webhookLocal = this.localWebhook.events;
+    const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
+
+    const expose =
+      this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
+    const tokenStore = await this.repository.auth.find(this.instanceName);
+    const instanceApikey = tokenStore.apikey || 'Apikey not found';
+
+    const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
     if (local && instance.MODE !== 'container') {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
@@ -361,27 +367,40 @@ export class WAStartupService {
         }
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          this.logger.log({
+          const logData = {
             local: WAStartupService.name + '.sendDataWebhook-local',
             url: baseURL,
             event,
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
-            urlServer,
-          });
+            server_url: serverUrl,
+            apikey: (expose && instanceApikey) || null,
+          };
+
+          if (expose && instanceApikey) {
+            logData['apikey'] = instanceApikey;
+          }
+
+          this.logger.log(logData);
         }
 
         try {
           if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
             const httpService = axios.create({ baseURL });
-            await httpService.post('', {
+            const postData = {
               event,
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
-              urlServer,
-            });
+              server_url: serverUrl,
+            };
+
+            if (expose && instanceApikey) {
+              postData['apikey'] = instanceApikey;
+            }
+
+            await httpService.post('', postData);
           }
         } catch (error) {
           this.logger.error({
@@ -394,6 +413,7 @@ export class WAStartupService {
             stack: error?.stack,
             name: error?.name,
             url: baseURL,
+            server_url: serverUrl,
           });
         }
       }
@@ -421,27 +441,39 @@ export class WAStartupService {
         }
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          this.logger.log({
+          const logData = {
             local: WAStartupService.name + '.sendDataWebhook-global',
             url: globalURL,
             event,
             instance: this.instance.name,
             data,
             destination: localUrl,
-            urlServer,
-          });
+            server_url: serverUrl,
+          };
+
+          if (expose && globalApiKey) {
+            logData['apikey'] = globalApiKey;
+          }
+
+          this.logger.log(logData);
         }
 
         try {
           if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
             const httpService = axios.create({ baseURL: globalURL });
-            await httpService.post('', {
+            const postData = {
               event,
               instance: this.instance.name,
               data,
               destination: localUrl,
-              urlServer,
-            });
+              server_url: serverUrl,
+            };
+
+            if (expose && globalApiKey) {
+              postData['apikey'] = globalApiKey;
+            }
+
+            await httpService.post('', postData);
           }
         } catch (error) {
           this.logger.error({
@@ -454,6 +486,7 @@ export class WAStartupService {
             stack: error?.stack,
             name: error?.name,
             url: globalURL,
+            server_url: serverUrl,
           });
         }
       }
@@ -623,6 +656,17 @@ export class WAStartupService {
         │    CONNECTED TO WHATSAPP     │
         └──────────────────────────────┘`.replace(/^ +/gm, '  '),
       );
+
+      if (this.localChatwoot.enabled) {
+        this.chatwootService.eventWhatsapp(
+          Events.CONNECTION_UPDATE,
+          { instanceName: this.instance.name },
+          {
+            instance: this.instance.name,
+            status: 'open',
+          },
+        );
+      }
     }
   }
 
@@ -741,6 +785,7 @@ export class WAStartupService {
         version,
         connectTimeoutMs: 60_000,
         qrTimeout: 40_000,
+        defaultQueryTimeoutMs: undefined,
         emitOwnEvents: false,
         msgRetryCounterCache: this.msgRetryCounterCache,
         getMessage: async (key) =>
@@ -907,14 +952,6 @@ export class WAStartupService {
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
-
-      if (this.localChatwoot.enabled) {
-        await this.chatwootService.eventWhatsapp(
-          Events.CONTACTS_UPDATE,
-          { instanceName: this.instance.name },
-          contactsRaw,
-        );
-      }
 
       this.logger.verbose('Updating contacts in database');
       await this.repository.contact.update(
@@ -1126,11 +1163,7 @@ export class WAStartupService {
         5: 'PLAYED',
       };
       for await (const { key, update } of args) {
-        if (
-          key.remoteJid !== 'status@broadcast' &&
-          !key?.remoteJid?.match(/(:\d+)/) &&
-          key.fromMe
-        ) {
+        if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
           this.logger.verbose('Message update is valid');
 
           let pollUpdates: any;
@@ -1148,6 +1181,16 @@ export class WAStartupService {
                 pollUpdates: update.pollUpdates,
               });
             }
+          }
+
+          if (status[update.status] === 'READ' && !key.fromMe) return;
+
+          if (update.message === null && update.status === undefined) {
+            this.logger.verbose('Message deleted');
+
+            this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
+            await this.sendDataWebhook(Events.MESSAGES_DELETE, key);
+            return;
           }
 
           const message: MessageUpdateRaw = {
@@ -1294,16 +1337,12 @@ export class WAStartupService {
 
   // Check if the number is MX or AR
   private formatMXOrARNumber(jid: string): string {
-    const regexp = new RegExp(/^(\d{2})(\d{2})\d{1}(\d{8})$/);
-    if (regexp.test(jid)) {
-      const match = regexp.exec(jid);
-      if (match && (match[1] === '52' || match[1] === '54')) {
-        const joker = Number.parseInt(match[3][0]);
-        const ddd = Number.parseInt(match[2]);
-        if (joker < 7 || ddd < 11) {
-          return match[0];
-        }
-        return match[1] === '52' ? '52' + match[3] : '54' + match[3];
+    const countryCode = jid.substring(0, 2);
+
+    if (Number(countryCode) === 52 || Number(countryCode) === 54) {
+      if (jid.length === 13) {
+        const number = countryCode + jid.substring(3);
+        return number;
       }
 
       return jid;
@@ -1332,6 +1371,7 @@ export class WAStartupService {
 
   private createJid(number: string): string {
     this.logger.verbose('Creating jid with number: ' + number);
+
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
       return number;
@@ -1342,22 +1382,31 @@ export class WAStartupService {
       return number;
     }
 
-    const formattedBRNumber = this.formatBRNumber(number);
-    if (formattedBRNumber !== number) {
-      this.logger.verbose(
-        'Jid created is whatsapp in format BR: ' + `${formattedBRNumber}@s.whatsapp.net`,
-      );
-      return `${formattedBRNumber}@s.whatsapp.net`;
+    const countryCode = number.substring(0, 2);
+
+    if (Number(countryCode) === 55) {
+      const formattedBRNumber = this.formatBRNumber(number);
+      if (formattedBRNumber !== number) {
+        this.logger.verbose(
+          'Jid created is whatsapp in format BR: ' +
+            `${formattedBRNumber}@s.whatsapp.net`,
+        );
+        return `${formattedBRNumber}@s.whatsapp.net`;
+      }
     }
 
-    const formattedMXARNumber = this.formatMXOrARNumber(number);
+    if (Number(countryCode) === 52 || Number(countryCode) === 54) {
+      console.log('numero mexicano');
 
-    if (formattedMXARNumber !== number) {
-      this.logger.verbose(
-        'Jid created is whatsapp in format MXAR: ' +
-          `${formattedMXARNumber}@s.whatsapp.net`,
-      );
-      return `${formattedMXARNumber}@s.whatsapp.net`;
+      const formattedMXARNumber = this.formatMXOrARNumber(number);
+
+      if (formattedMXARNumber !== number) {
+        this.logger.verbose(
+          'Jid created is whatsapp in format MXAR: ' +
+            `${formattedMXARNumber}@s.whatsapp.net`,
+        );
+        return `${formattedMXARNumber}@s.whatsapp.net`;
+      }
     }
 
     if (number.includes('-')) {
@@ -1427,13 +1476,29 @@ export class WAStartupService {
       let quoted: WAMessage;
 
       if (options?.quoted) {
-        quoted = options?.quoted;
+        const m = options?.quoted;
+
+        const msg = m?.message
+          ? m
+          : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
+
+        if (!msg) {
+          throw 'Message not found';
+        }
+
+        quoted = msg;
         this.logger.verbose('Quoted message');
       }
 
       let mentions: string[];
       if (isJidGroup(sender)) {
         try {
+          const groupMetadata = await this.client.groupMetadata(sender);
+
+          if (!groupMetadata) {
+            throw new NotFoundException('Group not found');
+          }
+
           if (options?.mentions) {
             this.logger.verbose('Mentions defined');
 
@@ -1448,7 +1513,6 @@ export class WAStartupService {
               this.logger.verbose('Mentions everyone');
 
               this.logger.verbose('Getting group metadata');
-              const groupMetadata = await this.client.groupMetadata(sender);
               mentions = groupMetadata.participants.map((participant) => participant.id);
               this.logger.verbose('Getting group metadata for mentions');
             } else {
@@ -1475,9 +1539,9 @@ export class WAStartupService {
         if (
           !message['audio'] &&
           !message['poll'] &&
-          !message['linkPreview'] &&
           !message['sticker'] &&
-          !sender.includes('@broadcast')
+          !message['conversation'] &&
+          sender !== 'status@broadcast'
         ) {
           if (!message['audio']) {
             this.logger.verbose('Sending message');
@@ -1495,18 +1559,19 @@ export class WAStartupService {
           }
         }
 
-        if (message['linkPreview']) {
+        if (message['conversation']) {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
             {
-              text: message['linkPreview'].text,
+              text: message['conversation'],
+              mentions,
             } as unknown as AnyMessageContent,
             option as unknown as MiscMessageGenerationOptions,
           );
         }
 
-        if (sender.includes('@broadcast')) {
+        if (sender === 'status@broadcast') {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
@@ -1577,19 +1642,6 @@ export class WAStartupService {
       data.number,
       {
         conversation: data.textMessage.text,
-      },
-      data?.options,
-    );
-  }
-
-  public async linkPreview(data: SendLinkPreviewDto) {
-    this.logger.verbose('Sending link preview');
-    return await this.sendMessageWithTyping(
-      data.number,
-      {
-        linkPreview: {
-          text: data.linkPreview.text,
-        },
       },
       data?.options,
     );
@@ -1730,8 +1782,10 @@ export class WAStartupService {
 
   public async statusMessage(data: SendStatusDto) {
     this.logger.verbose('Sending status message');
+    const status = await this.formatStatusMessage(data.statusMessage);
+
     return await this.sendMessageWithTyping('status@broadcast', {
-      status: await this.formatStatusMessage(data.statusMessage),
+      status,
     });
   }
 
@@ -2110,6 +2164,7 @@ export class WAStartupService {
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
       const jid = this.createJid(number);
+      // const jid = `${number}@s.whatsapp.net`;
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
 
@@ -2645,9 +2700,7 @@ export class WAStartupService {
       const msg = `${description}\n\n${inviteUrl}`;
 
       const message = {
-        linkPreview: {
-          text: msg,
-        },
+        conversation: msg,
       };
 
       for await (const number of numbers) {

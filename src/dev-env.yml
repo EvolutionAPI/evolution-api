@@ -39,7 +39,7 @@ LOG:
     - DARK
     - WEBHOOKS
   COLOR: true
-  BAILEYS: error # "fatal" | "error" | "warn" | "info" | "debug" | "trace"
+  BAILEYS: error # fatal | error | warn | info | debug | trace
 
 # Determine how long the instance should be deleted from memory in case of no connection.
 # Default time: 5 minutes
@@ -96,6 +96,7 @@ WEBHOOK:
     MESSAGES_SET: true
     MESSAGES_UPSERT: true
     MESSAGES_UPDATE: true
+    MESSAGES_DELETE: true
     SEND_MESSAGE: true
     CONTACTS_SET: true
     CONTACTS_UPSERT: true

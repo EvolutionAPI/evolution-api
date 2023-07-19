@@ -10,6 +10,7 @@ import { waMonitor } from './whatsapp/whatsapp.module';
 import { HttpStatus, router } from './whatsapp/routers/index.router';
 import 'express-async-errors';
 import { ServerUP } from './utils/server-up';
+import * as Sentry from '@sentry/node';
 
 function initWA() {
   waMonitor.loadInstance();
@@ -18,6 +19,27 @@ function initWA() {
 function bootstrap() {
   const logger = new Logger('SERVER');
   const app = express();
+
+  // Sentry.init({
+  //   dsn: '',
+  //   integrations: [
+  //     // enable HTTP calls tracing
+  //     new Sentry.Integrations.Http({ tracing: true }),
+  //     // enable Express.js middleware tracing
+  //     new Sentry.Integrations.Express({ app }),
+  //     // Automatically instrument Node.js libraries and frameworks
+  //     ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),
+  //   ],
+
+  //   // Set tracesSampleRate to 1.0 to capture 100%
+  //   // of transactions for performance monitoring.
+  //   // We recommend adjusting this value in production
+  //   tracesSampleRate: 1.0,
+  // });
+
+  // app.use(Sentry.Handlers.requestHandler());
+
+  // app.use(Sentry.Handlers.tracingHandler());
 
   app.use(
     cors({
@@ -42,6 +64,13 @@ function bootstrap() {
   app.use(express.static(join(ROOT_DIR, 'public')));
 
   app.use('/', router);
+
+  // app.use(Sentry.Handlers.errorHandler());
+
+  // app.use(function onError(err, req, res, next) {
+  //   res.statusCode = 500;
+  //   res.end(res.sentry + '\n');
+  // });
 
   app.use(
     (err: Error, req: Request, res: Response, next: NextFunction) => {

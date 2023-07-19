@@ -14,6 +14,7 @@ const webhookSchema = new Schema<WebhookRaw>({
   url: { type: String, required: true },
   enabled: { type: Boolean, required: true },
   events: { type: [String], required: true },
+  webhook_by_events: { type: Boolean, required: true },
 });
 
 export const WebhookModel = dbserver?.model(WebhookRaw.name, webhookSchema, 'webhook');

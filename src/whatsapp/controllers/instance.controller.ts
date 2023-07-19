@@ -12,6 +12,7 @@ import { ChatwootService } from '../services/chatwoot.service';
 import { Logger } from '../../config/logger.config';
 import { wa } from '../types/wa.types';
 import { RedisCache } from '../../db/redis.client';
+import { isURL } from 'class-validator';
 
 export class InstanceController {
   constructor(
@@ -63,7 +64,10 @@ export class InstanceController {
         this.repository,
         this.cache,
       );
-      instance.instanceName = instanceName;
+      instance.instanceName = instanceName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .replace(' ', '');
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
 
       this.waMonitor.waInstances[instance.instanceName] = instance;
@@ -82,6 +86,9 @@ export class InstanceController {
       let getEvents: string[];
 
       if (webhook) {
+        if (!isURL(webhook, { require_tld: false })) {
+          throw new BadRequestException('Invalid "url" property in webhook');
+        }
         this.logger.verbose('creating webhook');
         try {
           this.webhookService.create(instance, {
@@ -130,6 +137,10 @@ export class InstanceController {
 
       if (!chatwoot_url) {
         throw new BadRequestException('url is required');
+      }
+
+      if (!isURL(chatwoot_url, { require_tld: false })) {
+        throw new BadRequestException('Invalid "url" property in chatwoot');
       }
 
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
@@ -183,7 +194,10 @@ export class InstanceController {
         this.repository,
         this.cache,
       );
-      instance.instanceName = instanceName;
+      instance.instanceName = instanceName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .replace(' ', '');
 
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
 
@@ -203,6 +217,10 @@ export class InstanceController {
       let getEvents: string[];
 
       if (webhook) {
+        if (!isURL(webhook, { require_tld: false })) {
+          throw new BadRequestException('Invalid "url" property in webhook');
+        }
+
         this.logger.verbose('creating webhook');
         try {
           this.webhookService.create(instance, {
@@ -264,6 +282,10 @@ export class InstanceController {
 
       if (!chatwoot_url) {
         throw new BadRequestException('url is required');
+      }
+
+      if (!isURL(chatwoot_url, { require_tld: false })) {
+        throw new BadRequestException('Invalid "url" property in chatwoot');
       }
 
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
@@ -341,24 +363,8 @@ export class InstanceController {
     try {
       this.logger.verbose('requested restartInstance from ' + instanceName + ' instance');
 
-      this.logger.verbose('deleting instance: ' + instanceName);
-      delete this.waMonitor.waInstances[instanceName];
-
-      this.logger.verbose('creating instance: ' + instanceName);
-      const instance = new WAStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.repository,
-        this.cache,
-      );
-
-      instance.instanceName = instanceName;
-
-      this.logger.verbose('instance: ' + instance.instanceName + ' created');
-
-      this.logger.verbose('connecting instance: ' + instanceName);
-      await instance.connectToWhatsapp();
-      this.waMonitor.waInstances[instance.instanceName] = instance;
+      this.logger.verbose('logging out instance: ' + instanceName);
+      this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
 
       return { error: false, message: 'Instance restarted' };
     } catch (error) {

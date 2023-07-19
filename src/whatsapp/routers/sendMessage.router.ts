@@ -3,7 +3,6 @@ import {
   audioMessageSchema,
   buttonMessageSchema,
   contactMessageSchema,
-  linkPreviewSchema,
   listMessageSchema,
   locationMessageSchema,
   mediaMessageSchema,
@@ -17,7 +16,6 @@ import {
   SendAudioDto,
   SendButtonDto,
   SendContactDto,
-  SendLinkPreviewDto,
   SendListDto,
   SendLocationDto,
   SendMediaDto,
@@ -195,23 +193,6 @@ export class MessageRouter extends RouterBroker {
           schema: statusMessageSchema,
           ClassRef: SendStatusDto,
           execute: (instance, data) => sendMessageController.sendStatus(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
-      .post(this.routerPath('sendLinkPreview'), ...guards, async (req, res) => {
-        logger.verbose('request received in sendLinkPreview');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-        const response = await this.dataValidate<SendLinkPreviewDto>({
-          request: req,
-          schema: linkPreviewSchema,
-          ClassRef: SendLinkPreviewDto,
-          execute: (instance, data) =>
-            sendMessageController.sendLinkPreview(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
