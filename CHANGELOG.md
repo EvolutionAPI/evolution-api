@@ -29,6 +29,7 @@
 * Bug fix when connecting whatsapp does not send confirmation message
 * Fixed quoted message with id or message directly
 * Adjust in validation for mexican and argentine numbers
+* Adjust in create store files
 
 ### Integrations
 
