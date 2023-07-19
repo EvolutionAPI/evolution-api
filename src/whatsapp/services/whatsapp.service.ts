@@ -953,14 +953,6 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
-      if (this.localChatwoot.enabled) {
-        await this.chatwootService.eventWhatsapp(
-          Events.CONTACTS_UPDATE,
-          { instanceName: this.instance.name },
-          contactsRaw,
-        );
-      }
-
       this.logger.verbose('Updating contacts in database');
       await this.repository.contact.update(
         contactsRaw,
