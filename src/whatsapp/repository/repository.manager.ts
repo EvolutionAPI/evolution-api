@@ -53,6 +53,7 @@ export class RepositoryBroker {
         const messageUpDir = join(storePath, 'message-up');
         const webhookDir = join(storePath, 'webhook');
         const chatwootDir = join(storePath, 'chatwoot');
+        const tempDir = join(storePath, 'temp');
 
         // Check if directories exist, create them if not
         if (!fs.existsSync(authDir)) {
@@ -82,6 +83,10 @@ export class RepositoryBroker {
         if (!fs.existsSync(chatwootDir)) {
           this.logger.verbose('creating chatwoot dir: ' + chatwootDir);
           fs.mkdirSync(chatwootDir, { recursive: true });
+        }
+        if (!fs.existsSync(tempDir)) {
+          this.logger.verbose('creating temp dir: ' + tempDir);
+          fs.mkdirSync(tempDir, { recursive: true });
         }
       } catch (error) {
         this.logger.error(error);
