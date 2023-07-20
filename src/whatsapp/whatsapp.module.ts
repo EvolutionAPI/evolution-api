@@ -116,16 +116,16 @@ export async function initInstance() {
       configService.get<Auth>('AUTHENTICATION').INSTANCE.WEBHOOK_URL;
     logger.verbose('Instance webhook: ' + instanceWebhook);
 
-    const chatwootAccountId =
-      configService.get<Auth>('AUTHENTICATION').INSTANCE.CHATWOOT_ACCOUNT_ID;
-    logger.verbose('Chatwoot account id: ' + chatwootAccountId);
+    // const chatwootAccountId =
+    //   configService.get<Auth>('AUTHENTICATION').INSTANCE.CHATWOOT_ACCOUNT_ID;
+    // logger.verbose('Chatwoot account id: ' + chatwootAccountId);
 
-    const chatwootToken =
-      configService.get<Auth>('AUTHENTICATION').INSTANCE.CHATWOOT_TOKEN;
-    logger.verbose('Chatwoot token: ' + chatwootToken);
+    // const chatwootToken =
+    //   configService.get<Auth>('AUTHENTICATION').INSTANCE.CHATWOOT_TOKEN;
+    // logger.verbose('Chatwoot token: ' + chatwootToken);
 
-    const chatwootUrl = configService.get<Auth>('AUTHENTICATION').INSTANCE.CHATWOOT_URL;
-    logger.verbose('Chatwoot url: ' + chatwootUrl);
+    // const chatwootUrl = configService.get<Auth>('AUTHENTICATION').INSTANCE.CHATWOOT_URL;
+    // logger.verbose('Chatwoot url: ' + chatwootUrl);
 
     instance.instanceName = instanceName;
 
@@ -148,21 +148,21 @@ export async function initInstance() {
       }
     }
 
-    if (chatwootUrl && chatwootToken && chatwootAccountId) {
-      logger.verbose('Creating chatwoot for instance: ' + instanceName);
-      try {
-        chatwootService.create(instance, {
-          enabled: true,
-          url: chatwootUrl,
-          token: chatwootToken,
-          account_id: chatwootAccountId,
-          sign_msg: false,
-        });
-        logger.verbose('Chatwoot created');
-      } catch (error) {
-        logger.log(error);
-      }
-    }
+    // if (chatwootUrl && chatwootToken && chatwootAccountId) {
+    //   logger.verbose('Creating chatwoot for instance: ' + instanceName);
+    //   try {
+    //     chatwootService.create(instance, {
+    //       enabled: true,
+    //       url: chatwootUrl,
+    //       token: chatwootToken,
+    //       account_id: chatwootAccountId,
+    //       sign_msg: false,
+    //     });
+    //     logger.verbose('Chatwoot created');
+    //   } catch (error) {
+    //     logger.log(error);
+    //   }
+    // }
 
     try {
       const state = instance.connectionStatus?.state;
