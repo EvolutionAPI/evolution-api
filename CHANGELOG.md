@@ -1,3 +1,9 @@
+# 1.3.1 (2023-07-20 07:48)
+
+### Fixed
+
+* Adjust in create store files
+
 # 1.3.0 (2023-07-19 11:33)
 
 ### Features
