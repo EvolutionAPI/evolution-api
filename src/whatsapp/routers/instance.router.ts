@@ -60,8 +60,7 @@ export class InstanceRouter extends RouterBroker {
           request: req,
           schema: instanceNameSchema,
           ClassRef: InstanceDto,
-          execute: (instance, data) =>
-            instanceController.connectToWhatsapp(instance, data),
+          execute: (instance) => instanceController.connectToWhatsapp(instance),
         });
 
         return res.status(HttpStatus.OK).json(response);
