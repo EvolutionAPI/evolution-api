@@ -103,7 +103,7 @@ export class InstanceController {
 
     if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
       let getQrcode: wa.QrCode;
-      let getParingCode: string;
+      let getPairingCode: string;
 
       if (qrcode) {
         this.logger.verbose('creating qrcode');
@@ -111,14 +111,13 @@ export class InstanceController {
         if (number) {
           this.logger.verbose('creating number');
           await delay(5000);
-          getParingCode = await instance.client.requestPairingCode(number);
+          getPairingCode = await instance.client.requestPairingCode(number);
         }
         await delay(2000);
         getQrcode = instance.qrCode;
       }
 
-      this.logger.verbose('instance created');
-      this.logger.verbose({
+      const result = {
         instance: {
           instanceName: instance.instanceName,
           status: 'created',
@@ -127,22 +126,18 @@ export class InstanceController {
         webhook,
         webhook_by_events,
         events: getEvents,
-        pairingCode: getParingCode,
-        qrcode: getQrcode,
-      });
-
-      return {
-        instance: {
-          instanceName: instance.instanceName,
-          status: 'created',
-        },
-        hash,
-        webhook,
-        webhook_by_events,
-        events: getEvents,
-        pairingCode: getParingCode,
-        qrcode: getQrcode,
       };
+
+      if (getPairingCode) {
+        result['pairingCode'] = getPairingCode;
+      } else {
+        result['qrcode'] = getQrcode;
+      }
+
+      this.logger.verbose('instance created');
+      this.logger.verbose(result);
+
+      return result;
     }
 
     if (!chatwoot_account_id) {
@@ -225,11 +220,15 @@ export class InstanceController {
             await delay(5000);
             pairingCode = await instance.client.requestPairingCode(number);
           }
+
+          if (pairingCode) {
+            return {
+              pairingCode,
+            };
+          }
+
           await delay(2000);
-          return {
-            pairingCode,
-            ...instance.qrCode,
-          };
+          return instance.qrCode;
         case 'connecting':
           return instance.qrCode;
         default:
