@@ -65,7 +65,6 @@ export class InstanceController {
         this.cache,
       );
       instance.instanceName = instanceName
-        .toLowerCase()
         .replace(/[^a-z0-9]/g, '')
         .replace(' ', '');
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
