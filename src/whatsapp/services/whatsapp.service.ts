@@ -328,7 +328,7 @@ export class WAStartupService {
 
     if (!data) {
       this.logger.verbose('Chatwoot not found');
-      throw new NotFoundException('Chatwoot not found');
+      return null;
     }
 
     this.logger.verbose(`Chatwoot account id: ${data.account_id}`);
@@ -351,7 +351,7 @@ export class WAStartupService {
     const expose =
       this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
-    const instanceApikey = tokenStore.apikey || 'Apikey not found';
+    const instanceApikey = tokenStore?.apikey || 'Apikey not found';
 
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
@@ -1190,6 +1190,22 @@ export class WAStartupService {
 
             this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
             await this.sendDataWebhook(Events.MESSAGES_DELETE, key);
+
+            const message: MessageUpdateRaw = {
+              ...key,
+              status: 'DELETED',
+              datetime: Date.now(),
+              owner: this.instance.name,
+            };
+
+            this.logger.verbose(message);
+
+            this.logger.verbose('Inserting message in database');
+            await this.repository.messageUpdate.insert(
+              [message],
+              this.instance.name,
+              database.SAVE_DATA.MESSAGE_UPDATE,
+            );
             return;
           }
 
@@ -2351,6 +2367,9 @@ export class WAStartupService {
     this.logger.verbose('Fetching contacts');
     if (query?.where) {
       query.where.owner = this.instance.name;
+      if (query.where?.id) {
+        query.where.id = this.createJid(query.where.id);
+      }
     } else {
       query = {
         where: {

@@ -63,6 +63,7 @@ export declare namespace wa {
     | 'SERVER_ACK'
     | 'DELIVERY_ACK'
     | 'READ'
+    | 'DELETED'
     | 'PLAYED';
 }
 

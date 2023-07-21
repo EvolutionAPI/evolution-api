@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { Auth, ConfigService } from '../../config/env.config';
+import { Auth, ConfigService, Database } from '../../config/env.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
 import { IAuthModel, AuthRaw } from '../models';
 import { readFileSync } from 'fs';

@@ -90,7 +90,7 @@ export class WAMonitoringService {
 
         const findChatwoot = await this.waInstances[key].findChatwoot();
 
-        if (findChatwoot.enabled) {
+        if (findChatwoot && findChatwoot.enabled) {
           chatwoot = {
             ...findChatwoot,
             webhook_url: `${urlServer}/chatwoot/webhook/${key}`,

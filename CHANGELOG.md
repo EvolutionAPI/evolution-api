@@ -3,6 +3,8 @@
 ### Fixed
 
 * Fix in update settings that needed to restart after updated
+* Correction in the use of the api with mongodb
+* Adjustments to search endpoint for contacts, chats, messages and Status messages
 
 # 1.3.1 (2023-07-20 07:48)
 
