@@ -2364,6 +2364,9 @@ export class WAStartupService {
   public async fetchMessages(query: MessageQuery) {
     this.logger.verbose('Fetching messages');
     if (query?.where) {
+      if (query.where?.key?.remoteJid) {
+        query.where.key.remoteJid = this.createJid(query.where.key.remoteJid);
+      }
       query.where.owner = this.instance.name;
     } else {
       query = {
@@ -2379,6 +2382,9 @@ export class WAStartupService {
   public async fetchStatusMessage(query: MessageUpQuery) {
     this.logger.verbose('Fetching status messages');
     if (query?.where) {
+      if (query.where?.remoteJid) {
+        query.where.remoteJid = this.createJid(query.where.remoteJid);
+      }
       query.where.owner = this.instance.name;
     } else {
       query = {
@@ -2423,8 +2429,19 @@ export class WAStartupService {
       this.logger.verbose('Groups add privacy updated');
 
       // reinicia a instancia
+      this.client?.ws?.close();
 
-      return { update: 'success', data: await this.client.fetchPrivacySettings() };
+      return {
+        update: 'success',
+        data: {
+          readreceipts: settings.privacySettings.readreceipts,
+          profile: settings.privacySettings.profile,
+          status: settings.privacySettings.status,
+          online: settings.privacySettings.online,
+          last: settings.privacySettings.last,
+          groupadd: settings.privacySettings.groupadd,
+        },
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         'Error updating privacy settings',

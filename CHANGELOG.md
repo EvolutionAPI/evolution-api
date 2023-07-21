@@ -1,3 +1,9 @@
+# 1.3.2 (homolog)
+
+### Fixed
+
+* Fix in update settings that needed to restart after updated
+
 # 1.3.1 (2023-07-20 07:48)
 
 ### Fixed
