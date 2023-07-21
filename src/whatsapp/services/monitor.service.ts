@@ -15,7 +15,6 @@ import {
 import { RepositoryBroker } from '../repository/repository.manager';
 import { NotFoundException } from '../../exceptions';
 import { Db } from 'mongodb';
-import { initInstance } from '../whatsapp.module';
 import { RedisCache } from '../../db/redis.client';
 import { execSync } from 'child_process';
 import { dbserver } from '../../db/db.connect';
@@ -287,7 +286,6 @@ export class WAMonitoringService {
           keys.forEach(async (k) => await set(k.split(':')[1]));
         } else {
           this.logger.verbose('no instance keys found');
-          initInstance();
         }
         return;
       }
@@ -303,7 +301,6 @@ export class WAMonitoringService {
           );
         } else {
           this.logger.verbose('no collections found');
-          initInstance();
         }
         return;
       }
@@ -324,7 +321,6 @@ export class WAMonitoringService {
           await set(dirent.name);
         } else {
           this.logger.verbose('no instance files found');
-          initInstance();
         }
       }
     } catch (error) {

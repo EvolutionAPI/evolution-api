@@ -48,273 +48,80 @@ export class InstanceController {
       );
     }
 
-    const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
+    this.logger.verbose('checking duplicate token');
+    await this.authService.checkDuplicateToken(token);
 
-    if (mode === 'container') {
-      this.logger.verbose('container mode');
+    this.logger.verbose('creating instance');
+    const instance = new WAStartupService(
+      this.configService,
+      this.eventEmitter,
+      this.repository,
+      this.cache,
+    );
+    instance.instanceName = instanceName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .replace(' ', '');
 
-      if (Object.keys(this.waMonitor.waInstances).length > 0) {
-        throw new BadRequestException([
-          'Instance already created',
-          'Only one instance can be created',
-        ]);
+    this.logger.verbose('instance: ' + instance.instanceName + ' created');
+
+    this.waMonitor.waInstances[instance.instanceName] = instance;
+    this.waMonitor.delInstanceTime(instance.instanceName);
+
+    this.logger.verbose('generating hash');
+    const hash = await this.authService.generateHash(
+      {
+        instanceName: instance.instanceName,
+      },
+      token,
+    );
+
+    this.logger.verbose('hash: ' + hash + ' generated');
+
+    let getEvents: string[];
+
+    if (webhook) {
+      if (!isURL(webhook, { require_tld: false })) {
+        throw new BadRequestException('Invalid "url" property in webhook');
       }
 
-      this.logger.verbose('checking duplicate token');
-      await this.authService.checkDuplicateToken(token);
-
-      this.logger.verbose('creating instance');
-      const instance = new WAStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.repository,
-        this.cache,
-      );
-      instance.instanceName = instanceName
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
-        .replace(' ', '');
-      this.logger.verbose('instance: ' + instance.instanceName + ' created');
-
-      this.waMonitor.waInstances[instance.instanceName] = instance;
-      this.waMonitor.delInstanceTime(instance.instanceName);
-
-      this.logger.verbose('generating hash');
-      const hash = await this.authService.generateHash(
-        {
-          instanceName: instance.instanceName,
-        },
-        token,
-      );
-
-      this.logger.verbose('hash: ' + hash + ' generated');
-
-      let getEvents: string[];
-
-      if (webhook) {
-        if (!isURL(webhook, { require_tld: false })) {
-          throw new BadRequestException('Invalid "url" property in webhook');
-        }
-        this.logger.verbose('creating webhook');
-        try {
-          this.webhookService.create(instance, {
-            enabled: true,
-            url: webhook,
-            events,
-            webhook_by_events,
-          });
-
-          getEvents = (await this.webhookService.find(instance)).events;
-        } catch (error) {
-          this.logger.log(error);
-        }
-      }
-
-      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
-        this.logger.verbose('instance created');
-        this.logger.verbose({
-          instance: {
-            instanceName: instance.instanceName,
-            status: 'created',
-          },
-          hash,
-          webhook,
-          events: getEvents,
-        });
-
-        return {
-          instance: {
-            instanceName: instance.instanceName,
-            status: 'created',
-          },
-          hash,
-          webhook,
-          events: getEvents,
-        };
-      }
-
-      if (!chatwoot_account_id) {
-        throw new BadRequestException('account_id is required');
-      }
-
-      if (!chatwoot_token) {
-        throw new BadRequestException('token is required');
-      }
-
-      if (!chatwoot_url) {
-        throw new BadRequestException('url is required');
-      }
-
-      if (!isURL(chatwoot_url, { require_tld: false })) {
-        throw new BadRequestException('Invalid "url" property in chatwoot');
-      }
-
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-
+      this.logger.verbose('creating webhook');
       try {
-        this.chatwootService.create(instance, {
+        this.webhookService.create(instance, {
           enabled: true,
-          account_id: chatwoot_account_id,
-          token: chatwoot_token,
-          url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg || false,
-          name_inbox: instance.instanceName,
+          url: webhook,
+          events,
+          webhook_by_events,
         });
 
-        this.chatwootService.initInstanceChatwoot(
-          instance,
-          instance.instanceName,
-          `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
-          qrcode,
-        );
+        getEvents = (await this.webhookService.find(instance)).events;
       } catch (error) {
         this.logger.log(error);
       }
+    }
 
-      return {
+    if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
+      let getQrcode: wa.QrCode;
+
+      if (qrcode) {
+        this.logger.verbose('creating qrcode');
+        await instance.connectToWhatsapp();
+        await delay(2000);
+        getQrcode = instance.qrCode;
+      }
+
+      this.logger.verbose('instance created');
+      this.logger.verbose({
         instance: {
           instanceName: instance.instanceName,
           status: 'created',
         },
         hash,
-        chatwoot: {
-          enabled: true,
-          account_id: chatwoot_account_id,
-          token: chatwoot_token,
-          url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg || false,
-          name_inbox: instance.instanceName,
-          webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
-        },
-      };
-    } else {
-      this.logger.verbose('server mode');
-
-      this.logger.verbose('checking duplicate token');
-      await this.authService.checkDuplicateToken(token);
-
-      this.logger.verbose('creating instance');
-      const instance = new WAStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.repository,
-        this.cache,
-      );
-      instance.instanceName = instanceName
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
-        .replace(' ', '');
-
-      this.logger.verbose('instance: ' + instance.instanceName + ' created');
-
-      this.waMonitor.waInstances[instance.instanceName] = instance;
-      this.waMonitor.delInstanceTime(instance.instanceName);
-
-      this.logger.verbose('generating hash');
-      const hash = await this.authService.generateHash(
-        {
-          instanceName: instance.instanceName,
-        },
-        token,
-      );
-
-      this.logger.verbose('hash: ' + hash + ' generated');
-
-      let getEvents: string[];
-
-      if (webhook) {
-        if (!isURL(webhook, { require_tld: false })) {
-          throw new BadRequestException('Invalid "url" property in webhook');
-        }
-
-        this.logger.verbose('creating webhook');
-        try {
-          this.webhookService.create(instance, {
-            enabled: true,
-            url: webhook,
-            events,
-            webhook_by_events,
-          });
-
-          getEvents = (await this.webhookService.find(instance)).events;
-        } catch (error) {
-          this.logger.log(error);
-        }
-      }
-
-      if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
-        let getQrcode: wa.QrCode;
-
-        if (qrcode) {
-          this.logger.verbose('creating qrcode');
-          await instance.connectToWhatsapp();
-          await delay(2000);
-          getQrcode = instance.qrCode;
-        }
-
-        this.logger.verbose('instance created');
-        this.logger.verbose({
-          instance: {
-            instanceName: instance.instanceName,
-            status: 'created',
-          },
-          hash,
-          webhook,
-          webhook_by_events,
-          events: getEvents,
-          qrcode: getQrcode,
-        });
-
-        return {
-          instance: {
-            instanceName: instance.instanceName,
-            status: 'created',
-          },
-          hash,
-          webhook,
-          webhook_by_events,
-          events: getEvents,
-          qrcode: getQrcode,
-        };
-      }
-
-      if (!chatwoot_account_id) {
-        throw new BadRequestException('account_id is required');
-      }
-
-      if (!chatwoot_token) {
-        throw new BadRequestException('token is required');
-      }
-
-      if (!chatwoot_url) {
-        throw new BadRequestException('url is required');
-      }
-
-      if (!isURL(chatwoot_url, { require_tld: false })) {
-        throw new BadRequestException('Invalid "url" property in chatwoot');
-      }
-
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-
-      try {
-        this.chatwootService.create(instance, {
-          enabled: true,
-          account_id: chatwoot_account_id,
-          token: chatwoot_token,
-          url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg || false,
-          name_inbox: instance.instanceName,
-        });
-
-        this.chatwootService.initInstanceChatwoot(
-          instance,
-          instance.instanceName,
-          `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
-          qrcode,
-        );
-      } catch (error) {
-        this.logger.log(error);
-      }
+        webhook,
+        webhook_by_events,
+        events: getEvents,
+        qrcode: getQrcode,
+      });
 
       return {
         instance: {
@@ -325,17 +132,67 @@ export class InstanceController {
         webhook,
         webhook_by_events,
         events: getEvents,
-        chatwoot: {
-          enabled: true,
-          account_id: chatwoot_account_id,
-          token: chatwoot_token,
-          url: chatwoot_url,
-          sign_msg: chatwoot_sign_msg || false,
-          name_inbox: instance.instanceName,
-          webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
-        },
+        qrcode: getQrcode,
       };
     }
+
+    if (!chatwoot_account_id) {
+      throw new BadRequestException('account_id is required');
+    }
+
+    if (!chatwoot_token) {
+      throw new BadRequestException('token is required');
+    }
+
+    if (!chatwoot_url) {
+      throw new BadRequestException('url is required');
+    }
+
+    if (!isURL(chatwoot_url, { require_tld: false })) {
+      throw new BadRequestException('Invalid "url" property in chatwoot');
+    }
+
+    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
+    try {
+      this.chatwootService.create(instance, {
+        enabled: true,
+        account_id: chatwoot_account_id,
+        token: chatwoot_token,
+        url: chatwoot_url,
+        sign_msg: chatwoot_sign_msg || false,
+        name_inbox: instance.instanceName,
+      });
+
+      this.chatwootService.initInstanceChatwoot(
+        instance,
+        instance.instanceName,
+        `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+        qrcode,
+      );
+    } catch (error) {
+      this.logger.log(error);
+    }
+
+    return {
+      instance: {
+        instanceName: instance.instanceName,
+        status: 'created',
+      },
+      hash,
+      webhook,
+      webhook_by_events,
+      events: getEvents,
+      chatwoot: {
+        enabled: true,
+        account_id: chatwoot_account_id,
+        token: chatwoot_token,
+        url: chatwoot_url,
+        sign_msg: chatwoot_sign_msg || false,
+        name_inbox: instance.instanceName,
+        webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+      },
+    };
   }
 
   public async connectToWhatsapp({ instanceName }: InstanceDto) {

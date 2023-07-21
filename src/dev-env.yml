@@ -137,13 +137,3 @@ AUTHENTICATION:
   JWT:
     EXPIRIN_IN: 0 # seconds - 3600s === 1h | zero (0) - never expires
     SECRET: L=0YWt]b2w[WF>#>:&E`
-  # Set the instance name and webhook url to create an instance in init the application
-  INSTANCE:
-    # With this option activated, you work with a url per webhook event, respecting the local url and the name of each event
-    MODE: server # container or server
-    # if you are using container mode, set the container name and the webhook url to default instance
-    NAME: evolution
-    WEBHOOK_URL: <url>
-    CHATWOOT_ACCOUNT_ID: 1
-    CHATWOOT_TOKEN: 123456
-    CHATWOOT_URL: <url>

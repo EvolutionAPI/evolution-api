@@ -346,7 +346,6 @@ export class WAStartupService {
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
-    const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
 
     const expose =
       this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
@@ -355,7 +354,7 @@ export class WAStartupService {
 
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
-    if (local && instance.MODE !== 'container') {
+    if (local) {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         this.logger.verbose('Sending data to webhook local');
         let baseURL;
@@ -432,13 +431,7 @@ export class WAStartupService {
           globalURL = globalWebhook.URL;
         }
 
-        let localUrl;
-
-        if (instance.MODE === 'container') {
-          localUrl = instance.WEBHOOK_URL;
-        } else {
-          localUrl = this.localWebhook.url;
-        }
+        const localUrl = this.localWebhook.url;
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
