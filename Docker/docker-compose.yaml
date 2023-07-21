@@ -1,9 +1,10 @@
 version: '3.3'
 
 services:
+
   api:
     container_name: evolution_api
-    image: evolution/api:local
+    image: davidsongomes/evolution-api
     restart: always
     ports:
       - 8080:8080
@@ -11,7 +12,7 @@ services:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store
     env_file:
-      - ./Docker/.env
+      - .env
     command: ['node', './dist/src/main.js']
     expose:
       - 8080
@@ -19,8 +20,3 @@ services:
 volumes:
   evolution_instances:
   evolution_store:
-
-networks:
-  evolution-net:
-    external: true
-  
