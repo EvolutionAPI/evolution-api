@@ -1412,8 +1412,6 @@ export class WAStartupService {
     }
 
     if (Number(countryCode) === 52 || Number(countryCode) === 54) {
-      console.log('numero mexicano');
-
       const formattedMXARNumber = this.formatMXOrARNumber(number);
 
       if (formattedMXARNumber !== number) {

@@ -42,6 +42,12 @@ export class InstanceController {
   }: InstanceDto) {
     this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
 
+    if (instanceName !== instanceName.toLowerCase().replace(/[^a-z0-9]/g, '')) {
+      throw new BadRequestException(
+        'The instance name must be lowercase and without special characters',
+      );
+    }
+
     const mode = this.configService.get<Auth>('AUTHENTICATION').INSTANCE.MODE;
 
     if (mode === 'container') {
