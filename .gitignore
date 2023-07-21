@@ -16,6 +16,8 @@ lerna-debug.log*
 /docker-compose-data
 /docker-data
 
+docker-compose.yaml
+
 # Package
 /yarn.lock
 /package-lock.json
