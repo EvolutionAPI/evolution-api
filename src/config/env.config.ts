@@ -94,20 +94,12 @@ export type EventsWebhook = {
 
 export type ApiKey = { KEY: string };
 export type Jwt = { EXPIRIN_IN: number; SECRET: string };
-export type Instance = {
-  NAME: string;
-  WEBHOOK_URL: string;
-  MODE: string;
-  CHATWOOT_ACCOUNT_ID: string;
-  CHATWOOT_TOKEN: string;
-  CHATWOOT_URL: string;
-};
+
 export type Auth = {
   API_KEY: ApiKey;
   EXPOSE_IN_FETCH_INSTANCES: boolean;
   JWT: Jwt;
   TYPE: 'jwt' | 'apikey';
-  INSTANCE: Instance;
 };
 
 export type DelInstance = number | boolean;
@@ -275,15 +267,6 @@ export class ConfigService {
             ? Number.parseInt(process.env.AUTHENTICATION_JWT_EXPIRIN_IN)
             : 3600,
           SECRET: process.env.AUTHENTICATION_JWT_SECRET,
-        },
-        INSTANCE: {
-          NAME: process.env.AUTHENTICATION_INSTANCE_NAME,
-          WEBHOOK_URL: process.env.AUTHENTICATION_INSTANCE_WEBHOOK_URL,
-          MODE: process.env.AUTHENTICATION_INSTANCE_MODE,
-          CHATWOOT_ACCOUNT_ID:
-            process.env.AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID || '',
-          CHATWOOT_TOKEN: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN || '',
-          CHATWOOT_URL: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_URL || '',
         },
       },
     };

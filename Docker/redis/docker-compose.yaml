@@ -12,13 +12,6 @@ services:
       - evolution_redis:/data
     ports:
       - 6379:6379
-  
-  rebrow:
-    image: marian/rebrow
-    ports: 
-      - 5001:5001
-    links:
-      - redis
     
 volumes:
   evolution_redis:

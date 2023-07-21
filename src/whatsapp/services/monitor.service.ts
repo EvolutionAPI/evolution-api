@@ -15,9 +15,18 @@ import {
 import { RepositoryBroker } from '../repository/repository.manager';
 import { NotFoundException } from '../../exceptions';
 import { Db } from 'mongodb';
-import { initInstance } from '../whatsapp.module';
 import { RedisCache } from '../../db/redis.client';
 import { execSync } from 'child_process';
+import { dbserver } from '../../db/db.connect';
+import mongoose from 'mongoose';
+import {
+  AuthModel,
+  ChatwootModel,
+  ContactModel,
+  MessageModel,
+  MessageUpModel,
+  WebhookModel,
+} from '../models';
 
 export class WAMonitoringService {
   constructor(
@@ -44,6 +53,8 @@ export class WAMonitoringService {
   private readonly redis: Partial<Redis> = {};
 
   private dbInstance: Db;
+
+  private dbStore = dbserver;
 
   private readonly logger = new Logger(WAMonitoringService.name);
   public readonly waInstances: Record<string, WAStartupService> = {};
@@ -90,7 +101,7 @@ export class WAMonitoringService {
 
         const findChatwoot = await this.waInstances[key].findChatwoot();
 
-        if (findChatwoot.enabled) {
+        if (findChatwoot && findChatwoot.enabled) {
           chatwoot = {
             ...findChatwoot,
             webhook_url: `${urlServer}/chatwoot/webhook/${key}`,
@@ -218,11 +229,8 @@ export class WAMonitoringService {
   }
 
   public async cleaningStoreFiles(instanceName: string) {
-    this.logger.verbose('cleaning store files instance: ' + instanceName);
-
     if (!this.db.ENABLED) {
-      const instance = this.waInstances[instanceName];
-
+      this.logger.verbose('cleaning store files instance: ' + instanceName);
       rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
 
       execSync(`rm -rf ${join(STORE_DIR, 'chats', instanceName)}`);
@@ -233,7 +241,21 @@ export class WAMonitoringService {
       execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+
+      return;
     }
+
+    this.logger.verbose('cleaning store database instance: ' + instanceName);
+
+    await AuthModel.deleteMany({ owner: instanceName });
+    await ContactModel.deleteMany({ owner: instanceName });
+    await MessageModel.deleteMany({ owner: instanceName });
+    await MessageUpModel.deleteMany({ owner: instanceName });
+    await AuthModel.deleteMany({ _id: instanceName });
+    await WebhookModel.deleteMany({ _id: instanceName });
+    await ChatwootModel.deleteMany({ _id: instanceName });
+
+    return;
   }
 
   public async loadInstance() {
@@ -264,7 +286,6 @@ export class WAMonitoringService {
           keys.forEach(async (k) => await set(k.split(':')[1]));
         } else {
           this.logger.verbose('no instance keys found');
-          initInstance();
         }
         return;
       }
@@ -280,7 +301,6 @@ export class WAMonitoringService {
           );
         } else {
           this.logger.verbose('no collections found');
-          initInstance();
         }
         return;
       }
@@ -301,7 +321,6 @@ export class WAMonitoringService {
           await set(dirent.name);
         } else {
           this.logger.verbose('no instance files found');
-          initInstance();
         }
       }
     } catch (error) {

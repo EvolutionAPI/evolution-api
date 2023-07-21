@@ -328,7 +328,7 @@ export class WAStartupService {
 
     if (!data) {
       this.logger.verbose('Chatwoot not found');
-      throw new NotFoundException('Chatwoot not found');
+      return null;
     }
 
     this.logger.verbose(`Chatwoot account id: ${data.account_id}`);
@@ -346,16 +346,15 @@ export class WAStartupService {
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[\.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
-    const instance = this.configService.get<Auth>('AUTHENTICATION').INSTANCE;
 
     const expose =
       this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
-    const instanceApikey = tokenStore.apikey || 'Apikey not found';
+    const instanceApikey = tokenStore?.apikey || 'Apikey not found';
 
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
-    if (local && instance.MODE !== 'container') {
+    if (local) {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         this.logger.verbose('Sending data to webhook local');
         let baseURL;
@@ -432,13 +431,7 @@ export class WAStartupService {
           globalURL = globalWebhook.URL;
         }
 
-        let localUrl;
-
-        if (instance.MODE === 'container') {
-          localUrl = instance.WEBHOOK_URL;
-        } else {
-          localUrl = this.localWebhook.url;
-        }
+        const localUrl = this.localWebhook.url;
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
@@ -1190,6 +1183,22 @@ export class WAStartupService {
 
             this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
             await this.sendDataWebhook(Events.MESSAGES_DELETE, key);
+
+            const message: MessageUpdateRaw = {
+              ...key,
+              status: 'DELETED',
+              datetime: Date.now(),
+              owner: this.instance.name,
+            };
+
+            this.logger.verbose(message);
+
+            this.logger.verbose('Inserting message in database');
+            await this.repository.messageUpdate.insert(
+              [message],
+              this.instance.name,
+              database.SAVE_DATA.MESSAGE_UPDATE,
+            );
             return;
           }
 
@@ -1396,8 +1405,6 @@ export class WAStartupService {
     }
 
     if (Number(countryCode) === 52 || Number(countryCode) === 54) {
-      console.log('numero mexicano');
-
       const formattedMXARNumber = this.formatMXOrARNumber(number);
 
       if (formattedMXARNumber !== number) {
@@ -2351,6 +2358,9 @@ export class WAStartupService {
     this.logger.verbose('Fetching contacts');
     if (query?.where) {
       query.where.owner = this.instance.name;
+      if (query.where?.id) {
+        query.where.id = this.createJid(query.where.id);
+      }
     } else {
       query = {
         where: {
@@ -2364,6 +2374,9 @@ export class WAStartupService {
   public async fetchMessages(query: MessageQuery) {
     this.logger.verbose('Fetching messages');
     if (query?.where) {
+      if (query.where?.key?.remoteJid) {
+        query.where.key.remoteJid = this.createJid(query.where.key.remoteJid);
+      }
       query.where.owner = this.instance.name;
     } else {
       query = {
@@ -2379,6 +2392,9 @@ export class WAStartupService {
   public async fetchStatusMessage(query: MessageUpQuery) {
     this.logger.verbose('Fetching status messages');
     if (query?.where) {
+      if (query.where?.remoteJid) {
+        query.where.remoteJid = this.createJid(query.where.remoteJid);
+      }
       query.where.owner = this.instance.name;
     } else {
       query = {
@@ -2423,8 +2439,19 @@ export class WAStartupService {
       this.logger.verbose('Groups add privacy updated');
 
       // reinicia a instancia
+      this.client?.ws?.close();
 
-      return { update: 'success', data: await this.client.fetchPrivacySettings() };
+      return {
+        update: 'success',
+        data: {
+          readreceipts: settings.privacySettings.readreceipts,
+          profile: settings.privacySettings.profile,
+          status: settings.privacySettings.status,
+          online: settings.privacySettings.online,
+          last: settings.privacySettings.last,
+          groupadd: settings.privacySettings.groupadd,
+        },
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         'Error updating privacy settings',
