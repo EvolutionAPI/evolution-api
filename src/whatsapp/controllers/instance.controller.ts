@@ -337,23 +337,29 @@ export class InstanceController {
       this.logger.verbose(
         'requested connectToWhatsapp from ' + instanceName + ' instance',
       );
-
+  
       const instance = this.waMonitor.waInstances[instanceName];
       const state = instance?.connectionStatus?.state;
-
+  
       this.logger.verbose('state: ' + state);
-
-      switch (state) {
-        case 'close':
-          this.logger.verbose('connecting');
+  
+      if (state == 'open') {
+        return await this.connectionState({ instanceName });
+      }
+  
+      if (state == 'close') {
+        this.logger.verbose('connecting');
           await instance.connectToWhatsapp();
           await delay(2000);
-          return instance.qrCode;
-        case 'connecting':
-          return instance.qrCode;
-        default:
-          return await this.connectionState({ instanceName });
       }
+  
+      return {
+        instance: {
+          instanceName: instanceName,
+          status: state,
+        },
+        qrcode: instance?.qrCode
+      };
     } catch (error) {
       this.logger.error(error);
     }
@@ -374,7 +380,12 @@ export class InstanceController {
 
   public async connectionState({ instanceName }: InstanceDto) {
     this.logger.verbose('requested connectionState from ' + instanceName + ' instance');
-    return this.waMonitor.waInstances[instanceName]?.connectionStatus;
+    return {
+      instance: {
+        instanceName: instanceName,
+        state: this.waMonitor.waInstances[instanceName]?.connectionStatus?.state,
+      }
+    };
   }
 
   public async fetchInstances({ instanceName }: InstanceDto) {
@@ -389,9 +400,9 @@ export class InstanceController {
 
   public async logout({ instanceName }: InstanceDto) {
     this.logger.verbose('requested logout from ' + instanceName + ' instance');
-    const stateConn = await this.connectionState({ instanceName });
+    const { instance } = await this.connectionState({ instanceName });
 
-    if (stateConn.state === 'close') {
+    if (instance.state === 'close') {
       throw new BadRequestException(
         'The "' + instanceName + '" instance is not connected',
       );
@@ -414,15 +425,15 @@ export class InstanceController {
 
   public async deleteInstance({ instanceName }: InstanceDto) {
     this.logger.verbose('requested deleteInstance from ' + instanceName + ' instance');
-    const stateConn = await this.connectionState({ instanceName });
+    const { instance } = await this.connectionState({ instanceName });
 
-    if (stateConn.state === 'open') {
+    if (instance.state === 'open') {
       throw new BadRequestException(
         'The "' + instanceName + '" instance needs to be disconnected',
       );
     }
     try {
-      if (stateConn.state === 'connecting') {
+      if (instance.state === 'connecting') {
         this.logger.verbose('logging out instance: ' + instanceName);
 
         await this.logout({ instanceName });

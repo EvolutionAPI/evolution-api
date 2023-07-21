@@ -165,18 +165,7 @@ export async function initInstance() {
     // }
 
     try {
-      const state = instance.connectionStatus?.state;
-
-      switch (state) {
-        case 'close':
-          await instance.connectToWhatsapp();
-          await delay(2000);
-          return instance.qrCode;
-        case 'connecting':
-          return instance.qrCode;
-        default:
-          return await this.connectionState({ instanceName });
-      }
+      return await instance.connectToWhatsapp();
     } catch (error) {
       logger.log(error);
     }
