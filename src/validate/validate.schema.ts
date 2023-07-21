@@ -58,6 +58,7 @@ export const instanceNameSchema: JSONSchema7 = {
       },
     },
     qrcode: { type: 'boolean', enum: [true, false] },
+    number: { type: 'string', pattern: '^\\d+[\\.@\\w-]+' },
     token: { type: 'string' },
   },
   ...isNotEmpty('instanceName'),

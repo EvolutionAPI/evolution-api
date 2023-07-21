@@ -1,3 +1,9 @@
+# 1.4.0 (homolog)
+
+### Features
+
+* Added connection functionality via pairing code
+
 # 1.3.2 (2023-07-21 17:19)
 
 ### Fixed

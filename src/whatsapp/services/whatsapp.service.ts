@@ -545,6 +545,11 @@ export class WAStartupService {
         return this.eventEmitter.emit('no.connection', this.instance.name);
       }
 
+      // pairing code
+      // await delay(5000);
+      // const code = await this.client.requestPairingCode('557499879409');
+      // console.log(`Pairing code: ${code}`);
+
       this.logger.verbose('Incrementing QR code count');
       this.instance.qrcode.count++;
 

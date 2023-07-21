@@ -34,6 +34,7 @@ export class InstanceController {
     webhook_by_events,
     events,
     qrcode,
+    number,
     token,
     chatwoot_account_id,
     chatwoot_token,
@@ -102,10 +103,16 @@ export class InstanceController {
 
     if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
       let getQrcode: wa.QrCode;
+      let getParingCode: string;
 
       if (qrcode) {
         this.logger.verbose('creating qrcode');
         await instance.connectToWhatsapp();
+        if (number) {
+          this.logger.verbose('creating number');
+          await delay(5000);
+          getParingCode = await instance.client.requestPairingCode(number);
+        }
         await delay(2000);
         getQrcode = instance.qrCode;
       }
@@ -120,6 +127,7 @@ export class InstanceController {
         webhook,
         webhook_by_events,
         events: getEvents,
+        pairingCode: getParingCode,
         qrcode: getQrcode,
       });
 
@@ -132,6 +140,7 @@ export class InstanceController {
         webhook,
         webhook_by_events,
         events: getEvents,
+        pairingCode: getParingCode,
         qrcode: getQrcode,
       };
     }
@@ -195,7 +204,7 @@ export class InstanceController {
     };
   }
 
-  public async connectToWhatsapp({ instanceName }: InstanceDto) {
+  public async connectToWhatsapp({ instanceName, number = null }: InstanceDto) {
     try {
       this.logger.verbose(
         'requested connectToWhatsapp from ' + instanceName + ' instance',
@@ -210,8 +219,17 @@ export class InstanceController {
         case 'close':
           this.logger.verbose('connecting');
           await instance.connectToWhatsapp();
+          let pairingCode = null;
+          if (number) {
+            this.logger.verbose('creating pairing code');
+            await delay(5000);
+            pairingCode = await instance.client.requestPairingCode(number);
+          }
           await delay(2000);
-          return instance.qrCode;
+          return {
+            pairingCode,
+            ...instance.qrCode,
+          };
         case 'connecting':
           return instance.qrCode;
         default:

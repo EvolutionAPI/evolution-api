@@ -25,7 +25,11 @@ export enum Events {
 }
 
 export declare namespace wa {
-  export type QrCode = { count?: number; base64?: string; code?: string };
+  export type QrCode = {
+    count?: number;
+    base64?: string;
+    code?: string;
+  };
   export type Instance = {
     qrcode?: QrCode;
     authState?: { state: AuthenticationState; saveCreds: () => void };
