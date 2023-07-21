@@ -1436,6 +1436,36 @@ export class WAStartupService {
       };
     }
   }
+  
+  public async profile(instanceName: string) {
+    const jid = this.client?.user?.id;
+
+    this.logger.verbose('Getting profile with jid: ' + jid);
+    try {
+      this.logger.verbose('Getting profile info');
+      const info = await waMonitor.instanceInfo(instanceName);
+      const business = await this.fetchBusinessProfile(jid);
+      
+      return {
+        wuid: jid,
+        name: info?.instance?.profileName,
+        picture: info?.instance?.profilePictureUrl,
+        status: info?.instance?.profileStatus,
+        os: this.client?.authState?.creds?.platform,
+        isBusiness: typeof business !== 'undefined',
+      };
+    } catch (error) {
+      this.logger.verbose('Profile not found');
+      return {
+        wuid: jid,
+        name: null,
+        picture: null,
+        status: null,
+        os: null,
+        isBusiness: false,
+      };
+    }
+  }
 
   private async sendMessageWithTyping<T = proto.IMessage>(
     number: string,

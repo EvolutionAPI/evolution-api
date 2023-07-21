@@ -587,6 +587,17 @@ export const profilePictureSchema: JSONSchema7 = {
   },
 };
 
+export const profileSchema: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    wuid: { type: 'string' },
+    name: { type: 'string' },
+    picture: { type: 'string' },
+    status: { type: 'string' },
+    isBusiness: { type: 'boolean' },
+  },
+};
+
 export const messageValidateSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
