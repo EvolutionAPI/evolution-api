@@ -44,6 +44,10 @@ LOG:
 # Determine how long the instance should be deleted from memory in case of no connection.
 # Default time: 5 minutes
 # If you don't even want an expiration, enter the value false
+# Instances settings
+INSTANCES:
+  # Sets a limit of instances that can be created on the server
+  LIMIT: 0
 DEL_INSTANCE: false # or false
 
 # Temporary data storage

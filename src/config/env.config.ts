@@ -102,6 +102,7 @@ export type Auth = {
   TYPE: 'jwt' | 'apikey';
 };
 
+export type Instances = { LIMIT: number };
 export type DelInstance = number | boolean;
 
 export type GlobalWebhook = {
@@ -124,6 +125,7 @@ export interface Env {
   DATABASE: Database;
   REDIS: Redis;
   LOG: Log;
+  INSTANCES: Instances;
   DEL_INSTANCE: DelInstance;
   WEBHOOK: Webhook;
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
@@ -254,6 +256,9 @@ export class ConfigService {
       },
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
+      },
+      INSTANCES: {
+        LIMIT: Number.parseInt(process.env.INSTANCES_LIMIT) || 0,
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'jwt',

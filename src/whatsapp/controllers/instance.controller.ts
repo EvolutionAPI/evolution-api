@@ -1,6 +1,6 @@
 import { delay } from '@whiskeysockets/baileys';
 import EventEmitter2 from 'eventemitter2';
-import { Auth, ConfigService, HttpServer } from '../../config/env.config';
+import { Auth, ConfigService, HttpServer, Instances } from '../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
@@ -46,6 +46,14 @@ export class InstanceController {
       throw new BadRequestException(
         'The instance name must be lowercase and without special characters',
       );
+    }
+    
+    const INSTANCES_LIMIT = this.configService.get<Instances>('INSTANCES').LIMIT;
+    if (
+      INSTANCES_LIMIT != 0 &&
+      Object.keys(this.waMonitor.waInstances).length >= INSTANCES_LIMIT
+    ) {
+      throw new BadRequestException('Limit of instances reached');
     }
 
     this.logger.verbose('checking duplicate token');
