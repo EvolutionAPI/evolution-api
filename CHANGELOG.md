@@ -1,3 +1,15 @@
+# 1.3.2 (2023-07-21 17:19)
+
+### Fixed
+
+* Fix in update settings that needed to restart after updated
+* Correction in the use of the api with mongodb
+* Adjustments to search endpoint for contacts, chats, messages and Status messages
+* Now when deleting the instance, the data referring to it in mongodb is also deleted
+* It is now validated if the instance name contains uppercase and special characters
+* For compatibility reasons, container mode has been removed
+* Added docker-compose files example
+
 # 1.3.1 (2023-07-20 07:48)
 
 ### Fixed
