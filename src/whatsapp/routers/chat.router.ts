@@ -130,7 +130,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .get(this.routerPath('fetchProfile'), ...guards, async (req, res) => {
+      .post(this.routerPath('fetchProfile'), ...guards, async (req, res) => {
         logger.verbose('request received in fetchProfile');
         logger.verbose('request body: ');
         logger.verbose(req.body);
