@@ -1297,6 +1297,16 @@ export class ChatwootService {
           return;
         }
 
+        this.logger.verbose('get conversation message');
+        const bodyMessage = await this.getConversationMessage(body.message);
+
+        const isMedia = this.isMediaMessage(body.message);
+
+        if (!bodyMessage && !isMedia) {
+          this.logger.warn('no body message found');
+          return;
+        }
+
         this.logger.verbose('get conversation in chatwoot');
         const getConversion = await this.createConversation(instance, body);
 
@@ -1309,17 +1319,7 @@ export class ChatwootService {
 
         this.logger.verbose('message type: ' + messageType);
 
-        const isMedia = this.isMediaMessage(body.message);
-
         this.logger.verbose('is media: ' + isMedia);
-
-        this.logger.verbose('get conversation message');
-        const bodyMessage = await this.getConversationMessage(body.message);
-
-        if (!bodyMessage && !isMedia) {
-          this.logger.warn('no body message found');
-          return;
-        }
 
         this.logger.verbose('check if is media');
         if (isMedia) {
