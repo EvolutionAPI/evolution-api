@@ -1,7 +1,8 @@
 export class CreateGroupDto {
   subject: string;
-  description?: string;
   participants: string[];
+  description?: string;
+  promoteParticipants?: boolean;
 }
 
 export class GroupPictureDto {
