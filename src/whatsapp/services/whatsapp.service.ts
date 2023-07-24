@@ -1692,7 +1692,7 @@ export class WAStartupService {
               this.logger.verbose('Getting group metadata');
               mentions = groupMetadata.participants.map((participant) => participant.id);
               this.logger.verbose('Getting group metadata for mentions');
-            } else if(options.mentions?.mentioned?.length) {
+            } else if (options.mentions?.mentioned?.length) {
               this.logger.verbose('Mentions manually defined');
               mentions = options.mentions.mentioned.map((mention) => {
                 const jid = this.createJid(mention);
