@@ -107,7 +107,7 @@ export class InstanceController {
       if (qrcode) {
         this.logger.verbose('creating qrcode');
         await instance.connectToWhatsapp(number);
-        await delay(3000);
+        await delay(5000);
         getQrcode = instance.qrCode;
       }
 
@@ -214,7 +214,7 @@ export class InstanceController {
         this.logger.verbose('connecting');
         await instance.connectToWhatsapp(number);
 
-        await delay(2000);
+        await delay(5000);
         return instance.qrCode;
       }
 

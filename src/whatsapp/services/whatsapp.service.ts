@@ -606,11 +606,14 @@ export class WAStartupService {
         color: { light: '#ffffff', dark: '#198754' },
       };
 
+      console.log(this.phoneNumber);
       if (this.phoneNumber) {
         await delay(2000);
         this.instance.qrcode.pairingCode = await this.client.requestPairingCode(
           this.phoneNumber,
         );
+      } else {
+        this.instance.qrcode.pairingCode = null;
       }
 
       this.logger.verbose('Generating QR code');
@@ -893,13 +896,6 @@ export class WAStartupService {
       this.logger.verbose('Socket event handler initialized');
 
       this.phoneNumber = number;
-
-      // if (number) {
-      //   this.logger.verbose('creating pairing code');
-      //   await delay(5000);
-      //   this.phoneNumber = number;
-      //   this.instance.qrcode.pairingCode = await this.client.requestPairingCode(number);
-      // }
 
       return this.client;
     } catch (error) {

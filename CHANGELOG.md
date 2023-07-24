@@ -1,3 +1,9 @@
+# 1.4.1 (homolog)
+
+### Fixed
+
+* Fixed reconnect with pairing code or qrcode
+
 # 1.4.0 (2023-07-24 17:03)
 
 ### Features
