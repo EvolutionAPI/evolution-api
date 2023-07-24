@@ -1173,6 +1173,10 @@ export class ChatwootService {
 
     const result = typeKey ? types[typeKey] : undefined;
 
+    if (typeKey === 'stickerMessage') {
+      return null;
+    }
+
     if (typeKey === 'contactMessage') {
       const vCardData = result.split('\n');
       const contactInfo = {};
@@ -1294,6 +1298,8 @@ export class ChatwootService {
 
         this.logger.verbose('get conversation message');
         const bodyMessage = await this.getConversationMessage(body.message);
+
+        console.log('bodyMessage', bodyMessage, body.message);
 
         if (!bodyMessage && !isMedia) {
           this.logger.warn('no body message found');

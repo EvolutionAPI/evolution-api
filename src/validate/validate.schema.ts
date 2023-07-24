@@ -446,7 +446,7 @@ export const whatsappNumberSchema: JSONSchema7 = {
       uniqueItems: true,
       items: {
         type: 'string',
-        pattern: '^\\d+',
+        // pattern: '^\\d+',
         description: '"numbers" must be an array of numeric strings',
       },
     },

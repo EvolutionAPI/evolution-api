@@ -1335,8 +1335,13 @@ export class WAStartupService {
 
           if (settings?.msg_call.trim().length > 0 && call.status == 'offer') {
             this.logger.verbose('Sending message in call');
-            this.client.sendMessage(call.from, {
+            const msg = await this.client.sendMessage(call.from, {
               text: settings.msg_call,
+            });
+
+            this.client.ev.emit('messages.upsert', {
+              messages: [msg],
+              type: 'notify',
             });
           }
         }

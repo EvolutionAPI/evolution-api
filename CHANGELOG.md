@@ -11,6 +11,7 @@
 ### Fixed
 
 * Added link preview option in send text message
+* Fixed problem with fileSha256 appearing when sending a sticker in chatwoot
 
 ### Integrations
 
