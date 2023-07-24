@@ -1354,7 +1354,6 @@ export class WAStartupService {
 
         if (events.call) {
           this.logger.verbose('Listening event: call');
-          console.log('events.call', events.call);
           const call = events.call[0];
 
           if (settings?.reject_call && call.status == 'offer') {
@@ -1661,8 +1660,6 @@ export class WAStartupService {
       }
 
       const linkPreview = options?.linkPreview != false ? undefined : false;
-
-      console.log('linkPreview', linkPreview);
 
       let quoted: WAMessage;
 
@@ -2179,26 +2176,45 @@ export class WAStartupService {
 
   public async audioWhatsapp(data: SendAudioDto) {
     this.logger.verbose('Sending audio whatsapp');
-    const convert = await this.processAudio(data.audioMessage.audio, data.number);
-    if (typeof convert === 'string') {
-      const audio = fs.readFileSync(convert).toString('base64');
-      const result = this.sendMessageWithTyping<AnyMessageContent>(
-        data.number,
-        {
-          audio: Buffer.from(audio, 'base64'),
-          ptt: true,
-          mimetype: 'audio/mp4',
-        },
-        { presence: 'recording', delay: data?.options?.delay },
-      );
 
-      fs.unlinkSync(convert);
-      this.logger.verbose('Converted audio deleted');
-
-      return result;
-    } else {
-      throw new InternalServerErrorException(convert);
+    if (!data.options?.encoding && data.options?.encoding !== false) {
+      data.options.encoding = true;
     }
+
+    if (data.options?.encoding) {
+      const convert = await this.processAudio(data.audioMessage.audio, data.number);
+      if (typeof convert === 'string') {
+        const audio = fs.readFileSync(convert).toString('base64');
+        const result = this.sendMessageWithTyping<AnyMessageContent>(
+          data.number,
+          {
+            audio: Buffer.from(audio, 'base64'),
+            ptt: true,
+            mimetype: 'audio/mp4',
+          },
+          { presence: 'recording', delay: data?.options?.delay },
+        );
+
+        fs.unlinkSync(convert);
+        this.logger.verbose('Converted audio deleted');
+
+        return result;
+      } else {
+        throw new InternalServerErrorException(convert);
+      }
+    }
+
+    return await this.sendMessageWithTyping<AnyMessageContent>(
+      data.number,
+      {
+        audio: isURL(data.audioMessage.audio)
+          ? { url: data.audioMessage.audio }
+          : Buffer.from(data.audioMessage.audio, 'base64'),
+        ptt: true,
+        mimetype: 'audio/ogg; codecs=opus',
+      },
+      { presence: 'recording', delay: data?.options?.delay },
+    );
   }
 
   public async buttonMessage(data: SendButtonDto) {

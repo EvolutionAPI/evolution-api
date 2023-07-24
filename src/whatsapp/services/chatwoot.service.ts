@@ -1601,8 +1601,6 @@ export class ChatwootService {
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
       const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
 
-      console.log('data: ', data);
-
       const requestData = {
         instanceName,
         qrcode,
@@ -1615,8 +1613,6 @@ export class ChatwootService {
       if (number) {
         requestData['number'] = number;
       }
-
-      console.log('requestData: ', requestData);
 
       const config = {
         method: 'post',

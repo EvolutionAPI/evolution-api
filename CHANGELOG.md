@@ -8,6 +8,7 @@
 * Added reject call and send text message when receiving a call
 * Added setting to ignore group messages
 * Added connection with pairing code in chatwoot with command /init:{NUMBER}
+* Added encoding option in endpoint sendWhatsAppAudio
 
 ### Fixed
 
