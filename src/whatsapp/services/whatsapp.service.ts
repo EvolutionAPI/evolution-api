@@ -116,16 +116,15 @@ import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-d
 import Long from 'long';
 import { WebhookRaw } from '../models/webhook.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
+import { SettingsRaw } from '../models';
 import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import sharp from 'sharp';
 import { RedisCache } from '../../db/redis.client';
 import { Log } from '../../config/env.config';
-import ProxyAgent from 'proxy-agent';
 import { ChatwootService } from './chatwoot.service';
 import { waMonitor } from '../whatsapp.module';
-import { SettingsRaw } from '../models';
 
 export class WAStartupService {
   constructor(
@@ -382,7 +381,7 @@ export class WAStartupService {
 
     if (!data) {
       this.logger.verbose('Settings not found');
-      throw new NotFoundException('Settings not found');
+      return null;
     }
 
     this.logger.verbose(`Settings url: ${data.reject_call}`);
@@ -1129,7 +1128,7 @@ export class WAStartupService {
         received.messageTimestamp = received.messageTimestamp?.toNumber();
       }
 
-      if (settings.groups_ignore && received.key.remoteJid.includes('@g.us')) {
+      if (settings?.groups_ignore && received.key.remoteJid.includes('@g.us')) {
         this.logger.verbose('group ignored');
         return;
       }
