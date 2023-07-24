@@ -1380,7 +1380,7 @@ export class WAStartupService {
 
   private createJid(number: string): string {
     this.logger.verbose('Creating jid with number: ' + number);
-
+    
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
       return number;
@@ -1390,37 +1390,23 @@ export class WAStartupService {
       this.logger.verbose('Number already contains @broadcast');
       return number;
     }
-
-    const countryCode = number.substring(0, 2);
-
-    if (Number(countryCode) === 55) {
-      const formattedBRNumber = this.formatBRNumber(number);
-      if (formattedBRNumber !== number) {
-        this.logger.verbose(
-          'Jid created is whatsapp in format BR: ' +
-            `${formattedBRNumber}@s.whatsapp.net`,
-        );
-        return `${formattedBRNumber}@s.whatsapp.net`;
-      }
-    }
-
-    if (Number(countryCode) === 52 || Number(countryCode) === 54) {
-      const formattedMXARNumber = this.formatMXOrARNumber(number);
-
-      if (formattedMXARNumber !== number) {
-        this.logger.verbose(
-          'Jid created is whatsapp in format MXAR: ' +
-            `${formattedMXARNumber}@s.whatsapp.net`,
-        );
-        return `${formattedMXARNumber}@s.whatsapp.net`;
-      }
-    }
-
-    if (number.includes('-')) {
+    
+    number = number
+      ?.split(":")[0]
+      ?.split("@")[0]
+      ?.replace(' ', '')
+      ?.replace('+', '')
+      ?.replace('(', '')
+      ?.replace(')', '');
+    
+    if (number.includes('-') && number.length >= 18) {
       this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
+      number = number.replace(/[^\d-]/g, '');
       return `${number}@g.us`;
     }
-
+    
+    number = number.replace(/\D/g, '');
+    
     this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
     return `${number}@s.whatsapp.net`;
   }
@@ -1451,15 +1437,14 @@ export class WAStartupService {
   ) {
     this.logger.verbose('Sending message with typing');
 
-    const jid = this.createJid(number);
-    const numberWA = await this.whatsappNumber({ numbers: [jid] });
+    const numberWA = await this.whatsappNumber({ numbers: [number] });
     const isWA = numberWA[0];
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
     }
 
-    const sender = isJidGroup(jid) ? jid : isWA.jid;
+    const sender = isWA.jid;
 
     try {
       if (options?.delay) {
@@ -1468,7 +1453,7 @@ export class WAStartupService {
         await this.client.presenceSubscribe(sender);
         this.logger.verbose('Subscribing to presence');
 
-        await this.client.sendPresenceUpdate(options?.presence ?? 'composing', jid);
+        await this.client.sendPresenceUpdate(options?.presence ?? 'composing', sender);
         this.logger.verbose(
           'Sending presence update: ' + options?.presence ?? 'composing',
         );
@@ -1527,7 +1512,8 @@ export class WAStartupService {
               mentions = options.mentions.mentioned.map((mention) => {
                 const jid = this.createJid(mention);
                 if (isJidGroup(jid)) {
-                  throw new BadRequestException('Mentions must be a number');
+                  return null;
+                  // throw new BadRequestException('Mentions must be a number');
                 }
                 return jid;
               });
@@ -2171,7 +2157,7 @@ export class WAStartupService {
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
       const jid = this.createJid(number);
-      // const jid = `${number}@s.whatsapp.net`;
+      
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
 
