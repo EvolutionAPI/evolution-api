@@ -669,6 +669,7 @@ export const createGroupSchema: JSONSchema7 = {
     subject: { type: 'string' },
     description: { type: 'string' },
     profilePicture: { type: 'string' },
+    promoteParticipants: { type: 'boolean', enum: [true, false] },
     participants: {
       type: 'array',
       minItems: 1,

@@ -2785,11 +2785,20 @@ export class WAStartupService {
         this.logger.verbose('Updating group description: ' + create.description);
         await this.client.groupUpdateDescription(id, create.description);
       }
+      
+      if (create?.promoteParticipants) {
+        this.logger.verbose('Prometing group participants: ' + create.description);
+        await this.updateGParticipant({
+          groupJid: id,
+          action: "promote",
+          participants: participants
+        });
+      }
 
       const group = await this.client.groupMetadata(id);
       this.logger.verbose('Getting group metadata');
 
-      return { groupMetadata: group };
+      return group;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException('Error creating group', error.toString());
