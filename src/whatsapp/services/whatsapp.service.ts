@@ -2125,6 +2125,11 @@ export class WAStartupService {
         result += `URL:${contact.url}\n`;
       }
 
+      if (!contact.wuid) {
+        this.logger.verbose('Wuid defined');
+        contact.wuid = this.createJid(contact.phoneNumber);
+      }
+
       result +=
         `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` +
         'item1.X-ABLabel:Celular\n' +

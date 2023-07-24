@@ -398,7 +398,7 @@ export const contactMessageSchema: JSONSchema7 = {
           email: { type: 'string' },
           url: { type: 'string' },
         },
-        required: ['fullName', 'wuid', 'phoneNumber'],
+        required: ['fullName', 'phoneNumber'],
         ...isNotEmpty('fullName'),
       },
       minItems: 1,
