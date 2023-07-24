@@ -107,7 +107,7 @@ export class InstanceController {
       if (qrcode) {
         this.logger.verbose('creating qrcode');
         await instance.connectToWhatsapp(number);
-        await delay(3000);
+        await delay(5000);
         getQrcode = instance.qrCode;
       }
 
@@ -214,7 +214,7 @@ export class InstanceController {
         this.logger.verbose('connecting');
         await instance.connectToWhatsapp(number);
 
-        await delay(2000);
+        await delay(5000);
         return instance.qrCode;
       }
 
@@ -245,7 +245,12 @@ export class InstanceController {
 
   public async connectionState({ instanceName }: InstanceDto) {
     this.logger.verbose('requested connectionState from ' + instanceName + ' instance');
-    return this.waMonitor.waInstances[instanceName]?.connectionStatus;
+    return {
+      instance: {
+        instanceName: instanceName,
+        state: this.waMonitor.waInstances[instanceName]?.connectionStatus?.state,
+      },
+    };
   }
 
   public async fetchInstances({ instanceName }: InstanceDto) {
@@ -260,9 +265,9 @@ export class InstanceController {
 
   public async logout({ instanceName }: InstanceDto) {
     this.logger.verbose('requested logout from ' + instanceName + ' instance');
-    const stateConn = await this.connectionState({ instanceName });
+    const { instance } = await this.connectionState({ instanceName });
 
-    if (stateConn.state === 'close') {
+    if (instance.state === 'close') {
       throw new BadRequestException(
         'The "' + instanceName + '" instance is not connected',
       );
@@ -285,15 +290,15 @@ export class InstanceController {
 
   public async deleteInstance({ instanceName }: InstanceDto) {
     this.logger.verbose('requested deleteInstance from ' + instanceName + ' instance');
-    const stateConn = await this.connectionState({ instanceName });
+    const { instance } = await this.connectionState({ instanceName });
 
-    if (stateConn.state === 'open') {
+    if (instance.state === 'open') {
       throw new BadRequestException(
         'The "' + instanceName + '" instance needs to be disconnected',
       );
     }
     try {
-      if (stateConn.state === 'connecting') {
+      if (instance.state === 'connecting') {
         this.logger.verbose('logging out instance: ' + instanceName);
 
         await this.logout({ instanceName });
