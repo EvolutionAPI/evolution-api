@@ -5,6 +5,8 @@
 * Added connection functionality via pairing code
 * Added fetch profile endpoint in chat controller
 * Created settings controller
+* Added reject call and send text message when receiving a call
+* Added setting to ignore group messages
 
 ### Fixed
 
@@ -12,7 +14,7 @@
 
 ### Integrations
 
-- Chatwoot: v2.18.0
+- Chatwoot: v2.18.0 - v3.0.0 (Beta)
 
 # 1.3.2 (2023-07-21 17:19)
 

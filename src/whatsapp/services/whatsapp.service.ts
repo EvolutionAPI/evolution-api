@@ -1086,6 +1086,7 @@ export class WAStartupService {
         type: MessageUpsertType;
       },
       database: Database,
+      settings: SettingsRaw,
     ) => {
       this.logger.verbose('Event received: messages.upsert');
       const received = messages[0];
@@ -1101,6 +1102,11 @@ export class WAStartupService {
 
       if (Long.isLong(received.messageTimestamp)) {
         received.messageTimestamp = received.messageTimestamp?.toNumber();
+      }
+
+      if (settings.groups_ignore && received.key.remoteJid.includes('@g.us')) {
+        this.logger.verbose('group ignored');
+        return;
       }
 
       const messageRaw: MessageRaw = {
@@ -1194,7 +1200,11 @@ export class WAStartupService {
       );
     },
 
-    'messages.update': async (args: WAMessageUpdate[], database: Database) => {
+    'messages.update': async (
+      args: WAMessageUpdate[],
+      database: Database,
+      settings: SettingsRaw,
+    ) => {
       this.logger.verbose('Event received: messages.update');
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
@@ -1205,6 +1215,10 @@ export class WAStartupService {
         5: 'PLAYED',
       };
       for await (const { key, update } of args) {
+        if (settings.groups_ignore && key.remoteJid.includes('@g.us')) {
+          this.logger.verbose('group ignored');
+          return;
+        }
         if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
           this.logger.verbose('Message update is valid');
 
@@ -1304,9 +1318,28 @@ export class WAStartupService {
 
   private eventHandler() {
     this.logger.verbose('Initializing event handler');
-    this.client.ev.process((events) => {
+    this.client.ev.process(async (events) => {
       if (!this.endSession) {
         const database = this.configService.get<Database>('DATABASE');
+        const settings = await this.findSettings();
+
+        if (events.call) {
+          this.logger.verbose('Listening event: call');
+          console.log('events.call', events.call);
+          const call = events.call[0];
+
+          if (settings?.reject_call && call.status == 'offer') {
+            this.logger.verbose('Rejecting call');
+            this.client.rejectCall(call.id, call.from);
+          }
+
+          if (settings?.msg_call.trim().length > 0 && call.status == 'offer') {
+            this.logger.verbose('Sending message in call');
+            this.client.sendMessage(call.from, {
+              text: settings.msg_call,
+            });
+          }
+        }
 
         if (events['connection.update']) {
           this.logger.verbose('Listening event: connection.update');
@@ -1327,37 +1360,44 @@ export class WAStartupService {
         if (events['messages.upsert']) {
           this.logger.verbose('Listening event: messages.upsert');
           const payload = events['messages.upsert'];
-          this.messageHandle['messages.upsert'](payload, database);
+          this.messageHandle['messages.upsert'](payload, database, settings);
         }
 
         if (events['messages.update']) {
           this.logger.verbose('Listening event: messages.update');
           const payload = events['messages.update'];
-          this.messageHandle['messages.update'](payload, database);
+          this.messageHandle['messages.update'](payload, database, settings);
         }
 
         if (events['presence.update']) {
           this.logger.verbose('Listening event: presence.update');
           const payload = events['presence.update'];
+
+          if (settings.groups_ignore && payload.id.includes('@g.us')) {
+            this.logger.verbose('group ignored');
+            return;
+          }
           this.sendDataWebhook(Events.PRESENCE_UPDATE, payload);
         }
 
-        if (events['groups.upsert']) {
-          this.logger.verbose('Listening event: groups.upsert');
-          const payload = events['groups.upsert'];
-          this.groupHandler['groups.upsert'](payload);
-        }
+        if (!settings?.groups_ignore) {
+          if (events['groups.upsert']) {
+            this.logger.verbose('Listening event: groups.upsert');
+            const payload = events['groups.upsert'];
+            this.groupHandler['groups.upsert'](payload);
+          }
 
-        if (events['groups.update']) {
-          this.logger.verbose('Listening event: groups.update');
-          const payload = events['groups.update'];
-          this.groupHandler['groups.update'](payload);
-        }
+          if (events['groups.update']) {
+            this.logger.verbose('Listening event: groups.update');
+            const payload = events['groups.update'];
+            this.groupHandler['groups.update'](payload);
+          }
 
-        if (events['group-participants.update']) {
-          this.logger.verbose('Listening event: group-participants.update');
-          const payload = events['group-participants.update'];
-          this.groupHandler['group-participants.update'](payload);
+          if (events['group-participants.update']) {
+            this.logger.verbose('Listening event: group-participants.update');
+            const payload = events['group-participants.update'];
+            this.groupHandler['group-participants.update'](payload);
+          }
         }
 
         if (events['chats.upsert']) {
