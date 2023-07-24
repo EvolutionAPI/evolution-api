@@ -1517,16 +1517,14 @@ export class WAStartupService {
       .split(/\:/)[0]
       .split('@')[0];
 
-    // Verificação de Grupos Antigos
-    if(number.includes('-') && number.length >= 24){
+    if (number.includes('-') && number.length >= 24) {
       this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
       number = number.replace(/[^\d-]/g, '');
       return `${number}@g.us`;
     }
-    
+
     number = number.replace(/\D/g, '');
 
-    // Verificação de Grupos Novos
     if (number.length >= 18) {
       this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
       number = number.replace(/[^\d-]/g, '');
@@ -2782,13 +2780,13 @@ export class WAStartupService {
         this.logger.verbose('Updating group description: ' + create.description);
         await this.client.groupUpdateDescription(id, create.description);
       }
-      
+
       if (create?.promoteParticipants) {
         this.logger.verbose('Prometing group participants: ' + create.description);
         await this.updateGParticipant({
           groupJid: id,
-          action: "promote",
-          participants: participants
+          action: 'promote',
+          participants: participants,
         });
       }
 
