@@ -428,10 +428,12 @@ export class ChatwootService {
         );
 
         if (findParticipant) {
-          await this.updateContact(instance, findParticipant.id, {
-            name: body.pushName,
-            avatar_url: picture_url.profilePictureUrl || null,
-          });
+          if (!findParticipant.name || findParticipant.name === chatId) {
+            await this.updateContact(instance, findParticipant.id, {
+              name: body.pushName,
+              avatar_url: picture_url.profilePictureUrl || null,
+            });
+          }
         } else {
           await this.createContact(
             instance,
@@ -454,13 +456,28 @@ export class ChatwootService {
 
       let contact: any;
       if (body.key.fromMe) {
-        contact = findContact;
+        if (findContact) {
+          contact = findContact;
+        } else {
+          contact = await this.createContact(
+            instance,
+            chatId,
+            filterInbox.id,
+            isGroup,
+            nameContact,
+            picture_url.profilePictureUrl || null,
+          );
+        }
       } else {
         if (findContact) {
-          contact = await this.updateContact(instance, findContact.id, {
-            name: nameContact,
-            avatar_url: picture_url.profilePictureUrl || null,
-          });
+          if (!findContact.name || findContact.name === chatId) {
+            contact = await this.updateContact(instance, findContact.id, {
+              name: nameContact,
+              avatar_url: picture_url.profilePictureUrl || null,
+            });
+          } else {
+            contact = findContact;
+          }
         } else {
           contact = await this.createContact(
             instance,
@@ -1298,8 +1315,6 @@ export class ChatwootService {
 
         this.logger.verbose('get conversation message');
         const bodyMessage = await this.getConversationMessage(body.message);
-
-        console.log('bodyMessage', bodyMessage, body.message);
 
         if (!bodyMessage && !isMedia) {
           this.logger.warn('no body message found');
