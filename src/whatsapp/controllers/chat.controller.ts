@@ -47,6 +47,11 @@ export class ChatController {
     logger.verbose('requested fetchProfilePicture from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].profilePicture(data.number);
   }
+  
+  public async fetchProfile({ instanceName }: InstanceDto, data: NumberDto) {
+    logger.verbose('requested fetchProfile from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].fetchProfile(instanceName, data.number);
+  }
 
   public async fetchContacts({ instanceName }: InstanceDto, query: ContactQuery) {
     logger.verbose('requested fetchContacts from ' + instanceName + ' instance');

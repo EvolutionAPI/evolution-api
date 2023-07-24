@@ -26,6 +26,19 @@ export class NumberDto {
   number: string;
 }
 
+export class NumberBusiness {
+  wid?: string;
+  jid?: string;
+  exists?: boolean;
+  isBusiness: boolean;
+  name?: string;
+  message?: string;
+  description?: string;
+  email?: string;
+  website?: string[];
+  address?: string;
+}
+
 export class ProfileNameDto {
   name: string;
 }
