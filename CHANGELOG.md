@@ -9,6 +9,10 @@
 
 * Added link preview option in send text message
 
+### Integrations
+
+- Chatwoot: v2.18.0
+
 # 1.3.2 (2023-07-21 17:19)
 
 ### Fixed
@@ -21,11 +25,19 @@
 * For compatibility reasons, container mode has been removed
 * Added docker-compose files example
 
+### Integrations
+
+- Chatwoot: v2.18.0
+
 # 1.3.1 (2023-07-20 07:48)
 
 ### Fixed
 
 * Adjust in create store files
+
+### Integrations
+
+- Chatwoot: v2.18.0
 
 # 1.3.0 (2023-07-19 11:33)
 
