@@ -2156,7 +2156,7 @@ export class WAStartupService {
 
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
-      const jid = this.createJid(number);
+      let jid = this.createJid(number);
       
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
@@ -2165,6 +2165,7 @@ export class WAStartupService {
 
         onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, group?.subject));
       } else {
+        jid = (!jid.startsWith('+')) ? `+${jid}` : jid;
         const verify = await this.client.onWhatsApp(jid);
 
         const result = verify[0];
