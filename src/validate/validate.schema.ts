@@ -877,3 +877,15 @@ export const chatwootSchema: JSONSchema7 = {
   required: ['enabled', 'account_id', 'token', 'url', 'sign_msg'],
   ...isNotEmpty('account_id', 'token', 'url', 'sign_msg'),
 };
+
+export const settingsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    reject_call: { type: 'boolean', enum: [true, false] },
+    msg_call: { type: 'string' },
+    groups_ignore: { type: 'boolean', enum: [true, false] },
+  },
+  required: ['reject_call'],
+  ...isNotEmpty('reject_call'),
+};

@@ -125,6 +125,7 @@ import { Log } from '../../config/env.config';
 import ProxyAgent from 'proxy-agent';
 import { ChatwootService } from './chatwoot.service';
 import { waMonitor } from '../whatsapp.module';
+import { SettingsRaw } from '../models';
 
 export class WAStartupService {
   constructor(
@@ -143,6 +144,7 @@ export class WAStartupService {
   public client: WASocket;
   private readonly localWebhook: wa.LocalWebHook = {};
   private readonly localChatwoot: wa.LocalChatwoot = {};
+  private readonly localSettings: wa.LocalSettings = {};
   private stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -338,6 +340,46 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
     this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
 
+    return data;
+  }
+
+  private async loadSettings() {
+    this.logger.verbose('Loading settings');
+    const data = await this.repository.settings.find(this.instanceName);
+    this.localSettings.reject_call = data?.reject_call;
+    this.logger.verbose(`Settings reject_call: ${this.localSettings.reject_call}`);
+
+    this.localSettings.msg_call = data?.msg_call;
+    this.logger.verbose(`Settings msg_call: ${this.localSettings.msg_call}`);
+
+    this.localSettings.groups_ignore = data?.groups_ignore;
+    this.logger.verbose(`Settings groups_ignore: ${this.localSettings.groups_ignore}`);
+
+    this.logger.verbose('Settings loaded');
+  }
+
+  public async setSettings(data: SettingsRaw) {
+    this.logger.verbose('Setting settings');
+    await this.repository.settings.create(data, this.instanceName);
+    this.logger.verbose(`Settings reject_call: ${data.reject_call}`);
+    this.logger.verbose(`Settings msg_call: ${data.msg_call}`);
+    this.logger.verbose(`Settings groups_ignore: ${data.groups_ignore}`);
+    Object.assign(this.localSettings, data);
+    this.logger.verbose('Settings set');
+  }
+
+  public async findSettings() {
+    this.logger.verbose('Finding settings');
+    const data = await this.repository.settings.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Settings not found');
+      throw new NotFoundException('Settings not found');
+    }
+
+    this.logger.verbose(`Settings url: ${data.reject_call}`);
+    this.logger.verbose(`Settings msg_call: ${data.msg_call}`);
+    this.logger.verbose(`Settings groups_ignore: ${data.groups_ignore}`);
     return data;
   }
 
@@ -761,6 +803,7 @@ export class WAStartupService {
     try {
       this.loadWebhook();
       this.loadChatwoot();
+      this.loadSettings();
 
       this.instance.authState = await this.defineAuthState();
 

@@ -4,6 +4,7 @@
 
 * Added connection functionality via pairing code
 * Added fetch profile endpoint in chat controller
+* Created settings controller
 
 ### Fixed
 

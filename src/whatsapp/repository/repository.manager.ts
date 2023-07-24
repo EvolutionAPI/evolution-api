@@ -5,10 +5,10 @@ import { MessageUpRepository } from './messageUp.repository';
 import { MongoClient } from 'mongodb';
 import { WebhookRepository } from './webhook.repository';
 import { ChatwootRepository } from './chatwoot.repository';
+import { SettingsRepository } from './settings.repository';
 
 import { AuthRepository } from './auth.repository';
 import { Auth, ConfigService, Database } from '../../config/env.config';
-import { execSync } from 'child_process';
 import { join } from 'path';
 import fs from 'fs';
 import { Logger } from '../../config/logger.config';
@@ -20,6 +20,7 @@ export class RepositoryBroker {
     public readonly messageUpdate: MessageUpRepository,
     public readonly webhook: WebhookRepository,
     public readonly chatwoot: ChatwootRepository,
+    public readonly settings: SettingsRepository,
     public readonly auth: AuthRepository,
     private configService: ConfigService,
     dbServer?: MongoClient,
@@ -53,6 +54,7 @@ export class RepositoryBroker {
         const messageUpDir = join(storePath, 'message-up');
         const webhookDir = join(storePath, 'webhook');
         const chatwootDir = join(storePath, 'chatwoot');
+        const settingsDir = join(storePath, 'settings');
         const tempDir = join(storePath, 'temp');
 
         if (!fs.existsSync(authDir)) {
@@ -82,6 +84,10 @@ export class RepositoryBroker {
         if (!fs.existsSync(chatwootDir)) {
           this.logger.verbose('creating chatwoot dir: ' + chatwootDir);
           fs.mkdirSync(chatwootDir, { recursive: true });
+        }
+        if (!fs.existsSync(settingsDir)) {
+          this.logger.verbose('creating settings dir: ' + settingsDir);
+          fs.mkdirSync(settingsDir, { recursive: true });
         }
         if (!fs.existsSync(tempDir)) {
           this.logger.verbose('creating temp dir: ' + tempDir);

@@ -55,6 +55,12 @@ export declare namespace wa {
     sign_msg?: boolean;
   };
 
+  export type LocalSettings = {
+    reject_call?: boolean;
+    msg_call?: string;
+    groups_ignore?: boolean;
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';
