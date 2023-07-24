@@ -1517,13 +1517,21 @@ export class WAStartupService {
       .split(/\:/)[0]
       .split('@')[0];
 
+    // Verificação de Grupos Antigos
+    if(number.includes('-') && number.length >= 24){
+      this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
+      number = number.replace(/[^\d-]/g, '');
+      return `${number}@g.us`;
+    }
+    
+    number = number.replace(/\D/g, '');
+
+    // Verificação de Grupos Novos
     if (number.length >= 18) {
       this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
       number = number.replace(/[^\d-]/g, '');
       return `${number}@g.us`;
     }
-
-    number = number.replace(/\D/g, '');
 
     this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
     return `${number}@s.whatsapp.net`;
@@ -2774,11 +2782,20 @@ export class WAStartupService {
         this.logger.verbose('Updating group description: ' + create.description);
         await this.client.groupUpdateDescription(id, create.description);
       }
+      
+      if (create?.promoteParticipants) {
+        this.logger.verbose('Prometing group participants: ' + create.description);
+        await this.updateGParticipant({
+          groupJid: id,
+          action: "promote",
+          participants: participants
+        });
+      }
 
       const group = await this.client.groupMetadata(id);
       this.logger.verbose('Getting group metadata');
 
-      return { groupMetadata: group };
+      return group;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException('Error creating group', error.toString());
