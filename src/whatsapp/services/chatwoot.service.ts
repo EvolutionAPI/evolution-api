@@ -13,6 +13,7 @@ import { SendAudioDto } from '../dto/sendMessage.dto';
 import { SendMediaDto } from '../dto/sendMessage.dto';
 import { ROOT_DIR } from '../../config/path.config';
 import { ConfigService, HttpServer } from '../../config/env.config';
+import { delay } from '@whiskeysockets/baileys';
 
 export class ChatwootService {
   private messageCacheFile: string;
@@ -154,6 +155,7 @@ export class ChatwootService {
     inboxName: string,
     webhookUrl: string,
     qrcode: boolean,
+    number: string,
   ) {
     this.logger.verbose('init instance chatwoot: ' + instance.instanceName);
 
@@ -243,11 +245,18 @@ export class ChatwootService {
       }
 
       this.logger.verbose('create message for init instance in chatwoot');
+
+      let contentMsg = '/init';
+
+      if (number) {
+        contentMsg = `/init:${number}`;
+      }
+
       const message = await client.messages.create({
         accountId: this.provider.account_id,
         conversationId: conversation.id,
         data: {
-          content: '/init',
+          content: contentMsg,
           message_type: 'outgoing',
         },
       });
@@ -953,13 +962,14 @@ export class ChatwootService {
 
         const command = messageReceived.replace('/', '');
 
-        if (command === 'init' || command === 'iniciar') {
+        if (command.includes('init') || command.includes('iniciar')) {
           this.logger.verbose('command init found');
           const state = waInstance?.connectionStatus?.state;
 
           if (state !== 'open') {
             this.logger.verbose('connect to whatsapp');
-            await waInstance.connectToWhatsapp();
+            const number = command.split(':')[1];
+            await waInstance.connectToWhatsapp(number);
           } else {
             this.logger.verbose('whatsapp already connected');
             await this.createBotMessage(
@@ -1556,7 +1566,16 @@ export class ChatwootService {
             fileName,
           );
 
-          const msgQrCode = `⚡️ QRCode successfully generated!\n\nScan this QR code within the next 40 seconds:`;
+          let msgQrCode = `⚡️ QRCode successfully generated!\n\nScan this QR code within the next 40 seconds.`;
+
+          if (body?.qrcode?.pairingCode) {
+            msgQrCode =
+              msgQrCode +
+              `\n\n*Pairing Code:* ${body.qrcode.pairingCode.substring(
+                0,
+                4,
+              )}-${body.qrcode.pairingCode.substring(4, 8)}`;
+          }
 
           this.logger.verbose('send message to chatwoot');
           await this.createBotMessage(instance, msgQrCode, 'incoming');

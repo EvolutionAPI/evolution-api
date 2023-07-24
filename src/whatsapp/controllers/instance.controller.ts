@@ -103,16 +103,10 @@ export class InstanceController {
 
     if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
       let getQrcode: wa.QrCode;
-      let getPairingCode: string;
 
       if (qrcode) {
         this.logger.verbose('creating qrcode');
-        await instance.connectToWhatsapp();
-        if (number) {
-          this.logger.verbose('creating number');
-          await delay(5000);
-          getPairingCode = await instance.client.requestPairingCode(number);
-        }
+        await instance.connectToWhatsapp(number);
         await delay(2000);
         getQrcode = instance.qrCode;
       }
@@ -126,13 +120,8 @@ export class InstanceController {
         webhook,
         webhook_by_events,
         events: getEvents,
+        qrcode: getQrcode,
       };
-
-      if (getPairingCode) {
-        result['pairingCode'] = getPairingCode;
-      } else {
-        result['qrcode'] = getQrcode;
-      }
 
       this.logger.verbose('instance created');
       this.logger.verbose(result);
@@ -166,6 +155,7 @@ export class InstanceController {
         url: chatwoot_url,
         sign_msg: chatwoot_sign_msg || false,
         name_inbox: instance.instanceName,
+        number,
       });
 
       this.chatwootService.initInstanceChatwoot(
@@ -173,6 +163,7 @@ export class InstanceController {
         instance.instanceName,
         `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
         qrcode,
+        number,
       );
     } catch (error) {
       this.logger.log(error);
@@ -193,6 +184,7 @@ export class InstanceController {
         token: chatwoot_token,
         url: chatwoot_url,
         sign_msg: chatwoot_sign_msg || false,
+        number,
         name_inbox: instance.instanceName,
         webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
       },
@@ -220,19 +212,7 @@ export class InstanceController {
 
       if (state == 'close') {
         this.logger.verbose('connecting');
-        await instance.connectToWhatsapp();
-        let pairingCode = null;
-        if (number) {
-          this.logger.verbose('creating pairing code');
-          await delay(5000);
-          pairingCode = await instance.client.requestPairingCode(number);
-        }
-
-        if (pairingCode) {
-          return {
-            pairingCode,
-          };
-        }
+        await instance.connectToWhatsapp(number);
 
         await delay(2000);
         return instance.qrCode;

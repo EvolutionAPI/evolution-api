@@ -152,6 +152,8 @@ export class WAStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
+  private phoneNumber: string;
+
   private chatwootService = new ChatwootService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
@@ -241,6 +243,12 @@ export class WAStartupService {
 
   public get qrCode(): wa.QrCode {
     this.logger.verbose('Getting qrcode');
+    if (this.instance.qrcode?.pairingCode) {
+      return {
+        pairingCode: this.instance.qrcode?.pairingCode,
+      };
+    }
+
     return {
       code: this.instance.qrcode?.code,
       base64: this.instance.qrcode?.base64,
@@ -588,11 +596,6 @@ export class WAStartupService {
         return this.eventEmitter.emit('no.connection', this.instance.name);
       }
 
-      // pairing code
-      // await delay(5000);
-      // const code = await this.client.requestPairingCode('557499879409');
-      // console.log(`Pairing code: ${code}`);
-
       this.logger.verbose('Incrementing QR code count');
       this.instance.qrcode.count++;
 
@@ -602,6 +605,13 @@ export class WAStartupService {
         errorCorrectionLevel: 'H',
         color: { light: '#ffffff', dark: '#198754' },
       };
+
+      if (this.phoneNumber) {
+        await delay(2000);
+        this.instance.qrcode.pairingCode = await this.client.requestPairingCode(
+          this.phoneNumber,
+        );
+      }
 
       this.logger.verbose('Generating QR code');
       qrcode.toDataURL(qr, optsQrcode, (error, base64) => {
@@ -614,7 +624,12 @@ export class WAStartupService {
         this.instance.qrcode.code = qr;
 
         this.sendDataWebhook(Events.QRCODE_UPDATED, {
-          qrcode: { instance: this.instance.name, code: qr, base64 },
+          qrcode: {
+            instance: this.instance.name,
+            pairingCode: this.instance.qrcode.pairingCode,
+            code: qr,
+            base64,
+          },
         });
 
         if (this.localChatwoot.enabled) {
@@ -622,7 +637,12 @@ export class WAStartupService {
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name },
             {
-              qrcode: { instance: this.instance.name, code: qr, base64 },
+              qrcode: {
+                instance: this.instance.name,
+                pairingCode: this.instance.qrcode.pairingCode,
+                code: qr,
+                base64,
+              },
             },
           );
         }
@@ -631,7 +651,7 @@ export class WAStartupService {
       this.logger.verbose('Generating QR code in terminal');
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
-          `\n{ instance: ${this.instance.name}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
+          `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
             qrcode,
         ),
       );
@@ -798,7 +818,7 @@ export class WAStartupService {
     return await useMultiFileAuthState(join(INSTANCE_DIR, this.instance.name));
   }
 
-  public async connectToWhatsapp(): Promise<WASocket> {
+  public async connectToWhatsapp(number?: string): Promise<WASocket> {
     this.logger.verbose('Connecting to whatsapp');
     try {
       this.loadWebhook();
@@ -871,6 +891,15 @@ export class WAStartupService {
       this.eventHandler();
 
       this.logger.verbose('Socket event handler initialized');
+
+      this.phoneNumber = number;
+
+      // if (number) {
+      //   this.logger.verbose('creating pairing code');
+      //   await delay(5000);
+      //   this.phoneNumber = number;
+      //   this.instance.qrcode.pairingCode = await this.client.requestPairingCode(number);
+      // }
 
       return this.client;
     } catch (error) {

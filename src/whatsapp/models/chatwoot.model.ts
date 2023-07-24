@@ -9,6 +9,7 @@ export class ChatwootRaw {
   url?: string;
   name_inbox?: string;
   sign_msg?: boolean;
+  number?: string;
 }
 
 const chatwootSchema = new Schema<ChatwootRaw>({
@@ -19,6 +20,7 @@ const chatwootSchema = new Schema<ChatwootRaw>({
   url: { type: String, required: true },
   name_inbox: { type: String, required: true },
   sign_msg: { type: Boolean, required: true },
+  number: { type: String, required: true },
 });
 
 export const ChatwootModel = dbserver?.model(

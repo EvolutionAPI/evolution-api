@@ -25,6 +25,7 @@ import {
   ContactModel,
   MessageModel,
   MessageUpModel,
+  SettingsModel,
   WebhookModel,
 } from '../models';
 
@@ -241,6 +242,7 @@ export class WAMonitoringService {
       execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'settings', instanceName + '*')}`);
 
       return;
     }
@@ -254,6 +256,7 @@ export class WAMonitoringService {
     await AuthModel.deleteMany({ _id: instanceName });
     await WebhookModel.deleteMany({ _id: instanceName });
     await ChatwootModel.deleteMany({ _id: instanceName });
+    await SettingsModel.deleteMany({ _id: instanceName });
 
     return;
   }
