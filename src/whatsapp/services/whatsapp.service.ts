@@ -1517,7 +1517,7 @@ export class WAStartupService {
       .split(/\:/)[0]
       .split('@')[0];
 
-    if (number.includes('-') && number.length >= 24) {
+    if (number.length >= 18) {
       this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
       number = number.replace(/[^\d-]/g, '');
       return `${number}@g.us`;

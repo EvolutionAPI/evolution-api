@@ -3,6 +3,7 @@
 ### Fixed
 
 * Fixed reconnect with pairing code or qrcode
+* Fixed problem in createJid
 
 # 1.4.0 (2023-07-24 17:03)
 

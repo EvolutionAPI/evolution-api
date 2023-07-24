@@ -124,7 +124,6 @@ const optionsSchema: JSONSchema7 = {
 
 const numberDefinition: JSONSchema7Definition = {
   type: 'string',
-  // pattern: '^\\d+[\\.@\\w-]+',
   description: 'Invalid format',
 };
 
@@ -446,7 +445,6 @@ export const whatsappNumberSchema: JSONSchema7 = {
       uniqueItems: true,
       items: {
         type: 'string',
-        // pattern: '^\\d+',
         description: '"numbers" must be an array of numeric strings',
       },
     },
