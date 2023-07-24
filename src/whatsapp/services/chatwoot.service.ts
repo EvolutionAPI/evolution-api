@@ -1111,11 +1111,7 @@ export class ChatwootService {
         }
       }
 
-      if (
-        body.message_type === 'template' &&
-        body.content_type === 'input_csat' &&
-        body.event === 'message_created'
-      ) {
+      if (body.message_type === 'template' && body.event === 'message_created') {
         this.logger.verbose('check if is csat');
 
         const data: SendTextDto = {
