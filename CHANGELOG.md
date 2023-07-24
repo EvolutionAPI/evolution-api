@@ -17,6 +17,7 @@
 * Now it only updates the contact name if it is the same as the phone number in chatwoot
 * Now accepts all chatwoot inbox templates
 * Command to create new instances set to /new_instance:<NAME>:<NUMBER>
+* Fix in chatwoot set, sign msg can now be disabled
 
 ### Integrations
 
