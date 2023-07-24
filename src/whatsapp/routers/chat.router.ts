@@ -8,7 +8,6 @@ import {
   privacySettingsSchema,
   profileNameSchema,
   profilePictureSchema,
-  profileSchema,
   profileStatusSchema,
   readMessageSchema,
   whatsappNumberSchema,
@@ -126,23 +125,6 @@ export class ChatRouter extends RouterBroker {
           schema: profilePictureSchema,
           ClassRef: NumberDto,
           execute: (instance, data) => chatController.fetchProfilePicture(instance, data),
-        });
-
-        return res.status(HttpStatus.OK).json(response);
-      })
-      .post(this.routerPath('fetchProfile'), ...guards, async (req, res) => {
-        logger.verbose('request received in fetchProfile');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-        
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
-        const response = await this.dataValidate<NumberDto>({
-          request: req,
-          schema: profileSchema,
-          ClassRef: NumberDto,
-          execute: (instance, data) => chatController.fetchProfile(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);
