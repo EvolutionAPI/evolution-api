@@ -84,6 +84,7 @@ import { arrayUnique, isBase64, isURL } from 'class-validator';
 import {
   ArchiveChatDto,
   DeleteMessage,
+  NumberBusiness,
   OnWhatsAppDto,
   PrivacySettingDto,
   ReadMessageDto,
@@ -1449,6 +1450,78 @@ export class WAStartupService {
     }
   }
 
+  public async getStatus(number: string) {
+    const jid = this.createJid(number);
+
+    this.logger.verbose('Getting profile status with jid:' + jid);
+    try {
+      this.logger.verbose('Getting status');
+      return {
+        wuid: jid,
+        status: (await this.client.fetchStatus(jid))?.status,
+      };
+    } catch (error) {
+      this.logger.verbose('Status not found');
+      return {
+        wuid: jid,
+        status: null,
+      };
+    }
+  }
+
+  public async fetchProfile(instanceName: string, number?: string) {
+    const jid = number ? this.createJid(number) : this.client?.user?.id;
+
+    this.logger.verbose('Getting profile with jid: ' + jid);
+    try {
+      this.logger.verbose('Getting profile info');
+      const info = await waMonitor.instanceInfo(instanceName);
+      const business = await this.fetchBusinessProfile(jid);
+
+      if (number) {
+        const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
+        const picture = await this.profilePicture(jid);
+        const status = await this.getStatus(jid);
+
+        return {
+          wuid: jid,
+          name: info?.name,
+          numberExists: info?.exists,
+          picture: picture?.profilePictureUrl,
+          status: status?.status,
+          isBusiness: business.isBusiness,
+          email: business?.email,
+          description: business?.description,
+          website: business?.website?.shift(),
+        };
+      } else {
+        const info = await waMonitor.instanceInfo(instanceName);
+
+        return {
+          wuid: jid,
+          name: info?.instance?.profileName,
+          numberExists: true,
+          picture: info?.instance?.profilePictureUrl,
+          status: info?.instance?.profileStatus,
+          isBusiness: business.isBusiness,
+          email: business?.email,
+          description: business?.description,
+          website: business?.website?.shift(),
+        };
+      }
+    } catch (error) {
+      this.logger.verbose('Profile not found');
+      return {
+        wuid: jid,
+        name: null,
+        picture: null,
+        status: null,
+        os: null,
+        isBusiness: false,
+      };
+    }
+  }
+
   private async sendMessageWithTyping<T = proto.IMessage>(
     number: string,
     message: T,
@@ -1485,7 +1558,9 @@ export class WAStartupService {
         this.logger.verbose('Sending presence update: paused');
       }
 
-      let linkPreview = (options?.linkPreview != false) ? undefined : false;
+      const linkPreview = options?.linkPreview != false ? undefined : false;
+
+      console.log('linkPreview', linkPreview);
 
       let quoted: WAMessage;
 
@@ -2468,29 +2543,29 @@ export class WAStartupService {
     }
   }
 
-  public async fetchBusinessProfile(number: string) {
+  public async fetchBusinessProfile(number: string): Promise<NumberBusiness> {
     this.logger.verbose('Fetching business profile');
     try {
-      let jid;
-
-      if (!number) {
-        jid = this.instance.wuid;
-      } else {
-        jid = this.createJid(number);
-      }
+      const jid = number ? this.createJid(number) : this.instance.wuid;
 
       const profile = await this.client.getBusinessProfile(jid);
       this.logger.verbose('Trying to get business profile');
 
       if (!profile) {
+        const info = await this.whatsappNumber({ numbers: [jid] });
+
         return {
-          exists: false,
-          message: 'Business profile not found',
+          isBusiness: false,
+          message: 'Not is business profile',
+          ...info?.shift(),
         };
       }
 
       this.logger.verbose('Business profile fetched');
-      return profile;
+      return {
+        isBusiness: true,
+        ...profile,
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         'Error updating profile name',

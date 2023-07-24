@@ -3,6 +3,11 @@
 ### Features
 
 * Added connection functionality via pairing code
+* Added fetch profile endpoint in chat controller
+
+### Fixed
+
+* Added link preview option in send text message
 
 # 1.3.2 (2023-07-21 17:19)
 

@@ -210,30 +210,41 @@ export class InstanceController {
 
       this.logger.verbose('state: ' + state);
 
-      switch (state) {
-        case 'close':
-          this.logger.verbose('connecting');
-          await instance.connectToWhatsapp();
-          let pairingCode = null;
-          if (number) {
-            this.logger.verbose('creating pairing code');
-            await delay(5000);
-            pairingCode = await instance.client.requestPairingCode(number);
-          }
-
-          if (pairingCode) {
-            return {
-              pairingCode,
-            };
-          }
-
-          await delay(2000);
-          return instance.qrCode;
-        case 'connecting':
-          return instance.qrCode;
-        default:
-          return await this.connectionState({ instanceName });
+      if (state == 'open') {
+        return await this.connectionState({ instanceName });
       }
+
+      if (state == 'connecting') {
+        return instance.qrCode;
+      }
+
+      if (state == 'close') {
+        this.logger.verbose('connecting');
+        await instance.connectToWhatsapp();
+        let pairingCode = null;
+        if (number) {
+          this.logger.verbose('creating pairing code');
+          await delay(5000);
+          pairingCode = await instance.client.requestPairingCode(number);
+        }
+
+        if (pairingCode) {
+          return {
+            pairingCode,
+          };
+        }
+
+        await delay(2000);
+        return instance.qrCode;
+      }
+
+      return {
+        instance: {
+          instanceName: instanceName,
+          status: state,
+        },
+        qrcode: instance?.qrCode,
+      };
     } catch (error) {
       this.logger.error(error);
     }
