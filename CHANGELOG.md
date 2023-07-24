@@ -7,7 +7,7 @@
 * Created settings controller
 * Added reject call and send text message when receiving a call
 * Added setting to ignore group messages
-* Added connection with pairing code in chatwoot with command /init:<NUMBER>
+* Added connection with pairing code in chatwoot with command /init:{NUMBER}
 
 ### Fixed
 
@@ -16,7 +16,7 @@
 * Fixed issue where it was not possible to open a conversation when sent at first by me on my cell phone in chatwoot
 * Now it only updates the contact name if it is the same as the phone number in chatwoot
 * Now accepts all chatwoot inbox templates
-* Command to create new instances set to /new_instance:<NAME>:<NUMBER>
+* Command to create new instances set to /new_instance:{NAME}:{NUMBER}
 * Fix in chatwoot set, sign msg can now be disabled
 
 ### Integrations
@@ -55,7 +55,7 @@
 
 * Added messages.delete event
 * Added restart instance endpoint
-* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:<INSTANCE_NAME>'
+* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:{INSTANCE_NAME}
 * Change Baileys version to: 6.4.0
 * Send contact in chatwoot
 * Send contact array in chatwoot
