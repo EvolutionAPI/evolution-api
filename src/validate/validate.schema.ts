@@ -124,7 +124,7 @@ const optionsSchema: JSONSchema7 = {
 
 const numberDefinition: JSONSchema7Definition = {
   type: 'string',
-  pattern: '^\\d+[\\.@\\w-]+',
+  // pattern: '^\\d+[\\.@\\w-]+',
   description: 'Invalid format',
 };
 
