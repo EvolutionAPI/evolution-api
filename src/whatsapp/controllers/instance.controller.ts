@@ -34,6 +34,7 @@ export class InstanceController {
     webhook_by_events,
     events,
     qrcode,
+    number,
     token,
     chatwoot_account_id,
     chatwoot_token,
@@ -105,25 +106,12 @@ export class InstanceController {
 
       if (qrcode) {
         this.logger.verbose('creating qrcode');
-        await instance.connectToWhatsapp();
-        await delay(2000);
+        await instance.connectToWhatsapp(number);
+        await delay(3000);
         getQrcode = instance.qrCode;
       }
 
-      this.logger.verbose('instance created');
-      this.logger.verbose({
-        instance: {
-          instanceName: instance.instanceName,
-          status: 'created',
-        },
-        hash,
-        webhook,
-        webhook_by_events,
-        events: getEvents,
-        qrcode: getQrcode,
-      });
-
-      return {
+      const result = {
         instance: {
           instanceName: instance.instanceName,
           status: 'created',
@@ -134,6 +122,11 @@ export class InstanceController {
         events: getEvents,
         qrcode: getQrcode,
       };
+
+      this.logger.verbose('instance created');
+      this.logger.verbose(result);
+
+      return result;
     }
 
     if (!chatwoot_account_id) {
@@ -162,6 +155,7 @@ export class InstanceController {
         url: chatwoot_url,
         sign_msg: chatwoot_sign_msg || false,
         name_inbox: instance.instanceName,
+        number,
       });
 
       this.chatwootService.initInstanceChatwoot(
@@ -169,6 +163,7 @@ export class InstanceController {
         instance.instanceName,
         `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
         qrcode,
+        number,
       );
     } catch (error) {
       this.logger.log(error);
@@ -189,13 +184,14 @@ export class InstanceController {
         token: chatwoot_token,
         url: chatwoot_url,
         sign_msg: chatwoot_sign_msg || false,
+        number,
         name_inbox: instance.instanceName,
         webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
       },
     };
   }
 
-  public async connectToWhatsapp({ instanceName }: InstanceDto) {
+  public async connectToWhatsapp({ instanceName, number = null }: InstanceDto) {
     try {
       this.logger.verbose(
         'requested connectToWhatsapp from ' + instanceName + ' instance',
@@ -206,17 +202,29 @@ export class InstanceController {
 
       this.logger.verbose('state: ' + state);
 
-      switch (state) {
-        case 'close':
-          this.logger.verbose('connecting');
-          await instance.connectToWhatsapp();
-          await delay(2000);
-          return instance.qrCode;
-        case 'connecting':
-          return instance.qrCode;
-        default:
-          return await this.connectionState({ instanceName });
+      if (state == 'open') {
+        return await this.connectionState({ instanceName });
       }
+
+      if (state == 'connecting') {
+        return instance.qrCode;
+      }
+
+      if (state == 'close') {
+        this.logger.verbose('connecting');
+        await instance.connectToWhatsapp(number);
+
+        await delay(2000);
+        return instance.qrCode;
+      }
+
+      return {
+        instance: {
+          instanceName: instanceName,
+          status: state,
+        },
+        qrcode: instance?.qrCode,
+      };
     } catch (error) {
       this.logger.error(error);
     }

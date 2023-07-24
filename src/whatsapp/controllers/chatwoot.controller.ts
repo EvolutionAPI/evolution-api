@@ -33,7 +33,7 @@ export class ChatwootController {
         throw new BadRequestException('token is required');
       }
 
-      if (!data.sign_msg) {
+      if (data.sign_msg !== true && data.sign_msg !== false) {
         throw new BadRequestException('sign_msg is required');
       }
     }
@@ -93,5 +93,11 @@ export class ChatwootController {
     const chatwootService = new ChatwootService(waMonitor, this.configService);
 
     return chatwootService.receiveWebhook(instance, data);
+  }
+
+  public async newInstance(data: any) {
+    const chatwootService = new ChatwootService(waMonitor, this.configService);
+
+    return chatwootService.newInstance(data);
   }
 }

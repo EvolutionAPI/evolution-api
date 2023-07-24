@@ -4,3 +4,4 @@ export * from './message.model';
 export * from './auth.model';
 export * from './webhook.model';
 export * from './chatwoot.model';
+export * from './settings.model';

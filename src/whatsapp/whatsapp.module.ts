@@ -25,6 +25,7 @@ import {
   MessageUpModel,
   ChatwootModel,
   WebhookModel,
+  SettingsModel,
 } from './models';
 import { dbserver } from '../db/db.connect';
 import { WebhookRepository } from './repository/webhook.repository';
@@ -34,6 +35,9 @@ import { WAStartupService } from './services/whatsapp.service';
 import { delay } from '@whiskeysockets/baileys';
 import { Events } from './types/wa.types';
 import { RedisCache } from '../db/redis.client';
+import { SettingsRepository } from './repository/settings.repository';
+import { SettingsService } from './services/settings.service';
+import { SettingsController } from './controllers/settings.controller';
 
 const logger = new Logger('WA MODULE');
 
@@ -43,6 +47,7 @@ const contactRepository = new ContactRepository(ContactModel, configService);
 const messageUpdateRepository = new MessageUpRepository(MessageUpModel, configService);
 const webhookRepository = new WebhookRepository(WebhookModel, configService);
 const chatwootRepository = new ChatwootRepository(ChatwootModel, configService);
+const settingsRepository = new SettingsRepository(SettingsModel, configService);
 const authRepository = new AuthRepository(AuthModel, configService);
 
 export const repository = new RepositoryBroker(
@@ -52,6 +57,7 @@ export const repository = new RepositoryBroker(
   messageUpdateRepository,
   webhookRepository,
   chatwootRepository,
+  settingsRepository,
   authRepository,
   configService,
   dbserver?.getClient(),
@@ -75,6 +81,10 @@ export const webhookController = new WebhookController(webhookService);
 const chatwootService = new ChatwootService(waMonitor, configService);
 
 export const chatwootController = new ChatwootController(chatwootService, configService);
+
+const settingsService = new SettingsService(waMonitor);
+
+export const settingsController = new SettingsController(settingsService);
 
 export const instanceController = new InstanceController(
   waMonitor,

@@ -58,6 +58,7 @@ export const instanceNameSchema: JSONSchema7 = {
       },
     },
     qrcode: { type: 'boolean', enum: [true, false] },
+    number: { type: 'string', pattern: '^\\d+[\\.@\\w-]+' },
     token: { type: 'string' },
   },
   ...isNotEmpty('instanceName'),
@@ -123,7 +124,7 @@ const optionsSchema: JSONSchema7 = {
 
 const numberDefinition: JSONSchema7Definition = {
   type: 'string',
-  pattern: '^\\d+[\\.@\\w-]+',
+  // pattern: '^\\d+[\\.@\\w-]+',
   description: 'Invalid format',
 };
 
@@ -398,7 +399,7 @@ export const contactMessageSchema: JSONSchema7 = {
           email: { type: 'string' },
           url: { type: 'string' },
         },
-        required: ['fullName', 'wuid', 'phoneNumber'],
+        required: ['fullName', 'phoneNumber'],
         ...isNotEmpty('fullName'),
       },
       minItems: 1,
@@ -445,7 +446,7 @@ export const whatsappNumberSchema: JSONSchema7 = {
       uniqueItems: true,
       items: {
         type: 'string',
-        pattern: '^\\d+',
+        // pattern: '^\\d+',
         description: '"numbers" must be an array of numeric strings',
       },
     },
@@ -584,6 +585,17 @@ export const profilePictureSchema: JSONSchema7 = {
   properties: {
     number: { type: 'string' },
     picture: { type: 'string' },
+  },
+};
+
+export const profileSchema: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    wuid: { type: 'string' },
+    name: { type: 'string' },
+    picture: { type: 'string' },
+    status: { type: 'string' },
+    isBusiness: { type: 'boolean' },
   },
 };
 
@@ -864,4 +876,16 @@ export const chatwootSchema: JSONSchema7 = {
   },
   required: ['enabled', 'account_id', 'token', 'url', 'sign_msg'],
   ...isNotEmpty('account_id', 'token', 'url', 'sign_msg'),
+};
+
+export const settingsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    reject_call: { type: 'boolean', enum: [true, false] },
+    msg_call: { type: 'string' },
+    groups_ignore: { type: 'boolean', enum: [true, false] },
+  },
+  required: ['reject_call'],
+  ...isNotEmpty('reject_call'),
 };

@@ -1,3 +1,29 @@
+# 1.4.0 (2023-07-24 17:03)
+
+### Features
+
+* Added connection functionality via pairing code
+* Added fetch profile endpoint in chat controller
+* Created settings controller
+* Added reject call and send text message when receiving a call
+* Added setting to ignore group messages
+* Added connection with pairing code in chatwoot with command /init:{NUMBER}
+* Added encoding option in endpoint sendWhatsAppAudio
+
+### Fixed
+
+* Added link preview option in send text message
+* Fixed problem with fileSha256 appearing when sending a sticker in chatwoot
+* Fixed issue where it was not possible to open a conversation when sent at first by me on my cell phone in chatwoot
+* Now it only updates the contact name if it is the same as the phone number in chatwoot
+* Now accepts all chatwoot inbox templates
+* Command to create new instances set to /new_instance:{NAME}:{NUMBER}
+* Fix in chatwoot set, sign msg can now be disabled
+
+### Integrations
+
+- Chatwoot: v2.18.0 - v3.0.0 (Beta)
+
 # 1.3.2 (2023-07-21 17:19)
 
 ### Fixed
@@ -10,11 +36,19 @@
 * For compatibility reasons, container mode has been removed
 * Added docker-compose files example
 
+### Integrations
+
+- Chatwoot: v2.18.0
+
 # 1.3.1 (2023-07-20 07:48)
 
 ### Fixed
 
 * Adjust in create store files
+
+### Integrations
+
+- Chatwoot: v2.18.0
 
 # 1.3.0 (2023-07-19 11:33)
 
@@ -22,7 +56,7 @@
 
 * Added messages.delete event
 * Added restart instance endpoint
-* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:<INSTANCE_NAME>'
+* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:{INSTANCE_NAME}
 * Change Baileys version to: 6.4.0
 * Send contact in chatwoot
 * Send contact array in chatwoot

@@ -5,4 +5,5 @@ export class ChatwootDto {
   url?: string;
   name_inbox?: string;
   sign_msg?: boolean;
+  number?: string;
 }
