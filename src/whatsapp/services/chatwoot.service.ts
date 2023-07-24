@@ -13,7 +13,6 @@ import { SendAudioDto } from '../dto/sendMessage.dto';
 import { SendMediaDto } from '../dto/sendMessage.dto';
 import { ROOT_DIR } from '../../config/path.config';
 import { ConfigService, HttpServer } from '../../config/env.config';
-import { delay } from '@whiskeysockets/baileys';
 
 export class ChatwootService {
   private messageCacheFile: string;
@@ -1017,7 +1016,7 @@ export class ChatwootService {
           await waInstance?.client?.ws?.close();
         }
 
-        if (command.includes('#inbox_whatsapp')) {
+        if (command.includes('new_instance')) {
           const urlServer = this.configService.get<HttpServer>('SERVER').URL;
           const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
 
@@ -1029,6 +1028,10 @@ export class ChatwootService {
             chatwoot_url: this.provider.url,
             chatwoot_sign_msg: this.provider.sign_msg,
           };
+
+          if (command.split(':')[2]) {
+            data['number'] = command.split(':')[2];
+          }
 
           const config = {
             method: 'post',
@@ -1583,6 +1586,55 @@ export class ChatwootService {
       }
     } catch (error) {
       this.logger.error(error);
+    }
+  }
+
+  public async newInstance(data: any) {
+    try {
+      const instanceName = data.instanceName;
+      const qrcode = true;
+      const number = data.number;
+      const accountId = data.accountId;
+      const chatwootToken = data.token;
+      const chatwootUrl = data.url;
+      const signMsg = true;
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+      const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
+
+      console.log('data: ', data);
+
+      const requestData = {
+        instanceName,
+        qrcode,
+        chatwoot_account_id: accountId,
+        chatwoot_token: chatwootToken,
+        chatwoot_url: chatwootUrl,
+        chatwoot_sign_msg: signMsg,
+      };
+
+      if (number) {
+        requestData['number'] = number;
+      }
+
+      console.log('requestData: ', requestData);
+
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${urlServer}/instance/create`,
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: apiKey,
+        },
+        data: requestData,
+      };
+
+      // await axios.request(config);
+
+      return true;
+    } catch (error) {
+      this.logger.error(error);
+      return null;
     }
   }
 }
