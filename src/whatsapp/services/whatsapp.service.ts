@@ -1686,20 +1686,13 @@ export class WAStartupService {
           if (options?.mentions) {
             this.logger.verbose('Mentions defined');
 
-            if (
-              !Array.isArray(options.mentions.mentioned) &&
-              !options.mentions.everyOne
-            ) {
-              throw new BadRequestException('Mentions must be an array');
-            }
-
-            if (options.mentions.everyOne) {
+            if (options.mentions?.everyOne) {
               this.logger.verbose('Mentions everyone');
 
               this.logger.verbose('Getting group metadata');
               mentions = groupMetadata.participants.map((participant) => participant.id);
               this.logger.verbose('Getting group metadata for mentions');
-            } else {
+            } else if(options.mentions?.mentioned?.length) {
               this.logger.verbose('Mentions manually defined');
               mentions = options.mentions.mentioned.map((mention) => {
                 const jid = this.createJid(mention);
