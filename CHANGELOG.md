@@ -1,3 +1,10 @@
+# 1.4.2 (homolog)
+
+### Fixed
+
+* Fixed validation is set settings 
+* Adjusts in group validations
+
 # 1.4.1 (2023-07-24 18:28)
 
 ### Fixed
