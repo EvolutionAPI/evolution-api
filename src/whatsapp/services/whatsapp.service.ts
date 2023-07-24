@@ -1469,7 +1469,7 @@ export class WAStartupService {
 
   private createJid(number: string): string {
     this.logger.verbose('Creating jid with number: ' + number);
-    
+
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
       return number;
@@ -1479,23 +1479,23 @@ export class WAStartupService {
       this.logger.verbose('Number already contains @broadcast');
       return number;
     }
-    
+
     number = number
-      ?.split(":")[0]
-      ?.split("@")[0]
+      ?.split(':')[0]
+      ?.split('@')[0]
       ?.replace(' ', '')
       ?.replace('+', '')
       ?.replace('(', '')
       ?.replace(')', '');
-    
+
     if (number.includes('-') && number.length >= 18) {
       this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
       number = number.replace(/[^\d-]/g, '');
       return `${number}@g.us`;
     }
-    
+
     number = number.replace(/\D/g, '');
-    
+
     this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
     return `${number}@s.whatsapp.net`;
   }
@@ -2323,7 +2323,7 @@ export class WAStartupService {
     const onWhatsapp: OnWhatsAppDto[] = [];
     for await (const number of data.numbers) {
       const jid = this.createJid(number);
-      
+
       if (isJidGroup(jid)) {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
 
