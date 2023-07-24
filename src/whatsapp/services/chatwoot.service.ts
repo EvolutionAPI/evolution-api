@@ -1179,7 +1179,7 @@ export class ChatwootService {
       videoMessage: msg.videoMessage?.caption,
       extendedTextMessage: msg.extendedTextMessage?.text,
       messageContextInfo: msg.messageContextInfo?.stanzaId,
-      stickerMessage: msg.stickerMessage?.fileSha256.toString('base64'),
+      stickerMessage: undefined,
       documentMessage: msg.documentMessage?.caption,
       documentWithCaptionMessage:
         msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
@@ -1198,10 +1198,6 @@ export class ChatwootService {
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
 
     const result = typeKey ? types[typeKey] : undefined;
-
-    if (typeKey === 'stickerMessage') {
-      return null;
-    }
 
     if (typeKey === 'contactMessage') {
       const vCardData = result.split('\n');

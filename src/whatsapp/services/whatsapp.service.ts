@@ -116,16 +116,15 @@ import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-d
 import Long from 'long';
 import { WebhookRaw } from '../models/webhook.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
+import { SettingsRaw } from '../models';
 import { dbserver } from '../../db/db.connect';
 import NodeCache from 'node-cache';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import sharp from 'sharp';
 import { RedisCache } from '../../db/redis.client';
 import { Log } from '../../config/env.config';
-import ProxyAgent from 'proxy-agent';
 import { ChatwootService } from './chatwoot.service';
 import { waMonitor } from '../whatsapp.module';
-import { SettingsRaw } from '../models';
 
 export class WAStartupService {
   constructor(
@@ -382,7 +381,7 @@ export class WAStartupService {
 
     if (!data) {
       this.logger.verbose('Settings not found');
-      throw new NotFoundException('Settings not found');
+      return null;
     }
 
     this.logger.verbose(`Settings url: ${data.reject_call}`);
@@ -1129,7 +1128,7 @@ export class WAStartupService {
         received.messageTimestamp = received.messageTimestamp?.toNumber();
       }
 
-      if (settings.groups_ignore && received.key.remoteJid.includes('@g.us')) {
+      if (settings?.groups_ignore && received.key.remoteJid.includes('@g.us')) {
         this.logger.verbose('group ignored');
         return;
       }
@@ -1517,13 +1516,19 @@ export class WAStartupService {
       .split(/\:/)[0]
       .split('@')[0];
 
-    if (number.length >= 18) {
+    if (number.includes('-') && number.length >= 24) {
       this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
       number = number.replace(/[^\d-]/g, '');
       return `${number}@g.us`;
     }
 
     number = number.replace(/\D/g, '');
+
+    if (number.length >= 18) {
+      this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
+      number = number.replace(/[^\d-]/g, '');
+      return `${number}@g.us`;
+    }
 
     this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
     return `${number}@s.whatsapp.net`;
@@ -1686,20 +1691,13 @@ export class WAStartupService {
           if (options?.mentions) {
             this.logger.verbose('Mentions defined');
 
-            if (
-              !Array.isArray(options.mentions.mentioned) &&
-              !options.mentions.everyOne
-            ) {
-              throw new BadRequestException('Mentions must be an array');
-            }
-
-            if (options.mentions.everyOne) {
+            if (options.mentions?.everyOne) {
               this.logger.verbose('Mentions everyone');
 
               this.logger.verbose('Getting group metadata');
               mentions = groupMetadata.participants.map((participant) => participant.id);
               this.logger.verbose('Getting group metadata for mentions');
-            } else {
+            } else if (options.mentions?.mentioned?.length) {
               this.logger.verbose('Mentions manually defined');
               mentions = options.mentions.mentioned.map((mention) => {
                 const jid = this.createJid(mention);
@@ -2782,10 +2780,19 @@ export class WAStartupService {
         await this.client.groupUpdateDescription(id, create.description);
       }
 
+      if (create?.promoteParticipants) {
+        this.logger.verbose('Prometing group participants: ' + create.description);
+        await this.updateGParticipant({
+          groupJid: id,
+          action: 'promote',
+          participants: participants,
+        });
+      }
+
       const group = await this.client.groupMetadata(id);
       this.logger.verbose('Getting group metadata');
 
-      return { groupMetadata: group };
+      return group;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException('Error creating group', error.toString());

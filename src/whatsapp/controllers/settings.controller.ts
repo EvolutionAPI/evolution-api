@@ -15,10 +15,6 @@ export class SettingsController {
       'requested createSettings from ' + instance.instanceName + ' instance',
     );
 
-    if (data.reject_call && data.msg_call.trim() == '') {
-      throw new BadRequestException('msg_call is required');
-    }
-
     return this.settingsService.create(instance, data);
   }
 
