@@ -4,6 +4,7 @@
 
 * Fixed validation is set settings 
 * Adjusts in group validations
+* Ajusts in sticker message to chatwoot
 
 # 1.4.1 (2023-07-24 18:28)
 
