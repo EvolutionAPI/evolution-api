@@ -1,3 +1,13 @@
+# 1.4.4 (2023-07-25 15:24)
+
+### Fixed
+
+* Fixed chatwoot line wrap issue
+* Solved receive location in chatwoot
+* When requesting the pairing code, it also brings the qr code
+* Option reopen_conversation in chatwoot endpoint
+* Option conversation_pending in chatwoot endpoint
+
 # 1.4.3 (2023-07-25 10:51)
 
 ### Fixed

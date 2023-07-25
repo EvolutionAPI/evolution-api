@@ -42,6 +42,8 @@ export class InstanceController {
     chatwoot_token,
     chatwoot_url,
     chatwoot_sign_msg,
+    chatwoot_reopen_conversation,
+    chatwoot_conversation_pending,
     reject_call,
     msg_call,
     groups_ignore,
@@ -169,6 +171,24 @@ export class InstanceController {
         throw new BadRequestException('Invalid "url" property in chatwoot');
       }
 
+      if (chatwoot_sign_msg !== true && chatwoot_sign_msg !== false) {
+        throw new BadRequestException('sign_msg is required');
+      }
+
+      if (
+        chatwoot_reopen_conversation !== true &&
+        chatwoot_reopen_conversation !== false
+      ) {
+        throw new BadRequestException('reopen_conversation is required');
+      }
+
+      if (
+        chatwoot_conversation_pending !== true &&
+        chatwoot_conversation_pending !== false
+      ) {
+        throw new BadRequestException('conversation_pending is required');
+      }
+
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       try {
@@ -180,6 +200,8 @@ export class InstanceController {
           sign_msg: chatwoot_sign_msg || false,
           name_inbox: instance.instanceName,
           number,
+          reopen_conversation: chatwoot_reopen_conversation || false,
+          conversation_pending: chatwoot_conversation_pending || false,
         });
 
         this.chatwootService.initInstanceChatwoot(
@@ -209,6 +231,8 @@ export class InstanceController {
           token: chatwoot_token,
           url: chatwoot_url,
           sign_msg: chatwoot_sign_msg || false,
+          reopen_conversation: chatwoot_reopen_conversation || false,
+          conversation_pending: chatwoot_conversation_pending || false,
           number,
           name_inbox: instance.instanceName,
           webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,

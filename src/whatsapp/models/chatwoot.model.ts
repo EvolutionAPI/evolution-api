@@ -10,6 +10,8 @@ export class ChatwootRaw {
   name_inbox?: string;
   sign_msg?: boolean;
   number?: string;
+  reopen_conversation?: boolean;
+  conversation_pending?: boolean;
 }
 
 const chatwootSchema = new Schema<ChatwootRaw>({

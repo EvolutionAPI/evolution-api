@@ -874,9 +874,26 @@ export const chatwootSchema: JSONSchema7 = {
     token: { type: 'string' },
     url: { type: 'string' },
     sign_msg: { type: 'boolean', enum: [true, false] },
+    reopen_conversation: { type: 'boolean', enum: [true, false] },
+    conversation_pending: { type: 'boolean', enum: [true, false] },
   },
-  required: ['enabled', 'account_id', 'token', 'url', 'sign_msg'],
-  ...isNotEmpty('account_id', 'token', 'url', 'sign_msg'),
+  required: [
+    'enabled',
+    'account_id',
+    'token',
+    'url',
+    'sign_msg',
+    'reopen_conversation',
+    'conversation_pending',
+  ],
+  ...isNotEmpty(
+    'account_id',
+    'token',
+    'url',
+    'sign_msg',
+    'reopen_conversation',
+    'conversation_pending',
+  ),
 };
 
 export const settingsSchema: JSONSchema7 = {

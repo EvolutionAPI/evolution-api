@@ -16,4 +16,6 @@ export class InstanceDto {
   chatwoot_token?: string;
   chatwoot_url?: string;
   chatwoot_sign_msg?: boolean;
+  chatwoot_reopen_conversation?: boolean;
+  chatwoot_conversation_pending?: boolean;
 }
