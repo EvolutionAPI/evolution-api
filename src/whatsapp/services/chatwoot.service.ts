@@ -1209,7 +1209,7 @@ export class ChatwootService {
       audioMessage: msg.audioMessage?.caption,
       contactMessage: msg.contactMessage?.vcard,
       contactsArrayMessage: msg.contactsArrayMessage,
-      locationMessage: !msg.protocolMessage
+      locationMessage: msg.locationMessage
         ? msg.locationMessage?.degreesLatitude +
           ',' +
           msg.locationMessage?.degreesLongitude
