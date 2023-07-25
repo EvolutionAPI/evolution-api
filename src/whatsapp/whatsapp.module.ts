@@ -94,6 +94,7 @@ export const instanceController = new InstanceController(
   authService,
   webhookService,
   chatwootService,
+  settingsService,
   cache,
 );
 export const viewsController = new ViewsController(waMonitor, configService);

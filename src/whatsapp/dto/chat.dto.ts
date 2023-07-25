@@ -59,7 +59,7 @@ class Key {
   remoteJid: string;
 }
 export class ReadMessageDto {
-  readMessages: Key[];
+  read_messages: Key[];
 }
 
 class LastMessage {

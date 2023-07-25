@@ -53,6 +53,7 @@ export const instanceNameSchema: JSONSchema7 = {
           'GROUP_UPDATE',
           'GROUP_PARTICIPANTS_UPDATE',
           'CONNECTION_UPDATE',
+          'CALL',
           'NEW_JWT_TOKEN',
         ],
       },
@@ -455,7 +456,7 @@ export const readMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
-    readMessages: {
+    read_messages: {
       type: 'array',
       minItems: 1,
       uniqueItems: true,
@@ -470,7 +471,7 @@ export const readMessageSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['readMessages'],
+  required: ['read_messages'],
 };
 
 export const privacySettingsSchema: JSONSchema7 = {
@@ -854,6 +855,7 @@ export const webhookSchema: JSONSchema7 = {
           'GROUP_UPDATE',
           'GROUP_PARTICIPANTS_UPDATE',
           'CONNECTION_UPDATE',
+          'CALL',
           'NEW_JWT_TOKEN',
         ],
       },
@@ -884,7 +886,22 @@ export const settingsSchema: JSONSchema7 = {
     reject_call: { type: 'boolean', enum: [true, false] },
     msg_call: { type: 'string' },
     groups_ignore: { type: 'boolean', enum: [true, false] },
+    always_online: { type: 'boolean', enum: [true, false] },
+    read_messages: { type: 'boolean', enum: [true, false] },
+    read_status: { type: 'boolean', enum: [true, false] },
   },
-  required: ['reject_call'],
-  ...isNotEmpty('reject_call'),
+  required: [
+    'reject_call',
+    'groups_ignore',
+    'always_online',
+    'read_messages',
+    'read_status',
+  ],
+  ...isNotEmpty(
+    'reject_call',
+    'groups_ignore',
+    'always_online',
+    'read_messages',
+    'read_status',
+  ),
 };

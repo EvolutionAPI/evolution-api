@@ -362,6 +362,15 @@ export class WAStartupService {
     this.localSettings.groups_ignore = data?.groups_ignore;
     this.logger.verbose(`Settings groups_ignore: ${this.localSettings.groups_ignore}`);
 
+    this.localSettings.always_online = data?.always_online;
+    this.logger.verbose(`Settings always_online: ${this.localSettings.always_online}`);
+
+    this.localSettings.read_messages = data?.read_messages;
+    this.logger.verbose(`Settings read_messages: ${this.localSettings.read_messages}`);
+
+    this.localSettings.read_status = data?.read_status;
+    this.logger.verbose(`Settings read_status: ${this.localSettings.read_status}`);
+
     this.logger.verbose('Settings loaded');
   }
 
@@ -371,8 +380,13 @@ export class WAStartupService {
     this.logger.verbose(`Settings reject_call: ${data.reject_call}`);
     this.logger.verbose(`Settings msg_call: ${data.msg_call}`);
     this.logger.verbose(`Settings groups_ignore: ${data.groups_ignore}`);
+    this.logger.verbose(`Settings always_online: ${data.always_online}`);
+    this.logger.verbose(`Settings read_messages: ${data.read_messages}`);
+    this.logger.verbose(`Settings read_status: ${data.read_status}`);
     Object.assign(this.localSettings, data);
     this.logger.verbose('Settings set');
+
+    this.client?.ws?.close();
   }
 
   public async findSettings() {
@@ -387,6 +401,9 @@ export class WAStartupService {
     this.logger.verbose(`Settings url: ${data.reject_call}`);
     this.logger.verbose(`Settings msg_call: ${data.msg_call}`);
     this.logger.verbose(`Settings groups_ignore: ${data.groups_ignore}`);
+    this.logger.verbose(`Settings always_online: ${data.always_online}`);
+    this.logger.verbose(`Settings read_messages: ${data.read_messages}`);
+    this.logger.verbose(`Settings read_status: ${data.read_status}`);
     return data;
   }
 
@@ -847,6 +864,7 @@ export class WAStartupService {
         printQRInTerminal: false,
         browser,
         version,
+        markOnlineOnConnect: this.localSettings.always_online,
         connectTimeoutMs: 60_000,
         qrTimeout: 40_000,
         defaultQueryTimeoutMs: undefined,
@@ -1143,6 +1161,14 @@ export class WAStartupService {
         source: getDevice(received.key.id),
       };
 
+      if (this.localSettings.read_messages && received.key.id !== 'status@broadcast') {
+        await this.client.readMessages([received.key]);
+      }
+
+      if (this.localSettings.read_status && received.key.id === 'status@broadcast') {
+        await this.client.readMessages([received.key]);
+      }
+
       this.logger.log(messageRaw);
 
       this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
@@ -1362,11 +1388,15 @@ export class WAStartupService {
               text: settings.msg_call,
             });
 
+            this.logger.verbose('Sending data to event messages.upsert');
             this.client.ev.emit('messages.upsert', {
               messages: [msg],
               type: 'notify',
             });
           }
+
+          this.logger.verbose('Sending data to webhook in event CALL');
+          this.sendDataWebhook(Events.CALL, call);
         }
 
         if (events['connection.update']) {
@@ -2400,7 +2430,7 @@ export class WAStartupService {
     this.logger.verbose('Marking message as read');
     try {
       const keys: proto.IMessageKey[] = [];
-      data.readMessages.forEach((read) => {
+      data.read_messages.forEach((read) => {
         if (isJidGroup(read.remoteJid) || isJidUser(read.remoteJid)) {
           keys.push({
             remoteJid: read.remoteJid,
@@ -2640,7 +2670,6 @@ export class WAStartupService {
       await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
       this.logger.verbose('Groups add privacy updated');
 
-      // reinicia a instancia
       this.client?.ws?.close();
 
       return {

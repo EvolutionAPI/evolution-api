@@ -13,6 +13,7 @@ import { Logger } from '../../config/logger.config';
 import { wa } from '../types/wa.types';
 import { RedisCache } from '../../db/redis.client';
 import { isURL } from 'class-validator';
+import { SettingsService } from '../services/settings.service';
 
 export class InstanceController {
   constructor(
@@ -23,6 +24,7 @@ export class InstanceController {
     private readonly authService: AuthService,
     private readonly webhookService: WebhookService,
     private readonly chatwootService: ChatwootService,
+    private readonly settingsService: SettingsService,
     private readonly cache: RedisCache,
   ) {}
 
@@ -40,6 +42,12 @@ export class InstanceController {
     chatwoot_token,
     chatwoot_url,
     chatwoot_sign_msg,
+    reject_call,
+    msg_call,
+    groups_ignore,
+    always_online,
+    read_messages,
+    read_status,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -102,6 +110,20 @@ export class InstanceController {
         }
       }
 
+      this.logger.verbose('creating settings');
+      const settings: wa.LocalSettings = {
+        reject_call: reject_call || false,
+        msg_call: msg_call || '',
+        groups_ignore: groups_ignore || false,
+        always_online: always_online || false,
+        read_messages: read_messages || false,
+        read_status: read_status || false,
+      };
+
+      this.logger.verbose('settings: ' + JSON.stringify(settings));
+
+      this.settingsService.create(instance, settings);
+
       if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
         let getQrcode: wa.QrCode;
 
@@ -121,6 +143,7 @@ export class InstanceController {
           webhook,
           webhook_by_events,
           events: getEvents,
+          settings,
           qrcode: getQrcode,
         };
 
@@ -179,6 +202,7 @@ export class InstanceController {
         webhook,
         webhook_by_events,
         events: getEvents,
+        settings,
         chatwoot: {
           enabled: true,
           account_id: chatwoot_account_id,

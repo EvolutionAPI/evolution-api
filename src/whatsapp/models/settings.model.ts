@@ -6,6 +6,9 @@ export class SettingsRaw {
   reject_call?: boolean;
   msg_call?: string;
   groups_ignore?: boolean;
+  always_online?: boolean;
+  read_messages?: boolean;
+  read_status?: boolean;
 }
 
 const settingsSchema = new Schema<SettingsRaw>({
@@ -13,6 +16,9 @@ const settingsSchema = new Schema<SettingsRaw>({
   reject_call: { type: Boolean, required: true },
   msg_call: { type: String, required: true },
   groups_ignore: { type: Boolean, required: true },
+  always_online: { type: Boolean, required: true },
+  read_messages: { type: Boolean, required: true },
+  read_status: { type: Boolean, required: true },
 });
 
 export const SettingsModel = dbserver?.model(
