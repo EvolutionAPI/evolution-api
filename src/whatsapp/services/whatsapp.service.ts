@@ -242,13 +242,9 @@ export class WAStartupService {
 
   public get qrCode(): wa.QrCode {
     this.logger.verbose('Getting qrcode');
-    if (this.instance.qrcode?.pairingCode) {
-      return {
-        pairingCode: this.instance.qrcode?.pairingCode,
-      };
-    }
 
     return {
+      pairingCode: this.instance.qrcode?.pairingCode,
       code: this.instance.qrcode?.code,
       base64: this.instance.qrcode?.base64,
     };

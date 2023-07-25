@@ -4,6 +4,7 @@
 
 * Fixed chatwoot line wrap issue
 * Solved receive location in chatwoot
+* When requesting the pairing code, it also brings the qr code
 
 # 1.4.3 (2023-07-25 10:51)
 
