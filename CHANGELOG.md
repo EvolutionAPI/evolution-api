@@ -1,3 +1,9 @@
+# 1.4.4 (homolog)
+
+### Fixed
+
+* Fixed chatwoot line wrap issue
+
 # 1.4.3 (2023-07-25 10:51)
 
 ### Fixed

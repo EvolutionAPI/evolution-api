@@ -1125,12 +1125,12 @@ export class ChatwootService {
       }
 
       if (body.message_type === 'template' && body.event === 'message_created') {
-        this.logger.verbose('check if is csat');
+        this.logger.verbose('check if is template');
 
         const data: SendTextDto = {
           number: chatId,
           textMessage: {
-            text: body.content,
+            text: body.content.replace(/\\\r\n|\\\n|\n/g, '\n'),
           },
           options: {
             delay: 1200,
