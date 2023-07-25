@@ -1187,10 +1187,11 @@ export class ChatwootService {
       audioMessage: msg.audioMessage?.caption,
       contactMessage: msg.contactMessage?.vcard,
       contactsArrayMessage: msg.contactsArrayMessage,
-      locationMessage:
-        msg.locationMessage?.degreesLatitude +
-        ',' +
-        msg.locationMessage?.degreesLongitude,
+      locationMessage: !msg.protocolMessage
+        ? msg.locationMessage?.degreesLatitude +
+          ',' +
+          msg.locationMessage?.degreesLongitude
+        : undefined,
     };
 
     this.logger.verbose('type message: ' + types);
