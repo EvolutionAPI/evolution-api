@@ -22,6 +22,7 @@ export enum Events {
   GROUPS_UPSERT = 'groups.upsert',
   GROUPS_UPDATE = 'groups.update',
   GROUP_PARTICIPANTS_UPDATE = 'group-participants.update',
+  CALL = 'call',
 }
 
 export declare namespace wa {

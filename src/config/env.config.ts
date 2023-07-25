@@ -89,6 +89,7 @@ export type EventsWebhook = {
   GROUPS_UPSERT: boolean;
   GROUP_UPDATE: boolean;
   GROUP_PARTICIPANTS_UPDATE: boolean;
+  CALL: boolean;
   NEW_JWT_TOKEN: boolean;
 };
 
@@ -245,6 +246,7 @@ export class ConfigService {
           GROUP_UPDATE: process.env?.WEBHOOK_EVENTS_GROUPS_UPDATE === 'true',
           GROUP_PARTICIPANTS_UPDATE:
             process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          CALL: process.env?.WEBHOOK_EVENTS_CALL === 'true',
           NEW_JWT_TOKEN: process.env?.WEBHOOK_EVENTS_NEW_JWT_TOKEN === 'true',
         },
       },

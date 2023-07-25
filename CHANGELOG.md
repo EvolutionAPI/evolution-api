@@ -3,6 +3,7 @@
 ### Fixed
 
 * Adjusts in settings with options always_online, read_messages and read_status
+* Fixed send webhook for event CALL
 
 # 1.4.2 (2023-07-24 20:52)
 

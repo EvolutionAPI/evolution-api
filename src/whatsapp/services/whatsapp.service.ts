@@ -1388,11 +1388,15 @@ export class WAStartupService {
               text: settings.msg_call,
             });
 
+            this.logger.verbose('Sending data to event messages.upsert');
             this.client.ev.emit('messages.upsert', {
               messages: [msg],
               type: 'notify',
             });
           }
+
+          this.logger.verbose('Sending data to webhook in event CALL');
+          this.sendDataWebhook(Events.CALL, call);
         }
 
         if (events['connection.update']) {
