@@ -13,6 +13,7 @@ import { SendAudioDto } from '../dto/sendMessage.dto';
 import { SendMediaDto } from '../dto/sendMessage.dto';
 import { ROOT_DIR } from '../../config/path.config';
 import { ConfigService, HttpServer } from '../../config/env.config';
+import { type } from 'os';
 
 export class ChatwootService {
   private messageCacheFile: string;
@@ -1186,6 +1187,10 @@ export class ChatwootService {
       audioMessage: msg.audioMessage?.caption,
       contactMessage: msg.contactMessage?.vcard,
       contactsArrayMessage: msg.contactsArrayMessage,
+      locationMessage:
+        msg.locationMessage?.degreesLatitude +
+        ',' +
+        msg.locationMessage?.degreesLongitude,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1198,6 +1203,20 @@ export class ChatwootService {
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
 
     const result = typeKey ? types[typeKey] : undefined;
+
+    if (typeKey === 'locationMessage') {
+      const [latitude, longitude] = result.split(',');
+
+      const formattedLocation = `**Location:**
+        **latitude:** ${latitude}
+        **longitude:** ${longitude}
+        https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}
+        `;
+
+      this.logger.verbose('message content: ' + formattedLocation);
+
+      return formattedLocation;
+    }
 
     if (typeKey === 'contactMessage') {
       const vCardData = result.split('\n');

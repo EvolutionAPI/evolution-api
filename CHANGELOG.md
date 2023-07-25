@@ -3,6 +3,7 @@
 ### Fixed
 
 * Fixed chatwoot line wrap issue
+* Solved receive location in chatwoot
 
 # 1.4.3 (2023-07-25 10:51)
 
