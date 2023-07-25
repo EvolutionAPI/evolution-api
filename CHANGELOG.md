@@ -1,3 +1,9 @@
+# 1.4.3 (homolog)
+
+### Fixed
+
+* Adjusts in settings with options always_online, read_messages and read_status
+
 # 1.4.2 (2023-07-24 20:52)
 
 ### Fixed
