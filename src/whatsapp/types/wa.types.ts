@@ -56,6 +56,9 @@ export declare namespace wa {
     url?: string;
     name_inbox?: string;
     sign_msg?: boolean;
+    number?: string;
+    reopen_conversation?: boolean;
+    conversation_pending?: boolean;
   };
 
   export type LocalSettings = {

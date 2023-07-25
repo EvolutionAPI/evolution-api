@@ -312,6 +312,19 @@ export class WAStartupService {
     this.localChatwoot.sign_msg = data?.sign_msg;
     this.logger.verbose(`Chatwoot sign msg: ${this.localChatwoot.sign_msg}`);
 
+    this.localChatwoot.number = data?.number;
+    this.logger.verbose(`Chatwoot number: ${this.localChatwoot.number}`);
+
+    this.localChatwoot.reopen_conversation = data?.reopen_conversation;
+    this.logger.verbose(
+      `Chatwoot reopen conversation: ${this.localChatwoot.reopen_conversation}`,
+    );
+
+    this.localChatwoot.conversation_pending = data?.conversation_pending;
+    this.logger.verbose(
+      `Chatwoot conversation pending: ${this.localChatwoot.conversation_pending}`,
+    );
+
     this.logger.verbose('Chatwoot loaded');
   }
 
@@ -323,6 +336,8 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot url: ${data.url}`);
     this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
     this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
+    this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
+    this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
 
     Object.assign(this.localChatwoot, data);
     this.logger.verbose('Chatwoot set');
@@ -342,6 +357,8 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot url: ${data.url}`);
     this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
     this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
+    this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
+    this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
 
     return data;
   }
@@ -618,7 +635,6 @@ export class WAStartupService {
         color: { light: '#ffffff', dark: '#198754' },
       };
 
-      console.log(this.phoneNumber);
       if (this.phoneNumber) {
         await delay(2000);
         this.instance.qrcode.pairingCode = await this.client.requestPairingCode(

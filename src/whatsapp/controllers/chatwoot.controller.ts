@@ -44,6 +44,8 @@ export class ChatwootController {
       data.token = '';
       data.url = '';
       data.sign_msg = false;
+      data.reopen_conversation = false;
+      data.conversation_pending = false;
     }
 
     data.name_inbox = instance.instanceName;
