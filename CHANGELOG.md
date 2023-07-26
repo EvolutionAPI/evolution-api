@@ -2,7 +2,8 @@
 
 ### Fixed
 
-* Fixed problems in localization template
+* Fixed problems in localization template in chatwoot
+* Fix mids going duplicated in chatwoot
 
 # 1.4.4 (2023-07-25 15:24)
 

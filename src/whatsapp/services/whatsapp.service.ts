@@ -1147,7 +1147,7 @@ export class WAStartupService {
 
       if (
         type !== 'notify' ||
-        // received.message?.protocolMessage ||
+        received.message?.protocolMessage ||
         received.message?.pollUpdateMessage
       ) {
         this.logger.verbose('message rejected');

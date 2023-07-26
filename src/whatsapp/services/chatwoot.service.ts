@@ -1308,7 +1308,7 @@ export class ChatwootService {
     this.logger.verbose('get conversation message');
 
     const types = this.getTypeMessage(msg);
-=
+
     const messageContent = this.getMessageContent(types);
 
     this.logger.verbose('conversation message: ' + messageContent);
