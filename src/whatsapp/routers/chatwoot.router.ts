@@ -1,12 +1,13 @@
 import { RequestHandler, Router } from 'express';
-import { instanceNameSchema, chatwootSchema } from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
-import { InstanceDto } from '../dto/instance.dto';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { chatwootController } from '../whatsapp.module';
-import { ChatwootService } from '../services/chatwoot.service';
-import { HttpStatus } from './index.router';
+
 import { Logger } from '../../config/logger.config';
+import { chatwootSchema, instanceNameSchema } from '../../validate/validate.schema';
+import { RouterBroker } from '../abstract/abstract.router';
+import { ChatwootDto } from '../dto/chatwoot.dto';
+import { InstanceDto } from '../dto/instance.dto';
+// import { ChatwootService } from '../services/chatwoot.service';
+import { chatwootController } from '../whatsapp.module';
+import { HttpStatus } from './index.router';
 
 const logger = new Logger('ChatwootRouter');
 

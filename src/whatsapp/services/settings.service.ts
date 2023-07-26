@@ -1,7 +1,7 @@
+import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { SettingsDto } from '../dto/settings.dto';
 import { WAMonitoringService } from './monitor.service';
-import { Logger } from '../../config/logger.config';
 
 export class SettingsService {
   constructor(private readonly waMonitor: WAMonitoringService) {}
@@ -18,9 +18,7 @@ export class SettingsService {
   public async find(instance: InstanceDto): Promise<SettingsDto> {
     try {
       this.logger.verbose('find settings: ' + instance.instanceName);
-      const result = await this.waMonitor.waInstances[
-        instance.instanceName
-      ].findSettings();
+      const result = await this.waMonitor.waInstances[instance.instanceName].findSettings();
 
       if (Object.keys(result).length === 0) {
         throw new Error('Settings not found');

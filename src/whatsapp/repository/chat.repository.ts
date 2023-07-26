@@ -1,29 +1,23 @@
-import { join } from 'path';
-import { ConfigService, StoreConf } from '../../config/env.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
 import { opendirSync, readFileSync, rmSync } from 'fs';
-import { ChatRaw, IChatModel } from '../models';
+import { join } from 'path';
+
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { ChatRaw, IChatModel } from '../models';
 
 export class ChatQuery {
   where: ChatRaw;
 }
 
 export class ChatRepository extends Repository {
-  constructor(
-    private readonly chatModel: IChatModel,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly chatModel: IChatModel, private readonly configService: ConfigService) {
     super(configService);
   }
 
   private readonly logger = new Logger('ChatRepository');
 
-  public async insert(
-    data: ChatRaw[],
-    instanceName: string,
-    saveDb = false,
-  ): Promise<IInsert> {
+  public async insert(data: ChatRaw[], instanceName: string, saveDb = false): Promise<IInsert> {
     this.logger.verbose('inserting chats');
     if (data.length === 0) {
       this.logger.verbose('no chats to insert');
@@ -53,10 +47,7 @@ export class ChatRepository extends Repository {
             data: chat,
           });
           this.logger.verbose(
-            'chats saved to store in path: ' +
-              join(this.storePath, 'chats', instanceName) +
-              '/' +
-              chat.id,
+            'chats saved to store in path: ' + join(this.storePath, 'chats', instanceName) + '/' + chat.id,
           );
         });
 
@@ -89,10 +80,9 @@ export class ChatRepository extends Repository {
         if (dirent.isFile()) {
           chats.push(
             JSON.parse(
-              readFileSync(
-                join(this.storePath, 'chats', query.where.owner, dirent.name),
-                { encoding: 'utf-8' },
-              ),
+              readFileSync(join(this.storePath, 'chats', query.where.owner, dirent.name), {
+                encoding: 'utf-8',
+              }),
             ),
           );
         }

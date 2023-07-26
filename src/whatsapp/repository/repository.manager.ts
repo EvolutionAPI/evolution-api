@@ -1,17 +1,17 @@
-import { MessageRepository } from './message.repository';
-import { ChatRepository } from './chat.repository';
-import { ContactRepository } from './contact.repository';
-import { MessageUpRepository } from './messageUp.repository';
-import { MongoClient } from 'mongodb';
-import { WebhookRepository } from './webhook.repository';
-import { ChatwootRepository } from './chatwoot.repository';
-import { SettingsRepository } from './settings.repository';
-
-import { AuthRepository } from './auth.repository';
-import { Auth, ConfigService, Database } from '../../config/env.config';
-import { join } from 'path';
 import fs from 'fs';
+import { MongoClient } from 'mongodb';
+import { join } from 'path';
+
+import { Auth, ConfigService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { AuthRepository } from './auth.repository';
+import { ChatRepository } from './chat.repository';
+import { ChatwootRepository } from './chatwoot.repository';
+import { ContactRepository } from './contact.repository';
+import { MessageRepository } from './message.repository';
+import { MessageUpRepository } from './messageUp.repository';
+import { SettingsRepository } from './settings.repository';
+import { WebhookRepository } from './webhook.repository';
 export class RepositoryBroker {
   constructor(
     public readonly message: MessageRepository,
@@ -43,11 +43,7 @@ export class RepositoryBroker {
 
       this.logger.verbose('creating store path: ' + storePath);
       try {
-        const authDir = join(
-          storePath,
-          'auth',
-          this.configService.get<Auth>('AUTHENTICATION').TYPE,
-        );
+        const authDir = join(storePath, 'auth', this.configService.get<Auth>('AUTHENTICATION').TYPE);
         const chatsDir = join(storePath, 'chats');
         const contactsDir = join(storePath, 'contacts');
         const messagesDir = join(storePath, 'messages');
@@ -97,22 +93,23 @@ export class RepositoryBroker {
         this.logger.error(error);
       }
     } else {
-      const storePath = join(process.cwd(), 'store');
-
-      this.logger.verbose('creating store path: ' + storePath);
-
-      const tempDir = join(storePath, 'temp');
-      const chatwootDir = join(storePath, 'chatwoot');
-
-      if (!fs.existsSync(chatwootDir)) {
-        this.logger.verbose('creating chatwoot dir: ' + chatwootDir);
-        fs.mkdirSync(chatwootDir, { recursive: true });
-      }
-      if (!fs.existsSync(tempDir)) {
-        this.logger.verbose('creating temp dir: ' + tempDir);
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
       try {
+        const storePath = join(process.cwd(), 'store');
+
+        this.logger.verbose('creating store path: ' + storePath);
+
+        const tempDir = join(storePath, 'temp');
+        const chatwootDir = join(storePath, 'chatwoot');
+
+        if (!fs.existsSync(chatwootDir)) {
+          this.logger.verbose('creating chatwoot dir: ' + chatwootDir);
+          fs.mkdirSync(chatwootDir, { recursive: true });
+        }
+        if (!fs.existsSync(tempDir)) {
+          this.logger.verbose('creating temp dir: ' + tempDir);
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+
       } catch (error) {
         this.logger.error(error);
       }

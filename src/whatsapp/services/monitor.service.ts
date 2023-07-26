@@ -1,24 +1,15 @@
-import { opendirSync, readdirSync, rmSync } from 'fs';
-import { WAStartupService } from './whatsapp.service';
-import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import EventEmitter2 from 'eventemitter2';
-import { join } from 'path';
-import { Logger } from '../../config/logger.config';
-import {
-  Auth,
-  ConfigService,
-  Database,
-  DelInstance,
-  HttpServer,
-  Redis,
-} from '../../config/env.config';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { NotFoundException } from '../../exceptions';
-import { Db } from 'mongodb';
-import { RedisCache } from '../../db/redis.client';
 import { execSync } from 'child_process';
+import EventEmitter2 from 'eventemitter2';
+import { opendirSync, readdirSync, rmSync } from 'fs';
+import { Db } from 'mongodb';
+import { join } from 'path';
+
+import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { dbserver } from '../../db/db.connect';
-import mongoose from 'mongoose';
+import { RedisCache } from '../../db/redis.client';
+import { NotFoundException } from '../../exceptions';
 import {
   AuthModel,
   ChatwootModel,
@@ -28,6 +19,8 @@ import {
   SettingsModel,
   WebhookModel,
 } from '../models';
+import { RepositoryBroker } from '../repository/repository.manager';
+import { WAStartupService } from './whatsapp.service';
 
 export class WAMonitoringService {
   constructor(
@@ -63,16 +56,12 @@ export class WAMonitoringService {
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
     if (typeof time === 'number' && time > 0) {
-      this.logger.verbose(
-        `Instance "${instance}" don't have connection, will be removed in ${time} minutes`,
-      );
+      this.logger.verbose(`Instance "${instance}" don't have connection, will be removed in ${time} minutes`);
 
       setTimeout(async () => {
         if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
           if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
-            await this.waInstances[instance]?.client?.logout(
-              'Log out instance: ' + instance,
-            );
+            await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
             this.waInstances[instance]?.client?.ws?.close();
             this.waInstances[instance]?.client?.end(undefined);
             delete this.waInstances[instance];
@@ -124,21 +113,16 @@ export class WAMonitoringService {
           };
 
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            instanceData.instance['serverUrl'] =
-              this.configService.get<HttpServer>('SERVER').URL;
+            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (
-              await this.repository.auth.find(key)
-            ).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
 
           instances.push(instanceData);
         } else {
-          this.logger.verbose(
-            'instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state,
-          );
+          this.logger.verbose('instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state);
 
           const instanceData = {
             instance: {
@@ -148,12 +132,9 @@ export class WAMonitoringService {
           };
 
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            instanceData.instance['serverUrl'] =
-              this.configService.get<HttpServer>('SERVER').URL;
+            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (
-              await this.repository.auth.find(key)
-            ).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
@@ -176,14 +157,11 @@ export class WAMonitoringService {
         collections.forEach(async (collection) => {
           const name = collection.namespace.replace(/^[\w-]+./, '');
           await this.dbInstance.collection(name).deleteMany({
-            $or: [
-              { _id: { $regex: /^app.state.*/ } },
-              { _id: { $regex: /^session-.*/ } },
-            ],
+            $or: [{ _id: { $regex: /^app.state.*/ } }, { _id: { $regex: /^session-.*/ } }],
           });
           this.logger.verbose('instance files deleted: ' + name);
         });
-      } else if (this.redis.ENABLED) {
+        // } else if (this.redis.ENABLED) {
       } else {
         const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
         for await (const dirent of dir) {
@@ -264,12 +242,7 @@ export class WAMonitoringService {
   public async loadInstance() {
     this.logger.verbose('load instances');
     const set = async (name: string) => {
-      const instance = new WAStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.repository,
-        this.cache,
-      );
+      const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
       instance.instanceName = name;
       this.logger.verbose('instance loaded: ' + name);
 
@@ -299,9 +272,7 @@ export class WAMonitoringService {
         const collections: any[] = await this.dbInstance.collections();
         if (collections.length > 0) {
           this.logger.verbose('reading collections and setting instances');
-          collections.forEach(
-            async (coll) => await set(coll.namespace.replace(/^[\w-]+\./, '')),
-          );
+          collections.forEach(async (coll) => await set(coll.namespace.replace(/^[\w-]+\./, '')));
         } else {
           this.logger.verbose('no collections found');
         }
@@ -337,7 +308,9 @@ export class WAMonitoringService {
       try {
         this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
         this.waInstances[instanceName] = undefined;
-      } catch {}
+      } catch (error) {
+        this.logger.error(error);
+      }
 
       try {
         this.logger.verbose('request cleaning up instance: ' + instanceName);

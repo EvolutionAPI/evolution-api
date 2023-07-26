@@ -1,15 +1,13 @@
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ConfigService } from '../../config/env.config';
-import { join } from 'path';
 import { readFileSync } from 'fs';
-import { IChatwootModel, ChatwootRaw } from '../models';
+import { join } from 'path';
+
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { ChatwootRaw, IChatwootModel } from '../models';
 
 export class ChatwootRepository extends Repository {
-  constructor(
-    private readonly chatwootModel: IChatwootModel,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly chatwootModel: IChatwootModel, private readonly configService: ConfigService) {
     super(configService);
   }
 
@@ -20,15 +18,9 @@ export class ChatwootRepository extends Repository {
       this.logger.verbose('creating chatwoot');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('saving chatwoot to db');
-        const insert = await this.chatwootModel.replaceOne(
-          { _id: instance },
-          { ...data },
-          { upsert: true },
-        );
+        const insert = await this.chatwootModel.replaceOne({ _id: instance }, { ...data }, { upsert: true });
 
-        this.logger.verbose(
-          'chatwoot saved to db: ' + insert.modifiedCount + ' chatwoot',
-        );
+        this.logger.verbose('chatwoot saved to db: ' + insert.modifiedCount + ' chatwoot');
         return { insertCount: insert.modifiedCount };
       }
 
@@ -40,12 +32,7 @@ export class ChatwootRepository extends Repository {
         data,
       });
 
-      this.logger.verbose(
-        'chatwoot saved to store in path: ' +
-          join(this.storePath, 'chatwoot') +
-          '/' +
-          instance,
-      );
+      this.logger.verbose('chatwoot saved to store in path: ' + join(this.storePath, 'chatwoot') + '/' + instance);
 
       this.logger.verbose('chatwoot created');
       return { insertCount: 1 };

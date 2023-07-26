@@ -1,4 +1,6 @@
 import { RequestHandler, Router } from 'express';
+
+import { Logger } from '../../config/logger.config';
 import {
   audioMessageSchema,
   buttonMessageSchema,
@@ -12,6 +14,7 @@ import {
   stickerMessageSchema,
   textMessageSchema,
 } from '../../validate/validate.schema';
+import { RouterBroker } from '../abstract/abstract.router';
 import {
   SendAudioDto,
   SendButtonDto,
@@ -26,9 +29,7 @@ import {
   SendTextDto,
 } from '../dto/sendMessage.dto';
 import { sendMessageController } from '../whatsapp.module';
-import { RouterBroker } from '../abstract/abstract.router';
 import { HttpStatus } from './index.router';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('MessageRouter');
 
@@ -79,8 +80,7 @@ export class MessageRouter extends RouterBroker {
           request: req,
           schema: audioMessageSchema,
           ClassRef: SendMediaDto,
-          execute: (instance, data) =>
-            sendMessageController.sendWhatsAppAudio(instance, data),
+          execute: (instance, data) => sendMessageController.sendWhatsAppAudio(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

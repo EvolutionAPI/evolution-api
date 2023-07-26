@@ -1,9 +1,10 @@
-import { isURL } from 'class-validator';
-import { BadRequestException } from '../../exceptions';
+// import { isURL } from 'class-validator';
+
+import { Logger } from '../../config/logger.config';
+// import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { SettingsDto } from '../dto/settings.dto';
 import { SettingsService } from '../services/settings.service';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('SettingsController');
 
@@ -11,9 +12,8 @@ export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   public async createSettings(instance: InstanceDto, data: SettingsDto) {
-    logger.verbose(
-      'requested createSettings from ' + instance.instanceName + ' instance',
-    );
+
+    logger.verbose('requested createSettings from ' + instance.instanceName + ' instance');
 
     return this.settingsService.create(instance, data);
   }
