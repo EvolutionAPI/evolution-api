@@ -1,3 +1,9 @@
+# 1.4.5 (2023-07-26 09:32)
+
+### Fixed
+
+* Fixed problems in localization template
+
 # 1.4.4 (2023-07-25 15:24)
 
 ### Fixed
