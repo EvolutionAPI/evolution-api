@@ -104,16 +104,24 @@ export abstract class RouterBroker {
     const instance = request.params as unknown as InstanceDto;
     const body = request.body;
 
-    if (!body?.groupJid) {
-      if (request.query.groupJid) {
-        Object.assign(body, {
-          groupJid: request.query.groupJid,
-        });
+    let groupJid = body?.groupJid;
+    
+    if (!groupJid) {
+      if (request.query?.groupJid) {
+        groupJid = request.query.groupJid;
       } else {
         throw new BadRequestException('The group id needs to be informed in the query', 'ex: "groupJid=120362@g.us"');
       }
     }
-
+    
+    if (!groupJid.endsWith('@g.us')) {
+      groupJid = groupJid + '@g.us';
+    }
+    
+    Object.assign(body, {
+      groupJid: groupJid
+    });
+    
     const ref = new ClassRef();
 
     Object.assign(ref, body);
