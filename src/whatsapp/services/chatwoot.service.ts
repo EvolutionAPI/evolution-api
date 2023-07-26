@@ -998,6 +998,8 @@ export class ChatwootService {
             chatwoot_token: this.provider.token,
             chatwoot_url: this.provider.url,
             chatwoot_sign_msg: this.provider.sign_msg,
+            chatwoot_reopen_conversation: this.provider.reopen_conversation,
+            chatwoot_conversation_pending: this.provider.conversation_pending,
           };
 
           if (command.split(':')[2]) {
@@ -1530,7 +1532,7 @@ export class ChatwootService {
       }
 
       // eslint-disable-next-line
-            const config = {
+      const config = {
         method: 'post',
         maxBodyLength: Infinity,
         url: `${urlServer}/instance/create`,

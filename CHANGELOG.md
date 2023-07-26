@@ -1,3 +1,7 @@
+# 1.4.6 (homolog)
+
+* Fixed bug of creating new inbox by chatwoot
+
 # 1.4.5 (2023-07-26 09:32)
 
 ### Fixed
