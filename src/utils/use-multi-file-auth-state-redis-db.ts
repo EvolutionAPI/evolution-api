@@ -5,9 +5,10 @@ import {
   proto,
   SignalDataTypeMap,
 } from '@whiskeysockets/baileys';
-import { RedisCache } from '../db/redis.client';
-import { Logger } from '../config/logger.config';
+
 import { Redis } from '../config/env.config';
+import { Logger } from '../config/logger.config';
+import { RedisCache } from '../db/redis.client';
 
 export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
   state: AuthenticationState;

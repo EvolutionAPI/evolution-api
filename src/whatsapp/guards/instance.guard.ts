@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import { existsSync } from 'fs';
 import { join } from 'path';
+
+import { configService, Database, Redis } from '../../config/env.config';
 import { INSTANCE_DIR } from '../../config/path.config';
 import { dbserver } from '../../db/db.connect';
 import {
@@ -10,7 +12,6 @@ import {
 } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../whatsapp.module';
-import { Database, Redis, configService } from '../../config/env.config';
 
 async function getInstance(instanceName: string) {
   const db = configService.get<Database>('DATABASE');

@@ -1,10 +1,11 @@
-import { join } from 'path';
-import { Auth, ConfigService, Database } from '../../config/env.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { IAuthModel, AuthRaw } from '../models';
 import { readFileSync } from 'fs';
-import { AUTH_DIR } from '../../config/path.config';
+import { join } from 'path';
+
+import { Auth, ConfigService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { AUTH_DIR } from '../../config/path.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { AuthRaw, IAuthModel } from '../models';
 
 export class AuthRepository extends Repository {
   constructor(

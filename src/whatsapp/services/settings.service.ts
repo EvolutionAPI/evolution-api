@@ -1,7 +1,7 @@
+import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { SettingsDto } from '../dto/settings.dto';
 import { WAMonitoringService } from './monitor.service';
-import { Logger } from '../../config/logger.config';
 
 export class SettingsService {
   constructor(private readonly waMonitor: WAMonitoringService) {}

@@ -1,4 +1,7 @@
+import { proto } from '@whiskeysockets/baileys';
 import { RequestHandler, Router } from 'express';
+
+import { Logger } from '../../config/logger.config';
 import {
   archiveChatSchema,
   contactValidateSchema,
@@ -13,9 +16,11 @@ import {
   readMessageSchema,
   whatsappNumberSchema,
 } from '../../validate/validate.schema';
+import { RouterBroker } from '../abstract/abstract.router';
 import {
   ArchiveChatDto,
   DeleteMessage,
+  getBase64FromMediaMessageDto,
   NumberDto,
   PrivacySettingDto,
   ProfileNameDto,
@@ -23,17 +28,13 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   WhatsAppNumberDto,
-  getBase64FromMediaMessageDto,
 } from '../dto/chat.dto';
+import { InstanceDto } from '../dto/instance.dto';
 import { ContactQuery } from '../repository/contact.repository';
 import { MessageQuery } from '../repository/message.repository';
-import { chatController } from '../whatsapp.module';
-import { RouterBroker } from '../abstract/abstract.router';
-import { HttpStatus } from './index.router';
 import { MessageUpQuery } from '../repository/messageUp.repository';
-import { proto } from '@whiskeysockets/baileys';
-import { InstanceDto } from '../dto/instance.dto';
-import { Logger } from '../../config/logger.config';
+import { chatController } from '../whatsapp.module';
+import { HttpStatus } from './index.router';
 
 const logger = new Logger('ChatRouter');
 

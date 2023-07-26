@@ -1,12 +1,13 @@
 import { RequestHandler, Router } from 'express';
+
+import { Logger } from '../../config/logger.config';
 import { instanceNameSchema, settingsSchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto } from '../dto/instance.dto';
 import { SettingsDto } from '../dto/settings.dto';
-import { settingsController } from '../whatsapp.module';
 import { SettingsService } from '../services/settings.service';
+import { settingsController } from '../whatsapp.module';
 import { HttpStatus } from './index.router';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('SettingsRouter');
 

@@ -1,12 +1,13 @@
 import { isJWT } from 'class-validator';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+
+import { name } from '../../../package.json';
 import { Auth, configService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { name } from '../../../package.json';
+import { ForbiddenException, UnauthorizedException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { JwtPayload } from '../services/auth.service';
-import { ForbiddenException, UnauthorizedException } from '../../exceptions';
 import { repository } from '../whatsapp.module';
 
 const logger = new Logger('GUARD');
@@ -86,7 +87,9 @@ async function apikey(req: Request, res: Response, next: NextFunction) {
     if (instanceKey.apikey === key) {
       return next();
     }
-  } catch (error) {}
+  } catch (error) {
+    logger.error(error);
+  }
 
   throw new UnauthorizedException();
 }

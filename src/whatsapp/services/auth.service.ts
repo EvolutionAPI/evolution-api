@@ -1,14 +1,15 @@
-import { Auth, ConfigService, Webhook } from '../../config/env.config';
-import { InstanceDto } from '../dto/instance.dto';
-import { name as apiName } from '../../../package.json';
-import { verify, sign } from 'jsonwebtoken';
-import { Logger } from '../../config/logger.config';
-import { v4 } from 'uuid';
-import { isJWT } from 'class-validator';
-import { BadRequestException } from '../../exceptions';
 import axios from 'axios';
-import { WAMonitoringService } from './monitor.service';
+import { isJWT } from 'class-validator';
+import { sign, verify } from 'jsonwebtoken';
+import { v4 } from 'uuid';
+
+import { name as apiName } from '../../../package.json';
+import { Auth, ConfigService, Webhook } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { BadRequestException } from '../../exceptions';
+import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { WAMonitoringService } from './monitor.service';
 
 export type JwtPayload = {
   instanceName: string;

@@ -1,9 +1,10 @@
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ConfigService } from '../../config/env.config';
-import { join } from 'path';
 import { readFileSync } from 'fs';
-import { IChatwootModel, ChatwootRaw } from '../models';
+import { join } from 'path';
+
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { ChatwootRaw, IChatwootModel } from '../models';
 
 export class ChatwootRepository extends Repository {
   constructor(

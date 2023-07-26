@@ -1,7 +1,10 @@
 import { proto } from '@whiskeysockets/baileys';
+
+import { Logger } from '../../config/logger.config';
 import {
   ArchiveChatDto,
   DeleteMessage,
+  getBase64FromMediaMessageDto,
   NumberDto,
   PrivacySettingDto,
   ProfileNameDto,
@@ -9,14 +12,12 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   WhatsAppNumberDto,
-  getBase64FromMediaMessageDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { ContactQuery } from '../repository/contact.repository';
 import { MessageQuery } from '../repository/message.repository';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { WAMonitoringService } from '../services/monitor.service';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('ChatController');
 

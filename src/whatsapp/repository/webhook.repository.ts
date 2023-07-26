@@ -1,9 +1,10 @@
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ConfigService } from '../../config/env.config';
-import { join } from 'path';
 import { readFileSync } from 'fs';
-import { IWebhookModel, WebhookRaw } from '../models';
+import { join } from 'path';
+
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { IWebhookModel, WebhookRaw } from '../models';
 
 export class WebhookRepository extends Repository {
   constructor(

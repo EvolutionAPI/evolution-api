@@ -1,4 +1,6 @@
 import { isBase64, isURL } from 'class-validator';
+
+import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import {
@@ -15,8 +17,6 @@ import {
   SendTextDto,
 } from '../dto/sendMessage.dto';
 import { WAMonitoringService } from '../services/monitor.service';
-
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('MessageRouter');
 
@@ -109,7 +109,7 @@ export class SendMessageController {
 
   public async sendReaction({ instanceName }: InstanceDto, data: SendReactionDto) {
     logger.verbose('requested sendReaction from ' + instanceName + ' instance');
-    if (!data.reactionMessage.reaction.match(/[^\(\)\w\sà-ú"-\+]+/)) {
+    if (!data.reactionMessage.reaction.match(/[^()\w\sà-ú"-+]+/)) {
       throw new BadRequestException('"reaction" must be an emoji');
     }
     return await this.waMonitor.waInstances[instanceName].reactionMessage(data);

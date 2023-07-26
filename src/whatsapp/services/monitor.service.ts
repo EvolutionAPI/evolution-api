@@ -1,9 +1,10 @@
-import { opendirSync, readdirSync, rmSync } from 'fs';
-import { WAStartupService } from './whatsapp.service';
-import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
+import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
+import { opendirSync, readdirSync, rmSync } from 'fs';
+import { Db } from 'mongodb';
+import mongoose from 'mongoose';
 import { join } from 'path';
-import { Logger } from '../../config/logger.config';
+
 import {
   Auth,
   ConfigService,
@@ -12,13 +13,11 @@ import {
   HttpServer,
   Redis,
 } from '../../config/env.config';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { NotFoundException } from '../../exceptions';
-import { Db } from 'mongodb';
-import { RedisCache } from '../../db/redis.client';
-import { execSync } from 'child_process';
+import { Logger } from '../../config/logger.config';
+import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { dbserver } from '../../db/db.connect';
-import mongoose from 'mongoose';
+import { RedisCache } from '../../db/redis.client';
+import { NotFoundException } from '../../exceptions';
 import {
   AuthModel,
   ChatwootModel,
@@ -28,6 +27,8 @@ import {
   SettingsModel,
   WebhookModel,
 } from '../models';
+import { RepositoryBroker } from '../repository/repository.manager';
+import { WAStartupService } from './whatsapp.service';
 
 export class WAMonitoringService {
   constructor(
@@ -183,7 +184,7 @@ export class WAMonitoringService {
           });
           this.logger.verbose('instance files deleted: ' + name);
         });
-      } else if (this.redis.ENABLED) {
+        // } else if (this.redis.ENABLED) {
       } else {
         const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
         for await (const dirent of dir) {
@@ -337,7 +338,9 @@ export class WAMonitoringService {
       try {
         this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
         this.waInstances[instanceName] = undefined;
-      } catch {}
+      } catch (error) {
+        this.logger.error(error);
+      }
 
       try {
         this.logger.verbose('request cleaning up instance: ' + instanceName);

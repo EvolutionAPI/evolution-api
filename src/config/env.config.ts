@@ -1,7 +1,7 @@
+import { isBooleanString } from 'class-validator';
 import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { join } from 'path';
-import { isBooleanString } from 'class-validator';
 
 export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
 

@@ -1,16 +1,17 @@
 import { Router } from 'express';
+import fs from 'fs';
+
 import { Auth, configService } from '../../config/env.config';
-import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { authGuard } from '../guards/auth.guard';
+import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { ChatRouter } from './chat.router';
+import { ChatwootRouter } from './chatwoot.router';
 import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
 import { MessageRouter } from './sendMessage.router';
+import { SettingsRouter } from './settings.router';
 import { ViewsRouter } from './view.router';
 import { WebhookRouter } from './webhook.router';
-import { ChatwootRouter } from './chatwoot.router';
-import fs from 'fs';
-import { SettingsRouter } from './settings.router';
 
 enum HttpStatus {
   OK = 200,

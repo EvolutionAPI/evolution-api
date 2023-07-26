@@ -1,8 +1,8 @@
 import {
+  proto,
   WAPrivacyOnlineValue,
   WAPrivacyValue,
   WAReadReceiptsValue,
-  proto,
 } from '@whiskeysockets/baileys';
 
 export class OnWhatsAppDto {

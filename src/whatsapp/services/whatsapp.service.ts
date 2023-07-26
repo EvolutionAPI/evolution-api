@@ -1,9 +1,10 @@
+import ffmpegPath from '@ffmpeg-installer/ffmpeg';
+import { Boom } from '@hapi/boom';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
   BufferJSON,
   CacheStore,
-  makeCacheableSignalKeyStore,
   Chat,
   ConnectionState,
   Contact,
@@ -12,11 +13,13 @@ import makeWASocket, {
   downloadMediaMessage,
   fetchLatestBaileysVersion,
   generateWAMessageFromContent,
+  getAggregateVotesInPollMessage,
   getContentType,
   getDevice,
   GroupMetadata,
   isJidGroup,
   isJidUser,
+  makeCacheableSignalKeyStore,
   MessageUpsertType,
   MiscMessageGenerationOptions,
   ParticipantAction,
@@ -29,8 +32,24 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
-  getAggregateVotesInPollMessage,
 } from '@whiskeysockets/baileys';
+import axios from 'axios';
+import { exec, execSync } from 'child_process';
+import { arrayUnique, isBase64, isURL } from 'class-validator';
+import EventEmitter2 from 'eventemitter2';
+import fs, { existsSync, readFileSync } from 'fs';
+import Long from 'long';
+import NodeCache from 'node-cache';
+import { getMIMEType } from 'node-mime-types';
+import { release } from 'os';
+import { join } from 'path';
+import P from 'pino';
+import ProxyAgent from 'proxy-agent';
+import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
+import qrcodeTerminal from 'qrcode-terminal';
+import sharp from 'sharp';
+import { v4 } from 'uuid';
+
 import {
   Auth,
   CleanStoreConf,
@@ -38,31 +57,45 @@ import {
   ConfigSessionPhone,
   Database,
   HttpServer,
+  Log,
   QrCode,
   Redis,
   Webhook,
 } from '../../config/env.config';
-import fs from 'fs';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
-import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
-import axios from 'axios';
-import { v4 } from 'uuid';
-import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
-import qrcodeTerminal from 'qrcode-terminal';
-import { Events, TypeMediaMessage, wa, MessageSubtype } from '../types/wa.types';
-import { Boom } from '@hapi/boom';
-import EventEmitter2 from 'eventemitter2';
-import { release } from 'os';
-import P from 'pino';
-import { execSync, exec } from 'child_process';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
-import { ContactRaw } from '../models/contact.model';
-import { ChatRaw } from '../models/chat.model';
-import { getMIMEType } from 'node-mime-types';
+import { dbserver } from '../../db/db.connect';
+import { RedisCache } from '../../db/redis.client';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '../../exceptions';
+import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
+import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
+import {
+  ArchiveChatDto,
+  DeleteMessage,
+  getBase64FromMediaMessageDto,
+  NumberBusiness,
+  OnWhatsAppDto,
+  PrivacySettingDto,
+  ReadMessageDto,
+  WhatsAppNumberDto,
+} from '../dto/chat.dto';
+import {
+  CreateGroupDto,
+  GetParticipant,
+  GroupDescriptionDto,
+  GroupInvite,
+  GroupJid,
+  GroupPictureDto,
+  GroupSendInvite,
+  GroupSubjectDto,
+  GroupToggleEphemeralDto,
+  GroupUpdateParticipantDto,
+  GroupUpdateSettingDto,
+} from '../dto/group.dto';
 import {
   ContactMessage,
   MediaMessage,
@@ -73,59 +106,26 @@ import {
   SendListDto,
   SendLocationDto,
   SendMediaDto,
-  SendReactionDto,
-  SendTextDto,
   SendPollDto,
-  SendStickerDto,
+  SendReactionDto,
   SendStatusDto,
+  SendStickerDto,
+  SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { arrayUnique, isBase64, isURL } from 'class-validator';
-import {
-  ArchiveChatDto,
-  DeleteMessage,
-  NumberBusiness,
-  OnWhatsAppDto,
-  PrivacySettingDto,
-  ReadMessageDto,
-  WhatsAppNumberDto,
-  getBase64FromMediaMessageDto,
-} from '../dto/chat.dto';
-import { MessageQuery } from '../repository/message.repository';
-import { ContactQuery } from '../repository/contact.repository';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '../../exceptions';
-import {
-  CreateGroupDto,
-  GroupInvite,
-  GroupJid,
-  GroupPictureDto,
-  GroupUpdateParticipantDto,
-  GroupUpdateSettingDto,
-  GroupToggleEphemeralDto,
-  GroupSubjectDto,
-  GroupDescriptionDto,
-  GroupSendInvite,
-  GetParticipant,
-} from '../dto/group.dto';
-import { MessageUpQuery } from '../repository/messageUp.repository';
-import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
-import Long from 'long';
-import { WebhookRaw } from '../models/webhook.model';
-import { ChatwootRaw } from '../models/chatwoot.model';
-import { dbserver } from '../../db/db.connect';
-import NodeCache from 'node-cache';
-import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
-import sharp from 'sharp';
-import { RedisCache } from '../../db/redis.client';
-import { Log } from '../../config/env.config';
-import ProxyAgent from 'proxy-agent';
-import { ChatwootService } from './chatwoot.service';
-import { waMonitor } from '../whatsapp.module';
 import { SettingsRaw } from '../models';
+import { ChatRaw } from '../models/chat.model';
+import { ChatwootRaw } from '../models/chatwoot.model';
+import { ContactRaw } from '../models/contact.model';
+import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
+import { WebhookRaw } from '../models/webhook.model';
+import { ContactQuery } from '../repository/contact.repository';
+import { MessageQuery } from '../repository/message.repository';
+import { MessageUpQuery } from '../repository/messageUp.repository';
+import { RepositoryBroker } from '../repository/repository.manager';
+import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
+import { waMonitor } from '../whatsapp.module';
+import { ChatwootService } from './chatwoot.service';
 
 export class WAStartupService {
   constructor(
@@ -395,7 +395,7 @@ export class WAStartupService {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
-    const we = event.replace(/[\.-]/gm, '_').toUpperCase();
+    const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
 
     const expose =
@@ -796,7 +796,9 @@ export class WAStartupService {
               );
             }
           }
-        } catch (error) {}
+        } catch (error) {
+          this.logger.error(error);
+        }
       }, (cleanStore?.CLEANING_INTERVAL ?? 3600) * 1000);
     }
   }
@@ -1514,7 +1516,7 @@ export class WAStartupService {
       .replace(/\+/g, '')
       .replace(/\(/g, '')
       .replace(/\)/g, '')
-      .split(/\:/)[0]
+      .split(':')[0]
       .split('@')[0];
 
     if (number.length >= 18) {

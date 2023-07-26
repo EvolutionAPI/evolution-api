@@ -1,11 +1,12 @@
 import { isURL } from 'class-validator';
-import { BadRequestException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { ChatwootService } from '../services/chatwoot.service';
-import { Logger } from '../../config/logger.config';
-import { waMonitor } from '../whatsapp.module';
+
 import { ConfigService, HttpServer } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { BadRequestException } from '../../exceptions';
+import { ChatwootDto } from '../dto/chatwoot.dto';
+import { InstanceDto } from '../dto/instance.dto';
+import { ChatwootService } from '../services/chatwoot.service';
+import { waMonitor } from '../whatsapp.module';
 
 const logger = new Logger('ChatwootController');
 

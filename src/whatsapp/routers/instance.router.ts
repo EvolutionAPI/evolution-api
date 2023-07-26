@@ -1,13 +1,14 @@
 import { RequestHandler, Router } from 'express';
-import { instanceNameSchema, oldTokenSchema } from '../../validate/validate.schema';
-import { InstanceDto } from '../dto/instance.dto';
-import { instanceController } from '../whatsapp.module';
-import { RouterBroker } from '../abstract/abstract.router';
-import { HttpStatus } from './index.router';
-import { OldToken } from '../services/auth.service';
+
 import { Auth, ConfigService, Database } from '../../config/env.config';
-import { dbserver } from '../../db/db.connect';
 import { Logger } from '../../config/logger.config';
+import { dbserver } from '../../db/db.connect';
+import { instanceNameSchema, oldTokenSchema } from '../../validate/validate.schema';
+import { RouterBroker } from '../abstract/abstract.router';
+import { InstanceDto } from '../dto/instance.dto';
+import { OldToken } from '../services/auth.service';
+import { instanceController } from '../whatsapp.module';
+import { HttpStatus } from './index.router';
 
 const logger = new Logger('InstanceRouter');
 

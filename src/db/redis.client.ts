@@ -1,7 +1,8 @@
 import { createClient, RedisClientType } from '@redis/client';
-import { Logger } from '../config/logger.config';
 import { BufferJSON } from '@whiskeysockets/baileys';
+
 import { Redis } from '../config/env.config';
+import { Logger } from '../config/logger.config';
 
 export class RedisCache {
   constructor() {

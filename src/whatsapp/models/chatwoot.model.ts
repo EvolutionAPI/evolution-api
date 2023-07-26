@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+
 import { dbserver } from '../../db/db.connect';
 
 export class ChatwootRaw {

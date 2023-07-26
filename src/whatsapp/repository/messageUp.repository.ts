@@ -1,9 +1,10 @@
-import { ConfigService, StoreConf } from '../../config/env.config';
-import { IMessageUpModel, MessageUpdateRaw } from '../models';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { join } from 'path';
 import { opendirSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { IMessageUpModel, MessageUpdateRaw } from '../models';
 
 export class MessageUpQuery {
   where: MessageUpdateRaw;

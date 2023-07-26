@@ -1,3 +1,4 @@
+import { Logger } from '../../config/logger.config';
 import {
   CreateGroupDto,
   GetParticipant,
@@ -13,7 +14,6 @@ import {
 } from '../dto/group.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { WAMonitoringService } from '../services/monitor.service';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('ChatController');
 

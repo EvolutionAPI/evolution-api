@@ -1,9 +1,10 @@
 import { opendirSync, readFileSync } from 'fs';
 import { join } from 'path';
+
 import { ConfigService, StoreConf } from '../../config/env.config';
-import { ContactRaw, IContactModel } from '../models';
-import { IInsert, Repository } from '../abstract/abstract.repository';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { ContactRaw, IContactModel } from '../models';
 
 export class ContactQuery {
   where: ContactRaw;

@@ -1,9 +1,10 @@
-import { join } from 'path';
-import { ConfigService, StoreConf } from '../../config/env.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
 import { opendirSync, readFileSync, rmSync } from 'fs';
-import { ChatRaw, IChatModel } from '../models';
+import { join } from 'path';
+
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { ChatRaw, IChatModel } from '../models';
 
 export class ChatQuery {
   where: ChatRaw;

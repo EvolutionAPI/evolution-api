@@ -1,18 +1,17 @@
-import { InstanceDto } from '../dto/instance.dto';
-import path from 'path';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { WAMonitoringService } from './monitor.service';
-import { Logger } from '../../config/logger.config';
 import ChatwootClient from '@figuro/chatwoot-sdk';
-import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
-import { SendTextDto } from '../dto/sendMessage.dto';
+import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import mimeTypes from 'mime-types';
-import { SendAudioDto } from '../dto/sendMessage.dto';
-import { SendMediaDto } from '../dto/sendMessage.dto';
-import { ROOT_DIR } from '../../config/path.config';
+import path from 'path';
+
 import { ConfigService, HttpServer } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { ROOT_DIR } from '../../config/path.config';
+import { ChatwootDto } from '../dto/chatwoot.dto';
+import { InstanceDto } from '../dto/instance.dto';
+import { SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
+import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
   private messageCacheFile: string;

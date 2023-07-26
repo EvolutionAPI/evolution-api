@@ -1,18 +1,19 @@
 import { delay } from '@whiskeysockets/baileys';
+import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
+
 import { Auth, ConfigService, HttpServer } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { RedisCache } from '../../db/redis.client';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
-import { WAMonitoringService } from '../services/monitor.service';
-import { WAStartupService } from '../services/whatsapp.service';
-import { WebhookService } from '../services/webhook.service';
 import { ChatwootService } from '../services/chatwoot.service';
-import { Logger } from '../../config/logger.config';
+import { WAMonitoringService } from '../services/monitor.service';
+import { WebhookService } from '../services/webhook.service';
+import { WAStartupService } from '../services/whatsapp.service';
 import { wa } from '../types/wa.types';
-import { RedisCache } from '../../db/redis.client';
-import { isURL } from 'class-validator';
 
 export class InstanceController {
   constructor(
