@@ -101,18 +101,24 @@ export abstract class RouterBroker {
   public async groupValidate<T>(args: DataValidate<T>) {
     const { request, ClassRef, schema, execute } = args;
 
-    const groupJid = request.query as unknown as GroupJid;
-
-    if (!groupJid?.groupJid) {
-      throw new BadRequestException('The group id needs to be informed in the query', 'ex: "groupJid=120362@g.us"');
-    }
-
     const instance = request.params as unknown as InstanceDto;
     const body = request.body;
 
+    if (!body?.groupJid) {
+      if (request.query.groupJid) {
+        Object.assign(body, {
+          groupJid: request.query.groupJid
+        });
+      } else {
+        throw new BadRequestException(
+          'The group id needs to be informed in the query',
+          'ex: "groupJid=120362@g.us"',
+        );
+      }
+    }
+    
     const ref = new ClassRef();
 
-    Object.assign(body, groupJid);
     Object.assign(ref, body);
 
     const v = validate(ref, schema);
