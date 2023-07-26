@@ -2,8 +2,11 @@ module.exports = {
   semi: true,
   trailingComma: 'all',
   singleQuote: true,
-  printWidth: 90,
-  tabWidth: 2,
-  bracketSameLine: true,
-  bracketSpacing: true
+  printWidth: 120,
+  arrowParens: 'always',
+  tabWidth: 4,
+  useTabs: false,
+  bracketSameLine: false,
+  bracketSpacing: true,
+  parser: 'typescript'
 }
