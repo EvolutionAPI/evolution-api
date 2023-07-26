@@ -1277,7 +1277,7 @@ export class WAStartupService {
         5: 'PLAYED',
       };
       for await (const { key, update } of args) {
-        if (settings.groups_ignore && key.remoteJid.includes('@g.us')) {
+        if (settings?.groups_ignore && key.remoteJid.includes('@g.us')) {
           this.logger.verbose('group ignored');
           return;
         }
