@@ -1,3 +1,36 @@
+# 1.4.5 (2023-07-26 09:32)
+
+### Fixed
+
+* Fixed problems in localization template in chatwoot
+* Fix mids going duplicated in chatwoot
+
+# 1.4.4 (2023-07-25 15:24)
+
+### Fixed
+
+* Fixed chatwoot line wrap issue
+* Solved receive location in chatwoot
+* When requesting the pairing code, it also brings the qr code
+* Option reopen_conversation in chatwoot endpoint
+* Option conversation_pending in chatwoot endpoint
+
+# 1.4.3 (2023-07-25 10:51)
+
+### Fixed
+
+* Adjusts in settings with options always_online, read_messages and read_status
+* Fixed send webhook for event CALL
+* Create instance with settings
+
+# 1.4.2 (2023-07-24 20:52)
+
+### Fixed
+
+* Fixed validation is set settings 
+* Adjusts in group validations
+* Ajusts in sticker message to chatwoot
+
 # 1.4.1 (2023-07-24 18:28)
 
 ### Fixed

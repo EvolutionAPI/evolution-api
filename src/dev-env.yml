@@ -110,6 +110,7 @@ WEBHOOK:
     GROUP_UPDATE: true
     GROUP_PARTICIPANTS_UPDATE: true
     CONNECTION_UPDATE: true
+    CALL: true
     # This event fires every time a new token is requested via the refresh route
     NEW_JWT_TOKEN: false
 

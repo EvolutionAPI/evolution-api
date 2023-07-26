@@ -1,44 +1,43 @@
-import { delay } from '@whiskeysockets/baileys';
-
 import { Auth, configService } from '../config/env.config';
-import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
-import { dbserver } from '../db/db.connect';
-import { RedisCache } from '../db/redis.client';
+import { eventEmitter } from '../config/event.config';
+import { MessageRepository } from './repository/message.repository';
+import { WAMonitoringService } from './services/monitor.service';
+import { ChatRepository } from './repository/chat.repository';
+import { ContactRepository } from './repository/contact.repository';
+import { MessageUpRepository } from './repository/messageUp.repository';
 import { ChatController } from './controllers/chat.controller';
-import { ChatwootController } from './controllers/chatwoot.controller';
-import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
-import { SettingsController } from './controllers/settings.controller';
-import { ViewsController } from './controllers/views.controller';
-import { WebhookController } from './controllers/webhook.controller';
-import {
-    AuthModel,
-    ChatModel,
-    ChatwootModel,
-    ContactModel,
-    MessageModel,
-    MessageUpModel,
-    SettingsModel,
-    WebhookModel,
-} from './models';
-import { AuthRepository } from './repository/auth.repository';
-import { ChatRepository } from './repository/chat.repository';
-import { ChatwootRepository } from './repository/chatwoot.repository';
-import { ContactRepository } from './repository/contact.repository';
-import { MessageRepository } from './repository/message.repository';
-import { MessageUpRepository } from './repository/messageUp.repository';
-import { RepositoryBroker } from './repository/repository.manager';
-import { SettingsRepository } from './repository/settings.repository';
-import { WebhookRepository } from './repository/webhook.repository';
 import { AuthService } from './services/auth.service';
-import { ChatwootService } from './services/chatwoot.service';
-import { WAMonitoringService } from './services/monitor.service';
-import { SettingsService } from './services/settings.service';
+import { GroupController } from './controllers/group.controller';
+import { ViewsController } from './controllers/views.controller';
 import { WebhookService } from './services/webhook.service';
+import { WebhookController } from './controllers/webhook.controller';
+import { ChatwootService } from './services/chatwoot.service';
+import { ChatwootController } from './controllers/chatwoot.controller';
+import { RepositoryBroker } from './repository/repository.manager';
+import {
+  AuthModel,
+  ChatModel,
+  ContactModel,
+  MessageModel,
+  MessageUpModel,
+  ChatwootModel,
+  WebhookModel,
+  SettingsModel,
+} from './models';
+import { dbserver } from '../db/db.connect';
+import { WebhookRepository } from './repository/webhook.repository';
+import { ChatwootRepository } from './repository/chatwoot.repository';
+import { AuthRepository } from './repository/auth.repository';
 import { WAStartupService } from './services/whatsapp.service';
+import { delay } from '@whiskeysockets/baileys';
 import { Events } from './types/wa.types';
+import { RedisCache } from '../db/redis.client';
+import { SettingsRepository } from './repository/settings.repository';
+import { SettingsService } from './services/settings.service';
+import { SettingsController } from './controllers/settings.controller';
 
 const logger = new Logger('WA MODULE');
 
@@ -52,21 +51,26 @@ const settingsRepository = new SettingsRepository(SettingsModel, configService);
 const authRepository = new AuthRepository(AuthModel, configService);
 
 export const repository = new RepositoryBroker(
-    messageRepository,
-    chatRepository,
-    contactRepository,
-    messageUpdateRepository,
-    webhookRepository,
-    chatwootRepository,
-    settingsRepository,
-    authRepository,
-    configService,
-    dbserver?.getClient(),
+  messageRepository,
+  chatRepository,
+  contactRepository,
+  messageUpdateRepository,
+  webhookRepository,
+  chatwootRepository,
+  settingsRepository,
+  authRepository,
+  configService,
+  dbserver?.getClient(),
 );
 
 export const cache = new RedisCache();
 
-export const waMonitor = new WAMonitoringService(eventEmitter, configService, repository, cache);
+export const waMonitor = new WAMonitoringService(
+  eventEmitter,
+  configService,
+  repository,
+  cache,
+);
 
 const authService = new AuthService(configService, waMonitor, repository);
 
@@ -83,14 +87,15 @@ const settingsService = new SettingsService(waMonitor);
 export const settingsController = new SettingsController(settingsService);
 
 export const instanceController = new InstanceController(
-    waMonitor,
-    configService,
-    repository,
-    eventEmitter,
-    authService,
-    webhookService,
-    chatwootService,
-    cache,
+  waMonitor,
+  configService,
+  repository,
+  eventEmitter,
+  authService,
+  webhookService,
+  chatwootService,
+  settingsService,
+  cache,
 );
 export const viewsController = new ViewsController(waMonitor, configService);
 export const sendMessageController = new SendMessageController(waMonitor);
