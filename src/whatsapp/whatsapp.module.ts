@@ -12,14 +12,14 @@ import { SettingsController } from './controllers/settings.controller';
 import { ViewsController } from './controllers/views.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import {
-    AuthModel,
-    ChatModel,
-    ChatwootModel,
-    ContactModel,
-    MessageModel,
-    MessageUpModel,
-    SettingsModel,
-    WebhookModel,
+  AuthModel,
+  ChatModel,
+  ChatwootModel,
+  ContactModel,
+  MessageModel,
+  MessageUpModel,
+  SettingsModel,
+  WebhookModel,
 } from './models';
 import { AuthRepository } from './repository/auth.repository';
 import { ChatRepository } from './repository/chat.repository';
@@ -48,16 +48,16 @@ const settingsRepository = new SettingsRepository(SettingsModel, configService);
 const authRepository = new AuthRepository(AuthModel, configService);
 
 export const repository = new RepositoryBroker(
-    messageRepository,
-    chatRepository,
-    contactRepository,
-    messageUpdateRepository,
-    webhookRepository,
-    chatwootRepository,
-    settingsRepository,
-    authRepository,
-    configService,
-    dbserver?.getClient(),
+  messageRepository,
+  chatRepository,
+  contactRepository,
+  messageUpdateRepository,
+  webhookRepository,
+  chatwootRepository,
+  settingsRepository,
+  authRepository,
+  configService,
+  dbserver?.getClient(),
 );
 
 export const cache = new RedisCache();
@@ -79,15 +79,15 @@ const settingsService = new SettingsService(waMonitor);
 export const settingsController = new SettingsController(settingsService);
 
 export const instanceController = new InstanceController(
-    waMonitor,
-    configService,
-    repository,
-    eventEmitter,
-    authService,
-    webhookService,
-    chatwootService,
-    settingsService,
-    cache,
+  waMonitor,
+  configService,
+  repository,
+  eventEmitter,
+  authService,
+  webhookService,
+  chatwootService,
+  settingsService,
+  cache,
 );
 export const viewsController = new ViewsController(waMonitor, configService);
 export const sendMessageController = new SendMessageController(waMonitor);

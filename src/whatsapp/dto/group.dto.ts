@@ -1,52 +1,52 @@
 export class CreateGroupDto {
-    subject: string;
-    participants: string[];
-    description?: string;
-    promoteParticipants?: boolean;
+  subject: string;
+  participants: string[];
+  description?: string;
+  promoteParticipants?: boolean;
 }
 
 export class GroupPictureDto {
-    groupJid: string;
-    image: string;
+  groupJid: string;
+  image: string;
 }
 
 export class GroupSubjectDto {
-    groupJid: string;
-    subject: string;
+  groupJid: string;
+  subject: string;
 }
 
 export class GroupDescriptionDto {
-    groupJid: string;
-    description: string;
+  groupJid: string;
+  description: string;
 }
 
 export class GroupJid {
-    groupJid: string;
+  groupJid: string;
 }
 
 export class GetParticipant {
-    getParticipants: string;
+  getParticipants: string;
 }
 
 export class GroupInvite {
-    inviteCode: string;
+  inviteCode: string;
 }
 
 export class GroupSendInvite {
-    groupJid: string;
-    description: string;
-    numbers: string[];
+  groupJid: string;
+  description: string;
+  numbers: string[];
 }
 
 export class GroupUpdateParticipantDto extends GroupJid {
-    action: 'add' | 'remove' | 'promote' | 'demote';
-    participants: string[];
+  action: 'add' | 'remove' | 'promote' | 'demote';
+  participants: string[];
 }
 
 export class GroupUpdateSettingDto extends GroupJid {
-    action: 'announcement' | 'not_announcement' | 'unlocked' | 'locked';
+  action: 'announcement' | 'not_announcement' | 'unlocked' | 'locked';
 }
 
 export class GroupToggleEphemeralDto extends GroupJid {
-    expiration: 0 | 86400 | 604800 | 7776000;
+  expiration: 0 | 86400 | 604800 | 7776000;
 }

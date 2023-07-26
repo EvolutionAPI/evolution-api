@@ -9,16 +9,16 @@ import { SettingsService } from '../services/settings.service';
 const logger = new Logger('SettingsController');
 
 export class SettingsController {
-    constructor(private readonly settingsService: SettingsService) {}
+  constructor(private readonly settingsService: SettingsService) {}
 
-    public async createSettings(instance: InstanceDto, data: SettingsDto) {
-        logger.verbose('requested createSettings from ' + instance.instanceName + ' instance');
+  public async createSettings(instance: InstanceDto, data: SettingsDto) {
+    logger.verbose('requested createSettings from ' + instance.instanceName + ' instance');
 
-        return this.settingsService.create(instance, data);
-    }
+    return this.settingsService.create(instance, data);
+  }
 
-    public async findSettings(instance: InstanceDto) {
-        logger.verbose('requested findSettings from ' + instance.instanceName + ' instance');
-        return this.settingsService.find(instance);
-    }
+  public async findSettings(instance: InstanceDto) {
+    logger.verbose('requested findSettings from ' + instance.instanceName + ' instance');
+    return this.settingsService.find(instance);
+  }
 }

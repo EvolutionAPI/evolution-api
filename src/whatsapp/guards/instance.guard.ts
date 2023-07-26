@@ -10,55 +10,55 @@ import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../whatsapp.module';
 
 async function getInstance(instanceName: string) {
-    const db = configService.get<Database>('DATABASE');
-    const redisConf = configService.get<Redis>('REDIS');
+  const db = configService.get<Database>('DATABASE');
+  const redisConf = configService.get<Redis>('REDIS');
 
-    const exists = !!waMonitor.waInstances[instanceName];
+  const exists = !!waMonitor.waInstances[instanceName];
 
-    if (redisConf.ENABLED) {
-        const keyExists = await cache.keyExists();
-        return exists || keyExists;
-    }
+  if (redisConf.ENABLED) {
+    const keyExists = await cache.keyExists();
+    return exists || keyExists;
+  }
 
-    if (db.ENABLED) {
-        const collection = dbserver
-            .getClient()
-            .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
-            .collection(instanceName);
-        return exists || (await collection.find({}).toArray()).length > 0;
-    }
+  if (db.ENABLED) {
+    const collection = dbserver
+      .getClient()
+      .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
+      .collection(instanceName);
+    return exists || (await collection.find({}).toArray()).length > 0;
+  }
 
-    return exists || existsSync(join(INSTANCE_DIR, instanceName));
+  return exists || existsSync(join(INSTANCE_DIR, instanceName));
 }
 
 export async function instanceExistsGuard(req: Request, _: Response, next: NextFunction) {
-    if (req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) {
-        return next();
-    }
+  if (req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) {
+    return next();
+  }
 
-    const param = req.params as unknown as InstanceDto;
-    if (!param?.instanceName) {
-        throw new BadRequestException('"instanceName" not provided.');
-    }
+  const param = req.params as unknown as InstanceDto;
+  if (!param?.instanceName) {
+    throw new BadRequestException('"instanceName" not provided.');
+  }
 
-    if (!(await getInstance(param.instanceName))) {
-        throw new NotFoundException(`The "${param.instanceName}" instance does not exist`);
-    }
+  if (!(await getInstance(param.instanceName))) {
+    throw new NotFoundException(`The "${param.instanceName}" instance does not exist`);
+  }
 
-    next();
+  next();
 }
 
 export async function instanceLoggedGuard(req: Request, _: Response, next: NextFunction) {
-    if (req.originalUrl.includes('/instance/create')) {
-        const instance = req.body as InstanceDto;
-        if (await getInstance(instance.instanceName)) {
-            throw new ForbiddenException(`This name "${instance.instanceName}" is already in use.`);
-        }
-
-        if (waMonitor.waInstances[instance.instanceName]) {
-            delete waMonitor.waInstances[instance.instanceName];
-        }
+  if (req.originalUrl.includes('/instance/create')) {
+    const instance = req.body as InstanceDto;
+    if (await getInstance(instance.instanceName)) {
+      throw new ForbiddenException(`This name "${instance.instanceName}" is already in use.`);
     }
 
-    next();
+    if (waMonitor.waInstances[instance.instanceName]) {
+      delete waMonitor.waInstances[instance.instanceName];
+    }
+  }
+
+  next();
 }
