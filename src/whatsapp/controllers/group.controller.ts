@@ -1,3 +1,4 @@
+import { Logger } from '../../config/logger.config';
 import {
   CreateGroupDto,
   GetParticipant,
@@ -13,7 +14,6 @@ import {
 } from '../dto/group.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { WAMonitoringService } from '../services/monitor.service';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('ChatController');
 
@@ -26,33 +26,18 @@ export class GroupController {
   }
 
   public async updateGroupPicture(instance: InstanceDto, update: GroupPictureDto) {
-    logger.verbose(
-      'requested updateGroupPicture from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].updateGroupPicture(
-      update,
-    );
+    logger.verbose('requested updateGroupPicture from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].updateGroupPicture(update);
   }
 
   public async updateGroupSubject(instance: InstanceDto, update: GroupSubjectDto) {
-    logger.verbose(
-      'requested updateGroupSubject from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].updateGroupSubject(
-      update,
-    );
+    logger.verbose('requested updateGroupSubject from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].updateGroupSubject(update);
   }
 
-  public async updateGroupDescription(
-    instance: InstanceDto,
-    update: GroupDescriptionDto,
-  ) {
-    logger.verbose(
-      'requested updateGroupDescription from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].updateGroupDescription(
-      update,
-    );
+  public async updateGroupDescription(instance: InstanceDto, update: GroupDescriptionDto) {
+    logger.verbose('requested updateGroupDescription from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].updateGroupDescription(update);
   }
 
   public async findGroupInfo(instance: InstanceDto, groupJid: GroupJid) {
@@ -61,12 +46,8 @@ export class GroupController {
   }
 
   public async fetchAllGroups(instance: InstanceDto, getPaticipants: GetParticipant) {
-    logger.verbose(
-      'requested fetchAllGroups from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].fetchAllGroups(
-      getPaticipants,
-    );
+    logger.verbose('requested fetchAllGroups from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].fetchAllGroups(getPaticipants);
   }
 
   public async inviteCode(instance: InstanceDto, groupJid: GroupJid) {
@@ -85,49 +66,28 @@ export class GroupController {
   }
 
   public async revokeInviteCode(instance: InstanceDto, groupJid: GroupJid) {
-    logger.verbose(
-      'requested revokeInviteCode from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].revokeInviteCode(
-      groupJid,
-    );
+    logger.verbose('requested revokeInviteCode from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].revokeInviteCode(groupJid);
   }
 
   public async findParticipants(instance: InstanceDto, groupJid: GroupJid) {
-    logger.verbose(
-      'requested findParticipants from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].findParticipants(
-      groupJid,
-    );
+    logger.verbose('requested findParticipants from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].findParticipants(groupJid);
   }
 
-  public async updateGParticipate(
-    instance: InstanceDto,
-    update: GroupUpdateParticipantDto,
-  ) {
-    logger.verbose(
-      'requested updateGParticipate from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].updateGParticipant(
-      update,
-    );
+  public async updateGParticipate(instance: InstanceDto, update: GroupUpdateParticipantDto) {
+    logger.verbose('requested updateGParticipate from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].updateGParticipant(update);
   }
 
   public async updateGSetting(instance: InstanceDto, update: GroupUpdateSettingDto) {
-    logger.verbose(
-      'requested updateGSetting from ' + instance.instanceName + ' instance',
-    );
+    logger.verbose('requested updateGSetting from ' + instance.instanceName + ' instance');
     return await this.waMonitor.waInstances[instance.instanceName].updateGSetting(update);
   }
 
   public async toggleEphemeral(instance: InstanceDto, update: GroupToggleEphemeralDto) {
-    logger.verbose(
-      'requested toggleEphemeral from ' + instance.instanceName + ' instance',
-    );
-    return await this.waMonitor.waInstances[instance.instanceName].toggleEphemeral(
-      update,
-    );
+    logger.verbose('requested toggleEphemeral from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].toggleEphemeral(update);
   }
 
   public async leaveGroup(instance: InstanceDto, groupJid: GroupJid) {

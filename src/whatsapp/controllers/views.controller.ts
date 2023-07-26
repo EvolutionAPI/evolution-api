@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+
 import { Auth, ConfigService } from '../../config/env.config';
 import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
@@ -6,10 +7,7 @@ import { HttpStatus } from '../routers/index.router';
 import { WAMonitoringService } from '../services/monitor.service';
 
 export class ViewsController {
-  constructor(
-    private readonly waMonit: WAMonitoringService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly waMonit: WAMonitoringService, private readonly configService: ConfigService) {}
 
   public async qrcode(request: Request, response: Response) {
     try {

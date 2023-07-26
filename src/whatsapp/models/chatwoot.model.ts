@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+
 import { dbserver } from '../../db/db.connect';
 
 export class ChatwootRaw {
@@ -25,9 +26,5 @@ const chatwootSchema = new Schema<ChatwootRaw>({
   number: { type: String, required: true },
 });
 
-export const ChatwootModel = dbserver?.model(
-  ChatwootRaw.name,
-  chatwootSchema,
-  'chatwoot',
-);
+export const ChatwootModel = dbserver?.model(ChatwootRaw.name, chatwootSchema, 'chatwoot');
 export type IChatwootModel = typeof ChatwootModel;

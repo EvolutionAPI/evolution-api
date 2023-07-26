@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+
 import { dbserver } from '../../db/db.connect';
 
 export class SettingsRaw {
@@ -21,9 +22,5 @@ const settingsSchema = new Schema<SettingsRaw>({
   read_status: { type: Boolean, required: true },
 });
 
-export const SettingsModel = dbserver?.model(
-  SettingsRaw.name,
-  settingsSchema,
-  'settings',
-);
+export const SettingsModel = dbserver?.model(SettingsRaw.name, settingsSchema, 'settings');
 export type ISettingsModel = typeof SettingsModel;

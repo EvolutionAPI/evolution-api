@@ -22,12 +22,13 @@ docker-compose.yaml
 /yarn.lock
 /package-lock.json
 
-# IDE - VSCode
+# IDEs
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.nova/*
 
 # Prisma
 /prisma/migrations
@@ -40,3 +41,6 @@ docker-compose.yaml
 /store
 
 /temp/*
+
+.DS_Store
+*.DS_Store

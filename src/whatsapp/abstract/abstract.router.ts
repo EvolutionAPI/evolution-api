@@ -1,11 +1,13 @@
-import { InstanceDto } from '../dto/instance.dto';
-import { JSONSchema7 } from 'json-schema';
-import { Request } from 'express';
-import { validate } from 'jsonschema';
-import { BadRequestException } from '../../exceptions';
 import 'express-async-errors';
+
+import { Request } from 'express';
+import { JSONSchema7 } from 'json-schema';
+import { validate } from 'jsonschema';
+
 import { Logger } from '../../config/logger.config';
+import { BadRequestException } from '../../exceptions';
 import { GetParticipant, GroupInvite, GroupJid } from '../dto/group.dto';
+import { InstanceDto } from '../dto/instance.dto';
 
 type DataValidate<T> = {
   request: Request;
@@ -102,10 +104,7 @@ export abstract class RouterBroker {
     const groupJid = request.query as unknown as GroupJid;
 
     if (!groupJid?.groupJid) {
-      throw new BadRequestException(
-        'The group id needs to be informed in the query',
-        'ex: "groupJid=120362@g.us"',
-      );
+      throw new BadRequestException('The group id needs to be informed in the query', 'ex: "groupJid=120362@g.us"');
     }
 
     const instance = request.params as unknown as InstanceDto;
@@ -186,9 +185,7 @@ export abstract class RouterBroker {
     const getParticipants = request.query as unknown as GetParticipant;
 
     if (!getParticipants?.getParticipants) {
-      throw new BadRequestException(
-        'The getParticipants needs to be informed in the query',
-      );
+      throw new BadRequestException('The getParticipants needs to be informed in the query');
     }
 
     const instance = request.params as unknown as InstanceDto;

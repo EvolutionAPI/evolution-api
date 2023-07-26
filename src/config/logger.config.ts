@@ -1,5 +1,6 @@
-import { configService, Log } from './env.config';
 import dayjs from 'dayjs';
+
+import { configService, Log } from './env.config';
 
 const formatDateLog = (timestamp: number) =>
   dayjs(timestamp)

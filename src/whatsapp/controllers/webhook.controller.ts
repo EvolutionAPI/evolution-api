@@ -1,9 +1,10 @@
 import { isURL } from 'class-validator';
+
+import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { WebhookDto } from '../dto/webhook.dto';
 import { WebhookService } from '../services/webhook.service';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('WebhookController');
 

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+
 import { configService, Database } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 

@@ -1,14 +1,15 @@
-import { Auth, ConfigService, Webhook } from '../../config/env.config';
-import { InstanceDto } from '../dto/instance.dto';
-import { name as apiName } from '../../../package.json';
-import { verify, sign } from 'jsonwebtoken';
-import { Logger } from '../../config/logger.config';
-import { v4 } from 'uuid';
-import { isJWT } from 'class-validator';
-import { BadRequestException } from '../../exceptions';
 import axios from 'axios';
-import { WAMonitoringService } from './monitor.service';
+import { isJWT } from 'class-validator';
+import { sign, verify } from 'jsonwebtoken';
+import { v4 } from 'uuid';
+
+import { name as apiName } from '../../../package.json';
+import { Auth, ConfigService, Webhook } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { BadRequestException } from '../../exceptions';
+import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { WAMonitoringService } from './monitor.service';
 
 export type JwtPayload = {
   instanceName: string;
@@ -63,9 +64,7 @@ export class AuthService {
   private async apikey(instance: InstanceDto, token?: string) {
     const apikey = token ? token : v4().toUpperCase();
 
-    this.logger.verbose(
-      token ? 'APIKEY defined: ' + apikey : 'APIKEY created: ' + apikey,
-    );
+    this.logger.verbose(token ? 'APIKEY defined: ' + apikey : 'APIKEY created: ' + apikey);
 
     const auth = await this.repository.auth.create({ apikey }, instance.instanceName);
 
@@ -101,13 +100,9 @@ export class AuthService {
   public async generateHash(instance: InstanceDto, token?: string) {
     const options = this.configService.get<Auth>('AUTHENTICATION');
 
-    this.logger.verbose(
-      'generating hash ' + options.TYPE + ' to instance: ' + instance.instanceName,
-    );
+    this.logger.verbose('generating hash ' + options.TYPE + ' to instance: ' + instance.instanceName);
 
-    return (await this[options.TYPE](instance, token)) as
-      | { jwt: string }
-      | { apikey: string };
+    return (await this[options.TYPE](instance, token)) as { jwt: string } | { apikey: string };
   }
 
   public async refreshToken({ oldToken }: OldToken) {
@@ -150,10 +145,7 @@ export class AuthService {
       try {
         this.logger.verbose('checking webhook');
         const webhook = await this.repository.webhook.find(decode.instanceName);
-        if (
-          webhook?.enabled &&
-          this.configService.get<Webhook>('WEBHOOK').EVENTS.NEW_JWT_TOKEN
-        ) {
+        if (webhook?.enabled && this.configService.get<Webhook>('WEBHOOK').EVENTS.NEW_JWT_TOKEN) {
           this.logger.verbose('sending webhook');
 
           const httpService = axios.create({ baseURL: webhook.url });

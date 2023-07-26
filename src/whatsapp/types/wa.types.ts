@@ -76,23 +76,10 @@ export declare namespace wa {
     statusReason?: number;
   };
 
-  export type StatusMessage =
-    | 'ERROR'
-    | 'PENDING'
-    | 'SERVER_ACK'
-    | 'DELIVERY_ACK'
-    | 'READ'
-    | 'DELETED'
-    | 'PLAYED';
+  export type StatusMessage = 'ERROR' | 'PENDING' | 'SERVER_ACK' | 'DELIVERY_ACK' | 'READ' | 'DELETED' | 'PLAYED';
 }
 
-export const TypeMediaMessage = [
-  'imageMessage',
-  'documentMessage',
-  'audioMessage',
-  'videoMessage',
-  'stickerMessage',
-];
+export const TypeMediaMessage = ['imageMessage', 'documentMessage', 'audioMessage', 'videoMessage', 'stickerMessage'];
 
 export const MessageSubtype = [
   'ephemeralMessage',
