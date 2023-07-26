@@ -12,6 +12,7 @@ export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   public async createSettings(instance: InstanceDto, data: SettingsDto) {
+
     logger.verbose('requested createSettings from ' + instance.instanceName + ' instance');
 
     return this.settingsService.create(instance, data);

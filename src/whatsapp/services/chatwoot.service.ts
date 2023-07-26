@@ -3,7 +3,6 @@ import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import mimeTypes from 'mime-types';
-// import { type } from 'os';
 import path from 'path';
 
 import { ConfigService, HttpServer } from '../../config/env.config';
