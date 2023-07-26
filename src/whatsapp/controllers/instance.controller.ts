@@ -55,19 +55,12 @@ export class InstanceController {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
 
-      if (instanceName !== instanceName.toLowerCase().replace(/[^a-z0-9]/g, '')) {
-        throw new BadRequestException('The instance name must be lowercase and without special characters');
-      }
-
       this.logger.verbose('checking duplicate token');
       await this.authService.checkDuplicateToken(token);
 
       this.logger.verbose('creating instance');
       const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
-      instance.instanceName = instanceName
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
-        .replace(' ', '');
+      instance.instanceName = instanceName;
 
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
 
