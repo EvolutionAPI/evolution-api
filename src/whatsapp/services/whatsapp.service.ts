@@ -695,7 +695,7 @@ export class WAStartupService {
         this.logger.verbose('Sending data to webhook in event STATUS_INSTANCE');
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
-          status: 'removed',
+          status: 'closed',
         });
 
         if (this.localChatwoot.enabled) {
@@ -704,7 +704,7 @@ export class WAStartupService {
             { instanceName: this.instance.name },
             {
               instance: this.instance.name,
-              status: 'removed',
+              status: 'closed',
             },
           );
         }

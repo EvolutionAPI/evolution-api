@@ -507,6 +507,16 @@ export class ChatwootService {
         let conversation: any;
         if (this.provider.reopen_conversation) {
           conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
+
+          if (this.provider.conversation_pending) {
+            await client.conversations.toggleStatus({
+              accountId: this.provider.account_id,
+              conversationId: conversation.id,
+              data: {
+                status: 'pending',
+              },
+            });
+          }
         } else {
           conversation = contactConversations.payload.find(
             (conversation) => conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
