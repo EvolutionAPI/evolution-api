@@ -2,7 +2,6 @@ import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
 import { opendirSync, readdirSync, rmSync } from 'fs';
 import { Db } from 'mongodb';
-import mongoose from 'mongoose';
 import { join } from 'path';
 
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';

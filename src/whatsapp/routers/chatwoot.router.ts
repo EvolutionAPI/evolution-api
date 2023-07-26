@@ -5,7 +5,7 @@ import { chatwootSchema, instanceNameSchema } from '../../validate/validate.sche
 import { RouterBroker } from '../abstract/abstract.router';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
-import { ChatwootService } from '../services/chatwoot.service';
+// import { ChatwootService } from '../services/chatwoot.service';
 import { chatwootController } from '../whatsapp.module';
 import { HttpStatus } from './index.router';
 
