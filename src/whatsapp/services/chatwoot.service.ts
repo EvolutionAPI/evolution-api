@@ -240,7 +240,6 @@ export class ChatwootService {
         data['status'] = 'pending';
       }
 
-      console.log('this.provider', this.provider);
       const conversation = await client.conversations.create({
         accountId: this.provider.account_id,
         data,
@@ -1209,11 +1208,8 @@ export class ChatwootService {
       audioMessage: msg.audioMessage?.caption,
       contactMessage: msg.contactMessage?.vcard,
       contactsArrayMessage: msg.contactsArrayMessage,
-      locationMessage: msg.locationMessage
-        ? msg.locationMessage?.degreesLatitude +
-          ',' +
-          msg.locationMessage?.degreesLongitude
-        : undefined,
+      locationMessage: msg.locationMessage,
+      liveLocationMessage: msg.liveLocationMessage,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1227,8 +1223,9 @@ export class ChatwootService {
 
     const result = typeKey ? types[typeKey] : undefined;
 
-    if (typeKey === 'locationMessage') {
-      const [latitude, longitude] = result.split(',');
+    if (typeKey === 'locationMessage' || typeKey === 'liveLocationMessage') {
+      const latitude = result.degreesLatitude;
+      const longitude = result.degreesLongitude;
 
       const formattedLocation = `**Location:**
         **latitude:** ${latitude}
