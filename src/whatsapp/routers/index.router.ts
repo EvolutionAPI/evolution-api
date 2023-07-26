@@ -49,4 +49,4 @@ router
   .use('/chatwoot', new ChatwootRouter(...guards).router)
   .use('/settings', new SettingsRouter(...guards).router);
 
-export { router, HttpStatus };
+export { HttpStatus, router };
