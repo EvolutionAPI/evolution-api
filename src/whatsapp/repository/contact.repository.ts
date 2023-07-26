@@ -1,29 +1,23 @@
 import { opendirSync, readFileSync } from 'fs';
 import { join } from 'path';
+
 import { ConfigService, StoreConf } from '../../config/env.config';
-import { ContactRaw, IContactModel } from '../models';
-import { IInsert, Repository } from '../abstract/abstract.repository';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { ContactRaw, IContactModel } from '../models';
 
 export class ContactQuery {
   where: ContactRaw;
 }
 
 export class ContactRepository extends Repository {
-  constructor(
-    private readonly contactModel: IContactModel,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly contactModel: IContactModel, private readonly configService: ConfigService) {
     super(configService);
   }
 
   private readonly logger = new Logger('ContactRepository');
 
-  public async insert(
-    data: ContactRaw[],
-    instanceName: string,
-    saveDb = false,
-  ): Promise<IInsert> {
+  public async insert(data: ContactRaw[], instanceName: string, saveDb = false): Promise<IInsert> {
     this.logger.verbose('inserting contacts');
 
     if (data.length === 0) {
@@ -54,10 +48,7 @@ export class ContactRepository extends Repository {
             data: contact,
           });
           this.logger.verbose(
-            'contacts saved to store in path: ' +
-              join(this.storePath, 'contacts', instanceName) +
-              '/' +
-              contact.id,
+            'contacts saved to store in path: ' + join(this.storePath, 'contacts', instanceName) + '/' + contact.id,
           );
         });
 
@@ -74,11 +65,7 @@ export class ContactRepository extends Repository {
     }
   }
 
-  public async update(
-    data: ContactRaw[],
-    instanceName: string,
-    saveDb = false,
-  ): Promise<IInsert> {
+  public async update(data: ContactRaw[], instanceName: string, saveDb = false): Promise<IInsert> {
     try {
       this.logger.verbose('updating contacts');
 
@@ -119,10 +106,7 @@ export class ContactRepository extends Repository {
             data: contact,
           });
           this.logger.verbose(
-            'contacts updated in store in path: ' +
-              join(this.storePath, 'contacts', instanceName) +
-              '/' +
-              contact.id,
+            'contacts updated in store in path: ' + join(this.storePath, 'contacts', instanceName) + '/' + contact.id,
           );
         });
 
@@ -154,15 +138,9 @@ export class ContactRepository extends Repository {
         this.logger.verbose('finding contacts in store by id');
         contacts.push(
           JSON.parse(
-            readFileSync(
-              join(
-                this.storePath,
-                'contacts',
-                query.where.owner,
-                query.where.id + '.json',
-              ),
-              { encoding: 'utf-8' },
-            ),
+            readFileSync(join(this.storePath, 'contacts', query.where.owner, query.where.id + '.json'), {
+              encoding: 'utf-8',
+            }),
           ),
         );
       } else {
@@ -175,10 +153,9 @@ export class ContactRepository extends Repository {
           if (dirent.isFile()) {
             contacts.push(
               JSON.parse(
-                readFileSync(
-                  join(this.storePath, 'contacts', query.where.owner, dirent.name),
-                  { encoding: 'utf-8' },
-                ),
+                readFileSync(join(this.storePath, 'contacts', query.where.owner, dirent.name), {
+                  encoding: 'utf-8',
+                }),
               ),
             );
           }

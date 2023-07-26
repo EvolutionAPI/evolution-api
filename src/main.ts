@@ -1,16 +1,18 @@
+import 'express-async-errors';
+
+// import * as Sentry from '@sentry/node';
 import compression from 'compression';
-import { configService, Cors, HttpServer } from './config/env.config';
 import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
+
+import { configService, Cors, HttpServer } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
-import { waMonitor } from './whatsapp/whatsapp.module';
-import { HttpStatus, router } from './whatsapp/routers/index.router';
-import 'express-async-errors';
 import { ServerUP } from './utils/server-up';
-import * as Sentry from '@sentry/node';
+import { HttpStatus, router } from './whatsapp/routers/index.router';
+import { waMonitor } from './whatsapp/whatsapp.module';
 
 function initWA() {
   waMonitor.loadInstance();
@@ -73,7 +75,7 @@ function bootstrap() {
   // });
 
   app.use(
-    (err: Error, req: Request, res: Response, next: NextFunction) => {
+    (err: Error, req: Request, res: Response) => {
       if (err) {
         return res.status(err['status'] || 500).json(err);
       }
@@ -96,9 +98,7 @@ function bootstrap() {
   ServerUP.app = app;
   const server = ServerUP[httpServer.TYPE];
 
-  server.listen(httpServer.PORT, () =>
-    logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT),
-  );
+  server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
   initWA();
 

@@ -1,15 +1,13 @@
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ConfigService } from '../../config/env.config';
-import { join } from 'path';
 import { readFileSync } from 'fs';
-import { IWebhookModel, WebhookRaw } from '../models';
+import { join } from 'path';
+
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { IWebhookModel, WebhookRaw } from '../models';
 
 export class WebhookRepository extends Repository {
-  constructor(
-    private readonly webhookModel: IWebhookModel,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly webhookModel: IWebhookModel, private readonly configService: ConfigService) {
     super(configService);
   }
 
@@ -20,11 +18,7 @@ export class WebhookRepository extends Repository {
       this.logger.verbose('creating webhook');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('saving webhook to db');
-        const insert = await this.webhookModel.replaceOne(
-          { _id: instance },
-          { ...data },
-          { upsert: true },
-        );
+        const insert = await this.webhookModel.replaceOne({ _id: instance }, { ...data }, { upsert: true });
 
         this.logger.verbose('webhook saved to db: ' + insert.modifiedCount + ' webhook');
         return { insertCount: insert.modifiedCount };
@@ -38,12 +32,7 @@ export class WebhookRepository extends Repository {
         data,
       });
 
-      this.logger.verbose(
-        'webhook saved to store in path: ' +
-          join(this.storePath, 'webhook') +
-          '/' +
-          instance,
-      );
+      this.logger.verbose('webhook saved to store in path: ' + join(this.storePath, 'webhook') + '/' + instance);
 
       this.logger.verbose('webhook created');
       return { insertCount: 1 };

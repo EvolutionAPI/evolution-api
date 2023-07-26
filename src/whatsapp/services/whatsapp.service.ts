@@ -1,9 +1,10 @@
+import ffmpegPath from '@ffmpeg-installer/ffmpeg';
+import { Boom } from '@hapi/boom';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
   BufferJSON,
   CacheStore,
-  makeCacheableSignalKeyStore,
   Chat,
   ConnectionState,
   Contact,
@@ -12,11 +13,13 @@ import makeWASocket, {
   downloadMediaMessage,
   fetchLatestBaileysVersion,
   generateWAMessageFromContent,
+  getAggregateVotesInPollMessage,
   getContentType,
   getDevice,
   GroupMetadata,
   isJidGroup,
   isJidUser,
+  makeCacheableSignalKeyStore,
   MessageUpsertType,
   MiscMessageGenerationOptions,
   ParticipantAction,
@@ -29,8 +32,23 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
-  getAggregateVotesInPollMessage,
 } from '@whiskeysockets/baileys';
+import axios from 'axios';
+import { exec, execSync } from 'child_process';
+import { arrayUnique, isBase64, isURL } from 'class-validator';
+import EventEmitter2 from 'eventemitter2';
+import fs, { existsSync, readFileSync } from 'fs';
+import Long from 'long';
+import NodeCache from 'node-cache';
+import { getMIMEType } from 'node-mime-types';
+import { release } from 'os';
+import { join } from 'path';
+import P from 'pino';
+import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
+import qrcodeTerminal from 'qrcode-terminal';
+import sharp from 'sharp';
+import { v4 } from 'uuid';
+
 import {
   Auth,
   CleanStoreConf,
@@ -38,31 +56,41 @@ import {
   ConfigSessionPhone,
   Database,
   HttpServer,
+  Log,
   QrCode,
   Redis,
   Webhook,
 } from '../../config/env.config';
-import fs from 'fs';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
-import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
-import axios from 'axios';
-import { v4 } from 'uuid';
-import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
-import qrcodeTerminal from 'qrcode-terminal';
-import { Events, TypeMediaMessage, wa, MessageSubtype } from '../types/wa.types';
-import { Boom } from '@hapi/boom';
-import EventEmitter2 from 'eventemitter2';
-import { release } from 'os';
-import P from 'pino';
-import { execSync, exec } from 'child_process';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
-import { ContactRaw } from '../models/contact.model';
-import { ChatRaw } from '../models/chat.model';
-import { getMIMEType } from 'node-mime-types';
+import { dbserver } from '../../db/db.connect';
+import { RedisCache } from '../../db/redis.client';
+import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
+import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
+import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
+import {
+  ArchiveChatDto,
+  DeleteMessage,
+  getBase64FromMediaMessageDto,
+  NumberBusiness,
+  OnWhatsAppDto,
+  PrivacySettingDto,
+  ReadMessageDto,
+  WhatsAppNumberDto,
+} from '../dto/chat.dto';
+import {
+  CreateGroupDto,
+  GetParticipant,
+  GroupDescriptionDto,
+  GroupInvite,
+  GroupJid,
+  GroupPictureDto,
+  GroupSendInvite,
+  GroupSubjectDto,
+  GroupToggleEphemeralDto,
+  GroupUpdateParticipantDto,
+  GroupUpdateSettingDto,
+} from '../dto/group.dto';
 import {
   ContactMessage,
   MediaMessage,
@@ -73,58 +101,26 @@ import {
   SendListDto,
   SendLocationDto,
   SendMediaDto,
-  SendReactionDto,
-  SendTextDto,
   SendPollDto,
-  SendStickerDto,
+  SendReactionDto,
   SendStatusDto,
+  SendStickerDto,
+  SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { arrayUnique, isBase64, isURL } from 'class-validator';
-import {
-  ArchiveChatDto,
-  DeleteMessage,
-  NumberBusiness,
-  OnWhatsAppDto,
-  PrivacySettingDto,
-  ReadMessageDto,
-  WhatsAppNumberDto,
-  getBase64FromMediaMessageDto,
-} from '../dto/chat.dto';
-import { MessageQuery } from '../repository/message.repository';
-import { ContactQuery } from '../repository/contact.repository';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '../../exceptions';
-import {
-  CreateGroupDto,
-  GroupInvite,
-  GroupJid,
-  GroupPictureDto,
-  GroupUpdateParticipantDto,
-  GroupUpdateSettingDto,
-  GroupToggleEphemeralDto,
-  GroupSubjectDto,
-  GroupDescriptionDto,
-  GroupSendInvite,
-  GetParticipant,
-} from '../dto/group.dto';
-import { MessageUpQuery } from '../repository/messageUp.repository';
-import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
-import Long from 'long';
-import { WebhookRaw } from '../models/webhook.model';
-import { ChatwootRaw } from '../models/chatwoot.model';
 import { SettingsRaw } from '../models';
-import { dbserver } from '../../db/db.connect';
-import NodeCache from 'node-cache';
-import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
-import sharp from 'sharp';
-import { RedisCache } from '../../db/redis.client';
-import { Log } from '../../config/env.config';
-import { ChatwootService } from './chatwoot.service';
+import { ChatRaw } from '../models/chat.model';
+import { ChatwootRaw } from '../models/chatwoot.model';
+import { ContactRaw } from '../models/contact.model';
+import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
+import { WebhookRaw } from '../models/webhook.model';
+import { ContactQuery } from '../repository/contact.repository';
+import { MessageQuery } from '../repository/message.repository';
+import { MessageUpQuery } from '../repository/messageUp.repository';
+import { RepositoryBroker } from '../repository/repository.manager';
+import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
+import { ChatwootService } from './chatwoot.service';
 
 export class WAStartupService {
   constructor(
@@ -201,10 +197,7 @@ export class WAStartupService {
         this.logger.verbose('Database enabled, trying to get from database');
         const collection = dbserver
           .getClient()
-          .db(
-            this.configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_NAME +
-              '-instances',
-          )
+          .db(this.configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_NAME + '-instances')
           .collection(this.instanceName);
         const data = await collection.findOne({ _id: 'creds' });
         if (data) {
@@ -316,14 +309,10 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot number: ${this.localChatwoot.number}`);
 
     this.localChatwoot.reopen_conversation = data?.reopen_conversation;
-    this.logger.verbose(
-      `Chatwoot reopen conversation: ${this.localChatwoot.reopen_conversation}`,
-    );
+    this.logger.verbose(`Chatwoot reopen conversation: ${this.localChatwoot.reopen_conversation}`);
 
     this.localChatwoot.conversation_pending = data?.conversation_pending;
-    this.logger.verbose(
-      `Chatwoot conversation pending: ${this.localChatwoot.conversation_pending}`,
-    );
+    this.logger.verbose(`Chatwoot conversation pending: ${this.localChatwoot.conversation_pending}`);
 
     this.logger.verbose('Chatwoot loaded');
   }
@@ -424,11 +413,10 @@ export class WAStartupService {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
-    const we = event.replace(/[\.-]/gm, '_').toUpperCase();
+    const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
 
-    const expose =
-      this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
+    const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
 
@@ -437,7 +425,7 @@ export class WAStartupService {
     if (local) {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         this.logger.verbose('Sending data to webhook local');
-        let baseURL;
+        let baseURL: string;
 
         if (this.localWebhook.webhook_by_events) {
           baseURL = `${this.localWebhook.url}/${transformedWe}`;
@@ -566,11 +554,7 @@ export class WAStartupService {
     }
   }
 
-  private async connectionUpdate({
-    qr,
-    connection,
-    lastDisconnect,
-  }: Partial<ConnectionState>) {
+  private async connectionUpdate({ qr, connection, lastDisconnect }: Partial<ConnectionState>) {
     this.logger.verbose('Connection update');
     if (qr) {
       this.logger.verbose('QR code found');
@@ -637,9 +621,7 @@ export class WAStartupService {
 
       if (this.phoneNumber) {
         await delay(2000);
-        this.instance.qrcode.pairingCode = await this.client.requestPairingCode(
-          this.phoneNumber,
-        );
+        this.instance.qrcode.pairingCode = await this.client.requestPairingCode(this.phoneNumber);
       } else {
         this.instance.qrcode.pairingCode = null;
       }
@@ -704,8 +686,7 @@ export class WAStartupService {
 
     if (connection === 'close') {
       this.logger.verbose('Connection closed');
-      const shouldReconnect =
-        (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+      const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
       if (shouldReconnect) {
         this.logger.verbose('Reconnecting to whatsapp');
         await this.connectToWhatsapp();
@@ -714,7 +695,7 @@ export class WAStartupService {
         this.logger.verbose('Sending data to webhook in event STATUS_INSTANCE');
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
-          status: 'removed',
+          status: 'closed',
         });
 
         if (this.localChatwoot.enabled) {
@@ -723,7 +704,7 @@ export class WAStartupService {
             { instanceName: this.instance.name },
             {
               instance: this.instance.name,
-              status: 'removed',
+              status: 'closed',
             },
           );
         }
@@ -739,9 +720,7 @@ export class WAStartupService {
     if (connection === 'open') {
       this.logger.verbose('Connection opened');
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
-      this.instance.profilePictureUrl = (
-        await this.profilePicture(this.instance.wuid)
-      ).profilePictureUrl;
+      this.instance.profilePictureUrl = (await this.profilePicture(this.instance.wuid)).profilePictureUrl;
       this.logger.info(
         `
         ┌──────────────────────────────┐
@@ -774,8 +753,7 @@ export class WAStartupService {
       }
       if (webMessageInfo[0].message?.pollCreationMessage) {
         this.logger.verbose('Returning poll message');
-        const messageSecretBase64 =
-          webMessageInfo[0].message?.messageContextInfo?.messageSecret;
+        const messageSecretBase64 = webMessageInfo[0].message?.messageContextInfo?.messageSecret;
 
         if (typeof messageSecretBase64 === 'string') {
           const messageSecret = Buffer.from(messageSecretBase64, 'base64');
@@ -809,22 +787,16 @@ export class WAStartupService {
           for (const [key, value] of Object.entries(cleanStore)) {
             if (value === true) {
               execSync(
-                `rm -rf ${join(
-                  this.storePath,
-                  key.toLowerCase().replace('_', '-'),
-                  this.instance.name,
-                )}/*.json`,
+                `rm -rf ${join(this.storePath, key.toLowerCase().replace('_', '-'), this.instance.name)}/*.json`,
               );
               this.logger.verbose(
-                `Cleaned ${join(
-                  this.storePath,
-                  key.toLowerCase().replace('_', '-'),
-                  this.instance.name,
-                )}/*.json`,
+                `Cleaned ${join(this.storePath, key.toLowerCase().replace('_', '-'), this.instance.name)}/*.json`,
               );
             }
           }
-        } catch (error) {}
+        } catch (error) {
+          this.logger.error(error);
+        }
       }, (cleanStore?.CLEANING_INTERVAL ?? 3600) * 1000);
     }
   }
@@ -867,10 +839,7 @@ export class WAStartupService {
       const socketConfig: UserFacingSocketConfig = {
         auth: {
           creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(
-            this.instance.authState.state.keys,
-            P({ level: 'error' }),
-          ),
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
@@ -882,18 +851,13 @@ export class WAStartupService {
         defaultQueryTimeoutMs: undefined,
         emitOwnEvents: false,
         msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: async (key) =>
-          (await this.getMessage(key)) as Promise<proto.IMessage>,
+        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
         generateHighQualityLinkPreview: true,
         syncFullHistory: true,
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 1, delayBetweenTriesMs: 10 },
         patchMessageBeforeSending: (message) => {
-          const requiresPatch = !!(
-            message.buttonsMessage ||
-            message.listMessage ||
-            message.templateMessage
-          );
+          const requiresPatch = !!(message.buttonsMessage || message.listMessage || message.templateMessage);
           if (requiresPatch) {
             message = {
               viewOnceMessageV2: {
@@ -956,11 +920,7 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
 
       this.logger.verbose('Inserting chats in database');
-      await this.repository.chat.insert(
-        chatsRaw,
-        this.instance.name,
-        database.SAVE_DATA.CHATS,
-      );
+      await this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
     },
 
     'chats.update': async (
@@ -1025,11 +985,7 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
       this.logger.verbose('Inserting contacts in database');
-      await this.repository.contact.insert(
-        contactsRaw,
-        this.instance.name,
-        database.SAVE_DATA.CONTACTS,
-      );
+      await this.repository.contact.insert(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
     },
 
     'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
@@ -1050,11 +1006,7 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
       this.logger.verbose('Updating contacts in database');
-      await this.repository.contact.update(
-        contactsRaw,
-        this.instance.name,
-        database.SAVE_DATA.CONTACTS,
-      );
+      await this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
     },
   };
 
@@ -1087,11 +1039,7 @@ export class WAStartupService {
         await this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         this.logger.verbose('Inserting chats in database');
-        await this.repository.chat.insert(
-          chatsRaw,
-          this.instance.name,
-          database.SAVE_DATA.CHATS,
-        );
+        await this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
       }
 
       const messagesRaw: MessageRaw[] = [];
@@ -1102,11 +1050,7 @@ export class WAStartupService {
         if (!m.message) {
           continue;
         }
-        if (
-          messagesRepository.find(
-            (mr) => mr.owner === this.instance.name && mr.key.id === m.key.id,
-          )
-        ) {
+        if (messagesRepository.find((mr) => mr.owner === this.instance.name && mr.key.id === m.key.id)) {
           continue;
         }
 
@@ -1145,11 +1089,7 @@ export class WAStartupService {
       this.logger.verbose('Event received: messages.upsert');
       const received = messages[0];
 
-      if (
-        type !== 'notify' ||
-        received.message?.protocolMessage ||
-        received.message?.pollUpdateMessage
-      ) {
+      if (type !== 'notify' || received.message?.protocolMessage || received.message?.pollUpdateMessage) {
         this.logger.verbose('message rejected');
         return;
       }
@@ -1195,11 +1135,7 @@ export class WAStartupService {
       }
 
       this.logger.verbose('Inserting message in database');
-      await this.repository.message.insert(
-        [messageRaw],
-        this.instance.name,
-        database.SAVE_DATA.NEW_MESSAGE,
-      );
+      await this.repository.message.insert([messageRaw], this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
 
       this.logger.verbose('Verifying contact from message');
       const contact = await this.repository.contact.find({
@@ -1209,8 +1145,7 @@ export class WAStartupService {
       const contactRaw: ContactRaw = {
         id: received.key.remoteJid,
         pushName: received.pushName,
-        profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
-          .profilePictureUrl,
+        profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
         owner: this.instance.name,
       };
 
@@ -1224,8 +1159,7 @@ export class WAStartupService {
         const contactRaw: ContactRaw = {
           id: received.key.remoteJid,
           pushName: contact[0].pushName,
-          profilePictureUrl: (await this.profilePicture(received.key.remoteJid))
-            .profilePictureUrl,
+          profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
           owner: this.instance.name,
         };
 
@@ -1241,11 +1175,7 @@ export class WAStartupService {
         }
 
         this.logger.verbose('Updating contact in database');
-        await this.repository.contact.update(
-          [contactRaw],
-          this.instance.name,
-          database.SAVE_DATA.CONTACTS,
-        );
+        await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
         return;
       }
 
@@ -1255,18 +1185,10 @@ export class WAStartupService {
       await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
       this.logger.verbose('Inserting contact in database');
-      await this.repository.contact.insert(
-        [contactRaw],
-        this.instance.name,
-        database.SAVE_DATA.CONTACTS,
-      );
+      await this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
     },
 
-    'messages.update': async (
-      args: WAMessageUpdate[],
-      database: Database,
-      settings: SettingsRaw,
-    ) => {
+    'messages.update': async (args: WAMessageUpdate[], database: Database, settings: SettingsRaw) => {
       this.logger.verbose('Event received: messages.update');
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
@@ -1341,11 +1263,7 @@ export class WAStartupService {
           await this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
           this.logger.verbose('Inserting message in database');
-          await this.repository.messageUpdate.insert(
-            [message],
-            this.instance.name,
-            database.SAVE_DATA.MESSAGE_UPDATE,
-          );
+          await this.repository.messageUpdate.insert([message], this.instance.name, database.SAVE_DATA.MESSAGE_UPDATE);
         }
       }
     },
@@ -1555,7 +1473,7 @@ export class WAStartupService {
       .replace(/\+/g, '')
       .replace(/\(/g, '')
       .replace(/\)/g, '')
-      .split(/\:/)[0]
+      .split(':')[0]
       .split('@')[0];
 
     if (number.includes('-') && number.length >= 24) {
@@ -1620,7 +1538,6 @@ export class WAStartupService {
     this.logger.verbose('Getting profile with jid: ' + jid);
     try {
       this.logger.verbose('Getting profile info');
-      const info = await waMonitor.instanceInfo(instanceName);
       const business = await this.fetchBusinessProfile(jid);
 
       if (number) {
@@ -1667,11 +1584,7 @@ export class WAStartupService {
     }
   }
 
-  private async sendMessageWithTyping<T = proto.IMessage>(
-    number: string,
-    message: T,
-    options?: Options,
-  ) {
+  private async sendMessageWithTyping<T = proto.IMessage>(number: string, message: T, options?: Options) {
     this.logger.verbose('Sending message with typing');
 
     const numberWA = await this.whatsappNumber({ numbers: [number] });
@@ -1691,9 +1604,7 @@ export class WAStartupService {
         this.logger.verbose('Subscribing to presence');
 
         await this.client.sendPresenceUpdate(options?.presence ?? 'composing', sender);
-        this.logger.verbose(
-          'Sending presence update: ' + options?.presence ?? 'composing',
-        );
+        this.logger.verbose('Sending presence update: ' + options?.presence ?? 'composing');
 
         await delay(options.delay);
         this.logger.verbose('Set delay: ' + options.delay);
@@ -1709,9 +1620,7 @@ export class WAStartupService {
       if (options?.quoted) {
         const m = options?.quoted;
 
-        const msg = m?.message
-          ? m
-          : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
+        const msg = m?.message ? m : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
 
         if (!msg) {
           throw 'Message not found';
@@ -1912,9 +1821,7 @@ export class WAStartupService {
       }
 
       this.logger.verbose('Getting contacts with push name');
-      status.statusJidList = contacts
-        .filter((contact) => contact.pushName)
-        .map((contact) => contact.id);
+      status.statusJidList = contacts.filter((contact) => contact.pushName).map((contact) => contact.id);
 
       this.logger.verbose(status.statusJidList);
     }
@@ -2031,9 +1938,7 @@ export class WAStartupService {
       this.logger.verbose('Media type: ' + mediaType);
 
       if (mediaMessage.mediatype === 'document' && !mediaMessage.fileName) {
-        this.logger.verbose(
-          'If media type is document and file name is not defined then',
-        );
+        this.logger.verbose('If media type is document and file name is not defined then');
         const regex = new RegExp(/.*\/(.+?)\./);
         const arrayMatch = regex.exec(mediaMessage.media);
         mediaMessage.fileName = arrayMatch[1];
@@ -2146,11 +2051,7 @@ export class WAStartupService {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
-    return await this.sendMessageWithTyping(
-      data.number,
-      { ...generate.message },
-      data?.options,
-    );
+    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options);
   }
 
   private async processAudio(audio: string, number: string) {
@@ -2195,18 +2096,15 @@ export class WAStartupService {
 
     this.logger.verbose('Converting audio to mp4');
     return new Promise((resolve, reject) => {
-      exec(
-        `${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`,
-        (error, _stdout, _stderr) => {
-          fs.unlinkSync(tempAudioPath);
-          this.logger.verbose('Temp audio deleted');
+      exec(`${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`, (error) => {
+        fs.unlinkSync(tempAudioPath);
+        this.logger.verbose('Temp audio deleted');
 
-          if (error) reject(error);
+        if (error) reject(error);
 
-          this.logger.verbose('Audio converted to mp4');
-          resolve(outputAudio);
-        },
-      );
+        this.logger.verbose('Audio converted to mp4');
+        resolve(outputAudio);
+      });
     });
   }
 
@@ -2272,10 +2170,7 @@ export class WAStartupService {
     };
 
     if (!arrayUnique(btnItems.text) || !arrayUnique(btnItems.ids)) {
-      throw new BadRequestException(
-        'Button texts cannot be repeated',
-        'Button IDs cannot be repeated.',
-      );
+      throw new BadRequestException('Button texts cannot be repeated', 'Button IDs cannot be repeated.');
     }
 
     return await this.sendMessageWithTyping(
@@ -2342,11 +2237,7 @@ export class WAStartupService {
 
     const vcard = (contact: ContactMessage) => {
       this.logger.verbose('Creating vcard');
-      let result =
-        'BEGIN:VCARD\n' +
-        'VERSION:3.0\n' +
-        `N:${contact.fullName}\n` +
-        `FN:${contact.fullName}\n`;
+      let result = 'BEGIN:VCARD\n' + 'VERSION:3.0\n' + `N:${contact.fullName}\n` + `FN:${contact.fullName}\n`;
 
       if (contact.organization) {
         this.logger.verbose('Organization defined');
@@ -2368,10 +2259,7 @@ export class WAStartupService {
         contact.wuid = this.createJid(contact.phoneNumber);
       }
 
-      result +=
-        `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` +
-        'item1.X-ABLabel:Celular\n' +
-        'END:VCARD';
+      result += `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` + 'item1.X-ABLabel:Celular\n' + 'END:VCARD';
 
       this.logger.verbose('Vcard created');
       return result;
@@ -2461,8 +2349,7 @@ export class WAStartupService {
   public async archiveChat(data: ArchiveChatDto) {
     this.logger.verbose('Archiving chat');
     try {
-      data.lastMessage.messageTimestamp =
-        data.lastMessage?.messageTimestamp ?? Date.now();
+      data.lastMessage.messageTimestamp = data.lastMessage?.messageTimestamp ?? Date.now();
       await this.client.chatModify(
         {
           archive: data.archive,
@@ -2478,10 +2365,7 @@ export class WAStartupService {
     } catch (error) {
       throw new InternalServerErrorException({
         archived: false,
-        message: [
-          'An error occurred while archiving the chat. Open a calling.',
-          error.toString(),
-        ],
+        message: ['An error occurred while archiving the chat. Open a calling.', error.toString()],
       });
     }
   }
@@ -2491,10 +2375,7 @@ export class WAStartupService {
     try {
       return await this.client.sendMessage(del.remoteJid, { delete: del });
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error while deleting message for everyone',
-        error?.toString(),
-      );
+      throw new InternalServerErrorException('Error while deleting message for everyone', error?.toString());
     }
   }
 
@@ -2504,9 +2385,7 @@ export class WAStartupService {
       const m = data?.message;
       const convertToMp4 = data?.convertToMp4 ?? false;
 
-      const msg = m?.message
-        ? m
-        : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
+      const msg = m?.message ? m : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
 
       if (!msg) {
         throw 'Message not found';
@@ -2696,10 +2575,7 @@ export class WAStartupService {
         },
       };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating privacy settings',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error updating privacy settings', error.toString());
     }
   }
 
@@ -2727,10 +2603,7 @@ export class WAStartupService {
         ...profile,
       };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating profile name',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error updating profile name', error.toString());
     }
   }
 
@@ -2741,10 +2614,7 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating profile name',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error updating profile name', error.toString());
     }
   }
 
@@ -2755,10 +2625,7 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating profile status',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error updating profile status', error.toString());
     }
   }
 
@@ -2787,10 +2654,7 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating profile picture',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error updating profile picture', error.toString());
     }
   }
 
@@ -2801,10 +2665,7 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error removing profile picture',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error removing profile picture', error.toString());
     }
   }
 
@@ -2865,10 +2726,7 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error update group picture',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error update group picture', error.toString());
     }
   }
 
@@ -2879,10 +2737,7 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating group subject',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error updating group subject', error.toString());
     }
   }
 
@@ -2893,10 +2748,7 @@ export class WAStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating group description',
-        error.toString(),
-      );
+      throw new InternalServerErrorException('Error updating group description', error.toString());
     }
   }
 
@@ -3032,10 +2884,7 @@ export class WAStartupService {
   public async updateGSetting(update: GroupUpdateSettingDto) {
     this.logger.verbose('Updating setting for group: ' + update.groupJid);
     try {
-      const updateSetting = await this.client.groupSettingUpdate(
-        update.groupJid,
-        update.action,
-      );
+      const updateSetting = await this.client.groupSettingUpdate(update.groupJid, update.action);
       return { updateSetting: updateSetting };
     } catch (error) {
       throw new BadRequestException('Error updating setting', error.toString());
@@ -3045,10 +2894,7 @@ export class WAStartupService {
   public async toggleEphemeral(update: GroupToggleEphemeralDto) {
     this.logger.verbose('Toggling ephemeral for group: ' + update.groupJid);
     try {
-      const toggleEphemeral = await this.client.groupToggleEphemeral(
-        update.groupJid,
-        update.expiration,
-      );
+      await this.client.groupToggleEphemeral(update.groupJid, update.expiration);
       return { success: true };
     } catch (error) {
       throw new BadRequestException('Error updating setting', error.toString());

@@ -1,3 +1,9 @@
+# 1.4.6 (homolog)
+
+* Fixed bug of creating new inbox by chatwoot
+* When conversation reopens is pending when conversation pending is true
+* Added docker-compose file with dockerhub image
+
 # 1.4.5 (2023-07-26 09:32)
 
 ### Fixed

@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+
 import { dbserver } from '../../db/db.connect';
 import { wa } from '../types/wa.types';
 
@@ -64,9 +65,5 @@ const messageUpdateSchema = new Schema<MessageUpdateRaw>({
   owner: { type: String, required: true, min: 1 },
 });
 
-export const MessageUpModel = dbserver?.model(
-  MessageUpdateRaw.name,
-  messageUpdateSchema,
-  'messageUpdate',
-);
+export const MessageUpModel = dbserver?.model(MessageUpdateRaw.name, messageUpdateSchema, 'messageUpdate');
 export type IMessageUpModel = typeof MessageUpModel;

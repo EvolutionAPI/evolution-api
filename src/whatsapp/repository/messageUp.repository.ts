@@ -1,9 +1,10 @@
-import { ConfigService, StoreConf } from '../../config/env.config';
-import { IMessageUpModel, MessageUpdateRaw } from '../models';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { join } from 'path';
 import { opendirSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { IMessageUpModel, MessageUpdateRaw } from '../models';
 
 export class MessageUpQuery {
   where: MessageUpdateRaw;
@@ -11,20 +12,13 @@ export class MessageUpQuery {
 }
 
 export class MessageUpRepository extends Repository {
-  constructor(
-    private readonly messageUpModel: IMessageUpModel,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly messageUpModel: IMessageUpModel, private readonly configService: ConfigService) {
     super(configService);
   }
 
   private readonly logger = new Logger('MessageUpRepository');
 
-  public async insert(
-    data: MessageUpdateRaw[],
-    instanceName: string,
-    saveDb?: boolean,
-  ): Promise<IInsert> {
+  public async insert(data: MessageUpdateRaw[], instanceName: string, saveDb?: boolean): Promise<IInsert> {
     this.logger.verbose('inserting message up');
 
     if (data.length === 0) {
@@ -54,10 +48,7 @@ export class MessageUpRepository extends Repository {
             data: update,
           });
           this.logger.verbose(
-            'message up saved to store in path: ' +
-              join(this.storePath, 'message-up', instanceName) +
-              '/' +
-              update.id,
+            'message up saved to store in path: ' + join(this.storePath, 'message-up', instanceName) + '/' + update.id,
           );
         });
 
@@ -91,42 +82,32 @@ export class MessageUpRepository extends Repository {
 
         messageUpdate.push(
           JSON.parse(
-            readFileSync(
-              join(
-                this.storePath,
-                'message-up',
-                query.where.owner,
-                query.where.id + '.json',
-              ),
-              { encoding: 'utf-8' },
-            ),
+            readFileSync(join(this.storePath, 'message-up', query.where.owner, query.where.id + '.json'), {
+              encoding: 'utf-8',
+            }),
           ),
         );
       } else {
         this.logger.verbose('finding message up in store by owner');
 
-        const openDir = opendirSync(
-          join(this.storePath, 'message-up', query.where.owner),
-          { encoding: 'utf-8' },
-        );
+        const openDir = opendirSync(join(this.storePath, 'message-up', query.where.owner), {
+          encoding: 'utf-8',
+        });
 
         for await (const dirent of openDir) {
           if (dirent.isFile()) {
             messageUpdate.push(
               JSON.parse(
-                readFileSync(
-                  join(this.storePath, 'message-up', query.where.owner, dirent.name),
-                  { encoding: 'utf-8' },
-                ),
+                readFileSync(join(this.storePath, 'message-up', query.where.owner, dirent.name), {
+                  encoding: 'utf-8',
+                }),
               ),
             );
           }
         }
       }
 
-      this.logger.verbose(
-        'message up found in store: ' + messageUpdate.length + ' message up',
-      );
+      this.logger.verbose('message up found in store: ' + messageUpdate.length + ' message up');
       return messageUpdate
         .sort((x, y) => {
           return y.datetime - x.datetime;

@@ -1,15 +1,13 @@
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ConfigService } from '../../config/env.config';
-import { join } from 'path';
 import { readFileSync } from 'fs';
-import { ISettingsModel, SettingsRaw } from '../models';
+import { join } from 'path';
+
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { ISettingsModel, SettingsRaw } from '../models';
 
 export class SettingsRepository extends Repository {
-  constructor(
-    private readonly settingsModel: ISettingsModel,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly settingsModel: ISettingsModel, private readonly configService: ConfigService) {
     super(configService);
   }
 
@@ -20,15 +18,9 @@ export class SettingsRepository extends Repository {
       this.logger.verbose('creating settings');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('saving settings to db');
-        const insert = await this.settingsModel.replaceOne(
-          { _id: instance },
-          { ...data },
-          { upsert: true },
-        );
+        const insert = await this.settingsModel.replaceOne({ _id: instance }, { ...data }, { upsert: true });
 
-        this.logger.verbose(
-          'settings saved to db: ' + insert.modifiedCount + ' settings',
-        );
+        this.logger.verbose('settings saved to db: ' + insert.modifiedCount + ' settings');
         return { insertCount: insert.modifiedCount };
       }
 
@@ -40,12 +32,7 @@ export class SettingsRepository extends Repository {
         data,
       });
 
-      this.logger.verbose(
-        'settings saved to store in path: ' +
-          join(this.storePath, 'settings') +
-          '/' +
-          instance,
-      );
+      this.logger.verbose('settings saved to store in path: ' + join(this.storePath, 'settings') + '/' + instance);
 
       this.logger.verbose('settings created');
       return { insertCount: 1 };

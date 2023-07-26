@@ -1,19 +1,20 @@
 import { delay } from '@whiskeysockets/baileys';
+import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
-import { Auth, ConfigService, HttpServer } from '../../config/env.config';
+
+import { ConfigService, HttpServer } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { RedisCache } from '../../db/redis.client';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
-import { WAMonitoringService } from '../services/monitor.service';
-import { WAStartupService } from '../services/whatsapp.service';
-import { WebhookService } from '../services/webhook.service';
 import { ChatwootService } from '../services/chatwoot.service';
-import { Logger } from '../../config/logger.config';
-import { wa } from '../types/wa.types';
-import { RedisCache } from '../../db/redis.client';
-import { isURL } from 'class-validator';
+import { WAMonitoringService } from '../services/monitor.service';
 import { SettingsService } from '../services/settings.service';
+import { WebhookService } from '../services/webhook.service';
+import { WAStartupService } from '../services/whatsapp.service';
+import { wa } from '../types/wa.types';
 
 export class InstanceController {
   constructor(
@@ -55,21 +56,14 @@ export class InstanceController {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
 
       if (instanceName !== instanceName.toLowerCase().replace(/[^a-z0-9]/g, '')) {
-        throw new BadRequestException(
-          'The instance name must be lowercase and without special characters',
-        );
+        throw new BadRequestException('The instance name must be lowercase and without special characters');
       }
 
       this.logger.verbose('checking duplicate token');
       await this.authService.checkDuplicateToken(token);
 
       this.logger.verbose('creating instance');
-      const instance = new WAStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.repository,
-        this.cache,
-      );
+      const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
       instance.instanceName = instanceName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '')
@@ -175,17 +169,11 @@ export class InstanceController {
         throw new BadRequestException('sign_msg is required');
       }
 
-      if (
-        chatwoot_reopen_conversation !== true &&
-        chatwoot_reopen_conversation !== false
-      ) {
+      if (chatwoot_reopen_conversation !== true && chatwoot_reopen_conversation !== false) {
         throw new BadRequestException('reopen_conversation is required');
       }
 
-      if (
-        chatwoot_conversation_pending !== true &&
-        chatwoot_conversation_pending !== false
-      ) {
+      if (chatwoot_conversation_pending !== true && chatwoot_conversation_pending !== false) {
         throw new BadRequestException('conversation_pending is required');
       }
 
@@ -246,9 +234,7 @@ export class InstanceController {
 
   public async connectToWhatsapp({ instanceName, number = null }: InstanceDto) {
     try {
-      this.logger.verbose(
-        'requested connectToWhatsapp from ' + instanceName + ' instance',
-      );
+      this.logger.verbose('requested connectToWhatsapp from ' + instanceName + ' instance');
 
       const instance = this.waMonitor.waInstances[instanceName];
       const state = instance?.connectionStatus?.state;
@@ -321,16 +307,12 @@ export class InstanceController {
     const { instance } = await this.connectionState({ instanceName });
 
     if (instance.state === 'close') {
-      throw new BadRequestException(
-        'The "' + instanceName + '" instance is not connected',
-      );
+      throw new BadRequestException('The "' + instanceName + '" instance is not connected');
     }
 
     try {
       this.logger.verbose('logging out instance: ' + instanceName);
-      await this.waMonitor.waInstances[instanceName]?.client?.logout(
-        'Log out instance: ' + instanceName,
-      );
+      await this.waMonitor.waInstances[instanceName]?.client?.logout('Log out instance: ' + instanceName);
 
       this.logger.verbose('close connection instance: ' + instanceName);
       this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
@@ -346,9 +328,7 @@ export class InstanceController {
     const { instance } = await this.connectionState({ instanceName });
 
     if (instance.state === 'open') {
-      throw new BadRequestException(
-        'The "' + instanceName + '" instance needs to be disconnected',
-      );
+      throw new BadRequestException('The "' + instanceName + '" instance needs to be disconnected');
     }
     try {
       if (instance.state === 'connecting') {
