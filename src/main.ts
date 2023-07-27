@@ -14,77 +14,76 @@ import { HttpStatus, router } from './whatsapp/routers/index.router';
 import { waMonitor } from './whatsapp/whatsapp.module';
 
 function initWA() {
-    waMonitor.loadInstance();
+  waMonitor.loadInstance();
 }
 
 function bootstrap() {
-    const logger = new Logger('SERVER');
-    const app = express();
+  const logger = new Logger('SERVER');
+  const app = express();
 
-    app.use(
-        cors({
-            origin(requestOrigin, callback) {
-                const { ORIGIN } = configService.get<Cors>('CORS');
-                !requestOrigin ? (requestOrigin = '*') : undefined;
-                if (ORIGIN.indexOf(requestOrigin) !== -1) {
-                    return callback(null, true);
-                }
-                return callback(new Error('Not allowed by CORS'));
-            },
-            methods: [...configService.get<Cors>('CORS').METHODS],
-            credentials: configService.get<Cors>('CORS').CREDENTIALS,
-        }),
-        urlencoded({ extended: true, limit: '136mb' }),
-        json({ limit: '136mb' }),
-        compression(),
-    );
+  app.use(
+    cors({
+      origin(requestOrigin, callback) {
+        const { ORIGIN } = configService.get<Cors>('CORS');
+        !requestOrigin ? (requestOrigin = '*') : undefined;
+        if (ORIGIN.indexOf(requestOrigin) !== -1) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+      },
+      methods: [...configService.get<Cors>('CORS').METHODS],
+      credentials: configService.get<Cors>('CORS').CREDENTIALS,
+    }),
+    urlencoded({ extended: true, limit: '136mb' }),
+    json({ limit: '136mb' }),
+    compression(),
+  );
 
-    app.set('view engine', 'hbs');
-    app.set('views', join(ROOT_DIR, 'views'));
-    app.use(express.static(join(ROOT_DIR, 'public')));
+  app.set('view engine', 'hbs');
+  app.set('views', join(ROOT_DIR, 'views'));
+  app.use(express.static(join(ROOT_DIR, 'public')));
 
-    app.use('/', router);
+  app.use('/', router);
 
-    app.use(
-        (err: Error, req: Request, res: Response, next: NextFunction) => {
-            if (err) {
-                return res.status(err['status'] || 500).json({
-                    status: 'ERROR',
-                    error: err['error'] || 'Internal Server Error',
-                    response: {
-                        message: err['message'] || 'Internal Server Error',
-                    },
-                  }
-                );
-            }
+  app.use(
+    (err: Error, req: Request, res: Response, next: NextFunction) => {
+      if (err) {
+        return res.status(err['status'] || 500).json({
+          status: err['status'] || 500,
+          error: err['error'] || 'Internal Server Error',
+          response: {
+            message: err['message'] || 'Internal Server Error',
+          },
+        });
+      }
 
-            next();
+      next();
+    },
+    (req: Request, res: Response, next: NextFunction) => {
+      const { method, url } = req;
+
+      res.status(HttpStatus.NOT_FOUND).json({
+        status: HttpStatus.NOT_FOUND,
+        error: 'Not Found',
+        response: {
+          message: [`Cannot ${method.toUpperCase()} ${url}`],
         },
-        (req: Request, res: Response, next: NextFunction) => {
-            const { method, url } = req;
+      });
 
-            res.status(HttpStatus.NOT_FOUND).json({
-                status: HttpStatus.NOT_FOUND,
-                error: 'Not Found',
-                response: {
-                    message: `Cannot ${method.toUpperCase()} ${url}`,
-                },
-            });
+      next();
+    },
+  );
 
-            next();
-        },
-    );
+  const httpServer = configService.get<HttpServer>('SERVER');
 
-    const httpServer = configService.get<HttpServer>('SERVER');
+  ServerUP.app = app;
+  const server = ServerUP[httpServer.TYPE];
 
-    ServerUP.app = app;
-    const server = ServerUP[httpServer.TYPE];
+  server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
-    server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
+  initWA();
 
-    initWA();
-
-    onUnexpectedError();
+  onUnexpectedError();
 }
 
 bootstrap();

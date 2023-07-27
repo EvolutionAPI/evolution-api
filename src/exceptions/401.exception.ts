@@ -5,7 +5,7 @@ export class UnauthorizedException {
     throw {
       status: HttpStatus.UNAUTHORIZED,
       error: 'Unauthorized',
-      message: objectError.length > 0 ? objectError : undefined,
+      message: objectError.length > 0 ? objectError : 'Unauthorized',
     };
   }
 }

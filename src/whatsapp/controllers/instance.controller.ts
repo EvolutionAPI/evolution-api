@@ -220,8 +220,8 @@ export class InstanceController {
         },
       };
     } catch (error) {
-      console.log(error);
-      return { error: true, message: error.toString() };
+      this.logger.error(error.message[0]);
+      throw new BadRequestException(error.message[0]);
     }
   }
 
@@ -269,7 +269,7 @@ export class InstanceController {
       this.logger.verbose('logging out instance: ' + instanceName);
       this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
 
-      return { error: false, message: 'Instance restarted' };
+      return { status: 'SUCCESS', error: false, response: { message: 'Instance restarted' } };
     } catch (error) {
       this.logger.error(error);
     }
@@ -310,7 +310,7 @@ export class InstanceController {
       this.logger.verbose('close connection instance: ' + instanceName);
       this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
 
-      return { error: false, message: 'Instance logged out' };
+      return { status: 'SUCCESS', error: false, response: { message: 'Instance logged out' } };
     } catch (error) {
       throw new InternalServerErrorException(error.toString());
     }
@@ -329,13 +329,13 @@ export class InstanceController {
 
         await this.logout({ instanceName });
         delete this.waMonitor.waInstances[instanceName];
-        return { error: false, message: 'Instance deleted' };
+        return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
       } else {
         this.logger.verbose('deleting instance: ' + instanceName);
 
         delete this.waMonitor.waInstances[instanceName];
         this.eventEmitter.emit('remove.instance', instanceName, 'inner');
-        return { error: false, message: 'Instance deleted' };
+        return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
       }
     } catch (error) {
       throw new BadRequestException(error.toString());
