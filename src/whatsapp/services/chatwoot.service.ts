@@ -940,7 +940,7 @@ export class ChatwootService {
       }
 
       this.logger.verbose('check if is bot');
-      if (!body?.conversation || body.private) return { message: 'bot' };
+      if (!body?.conversation || body.private || body.event === 'message_updated') return { message: 'bot' };
 
       this.logger.verbose('check if is group');
       const chatId =

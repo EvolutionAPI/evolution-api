@@ -1,6 +1,5 @@
 import 'express-async-errors';
 
-// import * as Sentry from '@sentry/node';
 import compression from 'compression';
 import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
@@ -15,94 +14,77 @@ import { HttpStatus, router } from './whatsapp/routers/index.router';
 import { waMonitor } from './whatsapp/whatsapp.module';
 
 function initWA() {
-  waMonitor.loadInstance();
+    waMonitor.loadInstance();
 }
 
 function bootstrap() {
-  const logger = new Logger('SERVER');
-  const app = express();
+    const logger = new Logger('SERVER');
+    const app = express();
 
-  // Sentry.init({
-  //   dsn: '',
-  //   integrations: [
-  //     // enable HTTP calls tracing
-  //     new Sentry.Integrations.Http({ tracing: true }),
-  //     // enable Express.js middleware tracing
-  //     new Sentry.Integrations.Express({ app }),
-  //     // Automatically instrument Node.js libraries and frameworks
-  //     ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),
-  //   ],
+    app.use(
+        cors({
+            origin(requestOrigin, callback) {
+                const { ORIGIN } = configService.get<Cors>('CORS');
+                !requestOrigin ? (requestOrigin = '*') : undefined;
+                if (ORIGIN.indexOf(requestOrigin) !== -1) {
+                    return callback(null, true);
+                }
+                return callback(new Error('Not allowed by CORS'));
+            },
+            methods: [...configService.get<Cors>('CORS').METHODS],
+            credentials: configService.get<Cors>('CORS').CREDENTIALS,
+        }),
+        urlencoded({ extended: true, limit: '136mb' }),
+        json({ limit: '136mb' }),
+        compression(),
+    );
 
-  //   // Set tracesSampleRate to 1.0 to capture 100%
-  //   // of transactions for performance monitoring.
-  //   // We recommend adjusting this value in production
-  //   tracesSampleRate: 1.0,
-  // });
+    app.set('view engine', 'hbs');
+    app.set('views', join(ROOT_DIR, 'views'));
+    app.use(express.static(join(ROOT_DIR, 'public')));
 
-  // app.use(Sentry.Handlers.requestHandler());
+    app.use('/', router);
 
-  // app.use(Sentry.Handlers.tracingHandler());
+    app.use(
+        (err: Error, req: Request, res: Response, next: NextFunction) => {
+            if (err) {
+                return res.status(err['status'] || 500).json({
+                    status: 'ERROR',
+                    error: err['error'] || 'Internal Server Error',
+                    response: {
+                        message: err['message'] || 'Internal Server Error',
+                    },
+                  }
+                );
+            }
 
-  app.use(
-    cors({
-      origin(requestOrigin, callback) {
-        const { ORIGIN } = configService.get<Cors>('CORS');
-        !requestOrigin ? (requestOrigin = '*') : undefined;
-        if (ORIGIN.indexOf(requestOrigin) !== -1) {
-          return callback(null, true);
-        }
-        return callback(new Error('Not allowed by CORS'));
-      },
-      methods: [...configService.get<Cors>('CORS').METHODS],
-      credentials: configService.get<Cors>('CORS').CREDENTIALS,
-    }),
-    urlencoded({ extended: true, limit: '136mb' }),
-    json({ limit: '136mb' }),
-    compression(),
-  );
+            next();
+        },
+        (req: Request, res: Response, next: NextFunction) => {
+            const { method, url } = req;
 
-  app.set('view engine', 'hbs');
-  app.set('views', join(ROOT_DIR, 'views'));
-  app.use(express.static(join(ROOT_DIR, 'public')));
+            res.status(HttpStatus.NOT_FOUND).json({
+                status: HttpStatus.NOT_FOUND,
+                error: 'Not Found',
+                response: {
+                    message: `Cannot ${method.toUpperCase()} ${url}`,
+                },
+            });
 
-  app.use('/', router);
+            next();
+        },
+    );
 
-  // app.use(Sentry.Handlers.errorHandler());
+    const httpServer = configService.get<HttpServer>('SERVER');
 
-  // app.use(function onError(err, req, res, next) {
-  //   res.statusCode = 500;
-  //   res.end(res.sentry + '\n');
-  // });
+    ServerUP.app = app;
+    const server = ServerUP[httpServer.TYPE];
 
-  app.use(
-    (err: Error, req: Request, res: Response) => {
-      if (err) {
-        return res.status(err['status'] || 500).json(err);
-      }
-    },
-    (req: Request, res: Response, next: NextFunction) => {
-      const { method, url } = req;
+    server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
-      res.status(HttpStatus.NOT_FOUND).json({
-        status: HttpStatus.NOT_FOUND,
-        message: `Cannot ${method.toUpperCase()} ${url}`,
-        error: 'Not Found',
-      });
+    initWA();
 
-      next();
-    },
-  );
-
-  const httpServer = configService.get<HttpServer>('SERVER');
-
-  ServerUP.app = app;
-  const server = ServerUP[httpServer.TYPE];
-
-  server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
-
-  initWA();
-
-  onUnexpectedError();
+    onUnexpectedError();
 }
 
 bootstrap();

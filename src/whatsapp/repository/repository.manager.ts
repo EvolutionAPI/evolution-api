@@ -109,7 +109,6 @@ export class RepositoryBroker {
           this.logger.verbose('creating temp dir: ' + tempDir);
           fs.mkdirSync(tempDir, { recursive: true });
         }
-
       } catch (error) {
         this.logger.error(error);
       }
