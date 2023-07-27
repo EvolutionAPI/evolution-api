@@ -6,7 +6,7 @@ import { validate } from 'jsonschema';
 
 import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
-import { GetParticipant, GroupInvite, GroupJid } from '../dto/group.dto';
+import { GetParticipant, GroupInvite } from '../dto/group.dto';
 import { InstanceDto } from '../dto/instance.dto';
 
 type DataValidate<T> = {
@@ -105,7 +105,7 @@ export abstract class RouterBroker {
     const body = request.body;
 
     let groupJid = body?.groupJid;
-    
+
     if (!groupJid) {
       if (request.query?.groupJid) {
         groupJid = request.query.groupJid;
@@ -113,15 +113,15 @@ export abstract class RouterBroker {
         throw new BadRequestException('The group id needs to be informed in the query', 'ex: "groupJid=120362@g.us"');
       }
     }
-    
+
     if (!groupJid.endsWith('@g.us')) {
       groupJid = groupJid + '@g.us';
     }
-    
+
     Object.assign(body, {
-      groupJid: groupJid
+      groupJid: groupJid,
     });
-    
+
     const ref = new ClassRef();
 
     Object.assign(ref, body);

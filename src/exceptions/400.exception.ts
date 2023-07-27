@@ -2,6 +2,7 @@ import { HttpStatus } from '../whatsapp/routers/index.router';
 
 export class BadRequestException {
   constructor(...objectError: any[]) {
+    console.log('BadRequestException', objectError);
     throw {
       status: HttpStatus.BAD_REQUEST,
       error: 'Bad Request',
