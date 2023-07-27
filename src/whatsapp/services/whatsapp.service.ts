@@ -72,9 +72,9 @@ import {
   ArchiveChatDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  LastMessage,
   NumberBusiness,
   OnWhatsAppDto,
-  LastMessage,
   PrivacySettingDto,
   ReadMessageDto,
   WhatsAppNumberDto,
@@ -2346,28 +2346,28 @@ export class WAStartupService {
       throw new InternalServerErrorException('Read messages fail', error.toString());
     }
   }
-  
+
   public async getLastMessage(number: string) {
     const messages = await this.fetchMessages({
-        where: {
-          key: {
-            remoteJid: number
-          },
-          owner: this.instance.name
-        }
-      });
-  
+      where: {
+        key: {
+          remoteJid: number,
+        },
+        owner: this.instance.name,
+      },
+    });
+
     let lastMessage = messages.pop();
-  
+
     for (const message of messages) {
       if (
-        message.messageTimestamp?.low >= lastMessage.messageTimestamp?.low
-        || message.messageTimestamp >= lastMessage.messageTimestamp
+        message.messageTimestamp?.low >= lastMessage.messageTimestamp?.low ||
+        message.messageTimestamp >= lastMessage.messageTimestamp
       ) {
         lastMessage = message;
       }
     }
-  
+
     return lastMessage as unknown as LastMessage;
   }
 
@@ -2376,32 +2376,32 @@ export class WAStartupService {
     try {
       let last_message = data.lastMessage;
       let number = data.chat;
-      
-      if(!last_message && number) {
-        last_message = await this.getLastMessage(number);  
+
+      if (!last_message && number) {
+        last_message = await this.getLastMessage(number);
       } else {
         last_message = data.lastMessage;
         last_message.messageTimestamp = last_message?.messageTimestamp ?? Date.now();
         number = last_message?.key?.remoteJid;
       }
-      
+
       if (!last_message || Object.keys(last_message).length === 0) {
-        throw new NotFoundException("Last message not found");
+        throw new NotFoundException('Last message not found');
       }
       console.log(last_message);
-      
+
       await this.client.chatModify(
         {
-        archive: data.archive,
-        lastMessages: [last_message]
-      },
-      this.createJid(number)
-    );
-      
-        return {
-          chatId: number,
-          archived: true,
-        };
+          archive: data.archive,
+          lastMessages: [last_message],
+        },
+        this.createJid(number),
+      );
+
+      return {
+        chatId: number,
+        archived: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         archived: false,
