@@ -2360,10 +2360,7 @@ export class WAStartupService {
     let lastMessage = messages.pop();
 
     for (const message of messages) {
-      if (
-        message.messageTimestamp?.low >= lastMessage.messageTimestamp?.low ||
-        message.messageTimestamp >= lastMessage.messageTimestamp
-      ) {
+      if (message.messageTimestamp >= lastMessage.messageTimestamp) {
         lastMessage = message;
       }
     }
