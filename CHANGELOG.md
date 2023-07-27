@@ -4,6 +4,7 @@
 
 * Fixed error return bug
 * Fixed problem of getting message when deleting message in chatwoot
+* Change in error return pattern
 
 # 1.4.6 (2023-07-26 17:54)
 
