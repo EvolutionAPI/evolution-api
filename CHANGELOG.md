@@ -3,6 +3,7 @@
 ### Fixed
 
 * Fixed error return bug
+* Fixed problem of getting message when deleting message in chatwoot
 
 # 1.4.6 (2023-07-26 17:54)
 

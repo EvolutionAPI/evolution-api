@@ -930,6 +930,7 @@ export class ChatwootService {
   }
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
+    console.log(body);
     try {
       this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
       const client = await this.clientCw(instance);
@@ -940,7 +941,7 @@ export class ChatwootService {
       }
 
       this.logger.verbose('check if is bot');
-      if (!body?.conversation || body.private) return { message: 'bot' };
+      if (!body?.conversation || body.private || body.event === 'message_updated') return { message: 'bot' };
 
       this.logger.verbose('check if is group');
       const chatId =
