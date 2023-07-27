@@ -1,15 +1,17 @@
+import 'express-async-errors';
+
 import compression from 'compression';
-import { configService, Cors, HttpServer } from './config/env.config';
 import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
+
+import { configService, Cors, HttpServer } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
-import { waMonitor } from './whatsapp/whatsapp.module';
-import { HttpStatus, router } from './whatsapp/routers/index.router';
-import 'express-async-errors';
 import { ServerUP } from './utils/server-up';
+import { HttpStatus, router } from './whatsapp/routers/index.router';
+import { waMonitor } from './whatsapp/whatsapp.module';
 
 function initWA() {
   waMonitor.loadInstance();
