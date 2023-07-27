@@ -1,16 +1,17 @@
 FROM node:16.18-alpine
 
-LABEL version="1.1.3" description="Api to control whatsapp features through http requests." 
+LABEL version="1.4.7" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
 RUN apk update && apk upgrade && \
-    apk add --no-cache git
+    apk add --no-cache git tzdata ffmpeg wget curl
 
 WORKDIR /evolution
 
 COPY ./package.json .
 
+ENV TZ=America/Sao_Paulo
 ENV DOCKER_ENV=true
 
 ENV SERVER_URL=http://localhost:8080
@@ -40,17 +41,17 @@ ENV DATABASE_ENABLED=false
 ENV DATABASE_CONNECTION_URI=mongodb://root:root@mongodb:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
 ENV DATABASE_CONNECTION_DB_PREFIX_NAME=evolution
 
-ENV DATABASE_SAVE_DATA_INSTANCE=false
-ENV DATABASE_SAVE_DATA_NEW_MESSAGE=false
-ENV DATABASE_SAVE_MESSAGE_UPDATE=false
-ENV DATABASE_SAVE_DATA_CONTACTS=false
-ENV DATABASE_SAVE_DATA_CHATS=false
+ENV DATABASE_SAVE_DATA_INSTANCE=true
+ENV DATABASE_SAVE_DATA_NEW_MESSAGE=true
+ENV DATABASE_SAVE_MESSAGE_UPDATE=true
+ENV DATABASE_SAVE_DATA_CONTACTS=true
+ENV DATABASE_SAVE_DATA_CHATS=true
 
 ENV REDIS_ENABLED=false
 ENV REDIS_URI=redis://redis:6379
 ENV REDIS_PREFIX_KEY=evolution
 
-ENV WEBHOOK_GLOBAL_URL=<url>
+ENV WEBHOOK_GLOBAL_URL=
 ENV WEBHOOK_GLOBAL_ENABLED=false
 
 ENV WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
@@ -91,18 +92,13 @@ ENV AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
 ENV AUTHENTICATION_JWT_EXPIRIN_IN=0
 ENV AUTHENTICATION_JWT_SECRET='L=0YWt]b2w[WF>#>:&E`'
 
-ENV AUTHENTICATION_INSTANCE_MODE=server
-
-ENV AUTHENTICATION_INSTANCE_NAME=evolution
-ENV AUTHENTICATION_INSTANCE_WEBHOOK_URL=<url>
-ENV AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID=1
-ENV AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN=123456
-ENV AUTHENTICATION_INSTANCE_CHATWOOT_URL=<url>
-
 RUN npm install
 
 COPY . .
 
 RUN npm run build
+
+HEALTHCHECK --interval=1m --retries=250 --start-period=2m \
+    CMD curl --fail http://$SERVER_URL/ || exit 1   
 
 CMD [ "node", "./dist/src/main.js" ]
