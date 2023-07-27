@@ -48,20 +48,21 @@ export abstract class RouterBroker {
     const v = schema ? validate(ref, schema) : { valid: true, errors: [] };
 
     if (!v.valid) {
-      const message: any[] = v.errors.map(({ property, stack, schema }) => {
+      const message: any[] = v.errors.map(({ stack, schema }) => {
         let message: string;
         if (schema['description']) {
           message = schema['description'];
         } else {
           message = stack.replace('instance.', '');
         }
-        return {
-          property: property.replace('instance.', ''),
-          message,
-        };
+        return message;
+        // return {
+        //   property: property.replace('instance.', ''),
+        //   message,
+        // };
       });
-      logger.error([...message]);
-      throw new BadRequestException(...message);
+      logger.error(message);
+      throw new BadRequestException(message);
     }
 
     return await execute(instance, ref);

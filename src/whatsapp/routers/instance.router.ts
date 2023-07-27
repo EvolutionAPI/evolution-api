@@ -161,7 +161,9 @@ export class InstanceRouter extends RouterBroker {
       if (db.ENABLED) {
         try {
           await dbserver.dropDatabase();
-          return res.status(HttpStatus.CREATED).json({ error: false, message: 'Database deleted' });
+          return res
+            .status(HttpStatus.CREATED)
+            .json({ status: 'SUCCESS', error: false, response: { message: 'database deleted' } });
         } catch (error) {
           return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: true, message: error.message });
         }
