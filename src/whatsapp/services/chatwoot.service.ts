@@ -930,7 +930,6 @@ export class ChatwootService {
   }
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
-    console.log(body);
     try {
       this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
       const client = await this.clientCw(instance);
