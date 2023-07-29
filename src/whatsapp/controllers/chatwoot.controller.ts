@@ -90,10 +90,4 @@ export class ChatwootController {
 
     return chatwootService.receiveWebhook(instance, data);
   }
-
-  public async newInstance(data: any) {
-    const chatwootService = new ChatwootService(waMonitor, this.configService);
-
-    return chatwootService.newInstance(data);
-  }
 }

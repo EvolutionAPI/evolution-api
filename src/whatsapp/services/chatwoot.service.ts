@@ -5,7 +5,7 @@ import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
-import { ConfigService, HttpServer } from '../../config/env.config';
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
@@ -578,7 +578,7 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find inbox by name');
-    const findByName = inbox.payload.find((inbox) => inbox.name === instance.instanceName);
+    const findByName = inbox.payload.find((inbox) => inbox.name === instance.instanceName.split('-cwId-')[0]);
 
     if (!findByName) {
       this.logger.warn('inbox not found');
@@ -996,39 +996,6 @@ export class ChatwootService {
           await waInstance?.client?.logout('Log out instance: ' + instance.instanceName);
           await waInstance?.client?.ws?.close();
         }
-
-        if (command.includes('new_instance')) {
-          const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-          const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
-
-          const data = {
-            instanceName: command.split(':')[1],
-            qrcode: true,
-            chatwoot_account_id: this.provider.account_id,
-            chatwoot_token: this.provider.token,
-            chatwoot_url: this.provider.url,
-            chatwoot_sign_msg: this.provider.sign_msg,
-            chatwoot_reopen_conversation: this.provider.reopen_conversation,
-            chatwoot_conversation_pending: this.provider.conversation_pending,
-          };
-
-          if (command.split(':')[2]) {
-            data['number'] = command.split(':')[2];
-          }
-
-          const config = {
-            method: 'post',
-            maxBodyLength: Infinity,
-            url: `${urlServer}/instance/create`,
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: apiKey,
-            },
-            data: data,
-          };
-
-          await axios.request(config);
-        }
       }
 
       if (body.message_type === 'outgoing' && body?.conversation?.messages?.length && chatId !== '123456') {
@@ -1342,7 +1309,7 @@ export class ChatwootService {
 
             if (!body.key.fromMe) {
               this.logger.verbose('message is not from me');
-              content = `**${participantName}**\n\n${bodyMessage}`;
+              content = `**${participantName}:**\n\n${bodyMessage}`;
             } else {
               this.logger.verbose('message is from me');
               content = `${bodyMessage}`;
@@ -1513,52 +1480,6 @@ export class ChatwootService {
       }
     } catch (error) {
       this.logger.error(error);
-    }
-  }
-
-  public async newInstance(data: any) {
-    try {
-      const instanceName = data.instanceName;
-      const qrcode = true;
-      const number = data.number;
-      const accountId = data.accountId;
-      const chatwootToken = data.token;
-      const chatwootUrl = data.url;
-      const signMsg = true;
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-      const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
-
-      const requestData = {
-        instanceName,
-        qrcode,
-        chatwoot_account_id: accountId,
-        chatwoot_token: chatwootToken,
-        chatwoot_url: chatwootUrl,
-        chatwoot_sign_msg: signMsg,
-      };
-
-      if (number) {
-        requestData['number'] = number;
-      }
-
-      // eslint-disable-next-line
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${urlServer}/instance/create`,
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: apiKey,
-        },
-        data: requestData,
-      };
-
-      // await axios.request(config);
-
-      return true;
-    } catch (error) {
-      this.logger.error(error);
-      return null;
     }
   }
 }

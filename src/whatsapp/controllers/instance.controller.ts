@@ -187,7 +187,7 @@ export class InstanceController {
 
         this.chatwootService.initInstanceChatwoot(
           instance,
-          instance.instanceName,
+          instance.instanceName.split('-cwId-')[0],
           `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
           qrcode,
           number,
@@ -233,6 +233,10 @@ export class InstanceController {
       const state = instance?.connectionStatus?.state;
 
       this.logger.verbose('state: ' + state);
+
+      if (!state) {
+        throw new BadRequestException('The "' + instanceName + '" instance does not exist');
+      }
 
       if (state == 'open') {
         return await this.connectionState({ instanceName });

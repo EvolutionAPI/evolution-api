@@ -1,3 +1,13 @@
+# 1.5.0 (homolog)
+
+### Fixed
+
+* Solved problem when disconnecting from the instance the instance was deleted
+
+### Integrations
+
+- Chatwoot: v2.18.0 - v3.0.0
+
 # 1.4.8 (2023-07-27 10:27)
 
 ### Fixed

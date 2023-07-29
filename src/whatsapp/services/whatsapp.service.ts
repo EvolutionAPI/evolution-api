@@ -135,12 +135,12 @@ export class WAStartupService {
   }
 
   private readonly logger = new Logger(WAStartupService.name);
-  private readonly instance: wa.Instance = {};
+  public readonly instance: wa.Instance = {};
   public client: WASocket;
   private readonly localWebhook: wa.LocalWebHook = {};
   private readonly localChatwoot: wa.LocalChatwoot = {};
   private readonly localSettings: wa.LocalSettings = {};
-  private stateConnection: wa.StateConnection = { state: 'close' };
+  public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
@@ -558,6 +558,7 @@ export class WAStartupService {
     this.logger.verbose('Connection update');
     if (qr) {
       this.logger.verbose('QR code found');
+      console.log('this.instance.qrcode', this.instance.qrcode);
       if (this.instance.qrcode.count === this.configService.get<QrCode>('QRCODE').LIMIT) {
         this.logger.verbose('QR code limit reached');
 

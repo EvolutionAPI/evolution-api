@@ -335,11 +335,14 @@ export class WAMonitoringService {
     this.logger.verbose('checking instances without connection');
     this.eventEmitter.on('no.connection', async (instanceName) => {
       try {
-        this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
-        this.waInstances[instanceName] = undefined;
+        this.logger.verbose('logging out instance: ' + instanceName);
+        await this.waInstances[instanceName]?.client?.logout('Log out instance: ' + instanceName);
 
-        this.logger.verbose('request cleaning up instance: ' + instanceName);
-        this.cleaningUp(instanceName);
+        this.logger.verbose('close connection instance: ' + instanceName);
+        this.waInstances[instanceName]?.client?.ws?.close();
+
+        this.waInstances[instanceName].instance.qrcode = { count: 0 };
+        this.waInstances[instanceName].stateConnection.state = 'close';
       } catch (error) {
         this.logger.error({
           localError: 'noConnection',
