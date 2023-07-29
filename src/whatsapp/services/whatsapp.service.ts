@@ -586,23 +586,6 @@ export class WAStartupService {
           statusReason: DisconnectReason.connectionClosed,
         });
 
-        this.logger.verbose('Sending data to webhook in event STATUS_INSTANCE');
-        this.sendDataWebhook(Events.STATUS_INSTANCE, {
-          instance: this.instance.name,
-          status: 'removed',
-        });
-
-        if (this.localChatwoot.enabled) {
-          this.chatwootService.eventWhatsapp(
-            Events.STATUS_INSTANCE,
-            { instanceName: this.instance.name },
-            {
-              instance: this.instance.name,
-              status: 'removed',
-            },
-          );
-        }
-
         this.logger.verbose('endSession defined as true');
         this.endSession = true;
 

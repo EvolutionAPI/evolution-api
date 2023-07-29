@@ -179,7 +179,7 @@ export class InstanceController {
           token: chatwoot_token,
           url: chatwoot_url,
           sign_msg: chatwoot_sign_msg || false,
-          name_inbox: instance.instanceName,
+          name_inbox: instance.instanceName.split('-cwId-')[0],
           number,
           reopen_conversation: chatwoot_reopen_conversation || false,
           conversation_pending: chatwoot_conversation_pending || false,
