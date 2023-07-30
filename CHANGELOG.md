@@ -1,5 +1,9 @@
 # 1.5.0 (homolog)
 
+### Feature
+
+* New instance manager in /manager route
+
 ### Fixed
 
 * Solved problem when disconnecting from the instance the instance was deleted

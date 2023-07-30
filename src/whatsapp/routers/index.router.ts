@@ -37,7 +37,8 @@ router
       version: packageJson.version,
     });
   })
-  .use('/instance', new InstanceRouter(configService, ...guards).router, new ViewsRouter(instanceExistsGuard).router)
+  .use('/instance', new InstanceRouter(configService, ...guards).router)
+  .use('/manager', new ViewsRouter().router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
