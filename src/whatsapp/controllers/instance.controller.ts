@@ -188,7 +188,7 @@ export class InstanceController {
         this.chatwootService.initInstanceChatwoot(
           instance,
           instance.instanceName.split('-cwId-')[0],
-          `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+          `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
           qrcode,
           number,
         );
@@ -216,7 +216,7 @@ export class InstanceController {
           conversation_pending: chatwoot_conversation_pending || false,
           number,
           name_inbox: instance.instanceName,
-          webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+          webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         },
       };
     } catch (error) {

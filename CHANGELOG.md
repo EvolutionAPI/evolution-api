@@ -7,6 +7,7 @@
 ### Fixed
 
 * Solved problem when disconnecting from the instance the instance was deleted
+* Encoded spaces in chatwoot webhook
 
 ### Integrations
 
