@@ -205,7 +205,14 @@ export class ChatwootService {
     this.logger.verbose('find contact in chatwoot and create if not exists');
     const contact =
       (await this.findContact(instance, '123456')) ||
-      ((await this.createContact(instance, '123456', inboxId, false, 'EvolutionAPI')) as any);
+      ((await this.createContact(
+        instance,
+        '123456',
+        inboxId,
+        false,
+        'EvolutionAPI',
+        'https://evolution-api.com/files/evolution-api-favicon.png',
+      )) as any);
 
     if (!contact) {
       this.logger.warn('contact not found');
@@ -269,6 +276,7 @@ export class ChatwootService {
     isGroup: boolean,
     name?: string,
     avatar_url?: string,
+    jid?: string,
   ) {
     this.logger.verbose('create contact to instance: ' + instance.instanceName);
 
@@ -286,6 +294,7 @@ export class ChatwootService {
         inbox_id: inboxId,
         name: name || phoneNumber,
         phone_number: `+${phoneNumber}`,
+        identifier: jid,
         avatar_url: avatar_url,
       };
     } else {
@@ -437,6 +446,7 @@ export class ChatwootService {
             false,
             body.pushName,
             picture_url.profilePictureUrl || null,
+            body.key.participant,
           );
         }
       }
@@ -452,6 +462,7 @@ export class ChatwootService {
         if (findContact) {
           contact = findContact;
         } else {
+          const jid = isGroup ? null : body.key.remoteJid;
           contact = await this.createContact(
             instance,
             chatId,
@@ -459,6 +470,7 @@ export class ChatwootService {
             isGroup,
             nameContact,
             picture_url.profilePictureUrl || null,
+            jid,
           );
         }
       } else {
@@ -472,6 +484,7 @@ export class ChatwootService {
             contact = findContact;
           }
         } else {
+          const jid = isGroup ? null : body.key.remoteJid;
           contact = await this.createContact(
             instance,
             chatId,
@@ -479,6 +492,7 @@ export class ChatwootService {
             isGroup,
             nameContact,
             picture_url.profilePictureUrl || null,
+            jid,
           );
         }
       }
