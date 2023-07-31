@@ -107,7 +107,4 @@ COPY . .
 
 RUN npm run build
 
-HEALTHCHECK --interval=1m --retries=250 --start-period=2m \
-    CMD curl --fail http://$SERVER_URL/ || exit 1 
-
 CMD [ "node", "./dist/src/main.js" ]
