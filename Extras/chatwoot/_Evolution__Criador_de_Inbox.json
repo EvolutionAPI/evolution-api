@@ -1,0 +1,364 @@
+{
+  "name": "[Evolution] Criador de Inbox",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbox_whatsapp",
+        "options": {}
+      },
+      "id": "8205b929-73e9-456a-9b0d-e1474991663a",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        320,
+        300
+      ],
+      "webhookId": "cf37002d-3869-4bb1-af3a-739fdd3c1756"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_url }}/instance/create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $json.global_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "instanceName",
+              "value": "={{ $json.instance_name }}"
+            },
+            {
+              "name": "qrcode",
+              "value": "={{ $json.qrcode }}"
+            },
+            {
+              "name": "chatwoot_account_id",
+              "value": "={{ $json.chatwoot_account_id }}"
+            },
+            {
+              "name": "chatwoot_token",
+              "value": "={{ $json.chatwoot_token }}"
+            },
+            {
+              "name": "chatwoot_url",
+              "value": "={{ $json.chatwoot_url }}"
+            },
+            {
+              "name": "chatwoot_sign_msg",
+              "value": "={{ $json.chatwoot_sign_msg }}"
+            },
+            {
+              "name": "chatwoot_reopen_conversation",
+              "value": "={{ $json.chatwoot_reopen_conversation }}"
+            },
+            {
+              "name": "chatwoot_conversation_pending",
+              "value": "={{ $json.chatwoot_conversation_pending }}"
+            },
+            {
+              "name": "reject_call",
+              "value": "={{ $json.reject_call }}"
+            },
+            {
+              "name": "msg_call",
+              "value": "={{ $json.msg_call }}"
+            },
+            {
+              "name": "groups_ignore",
+              "value": "={{ $json.groups_ignore }}"
+            },
+            {
+              "name": "always_online",
+              "value": "={{ $json.always_online }}"
+            },
+            {
+              "name": "read_messages",
+              "value": "={{ $json.read_messages }}"
+            },
+            {
+              "name": "read_status",
+              "value": "={{ $json.read_status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "275aa370-2fdb-42f4-844a-2fb3051301bd",
+      "name": "Cria Instancia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Info Base').item.json[\"chatwoot_account_id\"] }}/inboxes/{{ $json.payload[0].id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json.chatwoot_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e2e2cfe4-0afc-47f2-9176-5e14cb4c66c3",
+      "name": "Deleta Inbox Start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Info Base').item.json[\"chatwoot_account_id\"] }}/inboxes/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json.chatwoot_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e4650812-ba0a-4f72-8bd8-a235eca4b2de",
+      "name": "Lista Inboxes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "limit"
+      },
+      "id": "c498a51e-53c5-4f0e-9aaa-eb1ebc4fbcb5",
+      "name": "Recupera Primeira Inbox",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 2.2,
+      "position": [
+        1180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.payload[0].name }}",
+              "value2": "StartEvolution"
+            }
+          ]
+        }
+      },
+      "id": "40f705df-b9ff-4645-94ec-e7a5a0ca4777",
+      "name": "é StartEvolution?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow Para Criar Inbox\n**Aqui você configura a comunicação entre o chatwoot e a Evolution API para criar novas instâncias a partir do chatwoot**\n**Instruções**\n**No node Info Base, configure as variáveis de seu Chatwoot e Evolution API**",
+        "width": 1129.7777777777778
+      },
+      "id": "aa763d9e-d973-44fc-8399-277bb24718a5",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        320,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "chatwoot_url",
+              "value": "https://CHATWOOT_URL"
+            },
+            {
+              "name": "evolution_url",
+              "value": "https://EVOLUTION_URL"
+            },
+            {
+              "name": "global_api_key",
+              "value": "GLOBAL_API_KEY"
+            },
+            {
+              "name": "instance_name",
+              "value": "={{ $json.body.messages[0].content.split(':')[1] }}-cwId-{{ $json.body.messages[0].account_id }}"
+            },
+            {
+              "name": "chatwoot_token",
+              "value": "={{ $json.query.utoken }}"
+            },
+            {
+              "name": "msg_call",
+              "value": "Não aceitamos chamadas, por favor deixe uma mensagem!"
+            }
+          ],
+          "boolean": [
+            {
+              "name": "qrcode",
+              "value": true
+            },
+            {
+              "name": "chatwoot_sign_msg",
+              "value": true
+            },
+            {
+              "name": "chatwoot_reopen_conversation",
+              "value": true
+            },
+            {
+              "name": "chatwoot_conversation_pending"
+            },
+            {
+              "name": "reject_call",
+              "value": true
+            },
+            {
+              "name": "groups_ignore"
+            },
+            {
+              "name": "always_online",
+              "value": true
+            },
+            {
+              "name": "read_messages",
+              "value": true
+            },
+            {
+              "name": "read_status"
+            }
+          ],
+          "number": [
+            {
+              "name": "chatwoot_account_id",
+              "value": "={{ $json.body.messages[0].account_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "297df325-ecc4-4a34-817c-092d16d5753b",
+      "name": "Info Base",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Info Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lista Inboxes": {
+      "main": [
+        [
+          {
+            "node": "Recupera Primeira Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recupera Primeira Inbox": {
+      "main": [
+        [
+          {
+            "node": "é StartEvolution?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "é StartEvolution?": {
+      "main": [
+        [
+          {
+            "node": "Deleta Inbox Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Instancia": {
+      "main": [
+        [
+          {
+            "node": "Lista Inboxes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Info Base": {
+      "main": [
+        [
+          {
+            "node": "Cria Instancia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "ee6fcc3a-3815-4f9b-9a6b-e282c66fc37b",
+  "id": "ByW2ccjR4XPrOyio",
+  "meta": {
+    "instanceId": "4ff16e963c7f5197d7e99e6239192860914312fea0ce2a9a7fd14d74a0a0e906"
+  },
+  "tags": []
+}

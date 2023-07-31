@@ -3,6 +3,7 @@
 ### Feature
 
 * New instance manager in /manager route
+* Added extra files for chatwoot and appsmith
 
 ### Fixed
 

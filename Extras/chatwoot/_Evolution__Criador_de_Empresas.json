@@ -1,0 +1,444 @@
+{
+  "name": "[Evolution] Criador de Empresas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "criadorchatwoot",
+        "options": {}
+      },
+      "id": "1bbcdc39-46af-4476-a381-981a96be3726",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        840
+      ],
+      "webhookId": "6fe428e3-1752-453c-9358-abf18b793387"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/platform/api/v1/accounts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json[\"api_access_token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.name_company }}"
+            },
+            {
+              "name": "locale",
+              "value": "pt_BR"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ec9927e2-d075-4f3f-8655-d1269d25bac2",
+      "name": "Cria Conta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1960,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/platform/api/v1/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json[\"api_access_token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $('Info Base').item.json.name_admin }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $('Info Base').item.json[\"email\"] }}"
+            },
+            {
+              "name": "password",
+              "value": "={{ $('Info Base').item.json[\"password\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1ce013fd-0445-488c-b73f-b86597a5b556",
+      "name": "Cria Usuario",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2160,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/platform/api/v1/accounts/{{ $node[\"Cria Conta\"].json[\"id\"] }}/account_users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json[\"api_access_token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $node[\"Cria Usuario\"].json[\"id\"] }}"
+            },
+            {
+              "name": "role",
+              "value": "administrator"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a9156473-1916-446b-9e50-e906794c7c5b",
+      "name": "Add Usuario a Conta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2380,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "contato@agenciadgcode.com",
+        "toEmail": "={{ $('LimpaDados').item.json.email }}",
+        "subject": "Bem vindo ao Chatwoot",
+        "text": "=Olá seja bem vindo:\n\nAbaixo segue seus dados de acesso iniciais:\n\nURL: {{ $('Info Base').item.json[\"chatwoot_url\"] }}\n\nLoging: {{ $('LimpaDados').item.json[\"email\"] }}\n\nSenha: {{ $('LimpaDados').item.json[\"password\"] }}",
+        "options": {}
+      },
+      "id": "2d0b3e35-6e51-4e9b-90b4-6382dc6fec88",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        3180,
+        840
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "6BxluEUV8zrXKoVG",
+          "name": "[Dgcode] SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "api_access_token",
+              "value": "TOKEN PLATAFORM"
+            },
+            {
+              "name": "chatwoot_url",
+              "value": "https://CHATWOOT_URL"
+            },
+            {
+              "name": "n8n_url",
+              "value": "https://N8N_URL"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name_company }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "password",
+              "value": "={{ $json.password }}"
+            },
+            {
+              "name": "name_company",
+              "value": "={{ $json.name_company }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1efc0806-2fe7-4670-9a0c-ab71592d0bbb",
+      "name": "Info Base",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "name_admin",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"messages\"][0][\"content\"].match(/Nome Usuario Administrador: ([^\\n]+)/)[1];}}"
+            },
+            {
+              "name": "name_company",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"messages\"][0][\"content\"].match(/Nome da Empresa: ([^\\n]+)/)[1];}}"
+            },
+            {
+              "name": "email",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"messages\"][0][\"content\"].match(/Email: ([^\\s]+)/)[1];}}"
+            },
+            {
+              "name": "password",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"messages\"][0][\"content\"].match(/Senha: ([^\\s]+)/)[1];}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "602accf3-f01a-46ac-a22f-37c964c0ec76",
+      "name": "LimpaDados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Add Usuario a Conta').item.json.account_id }}/contacts/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Cria Usuario').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"inbox_id\": {{ $('Cria Inbox Start').item.json[\"id\"] }},\n    \"name\": \"EvolutionAPI\",\n    \"phone_number\": \"+123456\",\n    \"avatar_url\": \"https://evolution-api.com/files/evolution-api-favicon.png\"\n}",
+        "options": {}
+      },
+      "id": "974e672e-fa4a-44ab-b6df-7aacd2bdb329",
+      "name": "Cria Contato Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2800,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Add Usuario a Conta').item.json.account_id }}/automation_rules/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Cria Usuario').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"name\": \"Create Inbox EvolutionAPI\",\n    \"description\": \"Create Inbox EvolutionAPI\",\n    \"event_name\": \"message_created\",\n    \"active\": true,\n    \"actions\": \n    [\n        {\n            \"action_name\": \"send_webhook_event\",\n            \"action_params\": [\"{{ $('Info Base').item.json[\"n8n_url\"] }}/webhook/inbox_whatsapp?utoken={{ $('Cria Usuario').item.json.access_token }}\"]\n        }\n    ],\n    \"conditions\": \n    [\n        {\n            \"attribute_key\": \"content\",\n            \"filter_operator\": \"contains\",\n            \"query_operator\": \"and\",\n            \"values\": [\"start:\"]\n        },\n        {\n            \"attribute_key\": \"phone_number\",\n            \"filter_operator\": \"equal_to\",\n            \"query_operator\": \"or\",\n            \"values\": [\"+123456\"]\n        },\n        {\n            \"attribute_key\": \"content\",\n            \"filter_operator\": \"contains\",\n            \"query_operator\": \"and\",\n            \"values\": [\"new_instance:\"]\n        },\n        {\n            \"attribute_key\": \"phone_number\",\n            \"filter_operator\": \"equal_to\",\n            \"values\": [\"+123456\"]\n        }\n    ]\n}",
+        "options": {}
+      },
+      "id": "fb5597d4-0af1-461b-912b-7671a88c8368",
+      "name": "Cria Automação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        3000,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $json.account_id }}/inboxes/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Cria Usuario').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"name\": \"StartEvolution\",\n    \"channel\": {\n        \"type\": \"api\",\n        \"website_url\": \"\"\n    }\n}",
+        "options": {}
+      },
+      "id": "a09bc90a-d643-422c-90ae-f8baa41ee532",
+      "name": "Cria Inbox Start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2600,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow Criador de Empresas\n**Cria Contas (Empresas) e Usuários através de tema**\n**Instruções**\n**No node Info Base, configure as variáveis de seu Chatwoot e N8N**\n**Obs: A variável api_access_token é o token PlatformApp encontrado no acesso ao Super Admin**\n**Tema para criar novas empresa:**\n\nTema Criador de Empresa:\n\nNome Usuario Administrador: Joao Linhares\nNome da Empresa: Oficina Linhates\nEmail: machineteste24@gmail.com\nSenha: Mfcd62!!",
+        "height": 304.02684563758396,
+        "width": 1129.7777777777778
+      },
+      "id": "f742f53d-58bc-4e26-bb82-1db352425eff",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        500
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "LimpaDados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Conta": {
+      "main": [
+        [
+          {
+            "node": "Cria Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Usuario": {
+      "main": [
+        [
+          {
+            "node": "Add Usuario a Conta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Usuario a Conta": {
+      "main": [
+        [
+          {
+            "node": "Cria Inbox Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Info Base": {
+      "main": [
+        [
+          {
+            "node": "Cria Conta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LimpaDados": {
+      "main": [
+        [
+          {
+            "node": "Info Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Contato Bot": {
+      "main": [
+        [
+          {
+            "node": "Cria Automação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Automação": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Inbox Start": {
+      "main": [
+        [
+          {
+            "node": "Cria Contato Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "5638171c-d64e-404f-b0f1-c8fbe4ec6fb0",
+  "id": "mVLlfZvGjtR8SZLT",
+  "meta": {
+    "instanceId": "4ff16e963c7f5197d7e99e6239192860914312fea0ce2a9a7fd14d74a0a0e906"
+  },
+  "tags": []
+}
