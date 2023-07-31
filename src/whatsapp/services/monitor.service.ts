@@ -94,7 +94,7 @@ export class WAMonitoringService {
         if (findChatwoot && findChatwoot.enabled) {
           chatwoot = {
             ...findChatwoot,
-            webhook_url: `${urlServer}/chatwoot/webhook/${key}`,
+            webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
           };
         }
 

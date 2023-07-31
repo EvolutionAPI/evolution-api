@@ -52,7 +52,7 @@ export class ChatwootController {
 
     const response = {
       ...result,
-      webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+      webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
     };
 
     return response;
@@ -78,7 +78,7 @@ export class ChatwootController {
 
     const response = {
       ...result,
-      webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+      webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
     };
 
     return response;
