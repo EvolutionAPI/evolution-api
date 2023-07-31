@@ -4,6 +4,7 @@
 
 * New instance manager in /manager route
 * Added extra files for chatwoot and appsmith
+* Added Get Last Message and Archive for Chat
 
 ### Fixed
 
