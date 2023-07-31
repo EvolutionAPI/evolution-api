@@ -105,7 +105,7 @@ export type GlobalWebhook = {
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
-export type QrCode = { LIMIT: number };
+export type QrCode = { LIMIT: number; COLOR: string };
 export type Production = boolean;
 
 export interface Env {
@@ -245,6 +245,7 @@ export class ConfigService {
       },
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
+        COLOR: process.env.QRCODE_COLOR || '#198754',
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'jwt',

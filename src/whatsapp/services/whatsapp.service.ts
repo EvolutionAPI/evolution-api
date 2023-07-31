@@ -597,11 +597,13 @@ export class WAStartupService {
       this.logger.verbose('Incrementing QR code count');
       this.instance.qrcode.count++;
 
+      const color = this.configService.get<QrCode>('QRCODE').COLOR;
+
       const optsQrcode: QRCodeToDataURLOptions = {
         margin: 3,
         scale: 4,
         errorCorrectionLevel: 'H',
-        color: { light: '#ffffff', dark: '#198754' },
+        color: { light: '#ffffff', dark: color },
       };
 
       if (this.phoneNumber) {
