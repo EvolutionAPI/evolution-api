@@ -508,6 +508,7 @@ export const archiveChatSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
+    chat: { type: 'string' },
     lastMessage: {
       type: 'object',
       properties: {
@@ -528,7 +529,7 @@ export const archiveChatSchema: JSONSchema7 = {
     },
     archive: { type: 'boolean', enum: [true, false] },
   },
-  required: ['lastMessage', 'archive'],
+  required: ['archive'],
 };
 
 export const deleteMessageSchema: JSONSchema7 = {
