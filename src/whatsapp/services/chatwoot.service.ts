@@ -1022,7 +1022,7 @@ export class ChatwootService {
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
-          formatText = this.provider.sign_msg ? `*${senderName}:*\n\n${messageReceived}` : messageReceived;
+          formatText = this.provider.sign_msg ? `*${senderName}:*\n${messageReceived}` : messageReceived;
         }
 
         for (const message of body.conversation.messages) {
