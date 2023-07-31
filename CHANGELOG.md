@@ -10,6 +10,7 @@
 * Solved problem when disconnecting from the instance the instance was deleted
 * Encoded spaces in chatwoot webhook
 * Adjustment in the saving of contacts, saving the information of the number and Jid
+* Update Dockerfile
 
 ### Integrations
 
