@@ -126,7 +126,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
-        1600,
+        1620,
         300
       ]
     },
@@ -150,39 +150,6 @@
       "typeVersion": 3,
       "position": [
         980,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "limit"
-      },
-      "id": "c498a51e-53c5-4f0e-9aaa-eb1ebc4fbcb5",
-      "name": "Recupera Primeira Inbox",
-      "type": "n8n-nodes-base.itemLists",
-      "typeVersion": 2.2,
-      "position": [
-        1180,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.payload[0].name }}",
-              "value2": "StartEvolution"
-            }
-          ]
-        }
-      },
-      "id": "40f705df-b9ff-4645-94ec-e7a5a0ca4777",
-      "name": "é StartEvolution?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        1380,
         300
       ]
     },
@@ -215,7 +182,11 @@
             },
             {
               "name": "global_api_key",
-              "value": "GLOBAL_API_KEY"
+              "value": "EVOLUTION_GLOBAL_API_KEY"
+            },
+            {
+              "name": "organization",
+              "value": "={{ $json.query.organization }}"
             },
             {
               "name": "instance_name",
@@ -282,6 +253,39 @@
         540,
         300
       ]
+    },
+    {
+      "parameters": {
+        "operation": "limit"
+      },
+      "id": "9ed7331d-f2fd-4ee0-8730-2ae7f444aa1e",
+      "name": "Recupera Primeira Inbox",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.payload[0].name }}",
+              "value2": "=Start {{ $('Info Base').item.json[\"organization\"] }}"
+            }
+          ]
+        }
+      },
+      "id": "40f705df-b9ff-4645-94ec-e7a5a0ca4777",
+      "name": "é Start Inbox?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        300
+      ]
     }
   ],
   "pinData": {},
@@ -302,28 +306,6 @@
         [
           {
             "node": "Recupera Primeira Inbox",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Recupera Primeira Inbox": {
-      "main": [
-        [
-          {
-            "node": "é StartEvolution?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "é StartEvolution?": {
-      "main": [
-        [
-          {
-            "node": "Deleta Inbox Start",
             "type": "main",
             "index": 0
           }
@@ -351,11 +333,33 @@
           }
         ]
       ]
+    },
+    "Recupera Primeira Inbox": {
+      "main": [
+        [
+          {
+            "node": "é Start Inbox?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "é Start Inbox?": {
+      "main": [
+        [
+          {
+            "node": "Deleta Inbox Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {},
-  "versionId": "ee6fcc3a-3815-4f9b-9a6b-e282c66fc37b",
+  "versionId": "6fcdaf0a-5bf9-4c3a-b518-364246bd92c2",
   "id": "ByW2ccjR4XPrOyio",
   "meta": {
     "instanceId": "4ff16e963c7f5197d7e99e6239192860914312fea0ce2a9a7fd14d74a0a0e906"
