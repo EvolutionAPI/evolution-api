@@ -108,30 +108,6 @@
     },
     {
       "parameters": {
-        "method": "DELETE",
-        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Info Base').item.json[\"chatwoot_account_id\"] }}/inboxes/{{ $json.payload[0].id }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $('Info Base').item.json.chatwoot_token }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "e2e2cfe4-0afc-47f2-9176-5e14cb4c66c3",
-      "name": "Deleta Inbox Start",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [
-        1620,
-        300
-      ]
-    },
-    {
-      "parameters": {
         "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Info Base').item.json[\"chatwoot_account_id\"] }}/inboxes/",
         "sendHeaders": true,
         "headerParameters": {
@@ -174,11 +150,11 @@
           "string": [
             {
               "name": "chatwoot_url",
-              "value": "https://CHATWOOT_URL"
+              "value": "CHATWOOT_URL"
             },
             {
               "name": "evolution_url",
-              "value": "https://EVOLUTION_URL"
+              "value": "EVOLUTION_URL"
             },
             {
               "name": "global_api_key",
@@ -256,14 +232,35 @@
     },
     {
       "parameters": {
-        "operation": "limit"
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.name }}",
+              "value2": "=Start {{ $('Info Base').item.json[\"organization\"] }}"
+            }
+          ]
+        }
       },
-      "id": "9ed7331d-f2fd-4ee0-8730-2ae7f444aa1e",
-      "name": "Recupera Primeira Inbox",
-      "type": "n8n-nodes-base.itemLists",
-      "typeVersion": 2.2,
+      "id": "a8d955e6-ac51-4316-aeec-09d4d65e943a",
+      "name": "é Start Inbox?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
       "position": [
-        1200,
+        1660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "0d2d2194-aa4a-4241-9022-217d88bb581f",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        1420,
         300
       ]
     },
@@ -272,18 +269,98 @@
         "conditions": {
           "string": [
             {
-              "value1": "={{ $json.payload[0].name }}",
-              "value2": "=Start {{ $('Info Base').item.json[\"organization\"] }}"
+              "value1": "={{ $json.name }}",
+              "value2": "={{ $('Webhook').item.json[\"body\"][\"messages\"][0][\"content\"].split(':')[1] }}"
             }
           ]
         }
       },
-      "id": "40f705df-b9ff-4645-94ec-e7a5a0ca4777",
-      "name": "é Start Inbox?",
+      "id": "0bfbc2cb-eff5-423c-bd3a-b266aaf6a943",
+      "name": "é_pre-existente?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        1400,
+        1900,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Info Base').item.json[\"chatwoot_account_id\"] }}/inboxes/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json.chatwoot_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"channel\": {\n\"webhook_url\": \"{{ $('Info Base').item.json[\"evolution_url\"] }}/chatwoot/webhook/{{ encodeURIComponent($('Info Base').item.json[\"instance_name\"]) }}\"\n}\n}",
+        "options": {}
+      },
+      "id": "fb589456-5566-4a45-96a7-75986d0aa1d5",
+      "name": "Update_webhook_url",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2120,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/{{ $('Info Base').item.json[\"chatwoot_account_id\"] }}/inboxes/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json.chatwoot_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e6094941-410f-496c-9c9c-7b95fd9349af",
+      "name": "Deleta Inbox Start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1900,
+        100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8cf9a78f-9e8a-4288-9d7b-801790af68d5",
+      "name": "No Operation, do nothing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1660,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "payload",
+        "options": {}
+      },
+      "id": "9468896a-5f86-4598-9d20-e8f495cae859",
+      "name": "Ajusta lista",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
         300
       ]
     }
@@ -305,7 +382,7 @@
       "main": [
         [
           {
-            "node": "Recupera Primeira Inbox",
+            "node": "Ajusta lista",
             "type": "main",
             "index": 0
           }
@@ -334,7 +411,25 @@
         ]
       ]
     },
-    "Recupera Primeira Inbox": {
+    "é Start Inbox?": {
+      "main": [
+        [
+          {
+            "node": "Deleta Inbox Start",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "é_pre-existente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
       "main": [
         [
           {
@@ -342,14 +437,61 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
-    "é Start Inbox?": {
+    "é_pre-existente?": {
       "main": [
         [
           {
-            "node": "Deleta Inbox Start",
+            "node": "Update_webhook_url",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update_webhook_url": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deleta Inbox Start": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ajusta lista": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
             "type": "main",
             "index": 0
           }
@@ -359,7 +501,7 @@
   },
   "active": true,
   "settings": {},
-  "versionId": "6fcdaf0a-5bf9-4c3a-b518-364246bd92c2",
+  "versionId": "ab910349-b559-4738-9ac6-de6b06d6bbce",
   "id": "ByW2ccjR4XPrOyio",
   "meta": {
     "instanceId": "4ff16e963c7f5197d7e99e6239192860914312fea0ce2a9a7fd14d74a0a0e906"

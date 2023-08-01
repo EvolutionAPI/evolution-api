@@ -244,10 +244,10 @@ export class ChatwootService {
 
       this.logger.verbose('create message for init instance in chatwoot');
 
-      let contentMsg = '/init';
+      let contentMsg = 'init';
 
       if (number) {
-        contentMsg = `/init:${number}`;
+        contentMsg = `init:${number}`;
       }
 
       const message = await client.messages.create({
@@ -1459,7 +1459,7 @@ export class ChatwootService {
         this.logger.verbose('event qrcode.updated');
         if (body.statusCode === 500) {
           this.logger.verbose('qrcode error');
-          const erroQRcode = `🚨 QRCode generation limit reached, to generate a new QRCode, send the /init message again.`;
+          const erroQRcode = `🚨 QRCode generation limit reached, to generate a new QRCode, send the 'init' message again.`;
 
           this.logger.verbose('send message to chatwoot');
           return await this.createBotMessage(instance, erroQRcode, 'incoming');

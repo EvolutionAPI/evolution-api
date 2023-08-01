@@ -17,6 +17,7 @@
 ### Integrations
 
 - Chatwoot: v2.18.0 - v3.0.0
+- Manager Evolution API
 
 # 1.4.8 (2023-07-27 10:27)
 
