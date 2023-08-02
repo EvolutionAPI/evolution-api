@@ -11,6 +11,7 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
 import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
+import { RabbitmqService } from '../services/rabbitmq.service';
 import { SettingsService } from '../services/settings.service';
 import { WebhookService } from '../services/webhook.service';
 import { WebsocketService } from '../services/websocket.service';
@@ -28,6 +29,7 @@ export class InstanceController {
     private readonly chatwootService: ChatwootService,
     private readonly settingsService: SettingsService,
     private readonly websocketService: WebsocketService,
+    private readonly rebbitmqService: RabbitmqService,
     private readonly cache: RedisCache,
   ) {}
 

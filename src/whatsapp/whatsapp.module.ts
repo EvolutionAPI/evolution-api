@@ -7,6 +7,7 @@ import { ChatController } from './controllers/chat.controller';
 import { ChatwootController } from './controllers/chatwoot.controller';
 import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';
+import { RabbitmqController } from './controllers/rabbitmq.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { ViewsController } from './controllers/views.controller';
@@ -19,6 +20,7 @@ import {
   ContactModel,
   MessageModel,
   MessageUpModel,
+  RabbitmqModel,
   SettingsModel,
   WebhookModel,
   WebsocketModel,
@@ -29,6 +31,7 @@ import { ChatwootRepository } from './repository/chatwoot.repository';
 import { ContactRepository } from './repository/contact.repository';
 import { MessageRepository } from './repository/message.repository';
 import { MessageUpRepository } from './repository/messageUp.repository';
+import { RabbitmqRepository } from './repository/rabbitmq.repository';
 import { RepositoryBroker } from './repository/repository.manager';
 import { SettingsRepository } from './repository/settings.repository';
 import { WebhookRepository } from './repository/webhook.repository';
@@ -36,6 +39,7 @@ import { WebsocketRepository } from './repository/websocket.repository';
 import { AuthService } from './services/auth.service';
 import { ChatwootService } from './services/chatwoot.service';
 import { WAMonitoringService } from './services/monitor.service';
+import { RabbitmqService } from './services/rabbitmq.service';
 import { SettingsService } from './services/settings.service';
 import { WebhookService } from './services/webhook.service';
 import { WebsocketService } from './services/websocket.service';
@@ -48,6 +52,7 @@ const contactRepository = new ContactRepository(ContactModel, configService);
 const messageUpdateRepository = new MessageUpRepository(MessageUpModel, configService);
 const webhookRepository = new WebhookRepository(WebhookModel, configService);
 const websocketRepository = new WebsocketRepository(WebsocketModel, configService);
+const rabbitmqRepository = new RabbitmqRepository(RabbitmqModel, configService);
 const chatwootRepository = new ChatwootRepository(ChatwootModel, configService);
 const settingsRepository = new SettingsRepository(SettingsModel, configService);
 const authRepository = new AuthRepository(AuthModel, configService);
@@ -61,6 +66,7 @@ export const repository = new RepositoryBroker(
   chatwootRepository,
   settingsRepository,
   websocketRepository,
+  rabbitmqRepository,
   authRepository,
   configService,
   dbserver?.getClient(),
@@ -80,6 +86,10 @@ const websocketService = new WebsocketService(waMonitor);
 
 export const websocketController = new WebsocketController(websocketService);
 
+const rabbitmqService = new RabbitmqService(waMonitor);
+
+export const rabbitmqController = new RabbitmqController(rabbitmqService);
+
 const chatwootService = new ChatwootService(waMonitor, configService);
 
 export const chatwootController = new ChatwootController(chatwootService, configService);
@@ -98,6 +108,7 @@ export const instanceController = new InstanceController(
   chatwootService,
   settingsService,
   websocketService,
+  rabbitmqService,
   cache,
 );
 export const viewsController = new ViewsController(waMonitor, configService);

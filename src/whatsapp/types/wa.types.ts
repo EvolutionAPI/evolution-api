@@ -75,6 +75,11 @@ export declare namespace wa {
     events?: string[];
   };
 
+  export type LocalRabbitmq = {
+    enabled?: boolean;
+    events?: string[];
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';

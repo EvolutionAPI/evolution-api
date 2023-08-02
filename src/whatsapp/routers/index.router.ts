@@ -8,6 +8,7 @@ import { ChatRouter } from './chat.router';
 import { ChatwootRouter } from './chatwoot.router';
 import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
+import { RabbitmqRouter } from './rabbitmq.router';
 import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
 import { ViewsRouter } from './view.router';
@@ -46,6 +47,7 @@ router
   .use('/webhook', new WebhookRouter(...guards).router)
   .use('/chatwoot', new ChatwootRouter(...guards).router)
   .use('/settings', new SettingsRouter(...guards).router)
-  .use('/websocket', new WebsocketRouter(...guards).router);
+  .use('/websocket', new WebsocketRouter(...guards).router)
+  .use('/rabbitmq', new RabbitmqRouter(...guards).router);
 
 export { HttpStatus, router };

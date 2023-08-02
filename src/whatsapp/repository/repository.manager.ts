@@ -10,6 +10,7 @@ import { ChatwootRepository } from './chatwoot.repository';
 import { ContactRepository } from './contact.repository';
 import { MessageRepository } from './message.repository';
 import { MessageUpRepository } from './messageUp.repository';
+import { RabbitmqRepository } from './rabbitmq.repository';
 import { SettingsRepository } from './settings.repository';
 import { WebhookRepository } from './webhook.repository';
 import { WebsocketRepository } from './websocket.repository';
@@ -23,6 +24,7 @@ export class RepositoryBroker {
     public readonly chatwoot: ChatwootRepository,
     public readonly settings: SettingsRepository,
     public readonly websocket: WebsocketRepository,
+    public readonly rabbitmq: RabbitmqRepository,
     public readonly auth: AuthRepository,
     private configService: ConfigService,
     dbServer?: MongoClient,
@@ -54,6 +56,7 @@ export class RepositoryBroker {
         const chatwootDir = join(storePath, 'chatwoot');
         const settingsDir = join(storePath, 'settings');
         const websocketDir = join(storePath, 'websocket');
+        const rabbitmqDir = join(storePath, 'rabbitmq');
         const tempDir = join(storePath, 'temp');
 
         if (!fs.existsSync(authDir)) {
@@ -91,6 +94,10 @@ export class RepositoryBroker {
         if (!fs.existsSync(websocketDir)) {
           this.logger.verbose('creating websocket dir: ' + websocketDir);
           fs.mkdirSync(websocketDir, { recursive: true });
+        }
+        if (!fs.existsSync(rabbitmqDir)) {
+          this.logger.verbose('creating rabbitmq dir: ' + rabbitmqDir);
+          fs.mkdirSync(rabbitmqDir, { recursive: true });
         }
         if (!fs.existsSync(tempDir)) {
           this.logger.verbose('creating temp dir: ' + tempDir);

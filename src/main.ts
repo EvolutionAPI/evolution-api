@@ -9,7 +9,8 @@ import { configService, Cors, HttpServer } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
-import { initIO } from './libs/socket';
+import { initAMQP } from './libs/amqp.server';
+import { initIO } from './libs/socket.server';
 import { ServerUP } from './utils/server-up';
 import { HttpStatus, router } from './whatsapp/routers/index.router';
 import { waMonitor } from './whatsapp/whatsapp.module';
@@ -85,6 +86,8 @@ function bootstrap() {
   initWA();
 
   initIO(server);
+
+  initAMQP();
 
   onUnexpectedError();
 }

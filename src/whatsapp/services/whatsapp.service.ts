@@ -64,9 +64,10 @@ import {
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
+import { getAMQP } from '../../libs/amqp.server';
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
-import { getIO } from '../../libs/socket';
+import { getIO } from '../../libs/socket.server';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import {
@@ -110,7 +111,7 @@ import {
   SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { SettingsRaw } from '../models';
+import { RabbitmqRaw, SettingsRaw } from '../models';
 import { ChatRaw } from '../models/chat.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
@@ -144,6 +145,7 @@ export class WAStartupService {
   private readonly localChatwoot: wa.LocalChatwoot = {};
   private readonly localSettings: wa.LocalSettings = {};
   private readonly localWebsocket: wa.LocalWebsocket = {};
+  private readonly localRabbitmq: wa.LocalRabbitmq = {};
   public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -447,10 +449,45 @@ export class WAStartupService {
     return data;
   }
 
+  private async loadRabbitmq() {
+    this.logger.verbose('Loading rabbitmq');
+    const data = await this.repository.rabbitmq.find(this.instanceName);
+
+    this.localRabbitmq.enabled = data?.enabled;
+    this.logger.verbose(`Rabbitmq enabled: ${this.localRabbitmq.enabled}`);
+
+    this.localRabbitmq.events = data?.events;
+    this.logger.verbose(`Rabbitmq events: ${this.localRabbitmq.events}`);
+
+    this.logger.verbose('Rabbitmq loaded');
+  }
+
+  public async setRabbitmq(data: RabbitmqRaw) {
+    this.logger.verbose('Setting rabbitmq');
+    await this.repository.rabbitmq.create(data, this.instanceName);
+    this.logger.verbose(`Rabbitmq events: ${data.events}`);
+    Object.assign(this.localRabbitmq, data);
+    this.logger.verbose('Rabbitmq set');
+  }
+
+  public async findRabbitmq() {
+    this.logger.verbose('Finding rabbitmq');
+    const data = await this.repository.rabbitmq.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Rabbitmq not found');
+      throw new NotFoundException('Rabbitmq not found');
+    }
+
+    this.logger.verbose(`Rabbitmq events: ${data.events}`);
+    return data;
+  }
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
     const websocketLocal = this.localWebsocket.events;
+    const rabbitmqLocal = this.localRabbitmq.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
@@ -459,18 +496,56 @@ export class WAStartupService {
     const tokenStore = await this.repository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
 
+    if (this.localRabbitmq.enabled) {
+      const amqp = getAMQP();
+
+      if (amqp) {
+        if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
+          const exchangeName = 'evolution_exchange';
+
+          amqp.assertExchange(exchangeName, 'topic', { durable: false });
+
+          const queueName = `${this.instanceName}.${event}`;
+
+          amqp.assertQueue(queueName, { durable: false });
+
+          amqp.bindQueue(queueName, exchangeName, event);
+
+          const message = {
+            event,
+            instance: this.instance.name,
+            data,
+            server_url: serverUrl,
+          };
+
+          if (expose && instanceApikey) {
+            message['apikey'] = instanceApikey;
+          }
+
+          amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+        }
+      }
+    }
+
     if (this.localWebsocket.enabled) {
       this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
       if (Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
         this.logger.verbose('Sending data to websocket on event: ' + event);
         const io = getIO();
 
-        this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
-        io.of(`/${this.instance.name}`).emit(event, {
+        const message = {
           event,
           instance: this.instance.name,
           data,
-        });
+          server_url: serverUrl,
+        };
+
+        if (expose && instanceApikey) {
+          message['apikey'] = instanceApikey;
+        }
+
+        this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
+        io.of(`/${this.instance.name}`).emit(event, message);
       }
     }
 
@@ -867,6 +942,7 @@ export class WAStartupService {
       this.loadChatwoot();
       this.loadSettings();
       this.loadWebsocket();
+      this.loadRabbitmq();
 
       this.instance.authState = await this.defineAuthState();
 
