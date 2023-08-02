@@ -61,6 +61,11 @@ export type Redis = {
   PREFIX_KEY: string;
 };
 
+export type Rabbitmq = {
+  ENABLED: boolean;
+  URI: string;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
@@ -116,6 +121,7 @@ export interface Env {
   CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
   REDIS: Redis;
+  RABBITMQ: Rabbitmq;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
   WEBHOOK: Webhook;
@@ -200,6 +206,10 @@ export class ConfigService {
         ENABLED: process.env?.REDIS_ENABLED === 'true',
         URI: process.env.REDIS_URI,
         PREFIX_KEY: process.env.REDIS_PREFIX_KEY,
+      },
+      RABBITMQ: {
+        ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
+        URI: process.env.RABBITMQ_URI,
       },
       LOG: {
         LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],

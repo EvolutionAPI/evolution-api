@@ -79,6 +79,10 @@ REDIS:
   URI: "redis://localhost:6379"
   PREFIX_KEY: "evolution"
 
+RABBITMQ:
+  ENABLED: false
+  URI: "amqp://guest:guest@localhost:5672"
+
 # Global Webhook Settings
 # Each instance's Webhook URL and events will be requested at the time it is created
 WEBHOOK:
