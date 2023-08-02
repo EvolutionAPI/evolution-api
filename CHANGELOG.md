@@ -6,7 +6,8 @@
 * Added extra files for chatwoot and appsmith
 * Added Get Last Message and Archive for Chat
 * Added env var QRCODE_COLOR
-* Added websocket with lib socket.io
+* Added websocket to send events
+* Added rabbitmq to send events
 
 ### Fixed
 
