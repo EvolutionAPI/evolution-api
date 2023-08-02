@@ -86,10 +86,38 @@ export class InstanceController {
 
         this.logger.verbose('creating webhook');
         try {
+          let newEvents: string[] = [];
+          if (events.length === 0) {
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'CALL',
+              'NEW_JWT_TOKEN',
+            ];
+          } else {
+            newEvents = events;
+          }
           this.webhookService.create(instance, {
             enabled: true,
             url: webhook,
-            events,
+            events: newEvents,
             webhook_by_events,
           });
 

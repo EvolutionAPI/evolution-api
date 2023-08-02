@@ -14,6 +14,7 @@
 * Encoded spaces in chatwoot webhook
 * Adjustment in the saving of contacts, saving the information of the number and Jid
 * Update Dockerfile
+* If you pass empty events in create instance and set webhook it is understood as all
 
 ### Integrations
 
