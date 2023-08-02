@@ -824,13 +824,11 @@ export const updateGroupDescriptionSchema: JSONSchema7 = {
   ...isNotEmpty('groupJid', 'description'),
 };
 
-// Webhook Schema
 export const webhookSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
     url: { type: 'string' },
-    enabled: { type: 'boolean', enum: [true, false] },
     events: {
       type: 'array',
       minItems: 0,
@@ -862,7 +860,7 @@ export const webhookSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['url', 'enabled'],
+  required: ['url'],
   ...isNotEmpty('url'),
 };
 
@@ -895,4 +893,44 @@ export const settingsSchema: JSONSchema7 = {
   },
   required: ['reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'],
   ...isNotEmpty('reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'),
+};
+
+export const websocketSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    events: {
+      type: 'array',
+      minItems: 0,
+      items: {
+        type: 'string',
+        enum: [
+          'APPLICATION_STARTUP',
+          'QRCODE_UPDATED',
+          'MESSAGES_SET',
+          'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'MESSAGES_DELETE',
+          'SEND_MESSAGE',
+          'CONTACTS_SET',
+          'CONTACTS_UPSERT',
+          'CONTACTS_UPDATE',
+          'PRESENCE_UPDATE',
+          'CHATS_SET',
+          'CHATS_UPSERT',
+          'CHATS_UPDATE',
+          'CHATS_DELETE',
+          'GROUPS_UPSERT',
+          'GROUP_UPDATE',
+          'GROUP_PARTICIPANTS_UPDATE',
+          'CONNECTION_UPDATE',
+          'CALL',
+          'NEW_JWT_TOKEN',
+        ],
+      },
+    },
+  },
+  required: ['enabled'],
+  ...isNotEmpty('enabled'),
 };

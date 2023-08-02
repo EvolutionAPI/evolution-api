@@ -12,6 +12,7 @@ import { MessageRepository } from './message.repository';
 import { MessageUpRepository } from './messageUp.repository';
 import { SettingsRepository } from './settings.repository';
 import { WebhookRepository } from './webhook.repository';
+import { WebsocketRepository } from './websocket.repository';
 export class RepositoryBroker {
   constructor(
     public readonly message: MessageRepository,
@@ -21,6 +22,7 @@ export class RepositoryBroker {
     public readonly webhook: WebhookRepository,
     public readonly chatwoot: ChatwootRepository,
     public readonly settings: SettingsRepository,
+    public readonly websocket: WebsocketRepository,
     public readonly auth: AuthRepository,
     private configService: ConfigService,
     dbServer?: MongoClient,
@@ -51,6 +53,7 @@ export class RepositoryBroker {
         const webhookDir = join(storePath, 'webhook');
         const chatwootDir = join(storePath, 'chatwoot');
         const settingsDir = join(storePath, 'settings');
+        const websocketDir = join(storePath, 'websocket');
         const tempDir = join(storePath, 'temp');
 
         if (!fs.existsSync(authDir)) {
@@ -84,6 +87,10 @@ export class RepositoryBroker {
         if (!fs.existsSync(settingsDir)) {
           this.logger.verbose('creating settings dir: ' + settingsDir);
           fs.mkdirSync(settingsDir, { recursive: true });
+        }
+        if (!fs.existsSync(websocketDir)) {
+          this.logger.verbose('creating websocket dir: ' + websocketDir);
+          fs.mkdirSync(websocketDir, { recursive: true });
         }
         if (!fs.existsSync(tempDir)) {
           this.logger.verbose('creating temp dir: ' + tempDir);

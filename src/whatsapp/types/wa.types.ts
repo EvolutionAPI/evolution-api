@@ -70,6 +70,11 @@ export declare namespace wa {
     read_status?: boolean;
   };
 
+  export type LocalWebsocket = {
+    enabled?: boolean;
+    events?: string[];
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';

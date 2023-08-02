@@ -13,6 +13,7 @@ import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { SettingsService } from '../services/settings.service';
 import { WebhookService } from '../services/webhook.service';
+import { WebsocketService } from '../services/websocket.service';
 import { WAStartupService } from '../services/whatsapp.service';
 import { wa } from '../types/wa.types';
 
@@ -26,6 +27,7 @@ export class InstanceController {
     private readonly webhookService: WebhookService,
     private readonly chatwootService: ChatwootService,
     private readonly settingsService: SettingsService,
+    private readonly websocketService: WebsocketService,
     private readonly cache: RedisCache,
   ) {}
 
@@ -51,6 +53,8 @@ export class InstanceController {
     always_online,
     read_messages,
     read_status,
+    websocket_enabled,
+    websocket_events,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -77,7 +81,7 @@ export class InstanceController {
 
       this.logger.verbose('hash: ' + hash + ' generated');
 
-      let getEvents: string[];
+      let webhookEvents: string[];
 
       if (webhook) {
         if (!isURL(webhook, { require_tld: false })) {
@@ -121,7 +125,51 @@ export class InstanceController {
             webhook_by_events,
           });
 
-          getEvents = (await this.webhookService.find(instance)).events;
+          webhookEvents = (await this.webhookService.find(instance)).events;
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
+      let websocketEvents: string[];
+
+      if (websocket_enabled) {
+        this.logger.verbose('creating websocket');
+        try {
+          let newEvents: string[] = [];
+          if (websocket_events.length === 0) {
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'CALL',
+              'NEW_JWT_TOKEN',
+            ];
+          } else {
+            newEvents = events;
+          }
+          this.websocketService.create(instance, {
+            enabled: true,
+            events: newEvents,
+          });
+
+          websocketEvents = (await this.websocketService.find(instance)).events;
         } catch (error) {
           this.logger.log(error);
         }
@@ -157,9 +205,15 @@ export class InstanceController {
             status: 'created',
           },
           hash,
-          webhook,
-          webhook_by_events,
-          events: getEvents,
+          webhook: {
+            webhook,
+            webhook_by_events,
+            events: webhookEvents,
+          },
+          websocker: {
+            enabled: websocket_enabled,
+            events: websocketEvents,
+          },
           settings,
           qrcode: getQrcode,
         };
@@ -230,9 +284,15 @@ export class InstanceController {
           status: 'created',
         },
         hash,
-        webhook,
-        webhook_by_events,
-        events: getEvents,
+        webhook: {
+          webhook,
+          webhook_by_events,
+          events: webhookEvents,
+        },
+        websocker: {
+          enabled: websocket_enabled,
+          events: websocketEvents,
+        },
         settings,
         chatwoot: {
           enabled: true,

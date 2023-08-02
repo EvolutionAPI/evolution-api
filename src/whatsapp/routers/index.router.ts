@@ -12,6 +12,7 @@ import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
 import { ViewsRouter } from './view.router';
 import { WebhookRouter } from './webhook.router';
+import { WebsocketRouter } from './websocket.router';
 
 enum HttpStatus {
   OK = 200,
@@ -44,6 +45,7 @@ router
   .use('/group', new GroupRouter(...guards).router)
   .use('/webhook', new WebhookRouter(...guards).router)
   .use('/chatwoot', new ChatwootRouter(...guards).router)
-  .use('/settings', new SettingsRouter(...guards).router);
+  .use('/settings', new SettingsRouter(...guards).router)
+  .use('/websocket', new WebsocketRouter(...guards).router);
 
 export { HttpStatus, router };

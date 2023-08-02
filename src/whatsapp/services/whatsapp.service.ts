@@ -116,6 +116,7 @@ import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
 import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
 import { WebhookRaw } from '../models/webhook.model';
+import { WebsocketRaw } from '../models/websocket.model';
 import { ContactQuery } from '../repository/contact.repository';
 import { MessageQuery } from '../repository/message.repository';
 import { MessageUpQuery } from '../repository/messageUp.repository';
@@ -142,6 +143,7 @@ export class WAStartupService {
   private readonly localWebhook: wa.LocalWebHook = {};
   private readonly localChatwoot: wa.LocalChatwoot = {};
   private readonly localSettings: wa.LocalSettings = {};
+  private readonly localWebsocket: wa.LocalWebsocket = {};
   public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -411,9 +413,44 @@ export class WAStartupService {
     return data;
   }
 
+  private async loadWebsocket() {
+    this.logger.verbose('Loading websocket');
+    const data = await this.repository.websocket.find(this.instanceName);
+
+    this.localWebsocket.enabled = data?.enabled;
+    this.logger.verbose(`Websocket enabled: ${this.localWebsocket.enabled}`);
+
+    this.localWebsocket.events = data?.events;
+    this.logger.verbose(`Websocket events: ${this.localWebsocket.events}`);
+
+    this.logger.verbose('Websocket loaded');
+  }
+
+  public async setWebsocket(data: WebsocketRaw) {
+    this.logger.verbose('Setting websocket');
+    await this.repository.websocket.create(data, this.instanceName);
+    this.logger.verbose(`Websocket events: ${data.events}`);
+    Object.assign(this.localWebsocket, data);
+    this.logger.verbose('Websocket set');
+  }
+
+  public async findWebsocket() {
+    this.logger.verbose('Finding websocket');
+    const data = await this.repository.websocket.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Websocket not found');
+      throw new NotFoundException('Websocket not found');
+    }
+
+    this.logger.verbose(`Websocket events: ${data.events}`);
+    return data;
+  }
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
+    const websocketLocal = this.localWebsocket.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
@@ -421,14 +458,21 @@ export class WAStartupService {
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
-    const io = getIO();
 
-    this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
-    io.of(`/${this.instance.name}`).emit(event, {
-      event,
-      instance: this.instance.name,
-      data,
-    });
+    if (this.localWebsocket.enabled) {
+      this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
+      if (Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
+        this.logger.verbose('Sending data to websocket on event: ' + event);
+        const io = getIO();
+
+        this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
+        io.of(`/${this.instance.name}`).emit(event, {
+          event,
+          instance: this.instance.name,
+          data,
+        });
+      }
+    }
 
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
@@ -568,7 +612,6 @@ export class WAStartupService {
     this.logger.verbose('Connection update');
     if (qr) {
       this.logger.verbose('QR code found');
-      console.log('this.instance.qrcode', this.instance.qrcode);
       if (this.instance.qrcode.count === this.configService.get<QrCode>('QRCODE').LIMIT) {
         this.logger.verbose('QR code limit reached');
 
@@ -823,6 +866,7 @@ export class WAStartupService {
       this.loadWebhook();
       this.loadChatwoot();
       this.loadSettings();
+      this.loadWebsocket();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -2380,7 +2424,6 @@ export class WAStartupService {
       if (!last_message || Object.keys(last_message).length === 0) {
         throw new NotFoundException('Last message not found');
       }
-      console.log(last_message);
 
       await this.client.chatModify(
         {

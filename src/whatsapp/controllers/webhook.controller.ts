@@ -14,17 +14,17 @@ export class WebhookController {
   public async createWebhook(instance: InstanceDto, data: WebhookDto) {
     logger.verbose('requested createWebhook from ' + instance.instanceName + ' instance');
 
-    if (data.enabled && !isURL(data.url, { require_tld: false })) {
+    if (!isURL(data.url, { require_tld: false })) {
       throw new BadRequestException('Invalid "url" property');
     }
+
+    data.enabled = data.enabled ?? true;
 
     if (!data.enabled) {
       logger.verbose('webhook disabled');
       data.url = '';
       data.events = [];
-    }
-
-    if (data.events.length === 0) {
+    } else if (data.events.length === 0) {
       logger.verbose('webhook events empty');
       data.events = [
         'APPLICATION_STARTUP',

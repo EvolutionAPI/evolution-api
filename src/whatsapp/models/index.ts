@@ -5,3 +5,4 @@ export * from './contact.model';
 export * from './message.model';
 export * from './settings.model';
 export * from './webhook.model';
+export * from './websocket.model';
