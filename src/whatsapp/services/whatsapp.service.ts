@@ -417,11 +417,18 @@ export class WAStartupService {
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
-    const io = getIO();
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
+    const io = getIO();
+
+    this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
+    io.of(`/${this.instance.name}`).emit(event, {
+      event,
+      instance: this.instance.name,
+      data,
+    });
 
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
@@ -555,12 +562,6 @@ export class WAStartupService {
         }
       }
     }
-
-    io.emit(event, {
-      event,
-      instance: this.instance.name,
-      data,
-    });
   }
 
   private async connectionUpdate({ qr, connection, lastDisconnect }: Partial<ConnectionState>) {
