@@ -29,7 +29,7 @@ export class InstanceController {
     private readonly chatwootService: ChatwootService,
     private readonly settingsService: SettingsService,
     private readonly websocketService: WebsocketService,
-    private readonly rebbitmqService: RabbitmqService,
+    private readonly rabbitmqService: RabbitmqService,
     private readonly cache: RedisCache,
   ) {}
 
@@ -57,6 +57,8 @@ export class InstanceController {
     read_status,
     websocket_enabled,
     websocket_events,
+    rabbitmq_enabled,
+    rabbitmq_events,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -177,6 +179,50 @@ export class InstanceController {
         }
       }
 
+      let rabbitmqEvents: string[];
+
+      if (rabbitmq_enabled) {
+        this.logger.verbose('creating rabbitmq');
+        try {
+          let newEvents: string[] = [];
+          if (rabbitmq_events.length === 0) {
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'CALL',
+              'NEW_JWT_TOKEN',
+            ];
+          } else {
+            newEvents = events;
+          }
+          this.rabbitmqService.create(instance, {
+            enabled: true,
+            events: newEvents,
+          });
+
+          rabbitmqEvents = (await this.rabbitmqService.find(instance)).events;
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
       this.logger.verbose('creating settings');
       const settings: wa.LocalSettings = {
         reject_call: reject_call || false,
@@ -215,6 +261,10 @@ export class InstanceController {
           websocker: {
             enabled: websocket_enabled,
             events: websocketEvents,
+          },
+          rabbitmq: {
+            enabled: rabbitmq_enabled,
+            events: rabbitmqEvents,
           },
           settings,
           qrcode: getQrcode,
@@ -294,6 +344,10 @@ export class InstanceController {
         websocker: {
           enabled: websocket_enabled,
           events: websocketEvents,
+        },
+        rabbitmq: {
+          enabled: rabbitmq_enabled,
+          events: rabbitmqEvents,
         },
         settings,
         chatwoot: {
