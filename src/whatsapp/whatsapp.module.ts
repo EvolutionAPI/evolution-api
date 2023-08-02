@@ -1,8 +1,8 @@
 import { configService } from '../config/env.config';
 import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
-import { dbserver } from '../db/db.connect';
-import { RedisCache } from '../db/redis.client';
+import { dbserver } from '../libs/db.connect';
+import { RedisCache } from '../libs/redis.client';
 import { ChatController } from './controllers/chat.controller';
 import { ChatwootController } from './controllers/chatwoot.controller';
 import { GroupController } from './controllers/group.controller';

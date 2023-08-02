@@ -4,8 +4,8 @@ import EventEmitter2 from 'eventemitter2';
 
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { RedisCache } from '../../db/redis.client';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
+import { RedisCache } from '../../libs/redis.client';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';

@@ -63,9 +63,10 @@ import {
 } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
-import { dbserver } from '../../db/db.connect';
-import { RedisCache } from '../../db/redis.client';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
+import { dbserver } from '../../libs/db.connect';
+import { RedisCache } from '../../libs/redis.client';
+import { getIO } from '../../libs/socket';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import {
@@ -416,6 +417,7 @@ export class WAStartupService {
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
+    const io = getIO();
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
@@ -553,6 +555,12 @@ export class WAStartupService {
         }
       }
     }
+
+    io.emit(event, {
+      event,
+      instance: this.instance.name,
+      data,
+    });
   }
 
   private async connectionUpdate({ qr, connection, lastDisconnect }: Partial<ConnectionState>) {

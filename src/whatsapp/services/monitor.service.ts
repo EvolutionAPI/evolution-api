@@ -7,9 +7,9 @@ import { join } from 'path';
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import { dbserver } from '../../db/db.connect';
-import { RedisCache } from '../../db/redis.client';
 import { NotFoundException } from '../../exceptions';
+import { dbserver } from '../../libs/db.connect';
+import { RedisCache } from '../../libs/redis.client';
 import {
   AuthModel,
   ChatwootModel,

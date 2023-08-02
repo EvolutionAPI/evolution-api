@@ -9,6 +9,7 @@ import { configService, Cors, HttpServer } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
+import { initIO } from './libs/socket';
 import { ServerUP } from './utils/server-up';
 import { HttpStatus, router } from './whatsapp/routers/index.router';
 import { waMonitor } from './whatsapp/whatsapp.module';
@@ -82,6 +83,8 @@ function bootstrap() {
   server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
   initWA();
+
+  initIO(server);
 
   onUnexpectedError();
 }
