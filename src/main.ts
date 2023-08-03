@@ -5,7 +5,7 @@ import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
 
-import { configService, Cors, HttpServer } from './config/env.config';
+import { configService, Cors, HttpServer, Rabbitmq } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
@@ -87,7 +87,7 @@ function bootstrap() {
 
   initIO(server);
 
-  initAMQP();
+  if (configService.get<Rabbitmq>('RABBITMQ').ENABLED) initAMQP();
 
   onUnexpectedError();
 }
