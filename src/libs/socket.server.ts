@@ -11,7 +11,6 @@ let io: SocketIO;
 const cors = configService.get<Cors>('CORS').ORIGIN;
 
 export const initIO = (httpServer: Server) => {
-  logger.verbose('Initializing Socket.io');
   io = new SocketIO(httpServer, {
     cors: {
       origin: cors,
@@ -19,12 +18,14 @@ export const initIO = (httpServer: Server) => {
   });
 
   io.on('connection', (socket) => {
-    logger.verbose('Client connected');
+    logger.info('User connected');
+
     socket.on('disconnect', () => {
-      logger.verbose('Client disconnected');
+      logger.info('User disconnected');
     });
   });
 
+  logger.info('Socket.io initialized');
   return io;
 };
 

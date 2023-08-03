@@ -27,7 +27,7 @@ export const initAMQP = () => {
         channel.assertExchange(exchangeName, 'topic', { durable: false });
         amqpChannel = channel;
 
-        logger.log('AMQP initialized');
+        logger.info('AMQP initialized');
         resolve();
       });
     });
