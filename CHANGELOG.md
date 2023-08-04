@@ -8,6 +8,7 @@
 * Added env var QRCODE_COLOR
 * Added websocket to send events
 * Added rabbitmq to send events
+* Added Typebot integration
 
 ### Fixed
 
@@ -20,6 +21,7 @@
 ### Integrations
 
 - Chatwoot: v2.18.0 - v3.0.0
+- Typebot: v2.16.0
 - Manager Evolution API
 
 # 1.4.8 (2023-07-27 10:27)
