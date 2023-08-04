@@ -113,10 +113,10 @@ export class TypebotService {
     return request.data;
   }
 
-  public async sendWAMessage(instance: InstanceDto, remoteJid: string, messages: any[], closeSession?: boolean) {
-    processMessages(this.waMonitor.waInstances[instance.instanceName], messages)
+  public async sendWAMessage(instance: InstanceDto, remoteJid: string, messages: any[], input: any[]) {
+    processMessages(this.waMonitor.waInstances[instance.instanceName], messages, input)
       .then(async () => {
-        if (closeSession) {
+        if (!input) {
           const typebotData = await this.find(instance);
 
           const session = typebotData.sessions.find((session) => session.remoteJid === remoteJid);
@@ -132,10 +132,12 @@ export class TypebotService {
         console.error('Erro ao processar mensagens:', err);
       });
 
-    async function processMessages(instance, messages) {
+    async function processMessages(instance, messages, input) {
       for (const message of messages) {
         if (message.type === 'text') {
           let formattedText = '';
+
+          let linkPreview = false;
 
           for (const richText of message.content.richText) {
             for (const element of richText.children) {
@@ -159,6 +161,7 @@ export class TypebotService {
               if (element.url) {
                 const linkText = element.children[0].text;
                 text = `[${linkText}](${element.url})`;
+                linkPreview = true;
               }
 
               formattedText += text;
@@ -173,7 +176,7 @@ export class TypebotService {
             options: {
               delay: 1200,
               presence: 'composing',
-              linkPreview: false,
+              linkPreview: linkPreview,
             },
             textMessage: {
               text: formattedText,
@@ -223,6 +226,32 @@ export class TypebotService {
           });
         }
       }
+
+      if (input) {
+        if (input.type === 'choice input') {
+          let formattedText = '';
+
+          const items = input.items;
+
+          for (const item of items) {
+            formattedText += `▶️ ${item.content}\n`;
+          }
+
+          formattedText = formattedText.replace(/\n$/, '');
+
+          await instance.textMessage({
+            number: remoteJid.split('@')[0],
+            options: {
+              delay: 1200,
+              presence: 'composing',
+              linkPreview: false,
+            },
+            textMessage: {
+              text: formattedText,
+            },
+          });
+        }
+      }
     }
   }
 
@@ -252,7 +281,7 @@ export class TypebotService {
           remoteJid: remoteJid,
         });
 
-        await this.sendWAMessage(instance, remoteJid, data.messages);
+        await this.sendWAMessage(instance, remoteJid, data.messages, data.input);
 
         return;
       }
@@ -267,7 +296,7 @@ export class TypebotService {
         remoteJid: remoteJid,
       });
 
-      await this.sendWAMessage(instance, remoteJid, data.messages);
+      await this.sendWAMessage(instance, remoteJid, data.messages, data.input);
 
       return;
     }
@@ -329,7 +358,7 @@ export class TypebotService {
       });
     }
 
-    await this.sendWAMessage(instance, remoteJid, request.data.messages, !request.data.input);
+    await this.sendWAMessage(instance, remoteJid, request.data.messages, request.data.input);
 
     return;
   }
