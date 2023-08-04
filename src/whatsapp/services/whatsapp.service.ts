@@ -111,7 +111,7 @@ import {
   SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { RabbitmqRaw, SettingsRaw } from '../models';
+import { RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
 import { ChatRaw } from '../models/chat.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
@@ -125,6 +125,7 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
 import { ChatwootService } from './chatwoot.service';
+import { TypebotService } from './typebot.service';
 
 export class WAStartupService {
   constructor(
@@ -146,6 +147,7 @@ export class WAStartupService {
   private readonly localSettings: wa.LocalSettings = {};
   private readonly localWebsocket: wa.LocalWebsocket = {};
   private readonly localRabbitmq: wa.LocalRabbitmq = {};
+  private readonly localTypebot: wa.LocalTypebot = {};
   public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -156,6 +158,8 @@ export class WAStartupService {
   private phoneNumber: string;
 
   private chatwootService = new ChatwootService(waMonitor, this.configService);
+
+  private typebotService = new TypebotService(waMonitor);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -480,6 +484,48 @@ export class WAStartupService {
     }
 
     this.logger.verbose(`Rabbitmq events: ${data.events}`);
+    return data;
+  }
+
+  private async loadTypebot() {
+    this.logger.verbose('Loading typebot');
+    const data = await this.repository.typebot.find(this.instanceName);
+
+    this.localTypebot.enabled = data?.enabled;
+    this.logger.verbose(`Typebot enabled: ${this.localTypebot.enabled}`);
+
+    this.localTypebot.url = data?.url;
+    this.logger.verbose(`Typebot url: ${this.localTypebot.url}`);
+
+    this.localTypebot.typebot = data?.typebot;
+    this.logger.verbose(`Typebot typebot: ${this.localTypebot.typebot}`);
+
+    this.localTypebot.expire = data?.expire;
+    this.logger.verbose(`Typebot expire: ${this.localTypebot.expire}`);
+
+    this.localTypebot.sessions = data?.sessions;
+
+    this.logger.verbose('Typebot loaded');
+  }
+
+  public async setTypebot(data: TypebotRaw) {
+    this.logger.verbose('Setting typebot');
+    await this.repository.typebot.create(data, this.instanceName);
+    this.logger.verbose(`Typebot typebot: ${data.typebot}`);
+    this.logger.verbose(`Typebot expire: ${data.expire}`);
+    Object.assign(this.localTypebot, data);
+    this.logger.verbose('Typebot set');
+  }
+
+  public async findTypebot() {
+    this.logger.verbose('Finding typebot');
+    const data = await this.repository.typebot.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Typebot not found');
+      throw new NotFoundException('Typebot not found');
+    }
+
     return data;
   }
 
@@ -943,6 +989,7 @@ export class WAStartupService {
       this.loadSettings();
       this.loadWebsocket();
       this.loadRabbitmq();
+      this.loadTypebot();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -1246,6 +1293,14 @@ export class WAStartupService {
         await this.chatwootService.eventWhatsapp(
           Events.MESSAGES_UPSERT,
           { instanceName: this.instance.name },
+          messageRaw,
+        );
+      }
+
+      if (this.localTypebot.enabled) {
+        await this.typebotService.sendTypebot(
+          { instanceName: this.instance.name },
+          messageRaw.key.remoteJid,
           messageRaw,
         );
       }

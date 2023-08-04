@@ -10,6 +10,7 @@ import { InstanceController } from './controllers/instance.controller';
 import { RabbitmqController } from './controllers/rabbitmq.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
+import { TypebotController } from './controllers/typebot.controller';
 import { ViewsController } from './controllers/views.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import { WebsocketController } from './controllers/websocket.controller';
@@ -22,6 +23,7 @@ import {
   MessageUpModel,
   RabbitmqModel,
   SettingsModel,
+  TypebotModel,
   WebhookModel,
   WebsocketModel,
 } from './models';
@@ -34,6 +36,7 @@ import { MessageUpRepository } from './repository/messageUp.repository';
 import { RabbitmqRepository } from './repository/rabbitmq.repository';
 import { RepositoryBroker } from './repository/repository.manager';
 import { SettingsRepository } from './repository/settings.repository';
+import { TypebotRepository } from './repository/typebot.repository';
 import { WebhookRepository } from './repository/webhook.repository';
 import { WebsocketRepository } from './repository/websocket.repository';
 import { AuthService } from './services/auth.service';
@@ -41,6 +44,7 @@ import { ChatwootService } from './services/chatwoot.service';
 import { WAMonitoringService } from './services/monitor.service';
 import { RabbitmqService } from './services/rabbitmq.service';
 import { SettingsService } from './services/settings.service';
+import { TypebotService } from './services/typebot.service';
 import { WebhookService } from './services/webhook.service';
 import { WebsocketService } from './services/websocket.service';
 
@@ -50,6 +54,7 @@ const messageRepository = new MessageRepository(MessageModel, configService);
 const chatRepository = new ChatRepository(ChatModel, configService);
 const contactRepository = new ContactRepository(ContactModel, configService);
 const messageUpdateRepository = new MessageUpRepository(MessageUpModel, configService);
+const typebotRepository = new TypebotRepository(TypebotModel, configService);
 const webhookRepository = new WebhookRepository(WebhookModel, configService);
 const websocketRepository = new WebsocketRepository(WebsocketModel, configService);
 const rabbitmqRepository = new RabbitmqRepository(RabbitmqModel, configService);
@@ -67,6 +72,7 @@ export const repository = new RepositoryBroker(
   settingsRepository,
   websocketRepository,
   rabbitmqRepository,
+  typebotRepository,
   authRepository,
   configService,
   dbserver?.getClient(),
@@ -77,6 +83,10 @@ export const cache = new RedisCache();
 export const waMonitor = new WAMonitoringService(eventEmitter, configService, repository, cache);
 
 const authService = new AuthService(configService, waMonitor, repository);
+
+const typebotService = new TypebotService(waMonitor);
+
+export const typebotController = new TypebotController(typebotService);
 
 const webhookService = new WebhookService(waMonitor);
 

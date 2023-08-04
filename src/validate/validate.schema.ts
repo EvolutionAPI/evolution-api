@@ -974,3 +974,16 @@ export const rabbitmqSchema: JSONSchema7 = {
   required: ['enabled'],
   ...isNotEmpty('enabled'),
 };
+
+export const typebotSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    url: { type: 'string' },
+    typebot: { type: 'string' },
+    expire: { type: 'integer' },
+  },
+  required: ['enabled', 'url', 'typebot', 'expire'],
+  ...isNotEmpty('enabled', 'url', 'typebot', 'expire'),
+};

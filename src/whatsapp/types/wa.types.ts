@@ -80,6 +80,20 @@ export declare namespace wa {
     events?: string[];
   };
 
+  type Session = {
+    remoteJid?: string;
+    sessionId?: string;
+    createdAt?: number;
+  };
+
+  export type LocalTypebot = {
+    enabled?: boolean;
+    url?: string;
+    typebot?: string;
+    expire?: number;
+    sessions?: Session[];
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';
