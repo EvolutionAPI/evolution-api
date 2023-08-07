@@ -9,6 +9,7 @@
 * Added websocket to send events
 * Added rabbitmq to send events
 * Added Typebot integration
+* Added proxy endpoint
 
 ### Fixed
 
