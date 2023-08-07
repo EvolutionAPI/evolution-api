@@ -45,7 +45,6 @@ import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
 import { ProxyAgent } from 'proxy-agent';
-// import { ProxyAgent } from 'proxy-agent';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
@@ -149,7 +148,7 @@ export class WAStartupService {
   private readonly localSettings: wa.LocalSettings = {};
   private readonly localWebsocket: wa.LocalWebsocket = {};
   private readonly localRabbitmq: wa.LocalRabbitmq = {};
-  private readonly localTypebot: wa.LocalTypebot = {};
+  public readonly localTypebot: wa.LocalTypebot = {};
   private readonly localProxy: wa.LocalProxy = {};
   public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
@@ -506,6 +505,12 @@ export class WAStartupService {
     this.localTypebot.expire = data?.expire;
     this.logger.verbose(`Typebot expire: ${this.localTypebot.expire}`);
 
+    this.localTypebot.delay_message = data?.delay_message;
+    this.logger.verbose(`Typebot delay_message: ${this.localTypebot.delay_message}`);
+
+    this.localTypebot.unknown_message = data?.unknown_message;
+    this.logger.verbose(`Typebot unknown_message: ${this.localTypebot.unknown_message}`);
+
     this.localTypebot.sessions = data?.sessions;
 
     this.logger.verbose('Typebot loaded');
@@ -516,6 +521,8 @@ export class WAStartupService {
     await this.repository.typebot.create(data, this.instanceName);
     this.logger.verbose(`Typebot typebot: ${data.typebot}`);
     this.logger.verbose(`Typebot expire: ${data.expire}`);
+    this.logger.verbose(`Typebot sessions: ${data.delay_message}`);
+    this.logger.verbose(`Typebot sessions: ${data.unknown_message}`);
     Object.assign(this.localTypebot, data);
     this.logger.verbose('Typebot set');
   }

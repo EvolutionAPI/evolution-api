@@ -91,6 +91,8 @@ export declare namespace wa {
     url?: string;
     typebot?: string;
     expire?: number;
+    delay_message?: number;
+    unknown_message?: string;
     sessions?: Session[];
   };
 

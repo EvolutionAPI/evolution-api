@@ -1,7 +1,7 @@
 import { RequestHandler, Router } from 'express';
 
 import { Logger } from '../../config/logger.config';
-import { instanceNameSchema, typebotSchema } from '../../validate/validate.schema';
+import { instanceNameSchema, typebotSchema, typebotStatusSchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto } from '../dto/instance.dto';
 import { TypebotDto } from '../dto/typebot.dto';
@@ -42,6 +42,22 @@ export class TypebotRouter extends RouterBroker {
           schema: instanceNameSchema,
           ClassRef: InstanceDto,
           execute: (instance) => typebotController.findTypebot(instance),
+        });
+
+        res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('changeStatus'), ...guards, async (req, res) => {
+        logger.verbose('request received in findTypebot');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: typebotStatusSchema,
+          ClassRef: InstanceDto,
+          execute: (instance, data) => typebotController.changeStatus(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);

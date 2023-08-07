@@ -983,9 +983,22 @@ export const typebotSchema: JSONSchema7 = {
     url: { type: 'string' },
     typebot: { type: 'string' },
     expire: { type: 'integer' },
+    delay_message: { type: 'integer' },
+    unknown_message: { type: 'string' },
   },
   required: ['enabled', 'url', 'typebot', 'expire'],
   ...isNotEmpty('enabled', 'url', 'typebot', 'expire'),
+};
+
+export const typebotStatusSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    remoteJid: { type: 'string' },
+    status: { type: 'string', enum: ['opened', 'closed', 'paused'] },
+  },
+  required: ['remoteJid', 'status'],
+  ...isNotEmpty('remoteJid', 'status'),
 };
 
 export const proxySchema: JSONSchema7 = {
