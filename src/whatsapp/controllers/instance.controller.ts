@@ -64,6 +64,7 @@ export class InstanceController {
     typebot_url,
     typebot,
     typebot_expire,
+    typebot_keyword_finish,
     typebot_delay_message,
     typebot_unknown_message,
   }: InstanceDto) {
@@ -243,6 +244,7 @@ export class InstanceController {
             url: typebot_url,
             typebot: typebot,
             expire: typebot_expire,
+            keyword_finish: typebot_keyword_finish,
             delay_message: typebot_delay_message,
             unknown_message: typebot_unknown_message,
           });
@@ -286,7 +288,7 @@ export class InstanceController {
             webhook_by_events,
             events: webhookEvents,
           },
-          websocker: {
+          websocket: {
             enabled: websocket_enabled,
             events: websocketEvents,
           },
@@ -299,6 +301,7 @@ export class InstanceController {
             url: typebot_url,
             typebot,
             expire: typebot_expire,
+            keyword_finish: typebot_keyword_finish,
             delay_message: typebot_delay_message,
             unknown_message: typebot_unknown_message,
           },
@@ -377,7 +380,7 @@ export class InstanceController {
           webhook_by_events,
           events: webhookEvents,
         },
-        websocker: {
+        websocket: {
           enabled: websocket_enabled,
           events: websocketEvents,
         },
@@ -390,6 +393,7 @@ export class InstanceController {
           url: typebot_url,
           typebot,
           expire: typebot_expire,
+          keyword_finish: typebot_keyword_finish,
           delay_message: typebot_delay_message,
           unknown_message: typebot_unknown_message,
         },

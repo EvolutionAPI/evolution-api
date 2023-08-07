@@ -1,7 +1,7 @@
 import { Server } from 'http';
 import { Server as SocketIO } from 'socket.io';
 
-import { configService, Cors } from '../config/env.config';
+import { configService, Cors, Websocket } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 
 const logger = new Logger('Socket');
@@ -11,22 +11,25 @@ let io: SocketIO;
 const cors = configService.get<Cors>('CORS').ORIGIN;
 
 export const initIO = (httpServer: Server) => {
-  io = new SocketIO(httpServer, {
-    cors: {
-      origin: cors,
-    },
-  });
-
-  io.on('connection', (socket) => {
-    logger.info('User connected');
-
-    socket.on('disconnect', () => {
-      logger.info('User disconnected');
+  if (configService.get<Websocket>('WEBSOCKET').ENABLED) {
+    io = new SocketIO(httpServer, {
+      cors: {
+        origin: cors,
+      },
     });
-  });
 
-  logger.info('Socket.io initialized');
-  return io;
+    io.on('connection', (socket) => {
+      logger.info('User connected');
+
+      socket.on('disconnect', () => {
+        logger.info('User disconnected');
+      });
+    });
+
+    logger.info('Socket.io initialized');
+    return io;
+  }
+  return null;
 };
 
 export const getIO = (): SocketIO => {

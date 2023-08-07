@@ -16,6 +16,7 @@ export class TypebotRaw {
   url: string;
   typebot?: string;
   expire?: number;
+  keyword_finish?: string;
   delay_message?: number;
   unknown_message?: string;
   sessions?: Session[];
@@ -27,6 +28,7 @@ const typebotSchema = new Schema<TypebotRaw>({
   url: { type: String, required: true },
   typebot: { type: String, required: true },
   expire: { type: Number, required: true },
+  keyword_finish: { type: String, required: true },
   delay_message: { type: Number, required: true },
   unknown_message: { type: String, required: true },
   sessions: [

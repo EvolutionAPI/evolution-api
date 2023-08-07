@@ -61,6 +61,7 @@ import {
   QrCode,
   Redis,
   Webhook,
+  Websocket,
 } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
@@ -505,6 +506,9 @@ export class WAStartupService {
     this.localTypebot.expire = data?.expire;
     this.logger.verbose(`Typebot expire: ${this.localTypebot.expire}`);
 
+    this.localTypebot.keyword_finish = data?.keyword_finish;
+    this.logger.verbose(`Typebot keyword_finish: ${this.localTypebot.keyword_finish}`);
+
     this.localTypebot.delay_message = data?.delay_message;
     this.logger.verbose(`Typebot delay_message: ${this.localTypebot.delay_message}`);
 
@@ -521,8 +525,9 @@ export class WAStartupService {
     await this.repository.typebot.create(data, this.instanceName);
     this.logger.verbose(`Typebot typebot: ${data.typebot}`);
     this.logger.verbose(`Typebot expire: ${data.expire}`);
-    this.logger.verbose(`Typebot sessions: ${data.delay_message}`);
-    this.logger.verbose(`Typebot sessions: ${data.unknown_message}`);
+    this.logger.verbose(`Typebot keyword_finish: ${data.keyword_finish}`);
+    this.logger.verbose(`Typebot delay_message: ${data.delay_message}`);
+    this.logger.verbose(`Typebot unknown_message: ${data.unknown_message}`);
     Object.assign(this.localTypebot, data);
     this.logger.verbose('Typebot set');
   }
@@ -618,7 +623,7 @@ export class WAStartupService {
       }
     }
 
-    if (this.localWebsocket.enabled) {
+    if (this.configService.get<Websocket>('WEBSOCKET').ENABLED && this.localWebsocket.enabled) {
       this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
       if (Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
         this.logger.verbose('Sending data to websocket on event: ' + event);

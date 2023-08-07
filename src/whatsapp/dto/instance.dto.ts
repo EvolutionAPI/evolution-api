@@ -25,6 +25,7 @@ export class InstanceDto {
   typebot_url?: string;
   typebot?: string;
   typebot_expire?: number;
+  typebot_keyword_finish?: string;
   typebot_delay_message?: number;
   typebot_unknown_message?: string;
   proxy_enabled?: boolean;

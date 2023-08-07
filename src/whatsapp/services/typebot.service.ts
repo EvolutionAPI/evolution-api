@@ -50,6 +50,9 @@ export class TypebotService {
           url: findData.url,
           typebot: findData.typebot,
           expire: findData.expire,
+          keyword_finish: findData.keyword_finish,
+          delay_message: findData.delay_message,
+          unknown_message: findData.unknown_message,
           sessions: findData.sessions,
         };
 
@@ -70,6 +73,9 @@ export class TypebotService {
       url: findData.url,
       typebot: findData.typebot,
       expire: findData.expire,
+      keyword_finish: findData.keyword_finish,
+      delay_message: findData.delay_message,
+      unknown_message: findData.unknown_message,
       sessions: findData.sessions,
     };
 
@@ -143,6 +149,9 @@ export class TypebotService {
         url: data.url,
         typebot: data.typebot,
         expire: data.expire,
+        keyword_finish: data.keyword_finish,
+        delay_message: data.delay_message,
+        unknown_message: data.unknown_message,
         sessions: data.sessions,
       };
 
@@ -285,6 +294,9 @@ export class TypebotService {
     const typebot = (await this.find(instance)).typebot;
     const sessions = ((await this.find(instance)).sessions as Session[]) ?? [];
     const expire = (await this.find(instance)).expire;
+    const keyword_finish = (await this.find(instance)).keyword_finish;
+    const delay_message = (await this.find(instance)).delay_message;
+    const unknown_message = (await this.find(instance)).unknown_message;
 
     const session = sessions.find((session) => session.remoteJid === remoteJid);
 
@@ -302,6 +314,9 @@ export class TypebotService {
           url: url,
           typebot: typebot,
           expire: expire,
+          keyword_finish: keyword_finish,
+          delay_message: delay_message,
+          unknown_message: unknown_message,
           sessions: sessions,
           remoteJid: remoteJid,
           pushName: msg.pushName,
@@ -322,6 +337,9 @@ export class TypebotService {
         url: url,
         typebot: typebot,
         expire: expire,
+        keyword_finish: keyword_finish,
+        delay_message: delay_message,
+        unknown_message: unknown_message,
         sessions: sessions,
         remoteJid: remoteJid,
         pushName: msg.pushName,
@@ -343,6 +361,9 @@ export class TypebotService {
       url: url,
       typebot: typebot,
       expire: expire,
+      keyword_finish: keyword_finish,
+      delay_message: delay_message,
+      unknown_message: unknown_message,
       sessions,
     };
 
@@ -351,18 +372,37 @@ export class TypebotService {
     const content = this.getConversationMessage(msg.message);
 
     if (!content) {
-      if (this.waMonitor.waInstances[instance.instanceName].localTypebot.unknown_message) {
+      if (unknown_message) {
         this.waMonitor.waInstances[instance.instanceName].textMessage({
           number: remoteJid.split('@')[0],
           options: {
-            delay: this.waMonitor.waInstances[instance.instanceName].localTypebot.delay_message || 1000,
+            delay: delay_message || 1000,
             presence: 'composing',
           },
           textMessage: {
-            text: this.waMonitor.waInstances[instance.instanceName].localTypebot.unknown_message,
+            text: unknown_message,
           },
         });
       }
+      return;
+    }
+
+    if (content.toLowerCase() === keyword_finish.toLowerCase()) {
+      sessions.splice(sessions.indexOf(session), 1);
+
+      const typebotData = {
+        enabled: true,
+        url: url,
+        typebot: typebot,
+        expire: expire,
+        keyword_finish: keyword_finish,
+        delay_message: delay_message,
+        unknown_message: unknown_message,
+        sessions,
+      };
+
+      this.create(instance, typebotData);
+
       return;
     }
 

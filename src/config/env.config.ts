@@ -66,6 +66,10 @@ export type Rabbitmq = {
   URI: string;
 };
 
+export type Websocket = {
+  ENABLED: boolean;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
@@ -122,6 +126,7 @@ export interface Env {
   DATABASE: Database;
   REDIS: Redis;
   RABBITMQ: Rabbitmq;
+  WEBSOCKET: Websocket;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
   WEBHOOK: Webhook;
@@ -210,6 +215,9 @@ export class ConfigService {
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
         URI: process.env.RABBITMQ_URI,
+      },
+      WEBSOCKET: {
+        ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
       },
       LOG: {
         LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],

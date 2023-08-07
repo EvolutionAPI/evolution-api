@@ -11,6 +11,7 @@ export class TypebotDto {
   url: string;
   typebot?: string;
   expire?: number;
+  keyword_finish?: string;
   delay_message?: number;
   unknown_message?: string;
   sessions?: Session[];
