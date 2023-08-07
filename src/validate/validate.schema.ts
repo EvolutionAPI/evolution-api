@@ -987,3 +987,14 @@ export const typebotSchema: JSONSchema7 = {
   required: ['enabled', 'url', 'typebot', 'expire'],
   ...isNotEmpty('enabled', 'url', 'typebot', 'expire'),
 };
+
+export const proxySchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    proxy: { type: 'string' },
+  },
+  required: ['enabled', 'proxy'],
+  ...isNotEmpty('enabled', 'proxy'),
+};

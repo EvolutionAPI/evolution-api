@@ -13,6 +13,7 @@ import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { RabbitmqService } from '../services/rabbitmq.service';
 import { SettingsService } from '../services/settings.service';
+import { TypebotService } from '../services/typebot.service';
 import { WebhookService } from '../services/webhook.service';
 import { WebsocketService } from '../services/websocket.service';
 import { WAStartupService } from '../services/whatsapp.service';
@@ -30,6 +31,7 @@ export class InstanceController {
     private readonly settingsService: SettingsService,
     private readonly websocketService: WebsocketService,
     private readonly rabbitmqService: RabbitmqService,
+    private readonly typebotService: TypebotService,
     private readonly cache: RedisCache,
   ) {}
 
@@ -59,6 +61,9 @@ export class InstanceController {
     websocket_events,
     rabbitmq_enabled,
     rabbitmq_events,
+    typebot_url,
+    typebot,
+    typebot_expire,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -223,6 +228,25 @@ export class InstanceController {
         }
       }
 
+      if (typebot_url) {
+        try {
+          if (!isURL(typebot_url, { require_tld: false })) {
+            throw new BadRequestException('Invalid "url" property in typebot_url');
+          }
+
+          this.logger.verbose('creating typebot');
+
+          this.typebotService.create(instance, {
+            enabled: true,
+            url: typebot_url,
+            typebot: typebot,
+            expire: typebot_expire,
+          });
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
       this.logger.verbose('creating settings');
       const settings: wa.LocalSettings = {
         reject_call: reject_call || false,
@@ -265,6 +289,12 @@ export class InstanceController {
           rabbitmq: {
             enabled: rabbitmq_enabled,
             events: rabbitmqEvents,
+          },
+          typebot: {
+            enabled: typebot_url ? true : false,
+            url: typebot_url,
+            typebot,
+            expire: typebot_expire,
           },
           settings,
           qrcode: getQrcode,
@@ -348,6 +378,12 @@ export class InstanceController {
         rabbitmq: {
           enabled: rabbitmq_enabled,
           events: rabbitmqEvents,
+        },
+        typebot: {
+          enabled: typebot_url ? true : false,
+          url: typebot_url,
+          typebot,
+          expire: typebot_expire,
         },
         settings,
         chatwoot: {

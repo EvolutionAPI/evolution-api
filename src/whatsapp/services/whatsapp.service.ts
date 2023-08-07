@@ -44,6 +44,8 @@ import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
+import { ProxyAgent } from 'proxy-agent';
+// import { ProxyAgent } from 'proxy-agent';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
@@ -111,7 +113,7 @@ import {
   SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
+import { ProxyRaw, RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
 import { ChatRaw } from '../models/chat.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
@@ -148,6 +150,7 @@ export class WAStartupService {
   private readonly localWebsocket: wa.LocalWebsocket = {};
   private readonly localRabbitmq: wa.LocalRabbitmq = {};
   private readonly localTypebot: wa.LocalTypebot = {};
+  private readonly localProxy: wa.LocalProxy = {};
   public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -524,6 +527,41 @@ export class WAStartupService {
     if (!data) {
       this.logger.verbose('Typebot not found');
       throw new NotFoundException('Typebot not found');
+    }
+
+    return data;
+  }
+
+  private async loadProxy() {
+    this.logger.verbose('Loading proxy');
+    const data = await this.repository.proxy.find(this.instanceName);
+
+    this.localProxy.enabled = data?.enabled;
+    this.logger.verbose(`Proxy enabled: ${this.localProxy.enabled}`);
+
+    this.localProxy.proxy = data?.proxy;
+    this.logger.verbose(`Proxy proxy: ${this.localProxy.proxy}`);
+
+    this.logger.verbose('Proxy loaded');
+  }
+
+  public async setProxy(data: ProxyRaw) {
+    this.logger.verbose('Setting proxy');
+    await this.repository.proxy.create(data, this.instanceName);
+    this.logger.verbose(`Proxy proxy: ${data.proxy}`);
+    Object.assign(this.localProxy, data);
+    this.logger.verbose('Proxy set');
+
+    this.client?.ws?.close();
+  }
+
+  public async findProxy() {
+    this.logger.verbose('Finding proxy');
+    const data = await this.repository.proxy.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Proxy not found');
+      throw new NotFoundException('Proxy not found');
     }
 
     return data;
@@ -990,6 +1028,7 @@ export class WAStartupService {
       this.loadWebsocket();
       this.loadRabbitmq();
       this.loadTypebot();
+      this.loadProxy();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -999,7 +1038,18 @@ export class WAStartupService {
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
+      let options;
+
+      if (this.localProxy.enabled) {
+        this.logger.verbose('Proxy enabled');
+        options = {
+          agent: new ProxyAgent(this.localProxy.proxy as any),
+          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
+        };
+      }
+
       const socketConfig: UserFacingSocketConfig = {
+        ...options,
         auth: {
           creds: this.instance.authState.state.creds,
           keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),

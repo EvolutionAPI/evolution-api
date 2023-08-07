@@ -22,4 +22,9 @@ export class InstanceDto {
   websocket_events?: string[];
   rabbitmq_enabled?: boolean;
   rabbitmq_events?: string[];
+  typebot_url?: string;
+  typebot?: string;
+  typebot_expire?: number;
+  proxy_enabled?: boolean;
+  proxy_proxy?: string;
 }

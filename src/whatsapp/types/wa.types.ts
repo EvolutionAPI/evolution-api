@@ -94,6 +94,11 @@ export declare namespace wa {
     sessions?: Session[];
   };
 
+  export type LocalProxy = {
+    enabled?: boolean;
+    proxy?: string;
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';
