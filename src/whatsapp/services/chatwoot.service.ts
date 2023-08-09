@@ -1,18 +1,17 @@
-import { InstanceDto } from '../dto/instance.dto';
-import path from 'path';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { WAMonitoringService } from './monitor.service';
-import { Logger } from '../../config/logger.config';
 import ChatwootClient from '@figuro/chatwoot-sdk';
-import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
-import { SendTextDto } from '../dto/sendMessage.dto';
+import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import mimeTypes from 'mime-types';
-import { SendAudioDto } from '../dto/sendMessage.dto';
-import { SendMediaDto } from '../dto/sendMessage.dto';
-import { ROOT_DIR } from '../../config/path.config';
+import path from 'path';
+
 import { ConfigService, HttpServer } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { ROOT_DIR } from '../../config/path.config';
+import { ChatwootDto } from '../dto/chatwoot.dto';
+import { InstanceDto } from '../dto/instance.dto';
+import { SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
+import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
   private messageCacheFile: string;
@@ -22,10 +21,7 @@ export class ChatwootService {
 
   private provider: any;
 
-  constructor(
-    private readonly waMonitor: WAMonitoringService,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly waMonitor: WAMonitoringService, private readonly configService: ConfigService) {
     this.messageCache = new Set();
   }
 
@@ -56,9 +52,7 @@ export class ChatwootService {
   private async getProvider(instance: InstanceDto) {
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
     try {
-      const provider = await this.waMonitor.waInstances[
-        instance.instanceName
-      ].findChatwoot();
+      const provider = await this.waMonitor.waInstances[instance.instanceName].findChatwoot();
 
       if (!provider) {
         this.logger.warn('provider not found');
@@ -154,6 +148,7 @@ export class ChatwootService {
     inboxName: string,
     webhookUrl: string,
     qrcode: boolean,
+    number: string,
   ) {
     this.logger.verbose('init instance chatwoot: ' + instance.instanceName);
 
@@ -170,9 +165,7 @@ export class ChatwootService {
     });
 
     this.logger.verbose('check duplicate inbox');
-    const checkDuplicate = findInbox.payload
-      .map((inbox) => inbox.name)
-      .includes(inboxName);
+    const checkDuplicate = findInbox.payload.map((inbox) => inbox.name).includes(inboxName);
 
     let inboxId: number;
 
@@ -212,13 +205,7 @@ export class ChatwootService {
     this.logger.verbose('find contact in chatwoot and create if not exists');
     const contact =
       (await this.findContact(instance, '123456')) ||
-      ((await this.createContact(
-        instance,
-        '123456',
-        inboxId,
-        false,
-        'EvolutionAPI',
-      )) as any);
+      ((await this.createContact(instance, '123456', inboxId, false, 'EvolutionAPI')) as any);
 
     if (!contact) {
       this.logger.warn('contact not found');
@@ -229,12 +216,18 @@ export class ChatwootService {
 
     if (qrcode) {
       this.logger.verbose('create conversation in chatwoot');
+      const data = {
+        contact_id: contactId.toString(),
+        inbox_id: inboxId.toString(),
+      };
+
+      if (this.provider.conversation_pending) {
+        data['status'] = 'pending';
+      }
+
       const conversation = await client.conversations.create({
         accountId: this.provider.account_id,
-        data: {
-          contact_id: contactId.toString(),
-          inbox_id: inboxId.toString(),
-        },
+        data,
       });
 
       if (!conversation) {
@@ -243,11 +236,18 @@ export class ChatwootService {
       }
 
       this.logger.verbose('create message for init instance in chatwoot');
+
+      let contentMsg = '/init';
+
+      if (number) {
+        contentMsg = `/init:${number}`;
+      }
+
       const message = await client.messages.create({
         accountId: this.provider.account_id,
         conversationId: conversation.id,
         data: {
-          content: '/init',
+          content: contentMsg,
           message_type: 'outgoing',
         },
       });
@@ -410,28 +410,25 @@ export class ChatwootService {
 
       if (isGroup) {
         this.logger.verbose('get group name');
-        const group = await this.waMonitor.waInstances[
-          instance.instanceName
-        ].client.groupMetadata(chatId);
+        const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
 
         nameContact = `${group.subject} (GROUP)`;
 
         this.logger.verbose('find or create participant in chatwoot');
 
-        const picture_url = await this.waMonitor.waInstances[
-          instance.instanceName
-        ].profilePicture(body.key.participant.split('@')[0]);
-
-        const findParticipant = await this.findContact(
-          instance,
+        const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(
           body.key.participant.split('@')[0],
         );
 
+        const findParticipant = await this.findContact(instance, body.key.participant.split('@')[0]);
+
         if (findParticipant) {
-          await this.updateContact(instance, findParticipant.id, {
-            name: body.pushName,
-            avatar_url: picture_url.profilePictureUrl || null,
-          });
+          if (!findParticipant.name || findParticipant.name === chatId) {
+            await this.updateContact(instance, findParticipant.id, {
+              name: body.pushName,
+              avatar_url: picture_url.profilePictureUrl || null,
+            });
+          }
         } else {
           await this.createContact(
             instance,
@@ -446,21 +443,34 @@ export class ChatwootService {
 
       this.logger.verbose('find or create contact in chatwoot');
 
-      const picture_url = await this.waMonitor.waInstances[
-        instance.instanceName
-      ].profilePicture(chatId);
+      const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(chatId);
 
       const findContact = await this.findContact(instance, chatId);
 
       let contact: any;
       if (body.key.fromMe) {
-        contact = findContact;
+        if (findContact) {
+          contact = findContact;
+        } else {
+          contact = await this.createContact(
+            instance,
+            chatId,
+            filterInbox.id,
+            isGroup,
+            nameContact,
+            picture_url.profilePictureUrl || null,
+          );
+        }
       } else {
         if (findContact) {
-          contact = await this.updateContact(instance, findContact.id, {
-            name: nameContact,
-            avatar_url: picture_url.profilePictureUrl || null,
-          });
+          if (!findContact.name || findContact.name === chatId) {
+            contact = await this.updateContact(instance, findContact.id, {
+              name: nameContact,
+              avatar_url: picture_url.profilePictureUrl || null,
+            });
+          } else {
+            contact = findContact;
+          }
         } else {
           contact = await this.createContact(
             instance,
@@ -478,8 +488,7 @@ export class ChatwootService {
         return null;
       }
 
-      const contactId =
-        contact?.payload?.id || contact?.payload?.contact?.id || contact?.id;
+      const contactId = contact?.payload?.id || contact?.payload?.contact?.id || contact?.id;
 
       if (!body.key.fromMe && contact.name === chatId && nameContact !== chatId) {
         this.logger.verbose('update contact name in chatwoot');
@@ -495,11 +504,26 @@ export class ChatwootService {
       })) as any;
 
       if (contactConversations) {
+        let conversation: any;
+        if (this.provider.reopen_conversation) {
+          conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
+
+          if (this.provider.conversation_pending) {
+            await client.conversations.toggleStatus({
+              accountId: this.provider.account_id,
+              conversationId: conversation.id,
+              data: {
+                status: 'pending',
+              },
+            });
+          }
+        } else {
+          conversation = contactConversations.payload.find(
+            (conversation) => conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
+          );
+        }
         this.logger.verbose('return conversation if exists');
-        const conversation = contactConversations.payload.find(
-          (conversation) =>
-            conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
-        );
+
         if (conversation) {
           this.logger.verbose('conversation found');
           return conversation.id;
@@ -507,12 +531,18 @@ export class ChatwootService {
       }
 
       this.logger.verbose('create conversation in chatwoot');
+      const data = {
+        contact_id: contactId.toString(),
+        inbox_id: filterInbox.id.toString(),
+      };
+
+      if (this.provider.conversation_pending) {
+        data['status'] = 'pending';
+      }
+
       const conversation = await client.conversations.create({
         accountId: this.provider.account_id,
-        data: {
-          contact_id: `${contactId}`,
-          inbox_id: `${filterInbox.id}`,
-        },
+        data,
       });
 
       if (!conversation) {
@@ -548,9 +578,7 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find inbox by name');
-    const findByName = inbox.payload.find(
-      (inbox) => inbox.name === instance.instanceName,
-    );
+    const findByName = inbox.payload.find((inbox) => inbox.name === instance.instanceName);
 
     if (!findByName) {
       this.logger.warn('inbox not found');
@@ -652,8 +680,7 @@ export class ChatwootService {
 
     this.logger.verbose('find conversation by contact id');
     const conversation = findConversation.data.payload.find(
-      (conversation) =>
-        conversation?.meta?.sender?.id === contact.id && conversation.status === 'open',
+      (conversation) => conversation?.meta?.sender?.id === contact.id && conversation.status === 'open',
     );
 
     if (!conversation) {
@@ -773,8 +800,7 @@ export class ChatwootService {
 
     this.logger.verbose('find conversation by contact id');
     const conversation = findConversation.data.payload.find(
-      (conversation) =>
-        conversation?.meta?.sender?.id === contact.id && conversation.status === 'open',
+      (conversation) => conversation?.meta?.sender?.id === contact.id && conversation.status === 'open',
     );
 
     if (!conversation) {
@@ -824,12 +850,7 @@ export class ChatwootService {
     }
   }
 
-  public async sendAttachment(
-    waInstance: any,
-    number: string,
-    media: any,
-    caption?: string,
-  ) {
+  public async sendAttachment(waInstance: any, number: string, media: any, caption?: string) {
     this.logger.verbose('send attachment to instance: ' + waInstance.instanceName);
 
     try {
@@ -910,9 +931,7 @@ export class ChatwootService {
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
-      this.logger.verbose(
-        'receive webhook to chatwoot instance: ' + instance.instanceName,
-      );
+      this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
       const client = await this.clientCw(instance);
 
       if (!client) {
@@ -921,12 +940,11 @@ export class ChatwootService {
       }
 
       this.logger.verbose('check if is bot');
-      if (!body?.conversation || body.private) return { message: 'bot' };
+      if (!body?.conversation || body.private || body.event === 'message_updated') return { message: 'bot' };
 
       this.logger.verbose('check if is group');
       const chatId =
-        body.conversation.meta.sender?.phone_number?.replace('+', '') ||
-        body.conversation.meta.sender?.identifier;
+        body.conversation.meta.sender?.phone_number?.replace('+', '') || body.conversation.meta.sender?.identifier;
       const messageReceived = body.content;
       const senderName = body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
@@ -936,20 +954,17 @@ export class ChatwootService {
 
         const command = messageReceived.replace('/', '');
 
-        if (command === 'init' || command === 'iniciar') {
+        if (command.includes('init') || command.includes('iniciar')) {
           this.logger.verbose('command init found');
           const state = waInstance?.connectionStatus?.state;
 
           if (state !== 'open') {
             this.logger.verbose('connect to whatsapp');
-            await waInstance.connectToWhatsapp();
+            const number = command.split(':')[1];
+            await waInstance.connectToWhatsapp(number);
           } else {
             this.logger.verbose('whatsapp already connected');
-            await this.createBotMessage(
-              instance,
-              `🚨 ${body.inbox.name} instance is connected.`,
-              'incoming',
-            );
+            await this.createBotMessage(instance, `🚨 ${body.inbox.name} instance is connected.`, 'incoming');
           }
         }
 
@@ -960,20 +975,12 @@ export class ChatwootService {
 
           if (!state) {
             this.logger.verbose('state not found');
-            await this.createBotMessage(
-              instance,
-              `⚠️ ${body.inbox.name} instance not found.`,
-              'incoming',
-            );
+            await this.createBotMessage(instance, `⚠️ ${body.inbox.name} instance not found.`, 'incoming');
           }
 
           if (state) {
             this.logger.verbose('state: ' + state + ' found');
-            await this.createBotMessage(
-              instance,
-              `⚠️ ${body.inbox.name} instance status: *${state}*`,
-              'incoming',
-            );
+            await this.createBotMessage(instance, `⚠️ ${body.inbox.name} instance status: *${state}*`, 'incoming');
           }
         }
 
@@ -990,7 +997,7 @@ export class ChatwootService {
           await waInstance?.client?.ws?.close();
         }
 
-        if (command.includes('#inbox_whatsapp')) {
+        if (command.includes('new_instance')) {
           const urlServer = this.configService.get<HttpServer>('SERVER').URL;
           const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
 
@@ -1001,7 +1008,13 @@ export class ChatwootService {
             chatwoot_token: this.provider.token,
             chatwoot_url: this.provider.url,
             chatwoot_sign_msg: this.provider.sign_msg,
+            chatwoot_reopen_conversation: this.provider.reopen_conversation,
+            chatwoot_conversation_pending: this.provider.conversation_pending,
           };
+
+          if (command.split(':')[2]) {
+            data['number'] = command.split(':')[2];
+          }
 
           const config = {
             method: 'post',
@@ -1018,19 +1031,10 @@ export class ChatwootService {
         }
       }
 
-      if (
-        body.message_type === 'outgoing' &&
-        body?.conversation?.messages?.length &&
-        chatId !== '123456'
-      ) {
+      if (body.message_type === 'outgoing' && body?.conversation?.messages?.length && chatId !== '123456') {
         this.logger.verbose('check if is group');
 
-        this.messageCacheFile = path.join(
-          ROOT_DIR,
-          'store',
-          'chatwoot',
-          `${instance.instanceName}_cache.txt`,
-        );
+        this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
         this.logger.verbose('cache file path: ' + this.messageCacheFile);
 
         this.messageCache = this.loadMessageCache();
@@ -1051,9 +1055,7 @@ export class ChatwootService {
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
-          formatText = this.provider.sign_msg
-            ? `*${senderName}:*\n\n${messageReceived}`
-            : messageReceived;
+          formatText = this.provider.sign_msg ? `*${senderName}:*\n\n${messageReceived}` : messageReceived;
         }
 
         for (const message of body.conversation.messages) {
@@ -1067,12 +1069,7 @@ export class ChatwootService {
                 formatText = null;
               }
 
-              await this.sendAttachment(
-                waInstance,
-                chatId,
-                attachment.data_url,
-                formatText,
-              );
+              await this.sendAttachment(waInstance, chatId, attachment.data_url, formatText);
             }
           } else {
             this.logger.verbose('message is text');
@@ -1094,17 +1091,13 @@ export class ChatwootService {
         }
       }
 
-      if (
-        body.message_type === 'template' &&
-        body.content_type === 'input_csat' &&
-        body.event === 'message_created'
-      ) {
-        this.logger.verbose('check if is csat');
+      if (body.message_type === 'template' && body.event === 'message_created') {
+        this.logger.verbose('check if is template');
 
         const data: SendTextDto = {
           number: chatId,
           textMessage: {
-            text: body.content,
+            text: body.content.replace(/\\\r\n|\\\n|\n/g, '\n'),
           },
           options: {
             delay: 1200,
@@ -1153,13 +1146,14 @@ export class ChatwootService {
       videoMessage: msg.videoMessage?.caption,
       extendedTextMessage: msg.extendedTextMessage?.text,
       messageContextInfo: msg.messageContextInfo?.stanzaId,
-      stickerMessage: msg.stickerMessage?.fileSha256.toString('base64'),
+      stickerMessage: undefined,
       documentMessage: msg.documentMessage?.caption,
-      documentWithCaptionMessage:
-        msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
+      documentWithCaptionMessage: msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
       audioMessage: msg.audioMessage?.caption,
       contactMessage: msg.contactMessage?.vcard,
       contactsArrayMessage: msg.contactsArrayMessage,
+      locationMessage: msg.locationMessage,
+      liveLocationMessage: msg.liveLocationMessage,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1172,6 +1166,21 @@ export class ChatwootService {
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
 
     const result = typeKey ? types[typeKey] : undefined;
+
+    if (typeKey === 'locationMessage' || typeKey === 'liveLocationMessage') {
+      const latitude = result.degreesLatitude;
+      const longitude = result.degreesLongitude;
+
+      const formattedLocation = `**Location:**
+        **latitude:** ${latitude}
+        **longitude:** ${longitude}
+        https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}
+        `;
+
+      this.logger.verbose('message content: ' + formattedLocation);
+
+      return formattedLocation;
+    }
 
     if (typeKey === 'contactMessage') {
       const vCardData = result.split('\n');
@@ -1276,6 +1285,16 @@ export class ChatwootService {
           return;
         }
 
+        this.logger.verbose('get conversation message');
+        const bodyMessage = await this.getConversationMessage(body.message);
+
+        const isMedia = this.isMediaMessage(body.message);
+
+        if (!bodyMessage && !isMedia) {
+          this.logger.warn('no body message found');
+          return;
+        }
+
         this.logger.verbose('get conversation in chatwoot');
         const getConversion = await this.createConversation(instance, body);
 
@@ -1288,17 +1307,7 @@ export class ChatwootService {
 
         this.logger.verbose('message type: ' + messageType);
 
-        const isMedia = this.isMediaMessage(body.message);
-
         this.logger.verbose('is media: ' + isMedia);
-
-        this.logger.verbose('get conversation message');
-        const bodyMessage = await this.getConversationMessage(body.message);
-
-        if (!bodyMessage && !isMedia) {
-          this.logger.warn('no body message found');
-          return;
-        }
 
         this.logger.verbose('check if is media');
         if (isMedia) {
@@ -1340,24 +1349,14 @@ export class ChatwootService {
             }
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(
-              getConversion,
-              fileName,
-              messageType,
-              content,
-            );
+            const send = await this.sendData(getConversion, fileName, messageType, content);
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
 
-            this.messageCacheFile = path.join(
-              ROOT_DIR,
-              'store',
-              'chatwoot',
-              `${instance.instanceName}_cache.txt`,
-            );
+            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
 
             this.messageCache = this.loadMessageCache();
 
@@ -1371,24 +1370,14 @@ export class ChatwootService {
             this.logger.verbose('message is not group');
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(
-              getConversion,
-              fileName,
-              messageType,
-              bodyMessage,
-            );
+            const send = await this.sendData(getConversion, fileName, messageType, bodyMessage);
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
 
-            this.messageCacheFile = path.join(
-              ROOT_DIR,
-              'store',
-              'chatwoot',
-              `${instance.instanceName}_cache.txt`,
-            );
+            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
 
             this.messageCache = this.loadMessageCache();
 
@@ -1417,24 +1406,14 @@ export class ChatwootService {
           }
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(
-            instance,
-            getConversion,
-            content,
-            messageType,
-          );
+          const send = await this.createMessage(instance, getConversion, content, messageType);
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
 
-          this.messageCacheFile = path.join(
-            ROOT_DIR,
-            'store',
-            'chatwoot',
-            `${instance.instanceName}_cache.txt`,
-          );
+          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
 
           this.messageCache = this.loadMessageCache();
 
@@ -1448,24 +1427,14 @@ export class ChatwootService {
           this.logger.verbose('message is not group');
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(
-            instance,
-            getConversion,
-            bodyMessage,
-            messageType,
-          );
+          const send = await this.createMessage(instance, getConversion, bodyMessage, messageType);
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
 
-          this.messageCacheFile = path.join(
-            ROOT_DIR,
-            'store',
-            'chatwoot',
-            `${instance.instanceName}_cache.txt`,
-          );
+          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
 
           this.messageCache = this.loadMessageCache();
 
@@ -1515,16 +1484,9 @@ export class ChatwootService {
           return await this.createBotMessage(instance, erroQRcode, 'incoming');
         } else {
           this.logger.verbose('qrcode success');
-          const fileData = Buffer.from(
-            body?.qrcode.base64.replace('data:image/png;base64,', ''),
-            'base64',
-          );
+          const fileData = Buffer.from(body?.qrcode.base64.replace('data:image/png;base64,', ''), 'base64');
 
-          const fileName = `${path.join(
-            waInstance?.storePath,
-            'temp',
-            `${`${instance}.png`}`,
-          )}`;
+          const fileName = `${path.join(waInstance?.storePath, 'temp', `${`${instance}.png`}`)}`;
 
           this.logger.verbose('temp file name: ' + fileName);
 
@@ -1532,14 +1494,18 @@ export class ChatwootService {
           writeFileSync(fileName, fileData, 'utf8');
 
           this.logger.verbose('send qrcode to chatwoot');
-          await this.createBotQr(
-            instance,
-            'QRCode successfully generated!',
-            'incoming',
-            fileName,
-          );
+          await this.createBotQr(instance, 'QRCode successfully generated!', 'incoming', fileName);
 
-          const msgQrCode = `⚡️ QRCode successfully generated!\n\nScan this QR code within the next 40 seconds:`;
+          let msgQrCode = `⚡️ QRCode successfully generated!\n\nScan this QR code within the next 40 seconds.`;
+
+          if (body?.qrcode?.pairingCode) {
+            msgQrCode =
+              msgQrCode +
+              `\n\n*Pairing Code:* ${body.qrcode.pairingCode.substring(0, 4)}-${body.qrcode.pairingCode.substring(
+                4,
+                8,
+              )}`;
+          }
 
           this.logger.verbose('send message to chatwoot');
           await this.createBotMessage(instance, msgQrCode, 'incoming');
@@ -1547,6 +1513,52 @@ export class ChatwootService {
       }
     } catch (error) {
       this.logger.error(error);
+    }
+  }
+
+  public async newInstance(data: any) {
+    try {
+      const instanceName = data.instanceName;
+      const qrcode = true;
+      const number = data.number;
+      const accountId = data.accountId;
+      const chatwootToken = data.token;
+      const chatwootUrl = data.url;
+      const signMsg = true;
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+      const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
+
+      const requestData = {
+        instanceName,
+        qrcode,
+        chatwoot_account_id: accountId,
+        chatwoot_token: chatwootToken,
+        chatwoot_url: chatwootUrl,
+        chatwoot_sign_msg: signMsg,
+      };
+
+      if (number) {
+        requestData['number'] = number;
+      }
+
+      // eslint-disable-next-line
+      const config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: `${urlServer}/instance/create`,
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: apiKey,
+        },
+        data: requestData,
+      };
+
+      // await axios.request(config);
+
+      return true;
+    } catch (error) {
+      this.logger.error(error);
+      return null;
     }
   }
 }

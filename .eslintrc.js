@@ -3,10 +3,14 @@ module.exports = {
   parserOptions: {
      sourceType: 'CommonJS',
   },
-  plugins: ['@typescript-eslint/eslint-plugin'],
+  plugins: [
+    '@typescript-eslint',
+    'simple-import-sort',
+    'import'
+  ],
   extends: [
+     'eslint:recommended',
      'plugin:@typescript-eslint/recommended',
-     'plugin:prettier/recommended',
      'plugin:prettier/recommended'
   ],
   globals: {
@@ -26,7 +30,11 @@ module.exports = {
      '@typescript-eslint/no-explicit-any': 'off',
      '@typescript-eslint/no-empty-function': 'off',
      '@typescript-eslint/no-non-null-assertion': 'off',
-     '@typescript-eslint/no-unused-vars': 'off',
+     '@typescript-eslint/no-unused-vars': 'error',
+     'import/first': 'error',
+     'import/no-duplicates': 'error',
+     'simple-import-sort/imports': 'error',
+     'simple-import-sort/exports': 'error',
      '@typescript-eslint/ban-types': [
         'error',
         {

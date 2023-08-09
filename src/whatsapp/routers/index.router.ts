@@ -1,15 +1,17 @@
 import { Router } from 'express';
+import fs from 'fs';
+
 import { Auth, configService } from '../../config/env.config';
-import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { authGuard } from '../guards/auth.guard';
+import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { ChatRouter } from './chat.router';
+import { ChatwootRouter } from './chatwoot.router';
 import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
 import { MessageRouter } from './sendMessage.router';
+import { SettingsRouter } from './settings.router';
 import { ViewsRouter } from './view.router';
 import { WebhookRouter } from './webhook.router';
-import { ChatwootRouter } from './chatwoot.router';
-import fs from 'fs';
 
 enum HttpStatus {
   OK = 200,
@@ -35,15 +37,12 @@ router
       version: packageJson.version,
     });
   })
-  .use(
-    '/instance',
-    new InstanceRouter(configService, ...guards).router,
-    new ViewsRouter(instanceExistsGuard).router,
-  )
+  .use('/instance', new InstanceRouter(configService, ...guards).router, new ViewsRouter(instanceExistsGuard).router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
   .use('/webhook', new WebhookRouter(...guards).router)
-  .use('/chatwoot', new ChatwootRouter(...guards).router);
+  .use('/chatwoot', new ChatwootRouter(...guards).router)
+  .use('/settings', new SettingsRouter(...guards).router);
 
-export { router, HttpStatus };
+export { HttpStatus, router };

@@ -1,7 +1,7 @@
+import { isBooleanString } from 'class-validator';
 import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { join } from 'path';
-import { isBooleanString } from 'class-validator';
 
 export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
 
@@ -14,15 +14,7 @@ export type Cors = {
 
 export type LogBaileys = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
-export type LogLevel =
-  | 'ERROR'
-  | 'WARN'
-  | 'DEBUG'
-  | 'INFO'
-  | 'LOG'
-  | 'VERBOSE'
-  | 'DARK'
-  | 'WEBHOOKS';
+export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK' | 'WEBHOOKS';
 
 export type Log = {
   LEVEL: LogLevel[];
@@ -89,25 +81,18 @@ export type EventsWebhook = {
   GROUPS_UPSERT: boolean;
   GROUP_UPDATE: boolean;
   GROUP_PARTICIPANTS_UPDATE: boolean;
+  CALL: boolean;
   NEW_JWT_TOKEN: boolean;
 };
 
 export type ApiKey = { KEY: string };
 export type Jwt = { EXPIRIN_IN: number; SECRET: string };
-export type Instance = {
-  NAME: string;
-  WEBHOOK_URL: string;
-  MODE: string;
-  CHATWOOT_ACCOUNT_ID: string;
-  CHATWOOT_TOKEN: string;
-  CHATWOOT_URL: string;
-};
+
 export type Auth = {
   API_KEY: ApiKey;
   EXPOSE_IN_FETCH_INSTANCES: boolean;
   JWT: Jwt;
   TYPE: 'jwt' | 'apikey';
-  INSTANCE: Instance;
 };
 
 export type DelInstance = number | boolean;
@@ -163,9 +148,7 @@ export class ConfigService {
   }
 
   private envYaml(): Env {
-    return load(
-      readFileSync(join(process.cwd(), 'src', 'env.yml'), { encoding: 'utf-8' }),
-    ) as Env;
+    return load(readFileSync(join(process.cwd(), 'src', 'env.yml'), { encoding: 'utf-8' })) as Env;
   }
 
   private envProcess(): Env {
@@ -251,8 +234,8 @@ export class ConfigService {
           CONNECTION_UPDATE: process.env?.WEBHOOK_EVENTS_CONNECTION_UPDATE === 'true',
           GROUPS_UPSERT: process.env?.WEBHOOK_EVENTS_GROUPS_UPSERT === 'true',
           GROUP_UPDATE: process.env?.WEBHOOK_EVENTS_GROUPS_UPDATE === 'true',
-          GROUP_PARTICIPANTS_UPDATE:
-            process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          GROUP_PARTICIPANTS_UPDATE: process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          CALL: process.env?.WEBHOOK_EVENTS_CALL === 'true',
           NEW_JWT_TOKEN: process.env?.WEBHOOK_EVENTS_NEW_JWT_TOKEN === 'true',
         },
       },
@@ -268,22 +251,12 @@ export class ConfigService {
         API_KEY: {
           KEY: process.env.AUTHENTICATION_API_KEY,
         },
-        EXPOSE_IN_FETCH_INSTANCES:
-          process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
+        EXPOSE_IN_FETCH_INSTANCES: process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
         JWT: {
           EXPIRIN_IN: Number.isInteger(process.env?.AUTHENTICATION_JWT_EXPIRIN_IN)
             ? Number.parseInt(process.env.AUTHENTICATION_JWT_EXPIRIN_IN)
             : 3600,
           SECRET: process.env.AUTHENTICATION_JWT_SECRET,
-        },
-        INSTANCE: {
-          NAME: process.env.AUTHENTICATION_INSTANCE_NAME,
-          WEBHOOK_URL: process.env.AUTHENTICATION_INSTANCE_WEBHOOK_URL,
-          MODE: process.env.AUTHENTICATION_INSTANCE_MODE,
-          CHATWOOT_ACCOUNT_ID:
-            process.env.AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID || '',
-          CHATWOOT_TOKEN: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN || '',
-          CHATWOOT_URL: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_URL || '',
         },
       },
     };

@@ -16,16 +16,19 @@ lerna-debug.log*
 /docker-compose-data
 /docker-data
 
+docker-compose.yaml
+
 # Package
 /yarn.lock
 /package-lock.json
 
-# IDE - VSCode
+# IDEs
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.nova/*
 
 # Prisma
 /prisma/migrations
@@ -38,3 +41,6 @@ lerna-debug.log*
 /store
 
 /temp/*
+
+.DS_Store
+*.DS_Store

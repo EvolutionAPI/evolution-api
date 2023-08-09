@@ -1,16 +1,14 @@
-import { join } from 'path';
-import { Auth, ConfigService } from '../../config/env.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { IAuthModel, AuthRaw } from '../models';
 import { readFileSync } from 'fs';
-import { AUTH_DIR } from '../../config/path.config';
+import { join } from 'path';
+
+import { Auth, ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { AUTH_DIR } from '../../config/path.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { AuthRaw, IAuthModel } from '../models';
 
 export class AuthRepository extends Repository {
-  constructor(
-    private readonly authModel: IAuthModel,
-    readonly configService: ConfigService,
-  ) {
+  constructor(private readonly authModel: IAuthModel, readonly configService: ConfigService) {
     super(configService);
     this.auth = configService.get<Auth>('AUTHENTICATION');
   }
@@ -23,11 +21,7 @@ export class AuthRepository extends Repository {
       this.logger.verbose('creating auth');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('saving auth to db');
-        const insert = await this.authModel.replaceOne(
-          { _id: instance },
-          { ...data },
-          { upsert: true },
-        );
+        const insert = await this.authModel.replaceOne({ _id: instance }, { ...data }, { upsert: true });
 
         this.logger.verbose('auth saved to db: ' + insert.modifiedCount + ' auth');
         return { insertCount: insert.modifiedCount };
@@ -40,9 +34,7 @@ export class AuthRepository extends Repository {
         fileName: instance,
         data,
       });
-      this.logger.verbose(
-        'auth saved to store in path: ' + join(AUTH_DIR, this.auth.TYPE) + '/' + instance,
-      );
+      this.logger.verbose('auth saved to store in path: ' + join(AUTH_DIR, this.auth.TYPE) + '/' + instance);
 
       this.logger.verbose('auth created');
       return { insertCount: 1 };

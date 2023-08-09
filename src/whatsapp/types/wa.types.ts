@@ -22,12 +22,19 @@ export enum Events {
   GROUPS_UPSERT = 'groups.upsert',
   GROUPS_UPDATE = 'groups.update',
   GROUP_PARTICIPANTS_UPDATE = 'group-participants.update',
+  CALL = 'call',
 }
 
 export declare namespace wa {
-  export type QrCode = { count?: number; base64?: string; code?: string };
+  export type QrCode = {
+    count?: number;
+    pairingCode?: string;
+    base64?: string;
+    code?: string;
+  };
   export type Instance = {
     qrcode?: QrCode;
+    pairingCode?: string;
     authState?: { state: AuthenticationState; saveCreds: () => void };
     name?: string;
     wuid?: string;
@@ -49,6 +56,18 @@ export declare namespace wa {
     url?: string;
     name_inbox?: string;
     sign_msg?: boolean;
+    number?: string;
+    reopen_conversation?: boolean;
+    conversation_pending?: boolean;
+  };
+
+  export type LocalSettings = {
+    reject_call?: boolean;
+    msg_call?: string;
+    groups_ignore?: boolean;
+    always_online?: boolean;
+    read_messages?: boolean;
+    read_status?: boolean;
   };
 
   export type StateConnection = {
@@ -57,22 +76,10 @@ export declare namespace wa {
     statusReason?: number;
   };
 
-  export type StatusMessage =
-    | 'ERROR'
-    | 'PENDING'
-    | 'SERVER_ACK'
-    | 'DELIVERY_ACK'
-    | 'READ'
-    | 'PLAYED';
+  export type StatusMessage = 'ERROR' | 'PENDING' | 'SERVER_ACK' | 'DELIVERY_ACK' | 'READ' | 'DELETED' | 'PLAYED';
 }
 
-export const TypeMediaMessage = [
-  'imageMessage',
-  'documentMessage',
-  'audioMessage',
-  'videoMessage',
-  'stickerMessage',
-];
+export const TypeMediaMessage = ['imageMessage', 'documentMessage', 'audioMessage', 'videoMessage', 'stickerMessage'];
 
 export const MessageSubtype = [
   'ephemeralMessage',

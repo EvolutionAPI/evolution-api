@@ -1,24 +1,20 @@
 import { isURL } from 'class-validator';
-import { BadRequestException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { ChatwootService } from '../services/chatwoot.service';
-import { Logger } from '../../config/logger.config';
-import { waMonitor } from '../whatsapp.module';
+
 import { ConfigService, HttpServer } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { BadRequestException } from '../../exceptions';
+import { ChatwootDto } from '../dto/chatwoot.dto';
+import { InstanceDto } from '../dto/instance.dto';
+import { ChatwootService } from '../services/chatwoot.service';
+import { waMonitor } from '../whatsapp.module';
 
 const logger = new Logger('ChatwootController');
 
 export class ChatwootController {
-  constructor(
-    private readonly chatwootService: ChatwootService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly chatwootService: ChatwootService, private readonly configService: ConfigService) {}
 
   public async createChatwoot(instance: InstanceDto, data: ChatwootDto) {
-    logger.verbose(
-      'requested createChatwoot from ' + instance.instanceName + ' instance',
-    );
+    logger.verbose('requested createChatwoot from ' + instance.instanceName + ' instance');
 
     if (data.enabled) {
       if (!isURL(data.url, { require_tld: false })) {
@@ -33,7 +29,7 @@ export class ChatwootController {
         throw new BadRequestException('token is required');
       }
 
-      if (!data.sign_msg) {
+      if (data.sign_msg !== true && data.sign_msg !== false) {
         throw new BadRequestException('sign_msg is required');
       }
     }
@@ -44,6 +40,8 @@ export class ChatwootController {
       data.token = '';
       data.url = '';
       data.sign_msg = false;
+      data.reopen_conversation = false;
+      data.conversation_pending = false;
     }
 
     data.name_inbox = instance.instanceName;
@@ -87,11 +85,15 @@ export class ChatwootController {
   }
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
-    logger.verbose(
-      'requested receiveWebhook from ' + instance.instanceName + ' instance',
-    );
+    logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
     const chatwootService = new ChatwootService(waMonitor, this.configService);
 
     return chatwootService.receiveWebhook(instance, data);
+  }
+
+  public async newInstance(data: any) {
+    const chatwootService = new ChatwootService(waMonitor, this.configService);
+
+    return chatwootService.newInstance(data);
   }
 }

@@ -53,11 +53,13 @@ export const instanceNameSchema: JSONSchema7 = {
           'GROUP_UPDATE',
           'GROUP_PARTICIPANTS_UPDATE',
           'CONNECTION_UPDATE',
+          'CALL',
           'NEW_JWT_TOKEN',
         ],
       },
     },
     qrcode: { type: 'boolean', enum: [true, false] },
+    number: { type: 'string', pattern: '^\\d+[\\.@\\w-]+' },
     token: { type: 'string' },
   },
   ...isNotEmpty('instanceName'),
@@ -123,7 +125,6 @@ const optionsSchema: JSONSchema7 = {
 
 const numberDefinition: JSONSchema7Definition = {
   type: 'string',
-  pattern: '^\\d+[\\.@\\w-]+',
   description: 'Invalid format',
 };
 
@@ -398,7 +399,7 @@ export const contactMessageSchema: JSONSchema7 = {
           email: { type: 'string' },
           url: { type: 'string' },
         },
-        required: ['fullName', 'wuid', 'phoneNumber'],
+        required: ['fullName', 'phoneNumber'],
         ...isNotEmpty('fullName'),
       },
       minItems: 1,
@@ -445,7 +446,6 @@ export const whatsappNumberSchema: JSONSchema7 = {
       uniqueItems: true,
       items: {
         type: 'string',
-        pattern: '^\\d+',
         description: '"numbers" must be an array of numeric strings',
       },
     },
@@ -456,7 +456,7 @@ export const readMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
-    readMessages: {
+    read_messages: {
       type: 'array',
       minItems: 1,
       uniqueItems: true,
@@ -471,7 +471,7 @@ export const readMessageSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['readMessages'],
+  required: ['read_messages'],
 };
 
 export const privacySettingsSchema: JSONSchema7 = {
@@ -587,6 +587,17 @@ export const profilePictureSchema: JSONSchema7 = {
   },
 };
 
+export const profileSchema: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    wuid: { type: 'string' },
+    name: { type: 'string' },
+    picture: { type: 'string' },
+    status: { type: 'string' },
+    isBusiness: { type: 'boolean' },
+  },
+};
+
 export const messageValidateSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
@@ -657,6 +668,7 @@ export const createGroupSchema: JSONSchema7 = {
     subject: { type: 'string' },
     description: { type: 'string' },
     profilePicture: { type: 'string' },
+    promoteParticipants: { type: 'boolean', enum: [true, false] },
     participants: {
       type: 'array',
       minItems: 1,
@@ -843,6 +855,7 @@ export const webhookSchema: JSONSchema7 = {
           'GROUP_UPDATE',
           'GROUP_PARTICIPANTS_UPDATE',
           'CONNECTION_UPDATE',
+          'CALL',
           'NEW_JWT_TOKEN',
         ],
       },
@@ -861,7 +874,24 @@ export const chatwootSchema: JSONSchema7 = {
     token: { type: 'string' },
     url: { type: 'string' },
     sign_msg: { type: 'boolean', enum: [true, false] },
+    reopen_conversation: { type: 'boolean', enum: [true, false] },
+    conversation_pending: { type: 'boolean', enum: [true, false] },
   },
-  required: ['enabled', 'account_id', 'token', 'url', 'sign_msg'],
-  ...isNotEmpty('account_id', 'token', 'url', 'sign_msg'),
+  required: ['enabled', 'account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'],
+  ...isNotEmpty('account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'),
+};
+
+export const settingsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    reject_call: { type: 'boolean', enum: [true, false] },
+    msg_call: { type: 'string' },
+    groups_ignore: { type: 'boolean', enum: [true, false] },
+    always_online: { type: 'boolean', enum: [true, false] },
+    read_messages: { type: 'boolean', enum: [true, false] },
+    read_status: { type: 'boolean', enum: [true, false] },
+  },
+  required: ['reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'],
+  ...isNotEmpty('reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'),
 };

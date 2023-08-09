@@ -1,34 +1,35 @@
 import { RequestHandler, Router } from 'express';
+
+import { Logger } from '../../config/logger.config';
 import {
   createGroupSchema,
+  getParticipantsSchema,
+  groupInviteSchema,
   groupJidSchema,
-  updateParticipantsSchema,
-  updateSettingsSchema,
+  groupSendInviteSchema,
   toggleEphemeralSchema,
+  updateGroupDescriptionSchema,
   updateGroupPictureSchema,
   updateGroupSubjectSchema,
-  updateGroupDescriptionSchema,
-  groupInviteSchema,
-  groupSendInviteSchema,
-  getParticipantsSchema,
+  updateParticipantsSchema,
+  updateSettingsSchema,
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import {
   CreateGroupDto,
+  GetParticipant,
+  GroupDescriptionDto,
   GroupInvite,
   GroupJid,
   GroupPictureDto,
+  GroupSendInvite,
   GroupSubjectDto,
-  GroupDescriptionDto,
+  GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
-  GroupToggleEphemeralDto,
-  GroupSendInvite,
-  GetParticipant,
 } from '../dto/group.dto';
 import { groupController } from '../whatsapp.module';
 import { HttpStatus } from './index.router';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('GroupRouter');
 
@@ -96,8 +97,7 @@ export class GroupRouter extends RouterBroker {
           request: req,
           schema: updateGroupDescriptionSchema,
           ClassRef: GroupDescriptionDto,
-          execute: (instance, data) =>
-            groupController.updateGroupDescription(instance, data),
+          execute: (instance, data) => groupController.updateGroupDescription(instance, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);

@@ -1,16 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 import { existsSync } from 'fs';
 import { join } from 'path';
+
+import { configService, Database, Redis } from '../../config/env.config';
 import { INSTANCE_DIR } from '../../config/path.config';
 import { dbserver } from '../../db/db.connect';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '../../exceptions';
+import { BadRequestException, ForbiddenException, NotFoundException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../whatsapp.module';
-import { Database, Redis, configService } from '../../config/env.config';
 
 async function getInstance(instanceName: string) {
   const db = configService.get<Database>('DATABASE');
@@ -35,10 +32,7 @@ async function getInstance(instanceName: string) {
 }
 
 export async function instanceExistsGuard(req: Request, _: Response, next: NextFunction) {
-  if (
-    req.originalUrl.includes('/instance/create') ||
-    req.originalUrl.includes('/instance/fetchInstances')
-  ) {
+  if (req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) {
     return next();
   }
 
@@ -58,9 +52,7 @@ export async function instanceLoggedGuard(req: Request, _: Response, next: NextF
   if (req.originalUrl.includes('/instance/create')) {
     const instance = req.body as InstanceDto;
     if (await getInstance(instance.instanceName)) {
-      throw new ForbiddenException(
-        `This name "${instance.instanceName}" is already in use.`,
-      );
+      throw new ForbiddenException(`This name "${instance.instanceName}" is already in use.`);
     }
 
     if (waMonitor.waInstances[instance.instanceName]) {

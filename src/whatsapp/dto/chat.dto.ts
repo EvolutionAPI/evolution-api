@@ -1,16 +1,7 @@
-import {
-  WAPrivacyOnlineValue,
-  WAPrivacyValue,
-  WAReadReceiptsValue,
-  proto,
-} from '@whiskeysockets/baileys';
+import { proto, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '@whiskeysockets/baileys';
 
 export class OnWhatsAppDto {
-  constructor(
-    public readonly jid: string,
-    public readonly exists: boolean,
-    public readonly name?: string,
-  ) {}
+  constructor(public readonly jid: string, public readonly exists: boolean, public readonly name?: string) {}
 }
 
 export class getBase64FromMediaMessageDto {
@@ -24,6 +15,19 @@ export class WhatsAppNumberDto {
 
 export class NumberDto {
   number: string;
+}
+
+export class NumberBusiness {
+  wid?: string;
+  jid?: string;
+  exists?: boolean;
+  isBusiness: boolean;
+  name?: string;
+  message?: string;
+  description?: string;
+  email?: string;
+  website?: string[];
+  address?: string;
 }
 
 export class ProfileNameDto {
@@ -46,7 +50,7 @@ class Key {
   remoteJid: string;
 }
 export class ReadMessageDto {
-  readMessages: Key[];
+  read_messages: Key[];
 }
 
 class LastMessage {
