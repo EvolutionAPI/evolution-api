@@ -18,6 +18,7 @@
 * Adjustment in the saving of contacts, saving the information of the number and Jid
 * Update Dockerfile
 * If you pass empty events in create instance and set webhook it is understood as all
+* Fixed issue that did not output base64 averages
 
 ### Integrations
 

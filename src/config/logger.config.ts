@@ -75,6 +75,7 @@ export class Logger {
         console.log(
           /*Command.UNDERSCORE +*/ Command.BRIGHT + Level[type],
           '[Evolution API]',
+          Command.BRIGHT + Color[type],
           `v${packageJson.version}`,
           Command.BRIGHT + Color[type],
           process.pid.toString(),

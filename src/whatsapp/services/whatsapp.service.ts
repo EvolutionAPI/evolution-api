@@ -2178,6 +2178,14 @@ export class WAStartupService {
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
 
+      if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
+        mediaMessage.fileName = 'image.png';
+      }
+
+      if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
+        mediaMessage.fileName = 'video.mp4';
+      }
+
       let mimetype: string;
 
       if (isURL(mediaMessage.media)) {
