@@ -1359,7 +1359,7 @@ export class WAStartupService {
         );
       }
 
-      if (this.localTypebot.enabled) {
+      if (this.localTypebot.enabled && messageRaw.key.remoteJid.includes('@s.whatsapp.net')) {
         await this.typebotService.sendTypebot(
           { instanceName: this.instance.name },
           messageRaw.key.remoteJid,

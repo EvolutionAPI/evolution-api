@@ -129,6 +129,7 @@ export class TypebotService {
         prefilledVariables: {
           remoteJid: data.remoteJid,
           pushName: data.pushName,
+          instanceName: instance.instanceName,
         },
       },
     };
