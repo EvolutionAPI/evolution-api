@@ -1,6 +1,8 @@
 import dayjs from 'dayjs';
+import fs from 'fs';
 
 import { configService, Log } from './env.config';
+const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
 const formatDateLog = (timestamp: number) =>
   dayjs(timestamp)
@@ -73,6 +75,8 @@ export class Logger {
         console.log(
           /*Command.UNDERSCORE +*/ Command.BRIGHT + Level[type],
           '[Evolution API]',
+          Command.BRIGHT + Color[type],
+          `v${packageJson.version}`,
           Command.BRIGHT + Color[type],
           process.pid.toString(),
           Command.RESET,

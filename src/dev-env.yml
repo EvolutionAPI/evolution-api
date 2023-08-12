@@ -79,6 +79,13 @@ REDIS:
   URI: "redis://localhost:6379"
   PREFIX_KEY: "evolution"
 
+RABBITMQ:
+  ENABLED: false
+  URI: "amqp://guest:guest@localhost:5672"
+
+WEBSOCKET: 
+  ENABLED: false
+
 # Global Webhook Settings
 # Each instance's Webhook URL and events will be requested at the time it is created
 WEBHOOK:
@@ -122,6 +129,7 @@ CONFIG_SESSION_PHONE:
 # Set qrcode display limit
 QRCODE:
   LIMIT: 30
+  COLOR: '#198754'
 
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,

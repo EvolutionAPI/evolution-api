@@ -53,13 +53,14 @@ export class ReadMessageDto {
   read_messages: Key[];
 }
 
-class LastMessage {
+export class LastMessage {
   key: Key;
   messageTimestamp?: number;
 }
 
 export class ArchiveChatDto {
-  lastMessage: LastMessage;
+  lastMessage?: LastMessage;
+  chat?: string;
   archive: boolean;
 }
 

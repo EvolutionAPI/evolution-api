@@ -4,8 +4,8 @@ import { join } from 'path';
 
 import { configService, Database, Redis } from '../../config/env.config';
 import { INSTANCE_DIR } from '../../config/path.config';
-import { dbserver } from '../../db/db.connect';
 import { BadRequestException, ForbiddenException, NotFoundException } from '../../exceptions';
+import { dbserver } from '../../libs/db.connect';
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../whatsapp.module';
 

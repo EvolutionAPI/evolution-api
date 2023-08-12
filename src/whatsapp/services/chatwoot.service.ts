@@ -5,7 +5,7 @@ import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
-import { ConfigService, HttpServer } from '../../config/env.config';
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
@@ -205,7 +205,14 @@ export class ChatwootService {
     this.logger.verbose('find contact in chatwoot and create if not exists');
     const contact =
       (await this.findContact(instance, '123456')) ||
-      ((await this.createContact(instance, '123456', inboxId, false, 'EvolutionAPI')) as any);
+      ((await this.createContact(
+        instance,
+        '123456',
+        inboxId,
+        false,
+        'EvolutionAPI',
+        'https://evolution-api.com/files/evolution-api-favicon.png',
+      )) as any);
 
     if (!contact) {
       this.logger.warn('contact not found');
@@ -237,10 +244,10 @@ export class ChatwootService {
 
       this.logger.verbose('create message for init instance in chatwoot');
 
-      let contentMsg = '/init';
+      let contentMsg = 'init';
 
       if (number) {
-        contentMsg = `/init:${number}`;
+        contentMsg = `init:${number}`;
       }
 
       const message = await client.messages.create({
@@ -269,6 +276,7 @@ export class ChatwootService {
     isGroup: boolean,
     name?: string,
     avatar_url?: string,
+    jid?: string,
   ) {
     this.logger.verbose('create contact to instance: ' + instance.instanceName);
 
@@ -286,6 +294,7 @@ export class ChatwootService {
         inbox_id: inboxId,
         name: name || phoneNumber,
         phone_number: `+${phoneNumber}`,
+        identifier: jid,
         avatar_url: avatar_url,
       };
     } else {
@@ -437,6 +446,7 @@ export class ChatwootService {
             false,
             body.pushName,
             picture_url.profilePictureUrl || null,
+            body.key.participant,
           );
         }
       }
@@ -452,6 +462,7 @@ export class ChatwootService {
         if (findContact) {
           contact = findContact;
         } else {
+          const jid = isGroup ? null : body.key.remoteJid;
           contact = await this.createContact(
             instance,
             chatId,
@@ -459,6 +470,7 @@ export class ChatwootService {
             isGroup,
             nameContact,
             picture_url.profilePictureUrl || null,
+            jid,
           );
         }
       } else {
@@ -472,6 +484,7 @@ export class ChatwootService {
             contact = findContact;
           }
         } else {
+          const jid = isGroup ? null : body.key.remoteJid;
           contact = await this.createContact(
             instance,
             chatId,
@@ -479,6 +492,7 @@ export class ChatwootService {
             isGroup,
             nameContact,
             picture_url.profilePictureUrl || null,
+            jid,
           );
         }
       }
@@ -578,7 +592,7 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find inbox by name');
-    const findByName = inbox.payload.find((inbox) => inbox.name === instance.instanceName);
+    const findByName = inbox.payload.find((inbox) => inbox.name === instance.instanceName.split('-cwId-')[0]);
 
     if (!findByName) {
       this.logger.warn('inbox not found');
@@ -996,39 +1010,6 @@ export class ChatwootService {
           await waInstance?.client?.logout('Log out instance: ' + instance.instanceName);
           await waInstance?.client?.ws?.close();
         }
-
-        if (command.includes('new_instance')) {
-          const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-          const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
-
-          const data = {
-            instanceName: command.split(':')[1],
-            qrcode: true,
-            chatwoot_account_id: this.provider.account_id,
-            chatwoot_token: this.provider.token,
-            chatwoot_url: this.provider.url,
-            chatwoot_sign_msg: this.provider.sign_msg,
-            chatwoot_reopen_conversation: this.provider.reopen_conversation,
-            chatwoot_conversation_pending: this.provider.conversation_pending,
-          };
-
-          if (command.split(':')[2]) {
-            data['number'] = command.split(':')[2];
-          }
-
-          const config = {
-            method: 'post',
-            maxBodyLength: Infinity,
-            url: `${urlServer}/instance/create`,
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: apiKey,
-            },
-            data: data,
-          };
-
-          await axios.request(config);
-        }
       }
 
       if (body.message_type === 'outgoing' && body?.conversation?.messages?.length && chatId !== '123456') {
@@ -1055,7 +1036,7 @@ export class ChatwootService {
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
-          formatText = this.provider.sign_msg ? `*${senderName}:*\n\n${messageReceived}` : messageReceived;
+          formatText = this.provider.sign_msg ? `*${senderName}:*\n${messageReceived}` : messageReceived;
         }
 
         for (const message of body.conversation.messages) {
@@ -1342,7 +1323,7 @@ export class ChatwootService {
 
             if (!body.key.fromMe) {
               this.logger.verbose('message is not from me');
-              content = `**${participantName}**\n\n${bodyMessage}`;
+              content = `**${participantName}:**\n\n${bodyMessage}`;
             } else {
               this.logger.verbose('message is from me');
               content = `${bodyMessage}`;
@@ -1478,7 +1459,7 @@ export class ChatwootService {
         this.logger.verbose('event qrcode.updated');
         if (body.statusCode === 500) {
           this.logger.verbose('qrcode error');
-          const erroQRcode = `🚨 QRCode generation limit reached, to generate a new QRCode, send the /init message again.`;
+          const erroQRcode = `🚨 QRCode generation limit reached, to generate a new QRCode, send the 'init' message again.`;
 
           this.logger.verbose('send message to chatwoot');
           return await this.createBotMessage(instance, erroQRcode, 'incoming');
@@ -1513,52 +1494,6 @@ export class ChatwootService {
       }
     } catch (error) {
       this.logger.error(error);
-    }
-  }
-
-  public async newInstance(data: any) {
-    try {
-      const instanceName = data.instanceName;
-      const qrcode = true;
-      const number = data.number;
-      const accountId = data.accountId;
-      const chatwootToken = data.token;
-      const chatwootUrl = data.url;
-      const signMsg = true;
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-      const apiKey = this.configService.get('AUTHENTICATION').API_KEY.KEY;
-
-      const requestData = {
-        instanceName,
-        qrcode,
-        chatwoot_account_id: accountId,
-        chatwoot_token: chatwootToken,
-        chatwoot_url: chatwootUrl,
-        chatwoot_sign_msg: signMsg,
-      };
-
-      if (number) {
-        requestData['number'] = number;
-      }
-
-      // eslint-disable-next-line
-      const config = {
-        method: 'post',
-        maxBodyLength: Infinity,
-        url: `${urlServer}/instance/create`,
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: apiKey,
-        },
-        data: requestData,
-      };
-
-      // await axios.request(config);
-
-      return true;
-    } catch (error) {
-      this.logger.error(error);
-      return null;
     }
   }
 }
