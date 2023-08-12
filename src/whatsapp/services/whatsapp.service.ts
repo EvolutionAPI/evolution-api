@@ -121,6 +121,7 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
 import { ChatwootService } from './chatwoot.service';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 export class WAStartupService {
   constructor(
@@ -874,6 +875,7 @@ export class WAStartupService {
 
           return message;
         },
+        // agent: new SocksProxyAgent('socks5://192.168.1.4:1080'),
       };
 
       this.endSession = false;
