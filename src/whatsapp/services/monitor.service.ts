@@ -7,9 +7,9 @@ import { join } from 'path';
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import { dbserver } from '../../db/db.connect';
-import { RedisCache } from '../../db/redis.client';
 import { NotFoundException } from '../../exceptions';
+import { dbserver } from '../../libs/db.connect';
+import { RedisCache } from '../../libs/redis.client';
 import {
   AuthModel,
   ChatwootModel,
@@ -94,7 +94,7 @@ export class WAMonitoringService {
         if (findChatwoot && findChatwoot.enabled) {
           chatwoot = {
             ...findChatwoot,
-            webhook_url: `${urlServer}/chatwoot/webhook/${key}`,
+            webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
           };
         }
 
@@ -335,11 +335,14 @@ export class WAMonitoringService {
     this.logger.verbose('checking instances without connection');
     this.eventEmitter.on('no.connection', async (instanceName) => {
       try {
-        this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
-        this.waInstances[instanceName] = undefined;
+        this.logger.verbose('logging out instance: ' + instanceName);
+        await this.waInstances[instanceName]?.client?.logout('Log out instance: ' + instanceName);
 
-        this.logger.verbose('request cleaning up instance: ' + instanceName);
-        this.cleaningUp(instanceName);
+        this.logger.verbose('close connection instance: ' + instanceName);
+        this.waInstances[instanceName]?.client?.ws?.close();
+
+        this.waInstances[instanceName].instance.qrcode = { count: 0 };
+        this.waInstances[instanceName].stateConnection.state = 'close';
       } catch (error) {
         this.logger.error({
           localError: 'noConnection',

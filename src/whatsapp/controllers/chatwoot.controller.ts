@@ -52,7 +52,7 @@ export class ChatwootController {
 
     const response = {
       ...result,
-      webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+      webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
     };
 
     return response;
@@ -78,7 +78,7 @@ export class ChatwootController {
 
     const response = {
       ...result,
-      webhook_url: `${urlServer}/chatwoot/webhook/${instance.instanceName}`,
+      webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
     };
 
     return response;
@@ -89,11 +89,5 @@ export class ChatwootController {
     const chatwootService = new ChatwootService(waMonitor, this.configService);
 
     return chatwootService.receiveWebhook(instance, data);
-  }
-
-  public async newInstance(data: any) {
-    const chatwootService = new ChatwootService(waMonitor, this.configService);
-
-    return chatwootService.newInstance(data);
   }
 }

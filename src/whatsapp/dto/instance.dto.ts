@@ -18,4 +18,16 @@ export class InstanceDto {
   chatwoot_sign_msg?: boolean;
   chatwoot_reopen_conversation?: boolean;
   chatwoot_conversation_pending?: boolean;
+  websocket_enabled?: boolean;
+  websocket_events?: string[];
+  rabbitmq_enabled?: boolean;
+  rabbitmq_events?: string[];
+  typebot_url?: string;
+  typebot?: string;
+  typebot_expire?: number;
+  typebot_keyword_finish?: string;
+  typebot_delay_message?: number;
+  typebot_unknown_message?: string;
+  proxy_enabled?: boolean;
+  proxy_proxy?: string;
 }

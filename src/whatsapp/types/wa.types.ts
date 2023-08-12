@@ -70,6 +70,38 @@ export declare namespace wa {
     read_status?: boolean;
   };
 
+  export type LocalWebsocket = {
+    enabled?: boolean;
+    events?: string[];
+  };
+
+  export type LocalRabbitmq = {
+    enabled?: boolean;
+    events?: string[];
+  };
+
+  type Session = {
+    remoteJid?: string;
+    sessionId?: string;
+    createdAt?: number;
+  };
+
+  export type LocalTypebot = {
+    enabled?: boolean;
+    url?: string;
+    typebot?: string;
+    expire?: number;
+    keyword_finish?: string;
+    delay_message?: number;
+    unknown_message?: string;
+    sessions?: Session[];
+  };
+
+  export type LocalProxy = {
+    enabled?: boolean;
+    proxy?: string;
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';
