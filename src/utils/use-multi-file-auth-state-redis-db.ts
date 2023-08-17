@@ -7,7 +7,7 @@ import {
 } from '@whiskeysockets/baileys';
 
 import { Logger } from '../config/logger.config';
-import { RedisCache } from '../db/redis.client';
+import { RedisCache } from '../libs/redis.client';
 
 export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
   state: AuthenticationState;

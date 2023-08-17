@@ -9,7 +9,7 @@ import {
 
 import { configService, Database } from '../config/env.config';
 import { Logger } from '../config/logger.config';
-import { dbserver } from '../db/db.connect';
+import { dbserver } from '../libs/db.connect';
 
 export async function useMultiFileAuthStateDb(
   coll: string,

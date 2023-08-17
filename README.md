@@ -7,7 +7,8 @@
 [![Postman Collection](https://img.shields.io/badge/Postman-Collection-orange)](https://evolution-api.com/postman) 
 [![Documentation](https://img.shields.io/badge/Documentation-Official-green)](https://doc.evolution-api.com)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](./LICENSE)
-[![Support](https://img.shields.io/badge/Buy%20me-coffe-orange)](https://app.picpay.com/user/davidsongomes1998)
+[![Support](https://img.shields.io/badge/Donation-picpay-green)](https://app.picpay.com/user/davidsongomes1998)
+[![Support](https://img.shields.io/badge/Buy%20me-coffe-orange)](https://bmc.link/evolutionapi)
 
 </div>
   
@@ -34,7 +35,15 @@ This code was produced based on the baileys library and it is still under develo
 
 <div align="center">
   <a href="https://app.picpay.com/user/davidsongomes1998" target="_blank" rel="noopener noreferrer">
-    <img src="./public/images/picpay-image.png" style="width: 50% !important;">
+    <img src="./public/images/picpay-qr.jpeg" style="width: 50% !important;">
+  </a>
+</div>
+
+#### Buy me coffe
+
+<div align="center">
+  <a href="https://bmc.link/evolutionapi" target="_blank" rel="noopener noreferrer">
+    <img src="./public/images/bmc_qr.png" style="width: 50% !important;">
   </a>
 </div>
 
