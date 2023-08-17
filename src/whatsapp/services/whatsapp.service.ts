@@ -599,11 +599,23 @@ export class WAStartupService {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
           const exchangeName = 'evolution_exchange';
 
-          amqp.assertExchange(exchangeName, 'topic', { durable: false });
+          amqp.assertExchange(exchangeName, 'topic', {
+            durable: true,
+            'auto-delete': false,
+            arguments: {
+              'x-queue-type': 'quorum',
+            },
+          });
 
           const queueName = `${this.instanceName}.${event}`;
 
-          amqp.assertQueue(queueName, { durable: false });
+          amqp.assertQueue(queueName, {
+            durable: true,
+            'auto-delete': false,
+            arguments: {
+              'x-queue-type': 'quorum',
+            },
+          });
 
           amqp.bindQueue(queueName, exchangeName, event);
 
@@ -666,6 +678,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            sender: this.wuid,
             server_url: serverUrl,
             apikey: (expose && instanceApikey) || null,
           };
@@ -685,6 +698,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              sender: this.wuid,
               server_url: serverUrl,
             };
 
@@ -734,6 +748,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            sender: this.wuid,
             server_url: serverUrl,
           };
 
@@ -752,6 +767,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              sender: this.wuid,
               server_url: serverUrl,
             };
 
