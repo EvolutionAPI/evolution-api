@@ -24,7 +24,13 @@ export const initAMQP = () => {
 
         const exchangeName = 'evolution_exchange';
 
-        channel.assertExchange(exchangeName, 'topic', { durable: false });
+        channel.assertExchange(exchangeName, 'topic', {
+          durable: true,
+          autoDelete: false,
+          arguments: {
+            queueType: 'quorum',
+          },
+        });
         amqpChannel = channel;
 
         logger.info('AMQP initialized');
