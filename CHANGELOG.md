@@ -1,4 +1,4 @@
-# 1.5.0 (homolog)
+# 1.5.0 (2023-08-18 12:47)
 
 ### Feature
 
@@ -10,6 +10,7 @@
 * Added rabbitmq to send events
 * Added Typebot integration
 * Added proxy endpoint
+* Added send and date_time in webhook data
 
 ### Fixed
 
@@ -19,6 +20,7 @@
 * Update Dockerfile
 * If you pass empty events in create instance and set webhook it is understood as all
 * Fixed issue that did not output base64 averages
+* Messages sent by the api now arrive in chatwoot
 
 ### Integrations
 

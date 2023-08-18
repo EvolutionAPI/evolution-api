@@ -38,4 +38,9 @@ export class TypebotController {
     logger.verbose('requested changeStatus from ' + instance.instanceName + ' instance');
     return this.typebotService.changeStatus(instance, data);
   }
+
+  public async startTypebot(instance: InstanceDto, data: any) {
+    logger.verbose('requested startTypebot from ' + instance.instanceName + ' instance');
+    return this.typebotService.startTypebot(instance, data);
+  }
 }

@@ -1001,6 +1001,18 @@ export const typebotStatusSchema: JSONSchema7 = {
   ...isNotEmpty('remoteJid', 'status'),
 };
 
+export const typebotStartSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    remoteJid: { type: 'string' },
+    url: { type: 'string' },
+    typebot: { type: 'string' },
+  },
+  required: ['remoteJid', 'url', 'typebot'],
+  ...isNotEmpty('remoteJid', 'url', 'typebot'),
+};
+
 export const proxySchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

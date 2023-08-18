@@ -588,6 +588,9 @@ export class WAStartupService {
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
+    const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
+    const localISOTime = new Date(Date.now() - tzoffset).toISOString();
+    const now = localISOTime;
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
@@ -598,13 +601,22 @@ export class WAStartupService {
 
       if (amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-          const exchangeName = 'evolution_exchange';
+          const exchangeName = this.instanceName ?? 'evolution_exchange';
 
-          amqp.assertExchange(exchangeName, 'topic', { durable: false });
+          amqp.assertExchange(exchangeName, 'topic', {
+            durable: true,
+            autoDelete: false,
+          });
 
           const queueName = `${this.instanceName}.${event}`;
 
-          amqp.assertQueue(queueName, { durable: false });
+          amqp.assertQueue(queueName, {
+            durable: true,
+            autoDelete: false,
+            arguments: {
+              'x-queue-type': 'quorum',
+            },
+          });
 
           amqp.bindQueue(queueName, exchangeName, event);
 
@@ -613,6 +625,8 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             server_url: serverUrl,
+            date_time: now,
+            sender: this.wuid,
           };
 
           if (expose && instanceApikey) {
@@ -635,6 +649,8 @@ export class WAStartupService {
           instance: this.instance.name,
           data,
           server_url: serverUrl,
+          date_time: now,
+          sender: this.wuid,
         };
 
         if (expose && instanceApikey) {
@@ -667,6 +683,8 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            date_time: now,
+            sender: this.wuid,
             server_url: serverUrl,
             apikey: (expose && instanceApikey) || null,
           };
@@ -686,6 +704,8 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              date_time: now,
+              sender: this.wuid,
               server_url: serverUrl,
             };
 
@@ -735,6 +755,8 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            date_time: now,
+            sender: this.wuid,
             server_url: serverUrl,
           };
 
@@ -753,6 +775,8 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              date_time: now,
+              sender: this.wuid,
               server_url: serverUrl,
             };
 
@@ -1976,13 +2000,9 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      // if (this.localChatwoot.enabled) {
-      //   this.chatwootService.eventWhatsapp(
-      //     Events.SEND_MESSAGE,
-      //     { instanceName: this.instance.name },
-      //     messageRaw,
-      //   );
-      // }
+      if (this.localChatwoot.enabled) {
+        this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
+      }
 
       this.logger.verbose('Inserting message in database');
       await this.repository.message.insert(

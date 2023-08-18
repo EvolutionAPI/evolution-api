@@ -84,6 +84,48 @@ export class TypebotService {
     return { typebot: { ...instance, typebot: typebotData } };
   }
 
+  public async startTypebot(instance: InstanceDto, data: any) {
+    const remoteJid = data.remoteJid;
+    const url = data.url;
+    const typebot = data.typebot;
+
+    const id = Math.floor(Math.random() * 10000000000).toString();
+
+    const reqData = {
+      sessionId: id,
+      startParams: {
+        typebot: data.typebot,
+        prefilledVariables: {
+          remoteJid: data.remoteJid,
+          pushName: data.pushName,
+          instanceName: instance.instanceName,
+        },
+      },
+    };
+    console.log(reqData);
+
+    const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+
+    await this.sendWAMessage(
+      instance,
+      remoteJid,
+      request.data.messages,
+      request.data.input,
+      request.data.clientSideActions,
+    );
+
+    return {
+      typebot: {
+        ...instance,
+        typebot: {
+          url: url,
+          remoteJid: remoteJid,
+          typebot: typebot,
+        },
+      },
+    };
+  }
+
   private getTypeMessage(msg: any) {
     this.logger.verbose('get type message');
 
@@ -162,13 +204,34 @@ export class TypebotService {
     return request.data;
   }
 
-  public async sendWAMessage(instance: InstanceDto, remoteJid: string, messages: any[], input: any[]) {
-    processMessages(this.waMonitor.waInstances[instance.instanceName], messages, input).catch((err) => {
-      console.error('Erro ao processar mensagens:', err);
-    });
+  public async sendWAMessage(
+    instance: InstanceDto,
+    remoteJid: string,
+    messages: any[],
+    input: any[],
+    clientSideActions: any[],
+  ) {
+    processMessages(this.waMonitor.waInstances[instance.instanceName], messages, input, clientSideActions).catch(
+      (err) => {
+        console.error('Erro ao processar mensagens:', err);
+      },
+    );
 
-    async function processMessages(instance, messages, input) {
+    function findItemAndGetSecondsToWait(array, targetId) {
+      if (!array) return null;
+
+      for (const item of array) {
+        if (item.lastBubbleBlockId === targetId) {
+          return item.wait?.secondsToWaitFor;
+        }
+      }
+      return null;
+    }
+
+    async function processMessages(instance, messages, input, clientSideActions) {
       for (const message of messages) {
+        const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
+
         if (message.type === 'text') {
           let formattedText = '';
 
@@ -209,7 +272,7 @@ export class TypebotService {
           await instance.textMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'composing',
               linkPreview: linkPreview,
             },
@@ -223,7 +286,7 @@ export class TypebotService {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'composing',
             },
             mediaMessage: {
@@ -237,7 +300,7 @@ export class TypebotService {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'composing',
             },
             mediaMessage: {
@@ -251,7 +314,7 @@ export class TypebotService {
           await instance.audioWhatsapp({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'recording',
               encoding: true,
             },
@@ -323,7 +386,7 @@ export class TypebotService {
           pushName: msg.pushName,
         });
 
-        await this.sendWAMessage(instance, remoteJid, data.messages, data.input);
+        await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
 
         return;
       }
@@ -346,7 +409,7 @@ export class TypebotService {
         pushName: msg.pushName,
       });
 
-      await this.sendWAMessage(instance, remoteJid, data.messages, data.input);
+      await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
 
       return;
     }
@@ -414,7 +477,13 @@ export class TypebotService {
 
     const request = await axios.post(url + '/api/v1/sendMessage', reqData);
 
-    await this.sendWAMessage(instance, remoteJid, request.data.messages, request.data.input);
+    await this.sendWAMessage(
+      instance,
+      remoteJid,
+      request.data.messages,
+      request.data.input,
+      request.data.clientSideActions,
+    );
 
     return;
   }
