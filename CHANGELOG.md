@@ -10,6 +10,7 @@
 * Added rabbitmq to send events
 * Added Typebot integration
 * Added proxy endpoint
+* Added send and date_time in webhook data
 
 ### Fixed
 
