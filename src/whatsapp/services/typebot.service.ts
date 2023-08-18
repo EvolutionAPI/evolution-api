@@ -1,4 +1,3 @@
-import { delay } from '@whiskeysockets/baileys';
 import axios from 'axios';
 
 import { Logger } from '../../config/logger.config';
@@ -231,7 +230,8 @@ export class TypebotService {
           await instance.textMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              // delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'composing',
               linkPreview: linkPreview,
             },
@@ -245,7 +245,8 @@ export class TypebotService {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              // delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'composing',
             },
             mediaMessage: {
@@ -259,7 +260,8 @@ export class TypebotService {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              // delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'composing',
             },
             mediaMessage: {
@@ -273,7 +275,8 @@ export class TypebotService {
           await instance.audioWhatsapp({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              // delay: instance.localTypebot.delay_message || 1000,
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
               presence: 'recording',
               encoding: true,
             },
@@ -281,10 +284,6 @@ export class TypebotService {
               audio: message.content.url,
             },
           });
-        }
-
-        if (wait) {
-          await delay(wait * 1000);
         }
       }
 
