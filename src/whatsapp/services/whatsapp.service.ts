@@ -587,6 +587,9 @@ export class WAStartupService {
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
+    const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
+    const localISOTime = new Date(Date.now() - tzoffset).toISOString();
+    const now = localISOTime;
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
@@ -621,6 +624,8 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             server_url: serverUrl,
+            date_time: now,
+            sender: this.wuid,
           };
 
           if (expose && instanceApikey) {
@@ -643,6 +648,8 @@ export class WAStartupService {
           instance: this.instance.name,
           data,
           server_url: serverUrl,
+          date_time: now,
+          sender: this.wuid,
         };
 
         if (expose && instanceApikey) {
@@ -675,7 +682,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
-            ISODatetime: new Date().toISOString(),
+            date_time: now,
             sender: this.wuid,
             server_url: serverUrl,
             apikey: (expose && instanceApikey) || null,
@@ -696,6 +703,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              date_time: now,
               sender: this.wuid,
               server_url: serverUrl,
             };
@@ -746,6 +754,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            date_time: now,
             sender: this.wuid,
             server_url: serverUrl,
           };
@@ -765,6 +774,7 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              date_time: now,
               sender: this.wuid,
               server_url: serverUrl,
             };
