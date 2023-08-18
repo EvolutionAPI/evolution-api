@@ -19,6 +19,7 @@
 * Update Dockerfile
 * If you pass empty events in create instance and set webhook it is understood as all
 * Fixed issue that did not output base64 averages
+* Messages sent by the api now arrive in chatwoot
 
 ### Integrations
 

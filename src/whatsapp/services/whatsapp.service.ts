@@ -678,6 +678,7 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            ISODatetime: new Date().toISOString(),
             sender: this.wuid,
             server_url: serverUrl,
             apikey: (expose && instanceApikey) || null,
@@ -1991,13 +1992,9 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      // if (this.localChatwoot.enabled) {
-      //   this.chatwootService.eventWhatsapp(
-      //     Events.SEND_MESSAGE,
-      //     { instanceName: this.instance.name },
-      //     messageRaw,
-      //   );
-      // }
+      if (this.localChatwoot.enabled) {
+        this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
+      }
 
       this.logger.verbose('Inserting message in database');
       await this.repository.message.insert(
