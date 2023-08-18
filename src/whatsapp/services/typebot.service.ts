@@ -84,6 +84,48 @@ export class TypebotService {
     return { typebot: { ...instance, typebot: typebotData } };
   }
 
+  public async startTypebot(instance: InstanceDto, data: any) {
+    const remoteJid = data.remoteJid;
+    const url = data.url;
+    const typebot = data.typebot;
+
+    const id = Math.floor(Math.random() * 10000000000).toString();
+
+    const reqData = {
+      sessionId: id,
+      startParams: {
+        typebot: data.typebot,
+        prefilledVariables: {
+          remoteJid: data.remoteJid,
+          pushName: data.pushName,
+          instanceName: instance.instanceName,
+        },
+      },
+    };
+    console.log(reqData);
+
+    const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+
+    await this.sendWAMessage(
+      instance,
+      remoteJid,
+      request.data.messages,
+      request.data.input,
+      request.data.clientSideActions,
+    );
+
+    return {
+      typebot: {
+        ...instance,
+        typebot: {
+          url: url,
+          remoteJid: remoteJid,
+          typebot: typebot,
+        },
+      },
+    };
+  }
+
   private getTypeMessage(msg: any) {
     this.logger.verbose('get type message');
 
