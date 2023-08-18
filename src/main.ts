@@ -27,7 +27,9 @@ function bootstrap() {
     cors({
       origin(requestOrigin, callback) {
         const { ORIGIN } = configService.get<Cors>('CORS');
-        !requestOrigin ? (requestOrigin = '*') : undefined;
+        if (ORIGIN.includes('*')) {
+          return callback(null, true);
+        }
         if (ORIGIN.indexOf(requestOrigin) !== -1) {
           return callback(null, true);
         }
