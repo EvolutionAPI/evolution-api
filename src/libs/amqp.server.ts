@@ -27,10 +27,8 @@ export const initAMQP = () => {
         channel.assertExchange(exchangeName, 'topic', {
           durable: true,
           autoDelete: false,
-          arguments: {
-            queueType: 'quorum',
-          },
         });
+
         amqpChannel = channel;
 
         logger.info('AMQP initialized');

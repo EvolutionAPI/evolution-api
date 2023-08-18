@@ -597,14 +597,11 @@ export class WAStartupService {
 
       if (amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-          const exchangeName = 'evolution_exchange';
+          const exchangeName = this.instanceName ?? 'evolution_exchange';
 
           amqp.assertExchange(exchangeName, 'topic', {
             durable: true,
             autoDelete: false,
-            arguments: {
-              queueType: 'quorum',
-            },
           });
 
           const queueName = `${this.instanceName}.${event}`;
@@ -613,7 +610,7 @@ export class WAStartupService {
             durable: true,
             autoDelete: false,
             arguments: {
-              queueType: 'quorum',
+              'x-queue-type': 'quorum',
             },
           });
 
