@@ -1,3 +1,33 @@
+# 1.5.0 (2023-08-18 12:47)
+
+### Feature
+
+* New instance manager in /manager route
+* Added extra files for chatwoot and appsmith
+* Added Get Last Message and Archive for Chat
+* Added env var QRCODE_COLOR
+* Added websocket to send events
+* Added rabbitmq to send events
+* Added Typebot integration
+* Added proxy endpoint
+* Added send and date_time in webhook data
+
+### Fixed
+
+* Solved problem when disconnecting from the instance the instance was deleted
+* Encoded spaces in chatwoot webhook
+* Adjustment in the saving of contacts, saving the information of the number and Jid
+* Update Dockerfile
+* If you pass empty events in create instance and set webhook it is understood as all
+* Fixed issue that did not output base64 averages
+* Messages sent by the api now arrive in chatwoot
+
+### Integrations
+
+- Chatwoot: v2.18.0 - v3.0.0
+- Typebot: v2.16.0
+- Manager Evolution API
+
 # 1.4.8 (2023-07-27 10:27)
 
 ### Fixed

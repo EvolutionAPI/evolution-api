@@ -44,6 +44,7 @@ import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
+import { ProxyAgent } from 'proxy-agent';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
@@ -60,18 +61,22 @@ import {
   QrCode,
   Redis,
   Webhook,
+  Websocket,
 } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
-import { dbserver } from '../../db/db.connect';
-import { RedisCache } from '../../db/redis.client';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
+import { getAMQP } from '../../libs/amqp.server';
+import { dbserver } from '../../libs/db.connect';
+import { RedisCache } from '../../libs/redis.client';
+import { getIO } from '../../libs/socket.server';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import {
   ArchiveChatDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  LastMessage,
   NumberBusiness,
   OnWhatsAppDto,
   PrivacySettingDto,
@@ -108,12 +113,13 @@ import {
   SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { SettingsRaw } from '../models';
+import { ProxyRaw, RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
 import { ChatRaw } from '../models/chat.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
 import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
 import { WebhookRaw } from '../models/webhook.model';
+import { WebsocketRaw } from '../models/websocket.model';
 import { ContactQuery } from '../repository/contact.repository';
 import { MessageQuery } from '../repository/message.repository';
 import { MessageUpQuery } from '../repository/messageUp.repository';
@@ -121,6 +127,7 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
 import { ChatwootService } from './chatwoot.service';
+import { TypebotService } from './typebot.service';
 
 export class WAStartupService {
   constructor(
@@ -135,12 +142,16 @@ export class WAStartupService {
   }
 
   private readonly logger = new Logger(WAStartupService.name);
-  private readonly instance: wa.Instance = {};
+  public readonly instance: wa.Instance = {};
   public client: WASocket;
   private readonly localWebhook: wa.LocalWebHook = {};
   private readonly localChatwoot: wa.LocalChatwoot = {};
   private readonly localSettings: wa.LocalSettings = {};
-  private stateConnection: wa.StateConnection = { state: 'close' };
+  private readonly localWebsocket: wa.LocalWebsocket = {};
+  private readonly localRabbitmq: wa.LocalRabbitmq = {};
+  public readonly localTypebot: wa.LocalTypebot = {};
+  private readonly localProxy: wa.LocalProxy = {};
+  public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
@@ -150,6 +161,8 @@ export class WAStartupService {
   private phoneNumber: string;
 
   private chatwootService = new ChatwootService(waMonitor, this.configService);
+
+  private typebotService = new TypebotService(waMonitor);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -409,16 +422,244 @@ export class WAStartupService {
     return data;
   }
 
+  private async loadWebsocket() {
+    this.logger.verbose('Loading websocket');
+    const data = await this.repository.websocket.find(this.instanceName);
+
+    this.localWebsocket.enabled = data?.enabled;
+    this.logger.verbose(`Websocket enabled: ${this.localWebsocket.enabled}`);
+
+    this.localWebsocket.events = data?.events;
+    this.logger.verbose(`Websocket events: ${this.localWebsocket.events}`);
+
+    this.logger.verbose('Websocket loaded');
+  }
+
+  public async setWebsocket(data: WebsocketRaw) {
+    this.logger.verbose('Setting websocket');
+    await this.repository.websocket.create(data, this.instanceName);
+    this.logger.verbose(`Websocket events: ${data.events}`);
+    Object.assign(this.localWebsocket, data);
+    this.logger.verbose('Websocket set');
+  }
+
+  public async findWebsocket() {
+    this.logger.verbose('Finding websocket');
+    const data = await this.repository.websocket.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Websocket not found');
+      throw new NotFoundException('Websocket not found');
+    }
+
+    this.logger.verbose(`Websocket events: ${data.events}`);
+    return data;
+  }
+
+  private async loadRabbitmq() {
+    this.logger.verbose('Loading rabbitmq');
+    const data = await this.repository.rabbitmq.find(this.instanceName);
+
+    this.localRabbitmq.enabled = data?.enabled;
+    this.logger.verbose(`Rabbitmq enabled: ${this.localRabbitmq.enabled}`);
+
+    this.localRabbitmq.events = data?.events;
+    this.logger.verbose(`Rabbitmq events: ${this.localRabbitmq.events}`);
+
+    this.logger.verbose('Rabbitmq loaded');
+  }
+
+  public async setRabbitmq(data: RabbitmqRaw) {
+    this.logger.verbose('Setting rabbitmq');
+    await this.repository.rabbitmq.create(data, this.instanceName);
+    this.logger.verbose(`Rabbitmq events: ${data.events}`);
+    Object.assign(this.localRabbitmq, data);
+    this.logger.verbose('Rabbitmq set');
+  }
+
+  public async findRabbitmq() {
+    this.logger.verbose('Finding rabbitmq');
+    const data = await this.repository.rabbitmq.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Rabbitmq not found');
+      throw new NotFoundException('Rabbitmq not found');
+    }
+
+    this.logger.verbose(`Rabbitmq events: ${data.events}`);
+    return data;
+  }
+
+  private async loadTypebot() {
+    this.logger.verbose('Loading typebot');
+    const data = await this.repository.typebot.find(this.instanceName);
+
+    this.localTypebot.enabled = data?.enabled;
+    this.logger.verbose(`Typebot enabled: ${this.localTypebot.enabled}`);
+
+    this.localTypebot.url = data?.url;
+    this.logger.verbose(`Typebot url: ${this.localTypebot.url}`);
+
+    this.localTypebot.typebot = data?.typebot;
+    this.logger.verbose(`Typebot typebot: ${this.localTypebot.typebot}`);
+
+    this.localTypebot.expire = data?.expire;
+    this.logger.verbose(`Typebot expire: ${this.localTypebot.expire}`);
+
+    this.localTypebot.keyword_finish = data?.keyword_finish;
+    this.logger.verbose(`Typebot keyword_finish: ${this.localTypebot.keyword_finish}`);
+
+    this.localTypebot.delay_message = data?.delay_message;
+    this.logger.verbose(`Typebot delay_message: ${this.localTypebot.delay_message}`);
+
+    this.localTypebot.unknown_message = data?.unknown_message;
+    this.logger.verbose(`Typebot unknown_message: ${this.localTypebot.unknown_message}`);
+
+    this.localTypebot.sessions = data?.sessions;
+
+    this.logger.verbose('Typebot loaded');
+  }
+
+  public async setTypebot(data: TypebotRaw) {
+    this.logger.verbose('Setting typebot');
+    await this.repository.typebot.create(data, this.instanceName);
+    this.logger.verbose(`Typebot typebot: ${data.typebot}`);
+    this.logger.verbose(`Typebot expire: ${data.expire}`);
+    this.logger.verbose(`Typebot keyword_finish: ${data.keyword_finish}`);
+    this.logger.verbose(`Typebot delay_message: ${data.delay_message}`);
+    this.logger.verbose(`Typebot unknown_message: ${data.unknown_message}`);
+    Object.assign(this.localTypebot, data);
+    this.logger.verbose('Typebot set');
+  }
+
+  public async findTypebot() {
+    this.logger.verbose('Finding typebot');
+    const data = await this.repository.typebot.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Typebot not found');
+      throw new NotFoundException('Typebot not found');
+    }
+
+    return data;
+  }
+
+  private async loadProxy() {
+    this.logger.verbose('Loading proxy');
+    const data = await this.repository.proxy.find(this.instanceName);
+
+    this.localProxy.enabled = data?.enabled;
+    this.logger.verbose(`Proxy enabled: ${this.localProxy.enabled}`);
+
+    this.localProxy.proxy = data?.proxy;
+    this.logger.verbose(`Proxy proxy: ${this.localProxy.proxy}`);
+
+    this.logger.verbose('Proxy loaded');
+  }
+
+  public async setProxy(data: ProxyRaw) {
+    this.logger.verbose('Setting proxy');
+    await this.repository.proxy.create(data, this.instanceName);
+    this.logger.verbose(`Proxy proxy: ${data.proxy}`);
+    Object.assign(this.localProxy, data);
+    this.logger.verbose('Proxy set');
+
+    this.client?.ws?.close();
+  }
+
+  public async findProxy() {
+    this.logger.verbose('Finding proxy');
+    const data = await this.repository.proxy.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Proxy not found');
+      throw new NotFoundException('Proxy not found');
+    }
+
+    return data;
+  }
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
+    const websocketLocal = this.localWebsocket.events;
+    const rabbitmqLocal = this.localRabbitmq.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
+    const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
+    const localISOTime = new Date(Date.now() - tzoffset).toISOString();
+    const now = localISOTime;
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
     const tokenStore = await this.repository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
+
+    if (this.localRabbitmq.enabled) {
+      const amqp = getAMQP();
+
+      if (amqp) {
+        if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
+          const exchangeName = this.instanceName ?? 'evolution_exchange';
+
+          amqp.assertExchange(exchangeName, 'topic', {
+            durable: true,
+            autoDelete: false,
+          });
+
+          const queueName = `${this.instanceName}.${event}`;
+
+          amqp.assertQueue(queueName, {
+            durable: true,
+            autoDelete: false,
+            arguments: {
+              'x-queue-type': 'quorum',
+            },
+          });
+
+          amqp.bindQueue(queueName, exchangeName, event);
+
+          const message = {
+            event,
+            instance: this.instance.name,
+            data,
+            server_url: serverUrl,
+            date_time: now,
+            sender: this.wuid,
+          };
+
+          if (expose && instanceApikey) {
+            message['apikey'] = instanceApikey;
+          }
+
+          amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+        }
+      }
+    }
+
+    if (this.configService.get<Websocket>('WEBSOCKET').ENABLED && this.localWebsocket.enabled) {
+      this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
+      if (Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
+        this.logger.verbose('Sending data to websocket on event: ' + event);
+        const io = getIO();
+
+        const message = {
+          event,
+          instance: this.instance.name,
+          data,
+          server_url: serverUrl,
+          date_time: now,
+          sender: this.wuid,
+        };
+
+        if (expose && instanceApikey) {
+          message['apikey'] = instanceApikey;
+        }
+
+        this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
+        io.of(`/${this.instance.name}`).emit(event, message);
+      }
+    }
 
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
@@ -441,6 +682,8 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: this.localWebhook.url,
+            date_time: now,
+            sender: this.wuid,
             server_url: serverUrl,
             apikey: (expose && instanceApikey) || null,
           };
@@ -460,6 +703,8 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: this.localWebhook.url,
+              date_time: now,
+              sender: this.wuid,
               server_url: serverUrl,
             };
 
@@ -509,6 +754,8 @@ export class WAStartupService {
             instance: this.instance.name,
             data,
             destination: localUrl,
+            date_time: now,
+            sender: this.wuid,
             server_url: serverUrl,
           };
 
@@ -527,6 +774,8 @@ export class WAStartupService {
               instance: this.instance.name,
               data,
               destination: localUrl,
+              date_time: now,
+              sender: this.wuid,
               server_url: serverUrl,
             };
 
@@ -585,23 +834,6 @@ export class WAStartupService {
           statusReason: DisconnectReason.connectionClosed,
         });
 
-        this.logger.verbose('Sending data to webhook in event STATUS_INSTANCE');
-        this.sendDataWebhook(Events.STATUS_INSTANCE, {
-          instance: this.instance.name,
-          status: 'removed',
-        });
-
-        if (this.localChatwoot.enabled) {
-          this.chatwootService.eventWhatsapp(
-            Events.STATUS_INSTANCE,
-            { instanceName: this.instance.name },
-            {
-              instance: this.instance.name,
-              status: 'removed',
-            },
-          );
-        }
-
         this.logger.verbose('endSession defined as true');
         this.endSession = true;
 
@@ -612,11 +844,13 @@ export class WAStartupService {
       this.logger.verbose('Incrementing QR code count');
       this.instance.qrcode.count++;
 
+      const color = this.configService.get<QrCode>('QRCODE').COLOR;
+
       const optsQrcode: QRCodeToDataURLOptions = {
         margin: 3,
         scale: 4,
         errorCorrectionLevel: 'H',
-        color: { light: '#ffffff', dark: '#198754' },
+        color: { light: '#ffffff', dark: color },
       };
 
       if (this.phoneNumber) {
@@ -827,6 +1061,10 @@ export class WAStartupService {
       this.loadWebhook();
       this.loadChatwoot();
       this.loadSettings();
+      this.loadWebsocket();
+      this.loadRabbitmq();
+      this.loadTypebot();
+      this.loadProxy();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -836,7 +1074,18 @@ export class WAStartupService {
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
+      let options;
+
+      if (this.localProxy.enabled) {
+        this.logger.verbose('Proxy enabled');
+        options = {
+          agent: new ProxyAgent(this.localProxy.proxy as any),
+          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
+        };
+      }
+
       const socketConfig: UserFacingSocketConfig = {
+        ...options,
         auth: {
           creds: this.instance.authState.state.creds,
           keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
@@ -1130,6 +1379,14 @@ export class WAStartupService {
         await this.chatwootService.eventWhatsapp(
           Events.MESSAGES_UPSERT,
           { instanceName: this.instance.name },
+          messageRaw,
+        );
+      }
+
+      if (this.localTypebot.enabled && messageRaw.key.remoteJid.includes('@s.whatsapp.net')) {
+        await this.typebotService.sendTypebot(
+          { instanceName: this.instance.name },
+          messageRaw.key.remoteJid,
           messageRaw,
         );
       }
@@ -1742,13 +1999,9 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      // if (this.localChatwoot.enabled) {
-      //   this.chatwootService.eventWhatsapp(
-      //     Events.SEND_MESSAGE,
-      //     { instanceName: this.instance.name },
-      //     messageRaw,
-      //   );
-      // }
+      if (this.localChatwoot.enabled) {
+        this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
+      }
 
       this.logger.verbose('Inserting message in database');
       await this.repository.message.insert(
@@ -1943,6 +2196,14 @@ export class WAStartupService {
         const arrayMatch = regex.exec(mediaMessage.media);
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
+      }
+
+      if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
+        mediaMessage.fileName = 'image.png';
+      }
+
+      if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
+        mediaMessage.fileName = 'video.mp4';
       }
 
       let mimetype: string;
@@ -2346,20 +2607,55 @@ export class WAStartupService {
     }
   }
 
+  public async getLastMessage(number: string) {
+    const messages = await this.fetchMessages({
+      where: {
+        key: {
+          remoteJid: number,
+        },
+        owner: this.instance.name,
+      },
+    });
+
+    let lastMessage = messages.pop();
+
+    for (const message of messages) {
+      if (message.messageTimestamp >= lastMessage.messageTimestamp) {
+        lastMessage = message;
+      }
+    }
+
+    return lastMessage as unknown as LastMessage;
+  }
+
   public async archiveChat(data: ArchiveChatDto) {
     this.logger.verbose('Archiving chat');
     try {
-      data.lastMessage.messageTimestamp = data.lastMessage?.messageTimestamp ?? Date.now();
+      let last_message = data.lastMessage;
+      let number = data.chat;
+
+      if (!last_message && number) {
+        last_message = await this.getLastMessage(number);
+      } else {
+        last_message = data.lastMessage;
+        last_message.messageTimestamp = last_message?.messageTimestamp ?? Date.now();
+        number = last_message?.key?.remoteJid;
+      }
+
+      if (!last_message || Object.keys(last_message).length === 0) {
+        throw new NotFoundException('Last message not found');
+      }
+
       await this.client.chatModify(
         {
           archive: data.archive,
-          lastMessages: [data.lastMessage],
+          lastMessages: [last_message],
         },
-        data.lastMessage.key.remoteJid,
+        this.createJid(number),
       );
 
       return {
-        chatId: data.lastMessage.key.remoteJid,
+        chatId: number,
         archived: true,
       };
     } catch (error) {

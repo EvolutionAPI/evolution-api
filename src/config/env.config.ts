@@ -61,6 +61,15 @@ export type Redis = {
   PREFIX_KEY: string;
 };
 
+export type Rabbitmq = {
+  ENABLED: boolean;
+  URI: string;
+};
+
+export type Websocket = {
+  ENABLED: boolean;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
@@ -105,7 +114,7 @@ export type GlobalWebhook = {
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
-export type QrCode = { LIMIT: number };
+export type QrCode = { LIMIT: number; COLOR: string };
 export type Production = boolean;
 
 export interface Env {
@@ -116,6 +125,8 @@ export interface Env {
   CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
   REDIS: Redis;
+  RABBITMQ: Rabbitmq;
+  WEBSOCKET: Websocket;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
   WEBHOOK: Webhook;
@@ -201,6 +212,13 @@ export class ConfigService {
         URI: process.env.REDIS_URI,
         PREFIX_KEY: process.env.REDIS_PREFIX_KEY,
       },
+      RABBITMQ: {
+        ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
+        URI: process.env.RABBITMQ_URI,
+      },
+      WEBSOCKET: {
+        ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
+      },
       LOG: {
         LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],
         COLOR: process.env?.LOG_COLOR === 'true',
@@ -245,6 +263,7 @@ export class ConfigService {
       },
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
+        COLOR: process.env.QRCODE_COLOR || '#198754',
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'jwt',

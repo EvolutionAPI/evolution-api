@@ -508,6 +508,7 @@ export const archiveChatSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
+    chat: { type: 'string' },
     lastMessage: {
       type: 'object',
       properties: {
@@ -528,7 +529,7 @@ export const archiveChatSchema: JSONSchema7 = {
     },
     archive: { type: 'boolean', enum: [true, false] },
   },
-  required: ['lastMessage', 'archive'],
+  required: ['archive'],
 };
 
 export const deleteMessageSchema: JSONSchema7 = {
@@ -823,13 +824,11 @@ export const updateGroupDescriptionSchema: JSONSchema7 = {
   ...isNotEmpty('groupJid', 'description'),
 };
 
-// Webhook Schema
 export const webhookSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
     url: { type: 'string' },
-    enabled: { type: 'boolean', enum: [true, false] },
     events: {
       type: 'array',
       minItems: 0,
@@ -861,7 +860,7 @@ export const webhookSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['url', 'enabled'],
+  required: ['url'],
   ...isNotEmpty('url'),
 };
 
@@ -894,4 +893,133 @@ export const settingsSchema: JSONSchema7 = {
   },
   required: ['reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'],
   ...isNotEmpty('reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'),
+};
+
+export const websocketSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    events: {
+      type: 'array',
+      minItems: 0,
+      items: {
+        type: 'string',
+        enum: [
+          'APPLICATION_STARTUP',
+          'QRCODE_UPDATED',
+          'MESSAGES_SET',
+          'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'MESSAGES_DELETE',
+          'SEND_MESSAGE',
+          'CONTACTS_SET',
+          'CONTACTS_UPSERT',
+          'CONTACTS_UPDATE',
+          'PRESENCE_UPDATE',
+          'CHATS_SET',
+          'CHATS_UPSERT',
+          'CHATS_UPDATE',
+          'CHATS_DELETE',
+          'GROUPS_UPSERT',
+          'GROUP_UPDATE',
+          'GROUP_PARTICIPANTS_UPDATE',
+          'CONNECTION_UPDATE',
+          'CALL',
+          'NEW_JWT_TOKEN',
+        ],
+      },
+    },
+  },
+  required: ['enabled'],
+  ...isNotEmpty('enabled'),
+};
+
+export const rabbitmqSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    events: {
+      type: 'array',
+      minItems: 0,
+      items: {
+        type: 'string',
+        enum: [
+          'APPLICATION_STARTUP',
+          'QRCODE_UPDATED',
+          'MESSAGES_SET',
+          'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'MESSAGES_DELETE',
+          'SEND_MESSAGE',
+          'CONTACTS_SET',
+          'CONTACTS_UPSERT',
+          'CONTACTS_UPDATE',
+          'PRESENCE_UPDATE',
+          'CHATS_SET',
+          'CHATS_UPSERT',
+          'CHATS_UPDATE',
+          'CHATS_DELETE',
+          'GROUPS_UPSERT',
+          'GROUP_UPDATE',
+          'GROUP_PARTICIPANTS_UPDATE',
+          'CONNECTION_UPDATE',
+          'CALL',
+          'NEW_JWT_TOKEN',
+        ],
+      },
+    },
+  },
+  required: ['enabled'],
+  ...isNotEmpty('enabled'),
+};
+
+export const typebotSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    url: { type: 'string' },
+    typebot: { type: 'string' },
+    expire: { type: 'integer' },
+    delay_message: { type: 'integer' },
+    unknown_message: { type: 'string' },
+  },
+  required: ['enabled', 'url', 'typebot', 'expire'],
+  ...isNotEmpty('enabled', 'url', 'typebot', 'expire'),
+};
+
+export const typebotStatusSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    remoteJid: { type: 'string' },
+    status: { type: 'string', enum: ['opened', 'closed', 'paused'] },
+  },
+  required: ['remoteJid', 'status'],
+  ...isNotEmpty('remoteJid', 'status'),
+};
+
+export const typebotStartSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    remoteJid: { type: 'string' },
+    url: { type: 'string' },
+    typebot: { type: 'string' },
+  },
+  required: ['remoteJid', 'url', 'typebot'],
+  ...isNotEmpty('remoteJid', 'url', 'typebot'),
+};
+
+export const proxySchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    proxy: { type: 'string' },
+  },
+  required: ['enabled', 'proxy'],
+  ...isNotEmpty('enabled', 'proxy'),
 };

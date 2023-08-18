@@ -1,0 +1,241 @@
+{
+  "name": "[Evolution] Configurar Admin",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "api_access_token",
+              "value": "CHATWOOT_ADMIN_USER_TOKEN"
+            },
+            {
+              "name": "chatwoot_url",
+              "value": "https://CHATWOOT_URL"
+            },
+            {
+              "name": "n8n_url",
+              "value": "https://N8N_URL"
+            },
+            {
+              "name": "organization",
+              "value": "ORGANIZATION_NAME"
+            },
+            {
+              "name": "logo",
+              "value": "ORGANIZATION_LOGO"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7a89a538-2cae-4032-8896-09627c07bc68",
+      "name": "Info Base",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        620,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/1/contacts/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json[\"api_access_token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"inbox_id\": {{ $('Cria Inbox Start').item.json[\"id\"] }},\n    \"name\": \"Bot {{ $('Info Base').item.json[\"organization\"] }}\",\n    \"phone_number\": \"+123456\",\n    \"avatar_url\": \"{{ $('Info Base').item.json[\"logo\"] }}\"\n}",
+        "options": {}
+      },
+      "id": "12a39df3-6b95-4f83-a0bc-50b25adaca7f",
+      "name": "Cria Contato Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1020,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/1/inboxes/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json[\"api_access_token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"name\": \"Start {{ $('Info Base').item.json[\"organization\"] }}\",\n    \"channel\": {\n        \"type\": \"api\",\n        \"website_url\": \"\"\n    }\n}",
+        "options": {}
+      },
+      "id": "bed7c54d-e232-4fe4-9584-0515e9679868",
+      "name": "Cria Inbox Start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        820,
+        480
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "36ada769-a757-4193-989b-0cc4ea504b80",
+      "name": "When clicking \"Execute Workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        420,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/1/automation_rules/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json[\"api_access_token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"name\": \"Create Company Chatwoot\",\n    \"description\": \"Create Company Chatwoot\",\n    \"event_name\": \"message_created\",\n    \"active\": true,\n    \"actions\": \n    [\n        {\n            \"action_name\": \"send_webhook_event\",\n            \"action_params\": [\"{{ $('Info Base').item.json[\"n8n_url\"] }}/webhook/criadorchatwoot\"]\n        }\n    ],\n    \"conditions\": \n    [\n        {\n            \"attribute_key\": \"content\",\n            \"filter_operator\": \"contains\",\n            \"query_operator\": \"and\",\n            \"values\": [\"Tema Criador de Empresa:\"]\n        },\n        {\n            \"attribute_key\": \"phone_number\",\n            \"filter_operator\": \"equal_to\",\n            \"values\": [\"+123456\"]\n        }\n    ]\n}",
+        "options": {}
+      },
+      "id": "f5bbb285-71a8-4c58-a4d7-e56002d697f0",
+      "name": "Cria Automação Empresas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1220,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Info Base').item.json[\"chatwoot_url\"] }}/api/v1/accounts/1/automation_rules/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('Info Base').item.json[\"api_access_token\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"name\": \"Create Inbox {{ $('Info Base').item.json[\"organization\"] }}\",\n    \"description\": \"Create Inbox {{ $('Info Base').item.json[\"organization\"] }}\",\n    \"event_name\": \"message_created\",\n    \"active\": true,\n    \"actions\": \n    [\n        {\n            \"action_name\": \"send_webhook_event\",\n            \"action_params\": [\"{{ $('Info Base').item.json[\"n8n_url\"] }}/webhook/inbox_whatsapp?utoken={{ $('Info Base').item.json[\"api_access_token\"] }}&organization={{ $('Info Base').item.json[\"organization\"] }}\"]\n        }\n    ],\n    \"conditions\": \n    [\n        {\n            \"attribute_key\": \"content\",\n            \"filter_operator\": \"contains\",\n            \"query_operator\": \"and\",\n            \"values\": [\"start:\"]\n        },\n       \n         {\n            \"attribute_key\": \"phone_number\",\n            \"filter_operator\": \"equal_to\",\n            \"query_operator\": \"or\",\n            \"values\": [\"+123456\"]\n        },\n\n\n        {\n            \"attribute_key\": \"content\",\n            \"filter_operator\": \"contains\",\n            \"query_operator\": \"and\",\n            \"values\": [\"new_instance:\"]\n        },\n        {\n            \"attribute_key\": \"phone_number\",\n            \"filter_operator\": \"equal_to\",\n            \"values\": [\"+123456\"]\n        }\n    ]\n}",
+        "options": {}
+      },
+      "id": "a36bebdc-a318-40a2-8532-c7f476f8adb7",
+      "name": "Cria Automação Inboxes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1420,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow Para Configurar admin\n**Aqui você prepara o Chatwoot Principal com um usuário (Superadmin) que poderá criar empresas e caixas de entrada**\n**Instruções**\n**No node Info Base, configure as variáveis de seu Chatwoot e N8N**\n**Obs: A variável api_access_token é o token do usuário que irá poder criar as empresas**",
+        "width": 894.6435495898575
+      },
+      "id": "db66e867-e9f4-452d-b521-725eeac652c8",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        280
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Info Base": {
+      "main": [
+        [
+          {
+            "node": "Cria Inbox Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Contato Bot": {
+      "main": [
+        [
+          {
+            "node": "Cria Automação Empresas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Inbox Start": {
+      "main": [
+        [
+          {
+            "node": "Cria Contato Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking \"Execute Workflow\"": {
+      "main": [
+        [
+          {
+            "node": "Info Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria Automação Empresas": {
+      "main": [
+        [
+          {
+            "node": "Cria Automação Inboxes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "78f155dc-7809-4bfc-9282-63f49b07fc4d",
+  "id": "BSATyGpGWLR4ZwNm",
+  "meta": {
+    "instanceId": "4ff16e963c7f5197d7e99e6239192860914312fea0ce2a9a7fd14d74a0a0e906"
+  },
+  "tags": []
+}
