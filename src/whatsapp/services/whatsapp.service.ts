@@ -611,9 +611,9 @@ export class WAStartupService {
 
           amqp.assertQueue(queueName, {
             durable: true,
-            'auto-delete': false,
+            autoDelete: false,
             arguments: {
-              'x-queue-type': 'quorum',
+              queueType: 'quorum',
             },
           });
 
