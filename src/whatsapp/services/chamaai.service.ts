@@ -82,7 +82,7 @@ export class ChamaaiService {
   }
 
   private convertToMilliseconds(count: number) {
-    const averageCharactersPerSecond = 10;
+    const averageCharactersPerSecond = 15;
     const characterCount = count;
     const speakingTimeInSeconds = characterCount / averageCharactersPerSecond;
     return speakingTimeInSeconds;
