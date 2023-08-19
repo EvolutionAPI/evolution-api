@@ -47,6 +47,8 @@ function bootstrap() {
   app.set('views', join(ROOT_DIR, 'views'));
   app.use(express.static(join(ROOT_DIR, 'public')));
 
+  app.use('/store', express.static(join(ROOT_DIR, 'store')));
+
   app.use('/', router);
 
   app.use(

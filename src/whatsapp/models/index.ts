@@ -1,4 +1,5 @@
 export * from './auth.model';
+export * from './chamaai.model';
 export * from './chat.model';
 export * from './chatwoot.model';
 export * from './contact.model';

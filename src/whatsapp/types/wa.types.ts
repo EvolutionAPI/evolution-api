@@ -102,6 +102,14 @@ export declare namespace wa {
     proxy?: string;
   };
 
+  export type LocalChamaai = {
+    enabled?: boolean;
+    url?: string;
+    token?: string;
+    waNumber?: string;
+    answerByAudio?: boolean;
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';

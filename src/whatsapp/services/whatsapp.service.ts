@@ -113,7 +113,7 @@ import {
   SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { ProxyRaw, RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
+import { ChamaaiRaw, ProxyRaw, RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
 import { ChatRaw } from '../models/chat.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
@@ -126,6 +126,7 @@ import { MessageUpQuery } from '../repository/messageUp.repository';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
+import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
 import { TypebotService } from './typebot.service';
 
@@ -151,6 +152,7 @@ export class WAStartupService {
   private readonly localRabbitmq: wa.LocalRabbitmq = {};
   public readonly localTypebot: wa.LocalTypebot = {};
   private readonly localProxy: wa.LocalProxy = {};
+  private readonly localChamaai: wa.LocalChamaai = {};
   public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -163,6 +165,8 @@ export class WAStartupService {
   private chatwootService = new ChatwootService(waMonitor, this.configService);
 
   private typebotService = new TypebotService(waMonitor);
+
+  private chamaaiService = new ChamaaiService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -574,6 +578,52 @@ export class WAStartupService {
     if (!data) {
       this.logger.verbose('Proxy not found');
       throw new NotFoundException('Proxy not found');
+    }
+
+    return data;
+  }
+
+  private async loadChamaai() {
+    this.logger.verbose('Loading chamaai');
+    const data = await this.repository.chamaai.find(this.instanceName);
+
+    this.localChamaai.enabled = data?.enabled;
+    this.logger.verbose(`Chamaai enabled: ${this.localChamaai.enabled}`);
+
+    this.localChamaai.url = data?.url;
+    this.logger.verbose(`Chamaai url: ${this.localChamaai.url}`);
+
+    this.localChamaai.token = data?.token;
+    this.logger.verbose(`Chamaai token: ${this.localChamaai.token}`);
+
+    this.localChamaai.waNumber = data?.waNumber;
+    this.logger.verbose(`Chamaai waNumber: ${this.localChamaai.waNumber}`);
+
+    this.localChamaai.answerByAudio = data?.answerByAudio;
+    this.logger.verbose(`Chamaai answerByAudio: ${this.localChamaai.answerByAudio}`);
+
+    this.logger.verbose('Chamaai loaded');
+  }
+
+  public async setChamaai(data: ChamaaiRaw) {
+    this.logger.verbose('Setting chamaai');
+    await this.repository.chamaai.create(data, this.instanceName);
+    this.logger.verbose(`Chamaai url: ${data.url}`);
+    this.logger.verbose(`Chamaai token: ${data.token}`);
+    this.logger.verbose(`Chamaai waNumber: ${data.waNumber}`);
+    this.logger.verbose(`Chamaai answerByAudio: ${data.answerByAudio}`);
+
+    Object.assign(this.localChamaai, data);
+    this.logger.verbose('Chamaai set');
+  }
+
+  public async findChamaai() {
+    this.logger.verbose('Finding chamaai');
+    const data = await this.repository.chamaai.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Chamaai not found');
+      throw new NotFoundException('Chamaai not found');
     }
 
     return data;
@@ -1065,6 +1115,7 @@ export class WAStartupService {
       this.loadRabbitmq();
       this.loadTypebot();
       this.loadProxy();
+      this.loadChamaai();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -1383,8 +1434,16 @@ export class WAStartupService {
         );
       }
 
-      if (this.localTypebot.enabled && messageRaw.key.remoteJid.includes('@s.whatsapp.net')) {
+      if (this.localTypebot.enabled && messageRaw.key.fromMe === false) {
         await this.typebotService.sendTypebot(
+          { instanceName: this.instance.name },
+          messageRaw.key.remoteJid,
+          messageRaw,
+        );
+      }
+
+      if (this.localChamaai.enabled && messageRaw.key.fromMe === false) {
+        await this.chamaaiService.sendChamaai(
           { instanceName: this.instance.name },
           messageRaw.key.remoteJid,
           messageRaw,
@@ -2315,7 +2374,7 @@ export class WAStartupService {
     return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options);
   }
 
-  private async processAudio(audio: string, number: string) {
+  public async processAudio(audio: string, number: string) {
     this.logger.verbose('Processing audio');
     let tempAudioPath: string;
     let outputAudio: string;

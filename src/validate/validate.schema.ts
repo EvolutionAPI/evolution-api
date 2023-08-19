@@ -1023,3 +1023,17 @@ export const proxySchema: JSONSchema7 = {
   required: ['enabled', 'proxy'],
   ...isNotEmpty('enabled', 'proxy'),
 };
+
+export const chamaaiSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    url: { type: 'string' },
+    token: { type: 'string' },
+    waNumber: { type: 'string' },
+    answerByAudio: { type: 'boolean', enum: [true, false] },
+  },
+  required: ['enabled', 'url', 'token', 'waNumber', 'answerByAudio'],
+  ...isNotEmpty('enabled', 'url', 'token', 'waNumber', 'answerByAudio'),
+};
