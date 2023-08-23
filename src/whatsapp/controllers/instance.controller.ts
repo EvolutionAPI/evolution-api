@@ -67,6 +67,7 @@ export class InstanceController {
     typebot_keyword_finish,
     typebot_delay_message,
     typebot_unknown_message,
+    typebot_listening_from_me,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -247,6 +248,7 @@ export class InstanceController {
             keyword_finish: typebot_keyword_finish,
             delay_message: typebot_delay_message,
             unknown_message: typebot_unknown_message,
+            listening_from_me: typebot_listening_from_me,
           });
         } catch (error) {
           this.logger.log(error);
@@ -304,6 +306,7 @@ export class InstanceController {
             keyword_finish: typebot_keyword_finish,
             delay_message: typebot_delay_message,
             unknown_message: typebot_unknown_message,
+            listening_from_me: typebot_listening_from_me,
           },
           settings,
           qrcode: getQrcode,
@@ -396,6 +399,7 @@ export class InstanceController {
           keyword_finish: typebot_keyword_finish,
           delay_message: typebot_delay_message,
           unknown_message: typebot_unknown_message,
+          listening_from_me: typebot_listening_from_me,
         },
         settings,
         chatwoot: {

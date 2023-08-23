@@ -151,8 +151,6 @@ export class ChamaaiService {
       },
     });
 
-    console.log(request.data);
-
     const answer = request.data?.answer;
 
     const type = request.data?.type;

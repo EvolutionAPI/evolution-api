@@ -19,6 +19,7 @@ export class TypebotRaw {
   keyword_finish?: string;
   delay_message?: number;
   unknown_message?: string;
+  listening_from_me?: boolean;
   sessions?: Session[];
 }
 
@@ -31,6 +32,7 @@ const typebotSchema = new Schema<TypebotRaw>({
   keyword_finish: { type: String, required: true },
   delay_message: { type: Number, required: true },
   unknown_message: { type: String, required: true },
+  listening_from_me: { type: Boolean, required: true },
   sessions: [
     {
       remoteJid: { type: String, required: true },

@@ -166,17 +166,17 @@ export class ConfigService {
     return {
       SERVER: {
         TYPE: process.env.SERVER_TYPE as 'http' | 'https',
-        PORT: Number.parseInt(process.env.SERVER_PORT),
+        PORT: Number.parseInt(process.env.SERVER_PORT) || 8080,
         URL: process.env.SERVER_URL,
       },
       CORS: {
-        ORIGIN: process.env.CORS_ORIGIN.split(','),
-        METHODS: process.env.CORS_METHODS.split(',') as HttpMethods[],
+        ORIGIN: process.env.CORS_ORIGIN.split(',') || ['*'],
+        METHODS: (process.env.CORS_METHODS.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'],
         CREDENTIALS: process.env?.CORS_CREDENTIALS === 'true',
       },
       SSL_CONF: {
-        PRIVKEY: process.env?.SSL_CONF_PRIVKEY,
-        FULLCHAIN: process.env?.SSL_CONF_FULLCHAIN,
+        PRIVKEY: process.env?.SSL_CONF_PRIVKEY || '',
+        FULLCHAIN: process.env?.SSL_CONF_FULLCHAIN || '',
       },
       STORE: {
         MESSAGES: process.env?.STORE_MESSAGES === 'true',
@@ -195,8 +195,8 @@ export class ConfigService {
       },
       DATABASE: {
         CONNECTION: {
-          URI: process.env.DATABASE_CONNECTION_URI,
-          DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME,
+          URI: process.env.DATABASE_CONNECTION_URI || '',
+          DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME || 'evolution',
         },
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
         SAVE_DATA: {
@@ -209,18 +209,27 @@ export class ConfigService {
       },
       REDIS: {
         ENABLED: process.env?.REDIS_ENABLED === 'true',
-        URI: process.env.REDIS_URI,
-        PREFIX_KEY: process.env.REDIS_PREFIX_KEY,
+        URI: process.env.REDIS_URI || '',
+        PREFIX_KEY: process.env.REDIS_PREFIX_KEY || 'evolution',
       },
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
-        URI: process.env.RABBITMQ_URI,
+        URI: process.env.RABBITMQ_URI || '',
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
       },
       LOG: {
-        LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],
+        LEVEL: (process.env?.LOG_LEVEL.split(',') as LogLevel[]) || [
+          'ERROR',
+          'WARN',
+          'DEBUG',
+          'INFO',
+          'LOG',
+          'VERBOSE',
+          'DARK',
+          'WEBHOOKS',
+        ],
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
@@ -229,7 +238,7 @@ export class ConfigService {
         : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
-          URL: process.env?.WEBHOOK_GLOBAL_URL,
+          URL: process.env?.WEBHOOK_GLOBAL_URL || '',
           ENABLED: process.env?.WEBHOOK_GLOBAL_ENABLED === 'true',
           WEBHOOK_BY_EVENTS: process.env?.WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS === 'true',
         },
@@ -266,16 +275,16 @@ export class ConfigService {
         COLOR: process.env.QRCODE_COLOR || '#198754',
       },
       AUTHENTICATION: {
-        TYPE: process.env.AUTHENTICATION_TYPE as 'jwt',
+        TYPE: process.env.AUTHENTICATION_TYPE as 'apikey',
         API_KEY: {
-          KEY: process.env.AUTHENTICATION_API_KEY,
+          KEY: process.env.AUTHENTICATION_API_KEY || 'BQYHJGJHJ',
         },
         EXPOSE_IN_FETCH_INSTANCES: process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
         JWT: {
           EXPIRIN_IN: Number.isInteger(process.env?.AUTHENTICATION_JWT_EXPIRIN_IN)
             ? Number.parseInt(process.env.AUTHENTICATION_JWT_EXPIRIN_IN)
             : 3600,
-          SECRET: process.env.AUTHENTICATION_JWT_SECRET,
+          SECRET: process.env.AUTHENTICATION_JWT_SECRET || 'L=0YWt]b2w[WF>#>:&E`',
         },
       },
     };

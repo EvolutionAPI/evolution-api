@@ -519,6 +519,9 @@ export class WAStartupService {
     this.localTypebot.unknown_message = data?.unknown_message;
     this.logger.verbose(`Typebot unknown_message: ${this.localTypebot.unknown_message}`);
 
+    this.localTypebot.listening_from_me = data?.listening_from_me;
+    this.logger.verbose(`Typebot listening_from_me: ${this.localTypebot.listening_from_me}`);
+
     this.localTypebot.sessions = data?.sessions;
 
     this.logger.verbose('Typebot loaded');
@@ -532,6 +535,7 @@ export class WAStartupService {
     this.logger.verbose(`Typebot keyword_finish: ${data.keyword_finish}`);
     this.logger.verbose(`Typebot delay_message: ${data.delay_message}`);
     this.logger.verbose(`Typebot unknown_message: ${data.unknown_message}`);
+    this.logger.verbose(`Typebot listening_from_me: ${data.listening_from_me}`);
     Object.assign(this.localTypebot, data);
     this.logger.verbose('Typebot set');
   }
@@ -1434,12 +1438,14 @@ export class WAStartupService {
         );
       }
 
-      if (this.localTypebot.enabled && messageRaw.key.fromMe === false) {
-        await this.typebotService.sendTypebot(
-          { instanceName: this.instance.name },
-          messageRaw.key.remoteJid,
-          messageRaw,
-        );
+      if (this.localTypebot.enabled) {
+        if (!(this.localTypebot.listening_from_me === false && messageRaw.key.fromMe === true)) {
+          await this.typebotService.sendTypebot(
+            { instanceName: this.instance.name },
+            messageRaw.key.remoteJid,
+            messageRaw,
+          );
+        }
       }
 
       if (this.localChamaai.enabled && messageRaw.key.fromMe === false) {

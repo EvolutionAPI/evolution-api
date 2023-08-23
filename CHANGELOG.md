@@ -1,3 +1,13 @@
+# 1.5.1 (homolog)
+
+### Feature
+
+* Added listening_from_me option in Set Typebot
+
+### Fixed
+
+* Fix looping connection messages in chatwoot
+
 # 1.5.0 (2023-08-18 12:47)
 
 ### Feature
