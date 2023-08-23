@@ -7,6 +7,7 @@ import { Logger } from '../../config/logger.config';
 import { ChamaaiDto } from '../dto/chamaai.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { ChamaaiRaw } from '../models';
+import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChamaaiService {
@@ -86,6 +87,32 @@ export class ChamaaiService {
     const characterCount = count;
     const speakingTimeInSeconds = characterCount / averageCharactersPerSecond;
     return speakingTimeInSeconds;
+  }
+
+  private getRegexPatterns() {
+    const patternsToCheck = [
+      '.*atend.*humano.*',
+      '.*falar.*com.*um.*humano.*',
+      '.*fala.*humano.*',
+      '.*atend.*humano.*',
+      '.*fala.*atend.*',
+      '.*preciso.*ajuda.*',
+      '.*quero.*suporte.*',
+      '.*preciso.*assiste.*',
+      '.*ajuda.*atend.*',
+      '.*chama.*atendente.*',
+      '.*suporte.*urgente.*',
+      '.*atend.*por.*favor.*',
+      '.*quero.*falar.*com.*alguém.*',
+      '.*falar.*com.*um.*humano.*',
+      '.*transfer.*humano.*',
+      '.*transfer.*atend.*',
+      '.*equipe.*humano.*',
+      '.*suporte.*humano.*',
+    ];
+
+    const regexPatterns = patternsToCheck.map((pattern) => new RegExp(pattern, 'iu'));
+    return regexPatterns;
   }
 
   public async sendChamaai(instance: InstanceDto, remoteJid: string, msg: any) {
@@ -187,6 +214,15 @@ export class ChamaaiService {
           audioMessage: {
             audio: answer,
           },
+        });
+      }
+
+      if (this.getRegexPatterns().some((pattern) => pattern.test(answer))) {
+        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.CHAMA_AI_ACTION, {
+          remoteJid: remoteJid,
+          message: msg,
+          answer: answer,
+          action: 'transfer',
         });
       }
     }
