@@ -92,6 +92,9 @@ export type EventsWebhook = {
   GROUP_PARTICIPANTS_UPDATE: boolean;
   CALL: boolean;
   NEW_JWT_TOKEN: boolean;
+  TYPEBOT_START: boolean;
+  TYPEBOT_CHANGE_STATUS: boolean;
+  CHAMA_AI_ACTION: boolean;
 };
 
 export type ApiKey = { KEY: string };
@@ -264,6 +267,9 @@ export class ConfigService {
           GROUP_PARTICIPANTS_UPDATE: process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
           CALL: process.env?.WEBHOOK_EVENTS_CALL === 'true',
           NEW_JWT_TOKEN: process.env?.WEBHOOK_EVENTS_NEW_JWT_TOKEN === 'true',
+          TYPEBOT_START: process.env?.WEBHOOK_EVENTS_TYPEBOT_START === 'true',
+          TYPEBOT_CHANGE_STATUS: process.env?.WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
+          CHAMA_AI_ACTION: process.env?.WEBHOOK_EVENTS_CHAMA_AI_ACTION === 'true',
         },
       },
       CONFIG_SESSION_PHONE: {

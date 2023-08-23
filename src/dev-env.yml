@@ -83,7 +83,7 @@ RABBITMQ:
   ENABLED: false
   URI: "amqp://guest:guest@localhost:5672"
 
-WEBSOCKET: 
+WEBSOCKET:
   ENABLED: false
 
 # Global Webhook Settings
@@ -120,6 +120,11 @@ WEBHOOK:
     CALL: true
     # This event fires every time a new token is requested via the refresh route
     NEW_JWT_TOKEN: false
+    # This events is used with Typebot
+    TYPEBOT_START: false
+    TYPEBOT_CHANGE_STATUS: false
+    # This event is used with Chama AI
+    CHAMA_AI_ACTION: false
 
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection
@@ -129,7 +134,7 @@ CONFIG_SESSION_PHONE:
 # Set qrcode display limit
 QRCODE:
   LIMIT: 30
-  COLOR: '#198754'
+  COLOR: "#198754"
 
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,

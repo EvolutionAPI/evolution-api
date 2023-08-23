@@ -3,6 +3,8 @@
 ### Feature
 
 * Added listening_from_me option in Set Typebot
+* Added variables options in Start Typebot
+* Added webhooks for typebot events
 
 ### Fixed
 

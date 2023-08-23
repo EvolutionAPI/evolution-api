@@ -23,6 +23,9 @@ export enum Events {
   GROUPS_UPDATE = 'groups.update',
   GROUP_PARTICIPANTS_UPDATE = 'group-participants.update',
   CALL = 'call',
+  TYPEBOT_START = 'typebot.start',
+  TYPEBOT_CHANGE_STATUS = 'typebot.change-status',
+  CHAMA_AI_ACTION = 'chama-ai.action',
 }
 
 export declare namespace wa {

@@ -4,6 +4,7 @@ import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { Session, TypebotDto } from '../dto/typebot.dto';
 import { MessageRaw } from '../models';
+import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class TypebotService {
@@ -83,6 +84,14 @@ export class TypebotService {
 
     this.create(instance, typebotData);
 
+    this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, {
+      remoteJid: remoteJid,
+      status: status,
+      url: findData.url,
+      typebot: findData.typebot,
+      session,
+    });
+
     return { typebot: { ...instance, typebot: typebotData } };
   }
 
@@ -90,6 +99,15 @@ export class TypebotService {
     const remoteJid = data.remoteJid;
     const url = data.url;
     const typebot = data.typebot;
+    const variables = data.variables;
+
+    const prefilledVariables = {
+      remoteJid: remoteJid,
+    };
+
+    variables.forEach((variable) => {
+      prefilledVariables[variable.name] = variable.value;
+    });
 
     const id = Math.floor(Math.random() * 10000000000).toString();
 
@@ -97,14 +115,9 @@ export class TypebotService {
       sessionId: id,
       startParams: {
         typebot: data.typebot,
-        prefilledVariables: {
-          remoteJid: data.remoteJid,
-          pushName: data.pushName,
-          instanceName: instance.instanceName,
-        },
+        prefilledVariables: prefilledVariables,
       },
     };
-    console.log(reqData);
 
     const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
 
@@ -116,6 +129,14 @@ export class TypebotService {
       request.data.clientSideActions,
     );
 
+    this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
+      remoteJid: remoteJid,
+      url: url,
+      typebot: typebot,
+      variables: variables,
+      sessionId: id,
+    });
+
     return {
       typebot: {
         ...instance,
@@ -123,6 +144,7 @@ export class TypebotService {
           url: url,
           remoteJid: remoteJid,
           typebot: typebot,
+          variables: variables,
         },
       },
     };

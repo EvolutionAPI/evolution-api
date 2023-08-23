@@ -127,6 +127,9 @@ export class InstanceController {
               'CONNECTION_UPDATE',
               'CALL',
               'NEW_JWT_TOKEN',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = events;
@@ -173,6 +176,9 @@ export class InstanceController {
               'CONNECTION_UPDATE',
               'CALL',
               'NEW_JWT_TOKEN',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = events;
@@ -217,6 +223,9 @@ export class InstanceController {
               'CONNECTION_UPDATE',
               'CALL',
               'NEW_JWT_TOKEN',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = events;
