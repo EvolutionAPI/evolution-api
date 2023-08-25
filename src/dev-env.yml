@@ -127,6 +127,7 @@ WEBHOOK:
     CHAMA_AI_ACTION: false
     # This event is used to send errors to the webhook
     ERRORS: false
+    ERRORS_WEBHOOK: <url>
 
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection

@@ -57,7 +57,7 @@ function bootstrap() {
       if (err) {
         const webhook = configService.get<Webhook>('WEBHOOK');
 
-        if (webhook.GLOBAL.ENABLED && webhook.EVENTS.ERRORS) {
+        if (webhook.EVENTS.ERRORS_WEBHOOK && webhook.EVENTS.ERRORS_WEBHOOK != '' && webhook.EVENTS.ERRORS) {
           const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
           const localISOTime = new Date(Date.now() - tzoffset).toISOString();
           const now = localISOTime;
@@ -77,7 +77,7 @@ function bootstrap() {
 
           logger.error(errorData);
 
-          const baseURL = configService.get<Webhook>('WEBHOOK').GLOBAL.URL;
+          const baseURL = webhook.EVENTS.ERRORS_WEBHOOK;
           const httpService = axios.create({ baseURL });
 
           httpService.post('', errorData);

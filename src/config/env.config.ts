@@ -96,6 +96,7 @@ export type EventsWebhook = {
   TYPEBOT_CHANGE_STATUS: boolean;
   CHAMA_AI_ACTION: boolean;
   ERRORS: boolean;
+  ERRORS_WEBHOOK: string;
 };
 
 export type ApiKey = { KEY: string };
@@ -272,6 +273,7 @@ export class ConfigService {
           TYPEBOT_CHANGE_STATUS: process.env?.WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
           CHAMA_AI_ACTION: process.env?.WEBHOOK_EVENTS_CHAMA_AI_ACTION === 'true',
           ERRORS: process.env?.WEBHOOK_EVENTS_ERRORS === 'true',
+          ERRORS_WEBHOOK: process.env?.WEBHOOK_EVENTS_ERRORS_WEBHOOK || '',
         },
       },
       CONFIG_SESSION_PHONE: {
