@@ -125,6 +125,8 @@ WEBHOOK:
     TYPEBOT_CHANGE_STATUS: false
     # This event is used with Chama AI
     CHAMA_AI_ACTION: false
+    # This event is used to send errors to the webhook
+    ERRORS: false
 
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection

@@ -6,6 +6,7 @@
 * Added variables options in Start Typebot
 * Added webhooks for typebot events
 * Added ChamaAI integration
+* Added webhook to send errors
 
 ### Fixed
 
