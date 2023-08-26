@@ -75,5 +75,5 @@ volumes:
 
 networks:
   evolution-net:
-    external: true
-  
+    name: evolution-net
+    driver: bridge
