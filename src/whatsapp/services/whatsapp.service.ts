@@ -128,6 +128,7 @@ import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types'
 import { waMonitor } from '../whatsapp.module';
 import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
+//import { SocksProxyAgent } from './socks-proxy-agent';
 import { TypebotService } from './typebot.service';
 
 export class WAStartupService {

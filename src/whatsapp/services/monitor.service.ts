@@ -115,7 +115,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
@@ -134,7 +134,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
@@ -161,8 +161,7 @@ export class WAMonitoringService {
           });
           this.logger.verbose('instance files deleted: ' + name);
         });
-        // } else if (this.redis.ENABLED) {
-      } else {
+      } else if (!this.redis.ENABLED) {
         const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
         for await (const dirent of dir) {
           if (dirent.isDirectory()) {
@@ -200,6 +199,7 @@ export class WAMonitoringService {
       this.logger.verbose('cleaning up instance in redis: ' + instanceName);
       this.cache.reference = instanceName;
       await this.cache.delAll();
+      this.cache.disconnect();
       return;
     }
 
@@ -268,6 +268,7 @@ export class WAMonitoringService {
         } else {
           this.logger.verbose('no instance keys found');
         }
+        this.cache.disconnect();
         return;
       }
 
