@@ -750,7 +750,7 @@ export class WAStartupService {
         }
 
         try {
-          if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
+          if (this.localWebhook.enabled && isURL(this.localWebhook.url, { require_tld: false })) {
             const httpService = axios.create({ baseURL });
             const postData = {
               event,
