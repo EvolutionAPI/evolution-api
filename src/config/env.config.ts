@@ -259,7 +259,7 @@ export class ConfigService {
       },
       CONFIG_SESSION_PHONE: {
         CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT || 'Evolution API',
-        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'chrome',
+        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'Chrome',
       },
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
