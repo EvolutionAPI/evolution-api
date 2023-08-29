@@ -181,7 +181,7 @@ export class InstanceController {
               'CHAMA_AI_ACTION',
             ];
           } else {
-            newEvents = events;
+            newEvents = websocket_events;
           }
           this.websocketService.create(instance, {
             enabled: true,
@@ -232,7 +232,7 @@ export class InstanceController {
           }
           this.rabbitmqService.create(instance, {
             enabled: true,
-            events: newEvents,
+            events: rabbitmq_events,
           });
 
           rabbitmqEvents = (await this.rabbitmqService.find(instance)).events;
