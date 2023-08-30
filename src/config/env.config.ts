@@ -224,8 +224,8 @@ export class ConfigService {
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
-      DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
-        ? process.env.DEL_INSTANCE === 5
+      DEL_INSTANCE: process.env?.DEL_INSTANCE === 'true'
+        ? 5
         : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
