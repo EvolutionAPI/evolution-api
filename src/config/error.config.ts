@@ -8,6 +8,7 @@ export function onUnexpectedError() {
       stderr: process.stderr.fd,
       error,
     });
+    process.exit(1);
   });
 
   process.on('unhandledRejection', (error, origin) => {
@@ -17,5 +18,6 @@ export function onUnexpectedError() {
       stderr: process.stderr.fd,
       error,
     });
+    process.exit(1);
   });
 }
