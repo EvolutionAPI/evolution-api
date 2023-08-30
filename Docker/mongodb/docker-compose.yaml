@@ -35,7 +35,8 @@ volumes:
   evolution_mongodb_data:
   evolution_mongodb_configdb:
 
+
 networks:
   evolution-net:
-    external: true
-    
+    name: evolution-net
+    driver: bridge

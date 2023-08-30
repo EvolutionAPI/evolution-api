@@ -239,7 +239,7 @@ export class ConfigService {
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
-        ? process.env.DEL_INSTANCE === 'true'
+        ? process.env.DEL_INSTANCE === 5
         : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
@@ -278,7 +278,7 @@ export class ConfigService {
       },
       CONFIG_SESSION_PHONE: {
         CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT || 'Evolution API',
-        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'chrome',
+        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'Chrome',
       },
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
