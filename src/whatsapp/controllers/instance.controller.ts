@@ -5,7 +5,6 @@ import EventEmitter2 from 'eventemitter2';
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
-import { initQueues } from '../../libs/amqp.server';
 import { RedisCache } from '../../libs/redis.client';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';

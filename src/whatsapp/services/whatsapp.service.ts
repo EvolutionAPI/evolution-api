@@ -688,6 +688,25 @@ export class WAStartupService {
           }
 
           amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+
+          if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+            const logData = {
+              local: WAStartupService.name + '.sendData-RabbitMQ',
+              event,
+              instance: this.instance.name,
+              data,
+              server_url: serverUrl,
+              apikey: (expose && instanceApikey) || null,
+              date_time: now,
+              sender: this.wuid,
+            };
+
+            if (expose && instanceApikey) {
+              logData['apikey'] = instanceApikey;
+            }
+
+            this.logger.log(logData);
+          }
         }
       }
     }
@@ -713,6 +732,25 @@ export class WAStartupService {
 
         this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
         io.of(`/${this.instance.name}`).emit(event, message);
+
+        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+          const logData = {
+            local: WAStartupService.name + '.sendData-Websocket',
+            event,
+            instance: this.instance.name,
+            data,
+            server_url: serverUrl,
+            apikey: (expose && instanceApikey) || null,
+            date_time: now,
+            sender: this.wuid,
+          };
+
+          if (expose && instanceApikey) {
+            logData['apikey'] = instanceApikey;
+          }
+
+          this.logger.log(logData);
+        }
       }
     }
 
