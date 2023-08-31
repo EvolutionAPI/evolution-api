@@ -41,3 +41,31 @@ export const initAMQP = () => {
 export const getAMQP = (): amqp.Channel | null => {
   return amqpChannel;
 };
+
+export const initQueues = (instanceName: string, events: string[]) => {
+  const queues = events.map((event) => {
+    return `${event.replace(/_/g, '.').toLowerCase()}`;
+  });
+
+  queues.forEach((event) => {
+    const amqp = getAMQP();
+    const exchangeName = instanceName ?? 'evolution_exchange';
+
+    amqp.assertExchange(exchangeName, 'topic', {
+      durable: true,
+      autoDelete: false,
+    });
+
+    const queueName = `${instanceName}.${event}`;
+
+    amqp.assertQueue(queueName, {
+      durable: true,
+      autoDelete: false,
+      arguments: {
+        'x-queue-type': 'quorum',
+      },
+    });
+
+    amqp.bindQueue(queueName, exchangeName, event);
+  });
+};

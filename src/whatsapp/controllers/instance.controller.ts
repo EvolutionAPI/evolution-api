@@ -5,6 +5,7 @@ import EventEmitter2 from 'eventemitter2';
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
+import { initQueues } from '../../libs/amqp.server';
 import { RedisCache } from '../../libs/redis.client';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
@@ -232,10 +233,12 @@ export class InstanceController {
           }
           this.rabbitmqService.create(instance, {
             enabled: true,
-            events: rabbitmq_events,
+            events: newEvents,
           });
 
           rabbitmqEvents = (await this.rabbitmqService.find(instance)).events;
+
+          initQueues(instance.instanceName, rabbitmqEvents);
         } catch (error) {
           this.logger.log(error);
         }
