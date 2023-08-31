@@ -44,7 +44,7 @@ export const getAMQP = (): amqp.Channel | null => {
 
 export const initQueues = (instanceName: string, events: string[]) => {
   console.log('initQueues', instanceName, events);
-  if (!events.length) return;
+  if (!events || !events.length) return;
 
   const queues = events.map((event) => {
     return `${event.replace(/_/g, '.').toLowerCase()}`;

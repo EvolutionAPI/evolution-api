@@ -229,7 +229,7 @@ export class InstanceController {
               'CHAMA_AI_ACTION',
             ];
           } else {
-            newEvents = events;
+            newEvents = rabbitmq_events;
           }
           this.rabbitmqService.create(instance, {
             enabled: true,
@@ -237,8 +237,6 @@ export class InstanceController {
           });
 
           rabbitmqEvents = (await this.rabbitmqService.find(instance)).events;
-
-          initQueues(instance.instanceName, rabbitmqEvents);
         } catch (error) {
           this.logger.log(error);
         }
