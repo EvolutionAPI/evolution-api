@@ -1444,16 +1444,16 @@ export class ChatwootService {
         await this.createBotMessage(instance, msgStatus, 'incoming');
       }
 
-      if (event === 'connection.update') {
-        this.logger.verbose('event connection.update');
+      // if (event === 'connection.update') {
+      //   this.logger.verbose('event connection.update');
 
-        if (body.status === 'open') {
-          const msgConnection = `🚀 Connection successfully established!`;
+      //   if (body.status === 'open') {
+      //     const msgConnection = `🚀 Connection successfully established!`;
 
-          this.logger.verbose('send message to chatwoot');
-          await this.createBotMessage(instance, msgConnection, 'incoming');
-        }
-      }
+      //     this.logger.verbose('send message to chatwoot');
+      //     await this.createBotMessage(instance, msgConnection, 'incoming');
+      //   }
+      // }
 
       if (event === 'qrcode.updated') {
         this.logger.verbose('event qrcode.updated');

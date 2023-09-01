@@ -5,6 +5,10 @@ import { Redis } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 
 export class RedisCache {
+  async disconnect() {
+    await this.client.disconnect();
+    this.statusConnection = false;
+  }
   constructor() {
     this.logger.verbose('instance created');
     process.on('beforeExit', async () => {

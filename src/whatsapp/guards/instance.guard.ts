@@ -4,31 +4,40 @@ import { join } from 'path';
 
 import { configService, Database, Redis } from '../../config/env.config';
 import { INSTANCE_DIR } from '../../config/path.config';
-import { BadRequestException, ForbiddenException, NotFoundException } from '../../exceptions';
+import {
+  BadRequestException,
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '../../exceptions';
 import { dbserver } from '../../libs/db.connect';
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../whatsapp.module';
 
 async function getInstance(instanceName: string) {
-  const db = configService.get<Database>('DATABASE');
-  const redisConf = configService.get<Redis>('REDIS');
+  try {
+    const db = configService.get<Database>('DATABASE');
+    const redisConf = configService.get<Redis>('REDIS');
 
-  const exists = !!waMonitor.waInstances[instanceName];
+    const exists = !!waMonitor.waInstances[instanceName];
 
-  if (redisConf.ENABLED) {
-    const keyExists = await cache.keyExists();
-    return exists || keyExists;
+    if (redisConf.ENABLED) {
+      const keyExists = await cache.keyExists();
+      return exists || keyExists;
+    }
+
+    if (db.ENABLED) {
+      const collection = dbserver
+        .getClient()
+        .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
+        .collection(instanceName);
+      return exists || (await collection.find({}).toArray()).length > 0;
+    }
+
+    return exists || existsSync(join(INSTANCE_DIR, instanceName));
+  } catch (error) {
+    throw new InternalServerErrorException(error?.toString());
   }
-
-  if (db.ENABLED) {
-    const collection = dbserver
-      .getClient()
-      .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
-      .collection(instanceName);
-    return exists || (await collection.find({}).toArray()).length > 0;
-  }
-
-  return exists || existsSync(join(INSTANCE_DIR, instanceName));
 }
 
 export async function instanceExistsGuard(req: Request, _: Response, next: NextFunction) {

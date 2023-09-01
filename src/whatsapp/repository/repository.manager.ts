@@ -5,6 +5,7 @@ import { join } from 'path';
 import { Auth, ConfigService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { AuthRepository } from './auth.repository';
+import { ChamaaiRepository } from './chamaai.repository';
 import { ChatRepository } from './chat.repository';
 import { ChatwootRepository } from './chatwoot.repository';
 import { ContactRepository } from './contact.repository';
@@ -29,6 +30,7 @@ export class RepositoryBroker {
     public readonly rabbitmq: RabbitmqRepository,
     public readonly typebot: TypebotRepository,
     public readonly proxy: ProxyRepository,
+    public readonly chamaai: ChamaaiRepository,
     public readonly auth: AuthRepository,
     private configService: ConfigService,
     dbServer?: MongoClient,
@@ -63,6 +65,7 @@ export class RepositoryBroker {
         const rabbitmqDir = join(storePath, 'rabbitmq');
         const typebotDir = join(storePath, 'typebot');
         const proxyDir = join(storePath, 'proxy');
+        const chamaaiDir = join(storePath, 'chamaai');
         const tempDir = join(storePath, 'temp');
 
         if (!fs.existsSync(authDir)) {
@@ -112,6 +115,10 @@ export class RepositoryBroker {
         if (!fs.existsSync(proxyDir)) {
           this.logger.verbose('creating proxy dir: ' + proxyDir);
           fs.mkdirSync(proxyDir, { recursive: true });
+        }
+        if (!fs.existsSync(chamaaiDir)) {
+          this.logger.verbose('creating chamaai dir: ' + chamaaiDir);
+          fs.mkdirSync(chamaaiDir, { recursive: true });
         }
         if (!fs.existsSync(tempDir)) {
           this.logger.verbose('creating temp dir: ' + tempDir);

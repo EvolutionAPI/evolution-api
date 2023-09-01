@@ -1,6 +1,6 @@
 FROM node:16.18-alpine
 
-LABEL version="1.5.0" description="Api to control whatsapp features through http requests." 
+LABEL version="1.5.1" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
@@ -84,8 +84,16 @@ ENV WEBHOOK_EVENTS_CALL=true
 
 ENV WEBHOOK_EVENTS_NEW_JWT_TOKEN=false
 
+ENV WEBHOOK_EVENTS_TYPEBOT_START=false
+ENV WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS=false
+
+ENV WEBHOOK_EVENTS_CHAMA_AI_ACTION=false
+
+ENV WEBHOOK_EVENTS_ERRORS=false
+ENV WEBHOOK_EVENTS_ERRORS_WEBHOOK=
+
 ENV CONFIG_SESSION_PHONE_CLIENT=EvolutionAPI
-ENV CONFIG_SESSION_PHONE_NAME=chrome
+ENV CONFIG_SESSION_PHONE_NAME=Chrome
 
 ENV QRCODE_LIMIT=30
 ENV QRCODE_COLOR=#198754

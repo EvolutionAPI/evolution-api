@@ -1,11 +1,12 @@
 import 'express-async-errors';
 
+import axios from 'axios';
 import compression from 'compression';
 import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
 
-import { configService, Cors, HttpServer, Rabbitmq } from './config/env.config';
+import { configService, Cors, HttpServer, Rabbitmq, Webhook } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
@@ -47,11 +48,41 @@ function bootstrap() {
   app.set('views', join(ROOT_DIR, 'views'));
   app.use(express.static(join(ROOT_DIR, 'public')));
 
+  app.use('/store', express.static(join(ROOT_DIR, 'store')));
+
   app.use('/', router);
 
   app.use(
     (err: Error, req: Request, res: Response, next: NextFunction) => {
       if (err) {
+        const webhook = configService.get<Webhook>('WEBHOOK');
+
+        if (webhook.EVENTS.ERRORS_WEBHOOK && webhook.EVENTS.ERRORS_WEBHOOK != '' && webhook.EVENTS.ERRORS) {
+          const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
+          const localISOTime = new Date(Date.now() - tzoffset).toISOString();
+          const now = localISOTime;
+
+          const errorData = {
+            event: 'error',
+            data: {
+              error: err['error'] || 'Internal Server Error',
+              message: err['message'] || 'Internal Server Error',
+              status: err['status'] || 500,
+              response: {
+                message: err['message'] || 'Internal Server Error',
+              },
+            },
+            date_time: now,
+          };
+
+          logger.error(errorData);
+
+          const baseURL = webhook.EVENTS.ERRORS_WEBHOOK;
+          const httpService = axios.create({ baseURL });
+
+          httpService.post('', errorData);
+        }
+
         return res.status(err['status'] || 500).json({
           status: err['status'] || 500,
           error: err['error'] || 'Internal Server Error',

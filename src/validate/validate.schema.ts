@@ -55,6 +55,9 @@ export const instanceNameSchema: JSONSchema7 = {
           'CONNECTION_UPDATE',
           'CALL',
           'NEW_JWT_TOKEN',
+          'TYPEBOT_START',
+          'TYPEBOT_CHANGE_STATUS',
+          'CHAMA_AI_ACTION',
         ],
       },
     },
@@ -856,6 +859,9 @@ export const webhookSchema: JSONSchema7 = {
           'CONNECTION_UPDATE',
           'CALL',
           'NEW_JWT_TOKEN',
+          'TYPEBOT_START',
+          'TYPEBOT_CHANGE_STATUS',
+          'CHAMA_AI_ACTION',
         ],
       },
     },
@@ -927,6 +933,9 @@ export const websocketSchema: JSONSchema7 = {
           'CONNECTION_UPDATE',
           'CALL',
           'NEW_JWT_TOKEN',
+          'TYPEBOT_START',
+          'TYPEBOT_CHANGE_STATUS',
+          'CHAMA_AI_ACTION',
         ],
       },
     },
@@ -967,6 +976,9 @@ export const rabbitmqSchema: JSONSchema7 = {
           'CONNECTION_UPDATE',
           'CALL',
           'NEW_JWT_TOKEN',
+          'TYPEBOT_START',
+          'TYPEBOT_CHANGE_STATUS',
+          'CHAMA_AI_ACTION',
         ],
       },
     },
@@ -985,9 +997,10 @@ export const typebotSchema: JSONSchema7 = {
     expire: { type: 'integer' },
     delay_message: { type: 'integer' },
     unknown_message: { type: 'string' },
+    listening_from_me: { type: 'boolean', enum: [true, false] },
   },
-  required: ['enabled', 'url', 'typebot', 'expire'],
-  ...isNotEmpty('enabled', 'url', 'typebot', 'expire'),
+  required: ['enabled', 'url', 'typebot', 'expire', 'delay_message', 'unknown_message', 'listening_from_me'],
+  ...isNotEmpty('enabled', 'url', 'typebot', 'expire', 'delay_message', 'unknown_message', 'listening_from_me'),
 };
 
 export const typebotStatusSchema: JSONSchema7 = {
@@ -1022,4 +1035,18 @@ export const proxySchema: JSONSchema7 = {
   },
   required: ['enabled', 'proxy'],
   ...isNotEmpty('enabled', 'proxy'),
+};
+
+export const chamaaiSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    enabled: { type: 'boolean', enum: [true, false] },
+    url: { type: 'string' },
+    token: { type: 'string' },
+    waNumber: { type: 'string' },
+    answerByAudio: { type: 'boolean', enum: [true, false] },
+  },
+  required: ['enabled', 'url', 'token', 'waNumber', 'answerByAudio'],
+  ...isNotEmpty('enabled', 'url', 'token', 'waNumber', 'answerByAudio'),
 };

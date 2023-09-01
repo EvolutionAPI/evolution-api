@@ -55,7 +55,7 @@ async function jwtGuard(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-async function apikey(req: Request, res: Response, next: NextFunction) {
+async function apikey(req: Request, _: Response, next: NextFunction) {
   const env = configService.get<Auth>('AUTHENTICATION').API_KEY;
   const key = req.get('apikey');
 
