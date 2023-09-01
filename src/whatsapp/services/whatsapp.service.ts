@@ -3073,7 +3073,9 @@ export class WAStartupService {
   public async createGroup(create: CreateGroupDto) {
     this.logger.verbose('Creating group: ' + create.subject);
     try {
-      const participants = create.participants.map((p) => this.createJid(p));
+      const participants = (await this.whatsappNumber({ numbers: create.participants }))
+        .filter((participant) => participant.exists)
+        .map((participant) => participant.jid);
       const { id } = await this.client.groupCreate(create.subject, participants);
       this.logger.verbose('Group created: ' + id);
 
@@ -3083,7 +3085,7 @@ export class WAStartupService {
       }
 
       if (create?.promoteParticipants) {
-        this.logger.verbose('Prometing group participants: ' + create.description);
+        this.logger.verbose('Prometing group participants: ' + participants);
         await this.updateGParticipant({
           groupJid: id,
           action: 'promote',
@@ -3091,8 +3093,8 @@ export class WAStartupService {
         });
       }
 
-      const group = await this.client.groupMetadata(id);
       this.logger.verbose('Getting group metadata');
+      const group = await this.client.groupMetadata(id);
 
       return group;
     } catch (error) {
