@@ -80,7 +80,7 @@ export class WAMonitoringService {
 
     const instances: any[] = await Promise.all(
       Object.entries(this.waInstances).map(async ([key, value]) => {
-        if (!value || !value.connectionStatus || value.connectionStatus.state !== 'open') {
+        if (!value || !value.connectionStatus || !value.connectionStatus.state) {
           return {
             instance: {
               instanceName: key,
