@@ -7,7 +7,6 @@ import { join } from 'path';
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import { NotFoundException } from '../../exceptions';
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
@@ -180,7 +179,6 @@ export class WAMonitoringService {
       this.logger.verbose('cleaning up instance in redis: ' + instanceName);
       this.cache.reference = instanceName;
       await this.cache.delAll();
-      this.cache.disconnect();
       return;
     }
 
@@ -263,8 +261,6 @@ export class WAMonitoringService {
     } else {
       this.logger.verbose('No instance keys found');
     }
-
-    this.cache.disconnect();
   }
 
   private async loadInstancesFromDatabase() {
