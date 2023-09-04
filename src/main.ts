@@ -83,6 +83,11 @@ function bootstrap() {
           httpService.post('', errorData);
         }
 
+        if (err['message'].includes('No sessions') || err['message'].includes('Connection Closed')) {
+          console.log(err['message']);
+          process.exit(1);
+        }
+
         return res.status(err['status'] || 500).json({
           status: err['status'] || 500,
           error: err['error'] || 'Internal Server Error',
