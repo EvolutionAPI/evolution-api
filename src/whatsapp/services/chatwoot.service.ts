@@ -945,6 +945,9 @@ export class ChatwootService {
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
+      // espera 500ms para evitar duplicidade de mensagens
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
       const client = await this.clientCw(instance);
 
