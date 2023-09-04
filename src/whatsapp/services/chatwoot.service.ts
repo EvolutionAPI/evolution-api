@@ -460,7 +460,9 @@ export class ChatwootService {
       let contact: any;
       if (body.key.fromMe) {
         if (findContact) {
-          contact = findContact;
+          contact = await this.updateContact(instance, findContact.id, {
+            avatar_url: picture_url.profilePictureUrl || null,
+          });
         } else {
           const jid = isGroup ? null : body.key.remoteJid;
           contact = await this.createContact(
@@ -481,7 +483,9 @@ export class ChatwootService {
               avatar_url: picture_url.profilePictureUrl || null,
             });
           } else {
-            contact = findContact;
+            contact = await this.updateContact(instance, findContact.id, {
+              avatar_url: picture_url.profilePictureUrl || null,
+            });
           }
         } else {
           const jid = isGroup ? null : body.key.remoteJid;
