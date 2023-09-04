@@ -74,7 +74,7 @@ export class WAMonitoringService {
     }
   }
 
-    public async instanceInfo(instanceName?: string) {
+  public async instanceInfo(instanceName?: string) {
     this.logger.verbose('get instance info');
 
     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
@@ -129,7 +129,7 @@ export class WAMonitoringService {
 
     return instances;
   }
-  
+
   private delInstanceFiles() {
     this.logger.verbose('cron to delete instance files started');
     setInterval(async () => {
@@ -226,67 +226,85 @@ export class WAMonitoringService {
   }
 
   public async loadInstance() {
-    this.logger.verbose('load instances');
-    const set = async (name: string) => {
-      const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
-      instance.instanceName = name;
-      this.logger.verbose('instance loaded: ' + name);
-
-      await instance.connectToWhatsapp();
-      this.logger.verbose('connectToWhatsapp: ' + name);
-
-      this.waInstances[name] = instance;
-    };
+    this.logger.verbose('Loading instances');
 
     try {
       if (this.redis.ENABLED) {
-        this.logger.verbose('redis enabled');
-        await this.cache.connect(this.redis as Redis);
-        const keys = await this.cache.instanceKeys();
-        if (keys?.length > 0) {
-          this.logger.verbose('reading instance keys and setting instances');
-          keys.forEach(async (k) => await set(k.split(':')[1]));
-        } else {
-          this.logger.verbose('no instance keys found');
-        }
-        this.cache.disconnect();
-        return;
-      }
-
-      if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
-        this.logger.verbose('database enabled');
-        await this.repository.dbServer.connect();
-        const collections: any[] = await this.dbInstance.collections();
-        if (collections.length > 0) {
-          this.logger.verbose('reading collections and setting instances');
-          collections.forEach(async (coll) => await set(coll.namespace.replace(/^[\w-]+\./, '')));
-        } else {
-          this.logger.verbose('no collections found');
-        }
-        return;
-      }
-
-      this.logger.verbose('store in files enabled');
-      const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
-      for await (const dirent of dir) {
-        if (dirent.isDirectory()) {
-          this.logger.verbose('reading instance files and setting instances');
-          const files = readdirSync(join(INSTANCE_DIR, dirent.name), {
-            encoding: 'utf-8',
-          });
-          if (files.length === 0) {
-            rmSync(join(INSTANCE_DIR, dirent.name), { recursive: true, force: true });
-            break;
-          }
-
-          await set(dirent.name);
-        } else {
-          this.logger.verbose('no instance files found');
-        }
+        await this.loadInstancesFromRedis();
+      } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+        await this.loadInstancesFromDatabase();
+      } else {
+        await this.loadInstancesFromFiles();
       }
     } catch (error) {
       this.logger.error(error);
     }
+  }
+
+  private async setInstance(name: string) {
+    const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
+    instance.instanceName = name;
+    this.logger.verbose('Instance loaded: ' + name);
+
+    await instance.connectToWhatsapp();
+    this.logger.verbose('connectToWhatsapp: ' + name);
+
+    this.waInstances[name] = instance;
+  }
+
+  private async loadInstancesFromRedis() {
+    this.logger.verbose('Redis enabled');
+    await this.cache.connect(this.redis as Redis);
+    const keys = await this.cache.instanceKeys();
+
+    if (keys?.length > 0) {
+      this.logger.verbose('Reading instance keys and setting instances');
+      await Promise.all(keys.map((k) => this.setInstance(k.split(':')[1])));
+    } else {
+      this.logger.verbose('No instance keys found');
+    }
+
+    this.cache.disconnect();
+  }
+
+  private async loadInstancesFromDatabase() {
+    this.logger.verbose('Database enabled');
+    await this.repository.dbServer.connect();
+    const collections: any[] = await this.dbInstance.collections();
+
+    if (collections.length > 0) {
+      this.logger.verbose('Reading collections and setting instances');
+      await Promise.all(collections.map((coll) => this.setInstance(coll.namespace.replace(/^[\w-]+\./, ''))));
+    } else {
+      this.logger.verbose('No collections found');
+    }
+  }
+
+  private async loadInstancesFromFiles() {
+    this.logger.verbose('Store in files enabled');
+    const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
+    const instanceDirs = [];
+
+    for await (const dirent of dir) {
+      if (dirent.isDirectory()) {
+        instanceDirs.push(dirent.name);
+      } else {
+        this.logger.verbose('No instance files found');
+      }
+    }
+
+    await Promise.all(
+      instanceDirs.map(async (instanceName) => {
+        this.logger.verbose('Reading instance files and setting instances: ' + instanceName);
+        const files = readdirSync(join(INSTANCE_DIR, instanceName), { encoding: 'utf-8' });
+
+        if (files.length === 0) {
+          rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+        } else {
+          await this.setInstance(instanceName);
+        }
+      }),
+    );
   }
 
   private removeInstance() {
