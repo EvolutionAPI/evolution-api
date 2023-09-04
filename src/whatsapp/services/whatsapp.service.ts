@@ -1432,7 +1432,12 @@ export class WAStartupService {
       this.logger.verbose('Event received: messages.upsert');
       const received = messages[0];
 
-      if (type !== 'notify' || received.message?.protocolMessage || received.message?.pollUpdateMessage) {
+      if (
+        type !== 'notify' ||
+        !received.message ||
+        received.message?.protocolMessage ||
+        received.message?.pollUpdateMessage
+      ) {
         this.logger.verbose('message rejected');
         return;
       }
