@@ -1,8 +1,160 @@
+# 1.5.1 (homolog)
+
+### Feature
+
+* Added listening_from_me option in Set Typebot
+* Added variables options in Start Typebot
+* Added webhooks for typebot events
+* Added ChamaAI integration
+* Added webhook to send errors
+
+### Fixed
+
+* Fix looping connection messages in chatwoot
+
+# 1.5.0 (2023-08-18 12:47)
+
+### Feature
+
+* New instance manager in /manager route
+* Added extra files for chatwoot and appsmith
+* Added Get Last Message and Archive for Chat
+* Added env var QRCODE_COLOR
+* Added websocket to send events
+* Added rabbitmq to send events
+* Added Typebot integration
+* Added proxy endpoint
+* Added send and date_time in webhook data
+
+### Fixed
+
+* Solved problem when disconnecting from the instance the instance was deleted
+* Encoded spaces in chatwoot webhook
+* Adjustment in the saving of contacts, saving the information of the number and Jid
+* Update Dockerfile
+* If you pass empty events in create instance and set webhook it is understood as all
+* Fixed issue that did not output base64 averages
+* Messages sent by the api now arrive in chatwoot
+
+### Integrations
+
+- Chatwoot: v2.18.0 - v3.0.0
+- Typebot: v2.16.0
+- Manager Evolution API
+
+# 1.4.8 (2023-07-27 10:27)
+
+### Fixed
+
+* Fixed error return bug
+
+# 1.4.7 (2023-07-27 08:47)
+
+### Fixed
+
+* Fixed error return bug
+* Fixed problem of getting message when deleting message in chatwoot
+* Change in error return pattern
+
+# 1.4.6 (2023-07-26 17:54)
+
+### Fixed
+
+* Fixed bug of creating new inbox by chatwoot
+* When conversation reopens is pending when conversation pending is true
+* Added docker-compose file with dockerhub image
+
+# 1.4.5 (2023-07-26 09:32)
+
+### Fixed
+
+* Fixed problems in localization template in chatwoot
+* Fix mids going duplicated in chatwoot
+
+# 1.4.4 (2023-07-25 15:24)
+
+### Fixed
+
+* Fixed chatwoot line wrap issue
+* Solved receive location in chatwoot
+* When requesting the pairing code, it also brings the qr code
+* Option reopen_conversation in chatwoot endpoint
+* Option conversation_pending in chatwoot endpoint
+
+# 1.4.3 (2023-07-25 10:51)
+
+### Fixed
+
+* Adjusts in settings with options always_online, read_messages and read_status
+* Fixed send webhook for event CALL
+* Create instance with settings
+
+# 1.4.2 (2023-07-24 20:52)
+
+### Fixed
+
+* Fixed validation is set settings 
+* Adjusts in group validations
+* Ajusts in sticker message to chatwoot
+
+# 1.4.1 (2023-07-24 18:28)
+
+### Fixed
+
+* Fixed reconnect with pairing code or qrcode
+* Fixed problem in createJid
+
+# 1.4.0 (2023-07-24 17:03)
+
+### Features
+
+* Added connection functionality via pairing code
+* Added fetch profile endpoint in chat controller
+* Created settings controller
+* Added reject call and send text message when receiving a call
+* Added setting to ignore group messages
+* Added connection with pairing code in chatwoot with command /init:{NUMBER}
+* Added encoding option in endpoint sendWhatsAppAudio
+
+### Fixed
+
+* Added link preview option in send text message
+* Fixed problem with fileSha256 appearing when sending a sticker in chatwoot
+* Fixed issue where it was not possible to open a conversation when sent at first by me on my cell phone in chatwoot
+* Now it only updates the contact name if it is the same as the phone number in chatwoot
+* Now accepts all chatwoot inbox templates
+* Command to create new instances set to /new_instance:{NAME}:{NUMBER}
+* Fix in chatwoot set, sign msg can now be disabled
+
+### Integrations
+
+- Chatwoot: v2.18.0 - v3.0.0 (Beta)
+
+# 1.3.2 (2023-07-21 17:19)
+
+### Fixed
+
+* Fix in update settings that needed to restart after updated
+* Correction in the use of the api with mongodb
+* Adjustments to search endpoint for contacts, chats, messages and Status messages
+* Now when deleting the instance, the data referring to it in mongodb is also deleted
+* It is now validated if the instance name contains uppercase and special characters
+* For compatibility reasons, container mode has been removed
+* Added docker-compose files example
+
+### Integrations
+
+- Chatwoot: v2.18.0
+
 # 1.3.1 (2023-07-20 07:48)
 
 ### Fixed
 
 * Adjust in create store files
+
+### Integrations
+
+- Chatwoot: v2.18.0
 
 # 1.3.0 (2023-07-19 11:33)
 
@@ -10,7 +162,7 @@
 
 * Added messages.delete event
 * Added restart instance endpoint
-* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:<INSTANCE_NAME>'
+* Created automation for creating instances in the chatwoot bot with the command '#inbox_whatsapp:{INSTANCE_NAME}
 * Change Baileys version to: 6.4.0
 * Send contact in chatwoot
 * Send contact array in chatwoot

@@ -6,9 +6,10 @@ import {
   proto,
   SignalDataTypeMap,
 } from '@whiskeysockets/baileys';
+
 import { configService, Database } from '../config/env.config';
 import { Logger } from '../config/logger.config';
-import { dbserver } from '../db/db.connect';
+import { dbserver } from '../libs/db.connect';
 
 export async function useMultiFileAuthStateDb(
   coll: string,
@@ -24,12 +25,12 @@ export async function useMultiFileAuthStateDb(
   const writeData = async (data: any, key: string): Promise<any> => {
     try {
       await client.connect();
-      return await collection.replaceOne(
-        { _id: key },
-        JSON.parse(JSON.stringify(data, BufferJSON.replacer)),
-        { upsert: true },
-      );
-    } catch {}
+      return await collection.replaceOne({ _id: key }, JSON.parse(JSON.stringify(data, BufferJSON.replacer)), {
+        upsert: true,
+      });
+    } catch (error) {
+      logger.error(error);
+    }
   };
 
   const readData = async (key: string): Promise<any> => {
@@ -38,14 +39,18 @@ export async function useMultiFileAuthStateDb(
       const data = await collection.findOne({ _id: key });
       const creds = JSON.stringify(data);
       return JSON.parse(creds, BufferJSON.reviver);
-    } catch {}
+    } catch (error) {
+      logger.error(error);
+    }
   };
 
   const removeData = async (key: string) => {
     try {
       await client.connect();
       return await collection.deleteOne({ _id: key });
-    } catch {}
+    } catch (error) {
+      logger.error(error);
+    }
   };
 
   const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds();

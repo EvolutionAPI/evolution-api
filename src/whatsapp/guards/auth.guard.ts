@@ -1,12 +1,13 @@
 import { isJWT } from 'class-validator';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+
+import { name } from '../../../package.json';
 import { Auth, configService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { name } from '../../../package.json';
+import { ForbiddenException, UnauthorizedException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { JwtPayload } from '../services/auth.service';
-import { ForbiddenException, UnauthorizedException } from '../../exceptions';
 import { repository } from '../whatsapp.module';
 
 const logger = new Logger('GUARD');
@@ -22,15 +23,8 @@ async function jwtGuard(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
-  if (
-    (req.originalUrl.includes('/instance/create') ||
-      req.originalUrl.includes('/instance/fetchInstances')) &&
-    !key
-  ) {
-    throw new ForbiddenException(
-      'Missing global api key',
-      'The global api key must be set',
-    );
+  if ((req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) && !key) {
+    throw new ForbiddenException('Missing global api key', 'The global api key must be set');
   }
 
   const jwtOpts = configService.get<Auth>('AUTHENTICATION').JWT;
@@ -61,7 +55,7 @@ async function jwtGuard(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-async function apikey(req: Request, res: Response, next: NextFunction) {
+async function apikey(req: Request, _: Response, next: NextFunction) {
   const env = configService.get<Auth>('AUTHENTICATION').API_KEY;
   const key = req.get('apikey');
 
@@ -69,15 +63,8 @@ async function apikey(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
-  if (
-    (req.originalUrl.includes('/instance/create') ||
-      req.originalUrl.includes('/instance/fetchInstances')) &&
-    !key
-  ) {
-    throw new ForbiddenException(
-      'Missing global api key',
-      'The global api key must be set',
-    );
+  if ((req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) && !key) {
+    throw new ForbiddenException('Missing global api key', 'The global api key must be set');
   }
 
   try {
@@ -86,7 +73,9 @@ async function apikey(req: Request, res: Response, next: NextFunction) {
     if (instanceKey.apikey === key) {
       return next();
     }
-  } catch (error) {}
+  } catch (error) {
+    logger.error(error);
+  }
 
   throw new UnauthorizedException();
 }

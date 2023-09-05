@@ -1,9 +1,14 @@
 import { createClient, RedisClientType } from '@redis/client';
-import { Logger } from '../config/logger.config';
 import { BufferJSON } from '@whiskeysockets/baileys';
+
 import { Redis } from '../config/env.config';
+import { Logger } from '../config/logger.config';
 
 export class RedisCache {
+  async disconnect() {
+    await this.client.disconnect();
+    this.statusConnection = false;
+  }
   constructor() {
     this.logger.verbose('instance created');
     process.on('beforeExit', async () => {
@@ -59,11 +64,7 @@ export class RedisCache {
       this.logger.verbose('writeData: ' + field);
       const json = JSON.stringify(data, BufferJSON.replacer);
 
-      return await this.client.hSet(
-        this.redisEnv.PREFIX_KEY + ':' + this.instanceName,
-        field,
-        json,
-      );
+      return await this.client.hSet(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field, json);
     } catch (error) {
       this.logger.error(error);
     }
@@ -72,10 +73,7 @@ export class RedisCache {
   public async readData(field: string) {
     try {
       this.logger.verbose('readData: ' + field);
-      const data = await this.client.hGet(
-        this.redisEnv.PREFIX_KEY + ':' + this.instanceName,
-        field,
-      );
+      const data = await this.client.hGet(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field);
 
       if (data) {
         this.logger.verbose('readData: ' + field + ' success');
@@ -92,10 +90,7 @@ export class RedisCache {
   public async removeData(field: string) {
     try {
       this.logger.verbose('removeData: ' + field);
-      return await this.client.hDel(
-        this.redisEnv.PREFIX_KEY + ':' + this.instanceName,
-        field,
-      );
+      return await this.client.hDel(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field);
     } catch (error) {
       this.logger.error(error);
     }
@@ -104,9 +99,7 @@ export class RedisCache {
   public async delAll(hash?: string) {
     try {
       this.logger.verbose('instance delAll: ' + hash);
-      const result = await this.client.del(
-        hash || this.redisEnv.PREFIX_KEY + ':' + this.instanceName,
-      );
+      const result = await this.client.del(hash || this.redisEnv.PREFIX_KEY + ':' + this.instanceName);
 
       return result;
     } catch (error) {

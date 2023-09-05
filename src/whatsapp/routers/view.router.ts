@@ -1,13 +1,14 @@
-import { RequestHandler, Router } from 'express';
+import { Router } from 'express';
+
 import { RouterBroker } from '../abstract/abstract.router';
 import { viewsController } from '../whatsapp.module';
 
 export class ViewsRouter extends RouterBroker {
-  constructor(...guards: RequestHandler[]) {
+  constructor() {
     super();
 
-    this.router.get(this.routerPath('qrcode'), ...guards, (req, res) => {
-      return viewsController.qrcode(req, res);
+    this.router.get('/', (req, res) => {
+      return viewsController.manager(req, res);
     });
   }
 

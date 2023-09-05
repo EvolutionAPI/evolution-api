@@ -1,11 +1,12 @@
 import { RequestHandler, Router } from 'express';
+
+import { Logger } from '../../config/logger.config';
 import { instanceNameSchema, webhookSchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto } from '../dto/instance.dto';
 import { WebhookDto } from '../dto/webhook.dto';
 import { webhookController } from '../whatsapp.module';
 import { HttpStatus } from './index.router';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('WebhookRouter');
 

@@ -15,6 +15,8 @@ export class Options {
   presence?: WAPresence;
   quoted?: Quoted;
   mentions?: Mentions;
+  linkPreview?: boolean;
+  encoding?: boolean;
 }
 class OptionsMessage {
   options: Options;

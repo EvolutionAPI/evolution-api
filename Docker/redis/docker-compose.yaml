@@ -5,24 +5,17 @@ services:
     image: redis:latest
     container_name: redis
     command: >
-      redis-server
-      --port 6379
-      --appendonly yes
+      redis-server --port 6379 --appendonly yes
     volumes:
       - evolution_redis:/data
     ports:
       - 6379:6379
-  
-  rebrow:
-    image: marian/rebrow
-    ports: 
-      - 5001:5001
-    links:
-      - redis
-    
+
 volumes:
   evolution_redis:
 
+
 networks:
   evolution-net:
-    external: true
+    name: evolution-net
+    driver: bridge

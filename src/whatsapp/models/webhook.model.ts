@@ -1,5 +1,6 @@
 import { Schema } from 'mongoose';
-import { dbserver } from '../../db/db.connect';
+
+import { dbserver } from '../../libs/db.connect';
 
 export class WebhookRaw {
   _id?: string;

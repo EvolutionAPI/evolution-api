@@ -1,7 +1,7 @@
+import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { WebhookDto } from '../dto/webhook.dto';
 import { WAMonitoringService } from './monitor.service';
-import { Logger } from '../../config/logger.config';
 
 export class WebhookService {
   constructor(private readonly waMonitor: WAMonitoringService) {}
@@ -18,9 +18,7 @@ export class WebhookService {
   public async find(instance: InstanceDto): Promise<WebhookDto> {
     try {
       this.logger.verbose('find webhook: ' + instance.instanceName);
-      const result = await this.waMonitor.waInstances[
-        instance.instanceName
-      ].findWebhook();
+      const result = await this.waMonitor.waInstances[instance.instanceName].findWebhook();
 
       if (Object.keys(result).length === 0) {
         throw new Error('Webhook not found');

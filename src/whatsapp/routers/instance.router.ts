@@ -1,13 +1,14 @@
 import { RequestHandler, Router } from 'express';
-import { instanceNameSchema, oldTokenSchema } from '../../validate/validate.schema';
-import { InstanceDto } from '../dto/instance.dto';
-import { instanceController } from '../whatsapp.module';
-import { RouterBroker } from '../abstract/abstract.router';
-import { HttpStatus } from './index.router';
-import { OldToken } from '../services/auth.service';
+
 import { Auth, ConfigService, Database } from '../../config/env.config';
-import { dbserver } from '../../db/db.connect';
 import { Logger } from '../../config/logger.config';
+import { dbserver } from '../../libs/db.connect';
+import { instanceNameSchema, oldTokenSchema } from '../../validate/validate.schema';
+import { RouterBroker } from '../abstract/abstract.router';
+import { InstanceDto } from '../dto/instance.dto';
+import { OldToken } from '../services/auth.service';
+import { instanceController } from '../whatsapp.module';
+import { HttpStatus } from './index.router';
 
 const logger = new Logger('InstanceRouter');
 
@@ -162,17 +163,13 @@ export class InstanceRouter extends RouterBroker {
           await dbserver.dropDatabase();
           return res
             .status(HttpStatus.CREATED)
-            .json({ error: false, message: 'Database deleted' });
+            .json({ status: 'SUCCESS', error: false, response: { message: 'database deleted' } });
         } catch (error) {
-          return res
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .json({ error: true, message: error.message });
+          return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: true, message: error.message });
         }
       }
 
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: true, message: 'Database is not enabled' });
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: true, message: 'Database is not enabled' });
     });
   }
 

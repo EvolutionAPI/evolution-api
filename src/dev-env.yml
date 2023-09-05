@@ -79,6 +79,13 @@ REDIS:
   URI: "redis://localhost:6379"
   PREFIX_KEY: "evolution"
 
+RABBITMQ:
+  ENABLED: false
+  URI: "amqp://guest:guest@localhost:5672"
+
+WEBSOCKET:
+  ENABLED: false
+
 # Global Webhook Settings
 # Each instance's Webhook URL and events will be requested at the time it is created
 WEBHOOK:
@@ -110,17 +117,27 @@ WEBHOOK:
     GROUP_UPDATE: true
     GROUP_PARTICIPANTS_UPDATE: true
     CONNECTION_UPDATE: true
+    CALL: true
     # This event fires every time a new token is requested via the refresh route
     NEW_JWT_TOKEN: false
+    # This events is used with Typebot
+    TYPEBOT_START: false
+    TYPEBOT_CHANGE_STATUS: false
+    # This event is used with Chama AI
+    CHAMA_AI_ACTION: false
+    # This event is used to send errors to the webhook
+    ERRORS: false
+    ERRORS_WEBHOOK: <url>
 
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection
   CLIENT: "Evolution API"
-  NAME: chrome # chrome | firefox | edge | opera | safari
+  NAME: Chrome # Chrome | Firefox | Edge | Opera | Safari
 
 # Set qrcode display limit
 QRCODE:
   LIMIT: 30
+  COLOR: "#198754"
 
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,
@@ -137,13 +154,3 @@ AUTHENTICATION:
   JWT:
     EXPIRIN_IN: 0 # seconds - 3600s === 1h | zero (0) - never expires
     SECRET: L=0YWt]b2w[WF>#>:&E`
-  # Set the instance name and webhook url to create an instance in init the application
-  INSTANCE:
-    # With this option activated, you work with a url per webhook event, respecting the local url and the name of each event
-    MODE: server # container or server
-    # if you are using container mode, set the container name and the webhook url to default instance
-    NAME: evolution
-    WEBHOOK_URL: <url>
-    CHATWOOT_ACCOUNT_ID: 1
-    CHATWOOT_TOKEN: 123456
-    CHATWOOT_URL: <url>

@@ -1,4 +1,6 @@
 import { RequestHandler, Router } from 'express';
+
+import { Logger } from '../../config/logger.config';
 import {
   archiveChatSchema,
   contactValidateSchema,
@@ -13,9 +15,11 @@ import {
   readMessageSchema,
   whatsappNumberSchema,
 } from '../../validate/validate.schema';
+import { RouterBroker } from '../abstract/abstract.router';
 import {
   ArchiveChatDto,
   DeleteMessage,
+  getBase64FromMediaMessageDto,
   NumberDto,
   PrivacySettingDto,
   ProfileNameDto,
@@ -23,17 +27,13 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   WhatsAppNumberDto,
-  getBase64FromMediaMessageDto,
 } from '../dto/chat.dto';
+import { InstanceDto } from '../dto/instance.dto';
 import { ContactQuery } from '../repository/contact.repository';
 import { MessageQuery } from '../repository/message.repository';
-import { chatController } from '../whatsapp.module';
-import { RouterBroker } from '../abstract/abstract.router';
-import { HttpStatus } from './index.router';
 import { MessageUpQuery } from '../repository/messageUp.repository';
-import { proto } from '@whiskeysockets/baileys';
-import { InstanceDto } from '../dto/instance.dto';
-import { Logger } from '../../config/logger.config';
+import { chatController } from '../whatsapp.module';
+import { HttpStatus } from './index.router';
 
 const logger = new Logger('ChatRouter');
 
@@ -92,27 +92,23 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .delete(
-        this.routerPath('deleteMessageForEveryone'),
-        ...guards,
-        async (req, res) => {
-          logger.verbose('request received in deleteMessageForEveryone');
-          logger.verbose('request body: ');
-          logger.verbose(req.body);
+      .delete(this.routerPath('deleteMessageForEveryone'), ...guards, async (req, res) => {
+        logger.verbose('request received in deleteMessageForEveryone');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
 
-          logger.verbose('request query: ');
-          logger.verbose(req.query);
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
 
-          const response = await this.dataValidate<DeleteMessage>({
-            request: req,
-            schema: deleteMessageSchema,
-            ClassRef: DeleteMessage,
-            execute: (instance, data) => chatController.deleteMessage(instance, data),
-          });
+        const response = await this.dataValidate<DeleteMessage>({
+          request: req,
+          schema: deleteMessageSchema,
+          ClassRef: DeleteMessage,
+          execute: (instance, data) => chatController.deleteMessage(instance, data),
+        });
 
-          return res.status(HttpStatus.CREATED).json(response);
-        },
-      )
+        return res.status(HttpStatus.CREATED).json(response);
+      })
       .post(this.routerPath('fetchProfilePictureUrl'), ...guards, async (req, res) => {
         logger.verbose('request received in fetchProfilePictureUrl');
         logger.verbose('request body: ');
@@ -134,7 +130,7 @@ export class ChatRouter extends RouterBroker {
         logger.verbose('request received in fetchProfile');
         logger.verbose('request body: ');
         logger.verbose(req.body);
-        
+
         logger.verbose('request query: ');
         logger.verbose(req.query);
 
@@ -176,8 +172,7 @@ export class ChatRouter extends RouterBroker {
           request: req,
           schema: null,
           ClassRef: getBase64FromMediaMessageDto,
-          execute: (instance, data) =>
-            chatController.getBase64FromMediaMessage(instance, data),
+          execute: (instance, data) => chatController.getBase64FromMediaMessage(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
@@ -263,8 +258,7 @@ export class ChatRouter extends RouterBroker {
           request: req,
           schema: privacySettingsSchema,
           ClassRef: PrivacySettingDto,
-          execute: (instance, data) =>
-            chatController.updatePrivacySettings(instance, data),
+          execute: (instance, data) => chatController.updatePrivacySettings(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
@@ -281,8 +275,7 @@ export class ChatRouter extends RouterBroker {
           request: req,
           schema: profilePictureSchema,
           ClassRef: ProfilePictureDto,
-          execute: (instance, data) =>
-            chatController.fetchBusinessProfile(instance, data),
+          execute: (instance, data) => chatController.fetchBusinessProfile(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);
@@ -333,8 +326,7 @@ export class ChatRouter extends RouterBroker {
           request: req,
           schema: profilePictureSchema,
           ClassRef: ProfilePictureDto,
-          execute: (instance, data) =>
-            chatController.updateProfilePicture(instance, data),
+          execute: (instance, data) => chatController.updateProfilePicture(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);
@@ -351,8 +343,7 @@ export class ChatRouter extends RouterBroker {
           request: req,
           schema: profilePictureSchema,
           ClassRef: ProfilePictureDto,
-          execute: (instance, data) =>
-            chatController.removeProfilePicture(instance, data),
+          execute: (instance) => chatController.removeProfilePicture(instance),
         });
 
         return res.status(HttpStatus.OK).json(response);

@@ -1,5 +1,6 @@
 import { Schema } from 'mongoose';
-import { dbserver } from '../../db/db.connect';
+
+import { dbserver } from '../../libs/db.connect';
 
 export class ChatwootRaw {
   _id?: string;
@@ -9,6 +10,9 @@ export class ChatwootRaw {
   url?: string;
   name_inbox?: string;
   sign_msg?: boolean;
+  number?: string;
+  reopen_conversation?: boolean;
+  conversation_pending?: boolean;
 }
 
 const chatwootSchema = new Schema<ChatwootRaw>({
@@ -19,11 +23,8 @@ const chatwootSchema = new Schema<ChatwootRaw>({
   url: { type: String, required: true },
   name_inbox: { type: String, required: true },
   sign_msg: { type: Boolean, required: true },
+  number: { type: String, required: true },
 });
 
-export const ChatwootModel = dbserver?.model(
-  ChatwootRaw.name,
-  chatwootSchema,
-  'chatwoot',
-);
+export const ChatwootModel = dbserver?.model(ChatwootRaw.name, chatwootSchema, 'chatwoot');
 export type IChatwootModel = typeof ChatwootModel;

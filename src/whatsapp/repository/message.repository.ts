@@ -1,9 +1,10 @@
-import { ConfigService, StoreConf } from '../../config/env.config';
-import { join } from 'path';
-import { IMessageModel, MessageRaw } from '../models';
-import { IInsert, Repository } from '../abstract/abstract.repository';
 import { opendirSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { IInsert, Repository } from '../abstract/abstract.repository';
+import { IMessageModel, MessageRaw } from '../models';
 
 export class MessageQuery {
   where: MessageRaw;
@@ -11,20 +12,13 @@ export class MessageQuery {
 }
 
 export class MessageRepository extends Repository {
-  constructor(
-    private readonly messageModel: IMessageModel,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly messageModel: IMessageModel, private readonly configService: ConfigService) {
     super(configService);
   }
 
   private readonly logger = new Logger('MessageRepository');
 
-  public async insert(
-    data: MessageRaw[],
-    instanceName: string,
-    saveDb = false,
-  ): Promise<IInsert> {
+  public async insert(data: MessageRaw[], instanceName: string, saveDb = false): Promise<IInsert> {
     this.logger.verbose('inserting messages');
 
     if (!Array.isArray(data) || data.length === 0) {
@@ -74,10 +68,7 @@ export class MessageRepository extends Repository {
             data: message,
           });
           this.logger.verbose(
-            'messages saved to store in path: ' +
-              join(this.storePath, 'messages', instanceName) +
-              '/' +
-              message.key.id,
+            'messages saved to store in path: ' + join(this.storePath, 'messages', instanceName) + '/' + message.key.id,
           );
         });
 
@@ -119,15 +110,9 @@ export class MessageRepository extends Repository {
         this.logger.verbose('finding messages in store by id');
         messages.push(
           JSON.parse(
-            readFileSync(
-              join(
-                this.storePath,
-                'messages',
-                query.where.owner,
-                query.where.key.id + '.json',
-              ),
-              { encoding: 'utf-8' },
-            ),
+            readFileSync(join(this.storePath, 'messages', query.where.owner, query.where.key.id + '.json'), {
+              encoding: 'utf-8',
+            }),
           ),
         );
       } else {
@@ -140,10 +125,9 @@ export class MessageRepository extends Repository {
           if (dirent.isFile()) {
             messages.push(
               JSON.parse(
-                readFileSync(
-                  join(this.storePath, 'messages', query.where.owner, dirent.name),
-                  { encoding: 'utf-8' },
-                ),
+                readFileSync(join(this.storePath, 'messages', query.where.owner, dirent.name), {
+                  encoding: 'utf-8',
+                }),
               ),
             );
           }

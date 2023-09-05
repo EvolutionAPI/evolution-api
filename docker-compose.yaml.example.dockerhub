@@ -3,13 +3,15 @@ version: '3.3'
 services:
   api:
     container_name: evolution_api
-    image: evolution/api:local
+    image: davidsongomes/evolution-api:latest
     restart: always
     ports:
       - 8080:8080
     volumes:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store
+    networks:
+      - evolution-net
     env_file:
       - ./Docker/.env
     command: ['node', './dist/src/main.js']
@@ -22,5 +24,5 @@ volumes:
 
 networks:
   evolution-net:
-    external: true
-  
+    name: evolution-net
+    driver: bridge

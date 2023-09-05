@@ -1,23 +1,26 @@
-import { opendirSync, readdirSync, rmSync } from 'fs';
-import { WAStartupService } from './whatsapp.service';
-import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import EventEmitter2 from 'eventemitter2';
-import { join } from 'path';
-import { Logger } from '../../config/logger.config';
-import {
-  Auth,
-  ConfigService,
-  Database,
-  DelInstance,
-  HttpServer,
-  Redis,
-} from '../../config/env.config';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { NotFoundException } from '../../exceptions';
-import { Db } from 'mongodb';
-import { initInstance } from '../whatsapp.module';
-import { RedisCache } from '../../db/redis.client';
 import { execSync } from 'child_process';
+import EventEmitter2 from 'eventemitter2';
+import { opendirSync, readdirSync, rmSync } from 'fs';
+import { Db } from 'mongodb';
+import { join } from 'path';
+
+import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
+import { NotFoundException } from '../../exceptions';
+import { dbserver } from '../../libs/db.connect';
+import { RedisCache } from '../../libs/redis.client';
+import {
+  AuthModel,
+  ChatwootModel,
+  ContactModel,
+  MessageModel,
+  MessageUpModel,
+  SettingsModel,
+  WebhookModel,
+} from '../models';
+import { RepositoryBroker } from '../repository/repository.manager';
+import { WAStartupService } from './whatsapp.service';
 
 export class WAMonitoringService {
   constructor(
@@ -45,22 +48,20 @@ export class WAMonitoringService {
 
   private dbInstance: Db;
 
+  private dbStore = dbserver;
+
   private readonly logger = new Logger(WAMonitoringService.name);
   public readonly waInstances: Record<string, WAStartupService> = {};
 
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
     if (typeof time === 'number' && time > 0) {
-      this.logger.verbose(
-        `Instance "${instance}" don't have connection, will be removed in ${time} minutes`,
-      );
+      this.logger.verbose(`Instance "${instance}" don't have connection, will be removed in ${time} minutes`);
 
       setTimeout(async () => {
         if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
           if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
-            await this.waInstances[instance]?.client?.logout(
-              'Log out instance: ' + instance,
-            );
+            await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
             this.waInstances[instance]?.client?.ws?.close();
             this.waInstances[instance]?.client?.end(undefined);
             delete this.waInstances[instance];
@@ -90,10 +91,10 @@ export class WAMonitoringService {
 
         const findChatwoot = await this.waInstances[key].findChatwoot();
 
-        if (findChatwoot.enabled) {
+        if (findChatwoot && findChatwoot.enabled) {
           chatwoot = {
             ...findChatwoot,
-            webhook_url: `${urlServer}/chatwoot/webhook/${key}`,
+            webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
           };
         }
 
@@ -112,21 +113,16 @@ export class WAMonitoringService {
           };
 
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            instanceData.instance['serverUrl'] =
-              this.configService.get<HttpServer>('SERVER').URL;
+            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (
-              await this.repository.auth.find(key)
-            ).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
 
           instances.push(instanceData);
         } else {
-          this.logger.verbose(
-            'instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state,
-          );
+          this.logger.verbose('instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state);
 
           const instanceData = {
             instance: {
@@ -136,12 +132,9 @@ export class WAMonitoringService {
           };
 
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            instanceData.instance['serverUrl'] =
-              this.configService.get<HttpServer>('SERVER').URL;
+            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (
-              await this.repository.auth.find(key)
-            ).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
@@ -164,15 +157,11 @@ export class WAMonitoringService {
         collections.forEach(async (collection) => {
           const name = collection.namespace.replace(/^[\w-]+./, '');
           await this.dbInstance.collection(name).deleteMany({
-            $or: [
-              { _id: { $regex: /^app.state.*/ } },
-              { _id: { $regex: /^session-.*/ } },
-            ],
+            $or: [{ _id: { $regex: /^app.state.*/ } }, { _id: { $regex: /^session-.*/ } }],
           });
           this.logger.verbose('instance files deleted: ' + name);
         });
-      } else if (this.redis.ENABLED) {
-      } else {
+      } else if (!this.redis.ENABLED) {
         const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
         for await (const dirent of dir) {
           if (dirent.isDirectory()) {
@@ -210,6 +199,7 @@ export class WAMonitoringService {
       this.logger.verbose('cleaning up instance in redis: ' + instanceName);
       this.cache.reference = instanceName;
       await this.cache.delAll();
+      this.cache.disconnect();
       return;
     }
 
@@ -218,11 +208,8 @@ export class WAMonitoringService {
   }
 
   public async cleaningStoreFiles(instanceName: string) {
-    this.logger.verbose('cleaning store files instance: ' + instanceName);
-
     if (!this.db.ENABLED) {
-      const instance = this.waInstances[instanceName];
-
+      this.logger.verbose('cleaning store files instance: ' + instanceName);
       rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
 
       execSync(`rm -rf ${join(STORE_DIR, 'chats', instanceName)}`);
@@ -233,18 +220,34 @@ export class WAMonitoringService {
       execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'chamaai', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'proxy', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'rabbitmq', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'typebot', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'websocket', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'settings', instanceName + '*')}`);
+
+      return;
     }
+
+    this.logger.verbose('cleaning store database instance: ' + instanceName);
+
+    await AuthModel.deleteMany({ owner: instanceName });
+    await ContactModel.deleteMany({ owner: instanceName });
+    await MessageModel.deleteMany({ owner: instanceName });
+    await MessageUpModel.deleteMany({ owner: instanceName });
+    await AuthModel.deleteMany({ _id: instanceName });
+    await WebhookModel.deleteMany({ _id: instanceName });
+    await ChatwootModel.deleteMany({ _id: instanceName });
+    await SettingsModel.deleteMany({ _id: instanceName });
+
+    return;
   }
 
   public async loadInstance() {
     this.logger.verbose('load instances');
     const set = async (name: string) => {
-      const instance = new WAStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.repository,
-        this.cache,
-      );
+      const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
       instance.instanceName = name;
       this.logger.verbose('instance loaded: ' + name);
 
@@ -264,8 +267,8 @@ export class WAMonitoringService {
           keys.forEach(async (k) => await set(k.split(':')[1]));
         } else {
           this.logger.verbose('no instance keys found');
-          initInstance();
         }
+        this.cache.disconnect();
         return;
       }
 
@@ -275,12 +278,9 @@ export class WAMonitoringService {
         const collections: any[] = await this.dbInstance.collections();
         if (collections.length > 0) {
           this.logger.verbose('reading collections and setting instances');
-          collections.forEach(
-            async (coll) => await set(coll.namespace.replace(/^[\w-]+\./, '')),
-          );
+          collections.forEach(async (coll) => await set(coll.namespace.replace(/^[\w-]+\./, '')));
         } else {
           this.logger.verbose('no collections found');
-          initInstance();
         }
         return;
       }
@@ -301,7 +301,6 @@ export class WAMonitoringService {
           await set(dirent.name);
         } else {
           this.logger.verbose('no instance files found');
-          initInstance();
         }
       }
     } catch (error) {
@@ -315,7 +314,9 @@ export class WAMonitoringService {
       try {
         this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
         this.waInstances[instanceName] = undefined;
-      } catch {}
+      } catch (error) {
+        this.logger.error(error);
+      }
 
       try {
         this.logger.verbose('request cleaning up instance: ' + instanceName);
@@ -340,11 +341,14 @@ export class WAMonitoringService {
     this.logger.verbose('checking instances without connection');
     this.eventEmitter.on('no.connection', async (instanceName) => {
       try {
-        this.logger.verbose('instance: ' + instanceName + ' - removing from memory');
-        this.waInstances[instanceName] = undefined;
+        this.logger.verbose('logging out instance: ' + instanceName);
+        await this.waInstances[instanceName]?.client?.logout('Log out instance: ' + instanceName);
 
-        this.logger.verbose('request cleaning up instance: ' + instanceName);
-        this.cleaningUp(instanceName);
+        this.logger.verbose('close connection instance: ' + instanceName);
+        this.waInstances[instanceName]?.client?.ws?.close();
+
+        this.waInstances[instanceName].instance.qrcode = { count: 0 };
+        this.waInstances[instanceName].stateConnection.state = 'close';
       } catch (error) {
         this.logger.error({
           localError: 'noConnection',

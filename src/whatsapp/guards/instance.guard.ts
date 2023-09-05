@@ -1,44 +1,47 @@
 import { NextFunction, Request, Response } from 'express';
 import { existsSync } from 'fs';
 import { join } from 'path';
+
+import { configService, Database, Redis } from '../../config/env.config';
 import { INSTANCE_DIR } from '../../config/path.config';
-import { dbserver } from '../../db/db.connect';
 import {
   BadRequestException,
   ForbiddenException,
+  InternalServerErrorException,
   NotFoundException,
 } from '../../exceptions';
+import { dbserver } from '../../libs/db.connect';
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../whatsapp.module';
-import { Database, Redis, configService } from '../../config/env.config';
 
 async function getInstance(instanceName: string) {
-  const db = configService.get<Database>('DATABASE');
-  const redisConf = configService.get<Redis>('REDIS');
+  try {
+    const db = configService.get<Database>('DATABASE');
+    const redisConf = configService.get<Redis>('REDIS');
 
-  const exists = !!waMonitor.waInstances[instanceName];
+    const exists = !!waMonitor.waInstances[instanceName];
 
-  if (redisConf.ENABLED) {
-    const keyExists = await cache.keyExists();
-    return exists || keyExists;
+    if (redisConf.ENABLED) {
+      const keyExists = await cache.keyExists();
+      return exists || keyExists;
+    }
+
+    if (db.ENABLED) {
+      const collection = dbserver
+        .getClient()
+        .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
+        .collection(instanceName);
+      return exists || (await collection.find({}).toArray()).length > 0;
+    }
+
+    return exists || existsSync(join(INSTANCE_DIR, instanceName));
+  } catch (error) {
+    throw new InternalServerErrorException(error?.toString());
   }
-
-  if (db.ENABLED) {
-    const collection = dbserver
-      .getClient()
-      .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
-      .collection(instanceName);
-    return exists || (await collection.find({}).toArray()).length > 0;
-  }
-
-  return exists || existsSync(join(INSTANCE_DIR, instanceName));
 }
 
 export async function instanceExistsGuard(req: Request, _: Response, next: NextFunction) {
-  if (
-    req.originalUrl.includes('/instance/create') ||
-    req.originalUrl.includes('/instance/fetchInstances')
-  ) {
+  if (req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) {
     return next();
   }
 
@@ -58,9 +61,7 @@ export async function instanceLoggedGuard(req: Request, _: Response, next: NextF
   if (req.originalUrl.includes('/instance/create')) {
     const instance = req.body as InstanceDto;
     if (await getInstance(instance.instanceName)) {
-      throw new ForbiddenException(
-        `This name "${instance.instanceName}" is already in use.`,
-      );
+      throw new ForbiddenException(`This name "${instance.instanceName}" is already in use.`);
     }
 
     if (waMonitor.waInstances[instance.instanceName]) {

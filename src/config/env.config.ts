@@ -1,7 +1,7 @@
+import { isBooleanString } from 'class-validator';
 import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { join } from 'path';
-import { isBooleanString } from 'class-validator';
 
 export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
 
@@ -14,15 +14,7 @@ export type Cors = {
 
 export type LogBaileys = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
-export type LogLevel =
-  | 'ERROR'
-  | 'WARN'
-  | 'DEBUG'
-  | 'INFO'
-  | 'LOG'
-  | 'VERBOSE'
-  | 'DARK'
-  | 'WEBHOOKS';
+export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK' | 'WEBHOOKS';
 
 export type Log = {
   LEVEL: LogLevel[];
@@ -69,6 +61,15 @@ export type Redis = {
   PREFIX_KEY: string;
 };
 
+export type Rabbitmq = {
+  ENABLED: boolean;
+  URI: string;
+};
+
+export type Websocket = {
+  ENABLED: boolean;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
@@ -89,25 +90,23 @@ export type EventsWebhook = {
   GROUPS_UPSERT: boolean;
   GROUP_UPDATE: boolean;
   GROUP_PARTICIPANTS_UPDATE: boolean;
+  CALL: boolean;
   NEW_JWT_TOKEN: boolean;
+  TYPEBOT_START: boolean;
+  TYPEBOT_CHANGE_STATUS: boolean;
+  CHAMA_AI_ACTION: boolean;
+  ERRORS: boolean;
+  ERRORS_WEBHOOK: string;
 };
 
 export type ApiKey = { KEY: string };
 export type Jwt = { EXPIRIN_IN: number; SECRET: string };
-export type Instance = {
-  NAME: string;
-  WEBHOOK_URL: string;
-  MODE: string;
-  CHATWOOT_ACCOUNT_ID: string;
-  CHATWOOT_TOKEN: string;
-  CHATWOOT_URL: string;
-};
+
 export type Auth = {
   API_KEY: ApiKey;
   EXPOSE_IN_FETCH_INSTANCES: boolean;
   JWT: Jwt;
   TYPE: 'jwt' | 'apikey';
-  INSTANCE: Instance;
 };
 
 export type DelInstance = number | boolean;
@@ -120,7 +119,7 @@ export type GlobalWebhook = {
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
-export type QrCode = { LIMIT: number };
+export type QrCode = { LIMIT: number; COLOR: string };
 export type Production = boolean;
 
 export interface Env {
@@ -131,6 +130,8 @@ export interface Env {
   CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
   REDIS: Redis;
+  RABBITMQ: Rabbitmq;
+  WEBSOCKET: Websocket;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
   WEBHOOK: Webhook;
@@ -163,26 +164,24 @@ export class ConfigService {
   }
 
   private envYaml(): Env {
-    return load(
-      readFileSync(join(process.cwd(), 'src', 'env.yml'), { encoding: 'utf-8' }),
-    ) as Env;
+    return load(readFileSync(join(process.cwd(), 'src', 'env.yml'), { encoding: 'utf-8' })) as Env;
   }
 
   private envProcess(): Env {
     return {
       SERVER: {
         TYPE: process.env.SERVER_TYPE as 'http' | 'https',
-        PORT: Number.parseInt(process.env.SERVER_PORT),
+        PORT: Number.parseInt(process.env.SERVER_PORT) || 8080,
         URL: process.env.SERVER_URL,
       },
       CORS: {
-        ORIGIN: process.env.CORS_ORIGIN.split(','),
-        METHODS: process.env.CORS_METHODS.split(',') as HttpMethods[],
+        ORIGIN: process.env.CORS_ORIGIN.split(',') || ['*'],
+        METHODS: (process.env.CORS_METHODS.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'],
         CREDENTIALS: process.env?.CORS_CREDENTIALS === 'true',
       },
       SSL_CONF: {
-        PRIVKEY: process.env?.SSL_CONF_PRIVKEY,
-        FULLCHAIN: process.env?.SSL_CONF_FULLCHAIN,
+        PRIVKEY: process.env?.SSL_CONF_PRIVKEY || '',
+        FULLCHAIN: process.env?.SSL_CONF_FULLCHAIN || '',
       },
       STORE: {
         MESSAGES: process.env?.STORE_MESSAGES === 'true',
@@ -201,8 +200,8 @@ export class ConfigService {
       },
       DATABASE: {
         CONNECTION: {
-          URI: process.env.DATABASE_CONNECTION_URI,
-          DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME,
+          URI: process.env.DATABASE_CONNECTION_URI || '',
+          DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME || 'evolution',
         },
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
         SAVE_DATA: {
@@ -215,11 +214,27 @@ export class ConfigService {
       },
       REDIS: {
         ENABLED: process.env?.REDIS_ENABLED === 'true',
-        URI: process.env.REDIS_URI,
-        PREFIX_KEY: process.env.REDIS_PREFIX_KEY,
+        URI: process.env.REDIS_URI || '',
+        PREFIX_KEY: process.env.REDIS_PREFIX_KEY || 'evolution',
+      },
+      RABBITMQ: {
+        ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
+        URI: process.env.RABBITMQ_URI || '',
+      },
+      WEBSOCKET: {
+        ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
       },
       LOG: {
-        LEVEL: process.env?.LOG_LEVEL.split(',') as LogLevel[],
+        LEVEL: (process.env?.LOG_LEVEL.split(',') as LogLevel[]) || [
+          'ERROR',
+          'WARN',
+          'DEBUG',
+          'INFO',
+          'LOG',
+          'VERBOSE',
+          'DARK',
+          'WEBHOOKS',
+        ],
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
@@ -228,7 +243,7 @@ export class ConfigService {
         : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
-          URL: process.env?.WEBHOOK_GLOBAL_URL,
+          URL: process.env?.WEBHOOK_GLOBAL_URL || '',
           ENABLED: process.env?.WEBHOOK_GLOBAL_ENABLED === 'true',
           WEBHOOK_BY_EVENTS: process.env?.WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS === 'true',
         },
@@ -251,39 +266,35 @@ export class ConfigService {
           CONNECTION_UPDATE: process.env?.WEBHOOK_EVENTS_CONNECTION_UPDATE === 'true',
           GROUPS_UPSERT: process.env?.WEBHOOK_EVENTS_GROUPS_UPSERT === 'true',
           GROUP_UPDATE: process.env?.WEBHOOK_EVENTS_GROUPS_UPDATE === 'true',
-          GROUP_PARTICIPANTS_UPDATE:
-            process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          GROUP_PARTICIPANTS_UPDATE: process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          CALL: process.env?.WEBHOOK_EVENTS_CALL === 'true',
           NEW_JWT_TOKEN: process.env?.WEBHOOK_EVENTS_NEW_JWT_TOKEN === 'true',
+          TYPEBOT_START: process.env?.WEBHOOK_EVENTS_TYPEBOT_START === 'true',
+          TYPEBOT_CHANGE_STATUS: process.env?.WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
+          CHAMA_AI_ACTION: process.env?.WEBHOOK_EVENTS_CHAMA_AI_ACTION === 'true',
+          ERRORS: process.env?.WEBHOOK_EVENTS_ERRORS === 'true',
+          ERRORS_WEBHOOK: process.env?.WEBHOOK_EVENTS_ERRORS_WEBHOOK || '',
         },
       },
       CONFIG_SESSION_PHONE: {
         CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT || 'Evolution API',
-        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'chrome',
+        NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'Chrome',
       },
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
+        COLOR: process.env.QRCODE_COLOR || '#198754',
       },
       AUTHENTICATION: {
-        TYPE: process.env.AUTHENTICATION_TYPE as 'jwt',
+        TYPE: process.env.AUTHENTICATION_TYPE as 'apikey',
         API_KEY: {
-          KEY: process.env.AUTHENTICATION_API_KEY,
+          KEY: process.env.AUTHENTICATION_API_KEY || 'BQYHJGJHJ',
         },
-        EXPOSE_IN_FETCH_INSTANCES:
-          process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
+        EXPOSE_IN_FETCH_INSTANCES: process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
         JWT: {
           EXPIRIN_IN: Number.isInteger(process.env?.AUTHENTICATION_JWT_EXPIRIN_IN)
             ? Number.parseInt(process.env.AUTHENTICATION_JWT_EXPIRIN_IN)
             : 3600,
-          SECRET: process.env.AUTHENTICATION_JWT_SECRET,
-        },
-        INSTANCE: {
-          NAME: process.env.AUTHENTICATION_INSTANCE_NAME,
-          WEBHOOK_URL: process.env.AUTHENTICATION_INSTANCE_WEBHOOK_URL,
-          MODE: process.env.AUTHENTICATION_INSTANCE_MODE,
-          CHATWOOT_ACCOUNT_ID:
-            process.env.AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID || '',
-          CHATWOOT_TOKEN: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN || '',
-          CHATWOOT_URL: process.env.AUTHENTICATION_INSTANCE_CHATWOOT_URL || '',
+          SECRET: process.env.AUTHENTICATION_JWT_SECRET || 'L=0YWt]b2w[WF>#>:&E`',
         },
       },
     };

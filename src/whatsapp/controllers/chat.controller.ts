@@ -1,7 +1,8 @@
-import { proto } from '@whiskeysockets/baileys';
+import { Logger } from '../../config/logger.config';
 import {
   ArchiveChatDto,
   DeleteMessage,
+  getBase64FromMediaMessageDto,
   NumberDto,
   PrivacySettingDto,
   ProfileNameDto,
@@ -9,14 +10,12 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   WhatsAppNumberDto,
-  getBase64FromMediaMessageDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { ContactQuery } from '../repository/contact.repository';
 import { MessageQuery } from '../repository/message.repository';
 import { MessageUpQuery } from '../repository/messageUp.repository';
 import { WAMonitoringService } from '../services/monitor.service';
-import { Logger } from '../../config/logger.config';
 
 const logger = new Logger('ChatController');
 
@@ -47,7 +46,7 @@ export class ChatController {
     logger.verbose('requested fetchProfilePicture from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].profilePicture(data.number);
   }
-  
+
   public async fetchProfile({ instanceName }: InstanceDto, data: NumberDto) {
     logger.verbose('requested fetchProfile from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].fetchProfile(instanceName, data.number);
@@ -58,13 +57,8 @@ export class ChatController {
     return await this.waMonitor.waInstances[instanceName].fetchContacts(query);
   }
 
-  public async getBase64FromMediaMessage(
-    { instanceName }: InstanceDto,
-    data: getBase64FromMediaMessageDto,
-  ) {
-    logger.verbose(
-      'requested getBase64FromMediaMessage from ' + instanceName + ' instance',
-    );
+  public async getBase64FromMediaMessage({ instanceName }: InstanceDto, data: getBase64FromMediaMessageDto) {
+    logger.verbose('requested getBase64FromMediaMessage from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].getBase64FromMediaMessage(data);
   }
 
@@ -88,22 +82,14 @@ export class ChatController {
     return await this.waMonitor.waInstances[instanceName].fetchPrivacySettings();
   }
 
-  public async updatePrivacySettings(
-    { instanceName }: InstanceDto,
-    data: PrivacySettingDto,
-  ) {
+  public async updatePrivacySettings({ instanceName }: InstanceDto, data: PrivacySettingDto) {
     logger.verbose('requested updatePrivacySettings from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].updatePrivacySettings(data);
   }
 
-  public async fetchBusinessProfile(
-    { instanceName }: InstanceDto,
-    data: ProfilePictureDto,
-  ) {
+  public async fetchBusinessProfile({ instanceName }: InstanceDto, data: ProfilePictureDto) {
     logger.verbose('requested fetchBusinessProfile from ' + instanceName + ' instance');
-    return await this.waMonitor.waInstances[instanceName].fetchBusinessProfile(
-      data.number,
-    );
+    return await this.waMonitor.waInstances[instanceName].fetchBusinessProfile(data.number);
   }
 
   public async updateProfileName({ instanceName }: InstanceDto, data: ProfileNameDto) {
@@ -111,30 +97,17 @@ export class ChatController {
     return await this.waMonitor.waInstances[instanceName].updateProfileName(data.name);
   }
 
-  public async updateProfileStatus(
-    { instanceName }: InstanceDto,
-    data: ProfileStatusDto,
-  ) {
+  public async updateProfileStatus({ instanceName }: InstanceDto, data: ProfileStatusDto) {
     logger.verbose('requested updateProfileStatus from ' + instanceName + ' instance');
-    return await this.waMonitor.waInstances[instanceName].updateProfileStatus(
-      data.status,
-    );
+    return await this.waMonitor.waInstances[instanceName].updateProfileStatus(data.status);
   }
 
-  public async updateProfilePicture(
-    { instanceName }: InstanceDto,
-    data: ProfilePictureDto,
-  ) {
+  public async updateProfilePicture({ instanceName }: InstanceDto, data: ProfilePictureDto) {
     logger.verbose('requested updateProfilePicture from ' + instanceName + ' instance');
-    return await this.waMonitor.waInstances[instanceName].updateProfilePicture(
-      data.picture,
-    );
+    return await this.waMonitor.waInstances[instanceName].updateProfilePicture(data.picture);
   }
 
-  public async removeProfilePicture(
-    { instanceName }: InstanceDto,
-    data: ProfilePictureDto,
-  ) {
+  public async removeProfilePicture({ instanceName }: InstanceDto) {
     logger.verbose('requested removeProfilePicture from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].removeProfilePicture();
   }

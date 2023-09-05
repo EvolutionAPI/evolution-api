@@ -1,19 +1,20 @@
 FROM node:16.18-alpine
 
-LABEL version="1.1.3" description="Api to control whatsapp features through http requests." 
+LABEL version="1.5.1" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
 RUN apk update && apk upgrade && \
-    apk add --no-cache git
+    apk add --no-cache git tzdata ffmpeg wget curl
 
 WORKDIR /evolution
 
 COPY ./package.json .
 
+ENV TZ=America/Sao_Paulo
 ENV DOCKER_ENV=true
 
-ENV SERVER_URL='http://localhost:8080'
+ENV SERVER_URL=http://localhost:8080
 
 ENV CORS_ORIGIN=*
 ENV CORS_METHODS=POST,GET,PUT,DELETE
@@ -50,7 +51,12 @@ ENV REDIS_ENABLED=false
 ENV REDIS_URI=redis://redis:6379
 ENV REDIS_PREFIX_KEY=evolution
 
-ENV WEBHOOK_GLOBAL_URL=<url>
+ENV RABBITMQ_ENABLED=false
+ENV RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
+
+ENV WEBSOCKET_ENABLED=false
+
+ENV WEBHOOK_GLOBAL_URL=
 ENV WEBHOOK_GLOBAL_ENABLED=false
 
 ENV WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
@@ -74,13 +80,23 @@ ENV WEBHOOK_EVENTS_GROUPS_UPSERT=true
 ENV WEBHOOK_EVENTS_GROUPS_UPDATE=true
 ENV WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE=true
 ENV WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+ENV WEBHOOK_EVENTS_CALL=true
 
 ENV WEBHOOK_EVENTS_NEW_JWT_TOKEN=false
 
-ENV CONFIG_SESSION_PHONE_CLIENT='Evolution API'
-ENV CONFIG_SESSION_PHONE_NAME=chrome
+ENV WEBHOOK_EVENTS_TYPEBOT_START=false
+ENV WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS=false
+
+ENV WEBHOOK_EVENTS_CHAMA_AI_ACTION=false
+
+ENV WEBHOOK_EVENTS_ERRORS=false
+ENV WEBHOOK_EVENTS_ERRORS_WEBHOOK=
+
+ENV CONFIG_SESSION_PHONE_CLIENT=EvolutionAPI
+ENV CONFIG_SESSION_PHONE_NAME=Chrome
 
 ENV QRCODE_LIMIT=30
+ENV QRCODE_COLOR=#198754
 
 ENV AUTHENTICATION_TYPE=apikey
 
