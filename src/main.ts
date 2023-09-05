@@ -83,7 +83,7 @@ function bootstrap() {
           httpService.post('', errorData);
         }
 
-        if (err['message'].includes('No sessions') || err['message'].includes('Connection Closed')) {
+        if (err['message'].includes('No sessions')) {
           console.log(err['message']);
           process.exit(1);
         }
