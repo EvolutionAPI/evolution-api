@@ -1844,8 +1844,10 @@ export class WAStartupService {
   private async sendMessageWithTyping<T = proto.IMessage>(number: string, message: T, options?: Options) {
     this.logger.verbose('Sending message with typing');
 
+    this.logger.verbose(`Check if number "${number}" is WhatsApp`);
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
+    this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
     }
