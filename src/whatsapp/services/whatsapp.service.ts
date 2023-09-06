@@ -1900,19 +1900,19 @@ export class WAStartupService {
 
   public async fetchProfile(instanceName: string, number?: string) {
     const jid = number ? this.createJid(number) : this.client?.user?.id;
-
+  
     this.logger.verbose('Getting profile with jid: ' + jid);
     try {
       this.logger.verbose('Getting profile info');
-      const business = await this.fetchBusinessProfile(jid);
-
+  
       if (number) {
         const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
-        const picture = await this.profilePicture(jid);
-        const status = await this.getStatus(jid);
-
+        const picture = await this.profilePicture(info?.jid);
+        const status = await this.getStatus(info?.jid);
+        const business = await this.fetchBusinessProfile(info?.jid);
+  
         return {
-          wuid: jid,
+          wuid: info?.jid || jid,
           name: info?.name,
           numberExists: info?.exists,
           picture: picture?.profilePictureUrl,
@@ -1924,6 +1924,7 @@ export class WAStartupService {
         };
       } else {
         const info = await waMonitor.instanceInfo(instanceName);
+        const business = await this.fetchBusinessProfile(jid);
 
         return {
           wuid: jid,
