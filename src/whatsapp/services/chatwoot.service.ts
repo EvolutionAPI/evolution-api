@@ -732,6 +732,8 @@ export class ChatwootService {
     file: string,
     messageType: 'incoming' | 'outgoing' | undefined,
     content?: string,
+    source_id?: string,
+    source_reply_id?: string,
   ) {
     this.logger.verbose('send data to chatwoot');
 
@@ -747,6 +749,12 @@ export class ChatwootService {
 
     this.logger.verbose('temp file found');
     data.append('attachments[]', createReadStream(file));
+
+    this.logger.verbose('message context: ' + source_id);
+    data.append('source_id', source_id);
+
+    this.logger.verbose('message reply context: ' + source_reply_id);
+    data.append('source_reply_id', source_reply_id);
 
     this.logger.verbose('get client to instance: ' + this.provider.instanceName);
     const config = {
@@ -1170,10 +1178,10 @@ export class ChatwootService {
       documentMessage: msg.documentMessage?.contextInfo?.stanzaId,
       documentWithCaptionMessage: msg.documentWithCaptionMessage?.message?.documentMessage?.contextInfo?.stanzaId,
       audioMessage: msg.audioMessage?.contextInfo?.stanzaId,
-      contactMessage: msg.contactMessage?.vcard,
-      contactsArrayMessage: msg.contactsArrayMessage,
-      locationMessage: msg.locationMessage,
-      liveLocationMessage: msg.liveLocationMessage,
+      contactMessage: msg.contactMessage?.contextInfo?.stanzaId,
+      contactsArrayMessage: msg.contactsArrayMessage?.contextInfo?.stanzaId,
+      locationMessage: msg.locationMessage?.contextInfo?.stanzaId,
+      liveLocationMessage: msg.liveLocationMessage?.contextInfo?.stanzaId,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1182,7 +1190,7 @@ export class ChatwootService {
   }
 
   private getContextMessageContent(types: any) {
-    this.logger.verbose('get message content');
+    this.logger.verbose('get message context content');
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
 
     const result = typeKey ? types[typeKey] : undefined;
@@ -1393,7 +1401,7 @@ export class ChatwootService {
             }
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversion, fileName, messageType, content);
+            const send = await this.sendData(getConversion, fileName, messageType, content, source_id, source_reply_id);
 
             if (!send) {
               this.logger.warn('message not sent');
@@ -1414,7 +1422,14 @@ export class ChatwootService {
             this.logger.verbose('message is not group');
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversion, fileName, messageType, bodyMessage);
+            const send = await this.sendData(
+              getConversion,
+              fileName,
+              messageType,
+              bodyMessage,
+              source_id,
+              source_reply_id,
+            );
 
             if (!send) {
               this.logger.warn('message not sent');
