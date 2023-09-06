@@ -1992,7 +1992,6 @@ export class WAStartupService {
         messageTimestamp: messageSent.messageTimestamp as number,
         owner: this.instance.name,
         source: getDevice(messageSent.key.id),
-        source_id: messageSent.key.id,
       };
 
       this.logger.log(messageRaw);

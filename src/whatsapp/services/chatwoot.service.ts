@@ -750,11 +750,15 @@ export class ChatwootService {
     this.logger.verbose('temp file found');
     data.append('attachments[]', createReadStream(file));
 
-    this.logger.verbose('message context: ' + source_id);
-    data.append('source_id', source_id);
+    if (source_id) {
+      this.logger.verbose('source_id found');
+      data.append('source_id', source_id);
+    }
 
-    this.logger.verbose('message reply context: ' + source_reply_id);
-    data.append('source_reply_id', source_reply_id);
+    if (source_reply_id) {
+      this.logger.verbose('source_reply_id found');
+      data.append('source_reply_id', source_reply_id);
+    }
 
     this.logger.verbose('get client to instance: ' + this.provider.instanceName);
     const config = {
@@ -955,6 +959,35 @@ export class ChatwootService {
     }
   }
 
+  public async updateMessage(
+    instance: InstanceDto,
+    accountId: number,
+    conversationId: number,
+    messageId: number,
+    sourceId: string | null,
+  ) {
+    this.logger.verbose('update message to chatwoot instance: ' + instance.instanceName);
+    const client = await this.clientCw(instance);
+
+    if (!client) {
+      this.logger.warn('client not found');
+      return null;
+    }
+    this.logger.verbose('check if sourceId to update');
+    if (sourceId) {
+      this.logger.verbose('update message to chatwoot');
+      const dataUpdated = {
+        source_id: sourceId,
+      };
+      await client.messages.update({
+        accountId,
+        conversationId,
+        data: dataUpdated,
+        messageId,
+      });
+    }
+  }
+
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
       this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
@@ -1052,6 +1085,9 @@ export class ChatwootService {
         }
 
         for (const message of body.conversation.messages) {
+          const messageId = message?.id;
+          const conversationId = message?.conversation_id;
+          const accountId = message?.account_id;
           this.logger.verbose('check if message is media');
           if (message.attachments && message.attachments.length > 0) {
             this.logger.verbose('message is media');
@@ -1062,7 +1098,8 @@ export class ChatwootService {
                 formatText = null;
               }
 
-              await this.sendAttachment(waInstance, chatId, attachment.data_url, formatText);
+              const mediaMessage = await this.sendAttachment(waInstance, chatId, attachment.data_url, formatText);
+              await this.updateMessage(instance, accountId, conversationId, messageId, mediaMessage?.key?.id);
             }
           } else {
             this.logger.verbose('message is text');
@@ -1080,17 +1117,7 @@ export class ChatwootService {
             };
 
             const message = await waInstance?.textMessage(data);
-            const conversationId = body?.conversation?.id;
-            const messageId = body?.id;
-            const dataUpdated = {
-              source_id: message.key.id,
-            };
-            await client.messages.update({
-              accountId: this.provider.account_id,
-              conversationId,
-              data: dataUpdated,
-              messageId,
-            });
+            await this.updateMessage(instance, accountId, conversationId, messageId, message?.key?.id);
           }
         }
       }
@@ -1191,7 +1218,7 @@ export class ChatwootService {
 
   private getContextMessageContent(types: any) {
     this.logger.verbose('get message context content');
-    const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
+    const typeKey = Object.keys(types).find((key) => types[key] !== undefined && types[key] !== '');
 
     const result = typeKey ? types[typeKey] : undefined;
     return result;
@@ -1301,11 +1328,11 @@ export class ChatwootService {
 
     const types = this.getContextIdTypeMessage(msg);
 
-    const messageContent = this.getContextMessageContent(types);
+    const messageContext = this.getContextMessageContent(types);
 
-    this.logger.verbose('context conversation message: ' + messageContent);
+    this.logger.verbose('context conversation message: ' + messageContext);
 
-    return messageContent;
+    return messageContext;
   }
 
   public async eventWhatsapp(event: string, instance: InstanceDto, body: any) {
