@@ -1891,9 +1891,9 @@ export class WAStartupService {
       let mentions: string[];
       if (isJidGroup(sender)) {
         try {
-          const groupMetadata = await this.client.groupMetadata(sender);
+          const group = await this.findGroup({ groupJid: sender }, 'inner');
 
-          if (!groupMetadata) {
+          if (!group) {
             throw new NotFoundException('Group not found');
           }
 
@@ -1904,7 +1904,7 @@ export class WAStartupService {
               this.logger.verbose('Mentions everyone');
 
               this.logger.verbose('Getting group metadata');
-              mentions = groupMetadata.participants.map((participant) => participant.id);
+              mentions = group.participants.map((participant) => participant.id);
               this.logger.verbose('Getting group metadata for mentions');
             } else if (options.mentions?.mentioned?.length) {
               this.logger.verbose('Mentions manually defined');
