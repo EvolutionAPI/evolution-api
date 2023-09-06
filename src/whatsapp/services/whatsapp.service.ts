@@ -637,7 +637,7 @@ export class WAStartupService {
       }
     }
 
-    if (this.configService.get<Websocket>('WEBSOCKET').ENABLED && this.localWebsocket.enabled) {
+    if (this.configService.get<Websocket>('WEBSOCKET')?.ENABLED && this.localWebsocket.enabled) {
       this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
       if (Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
         this.logger.verbose('Sending data to websocket on event: ' + event);
@@ -1844,8 +1844,7 @@ export class WAStartupService {
   private async sendMessageWithTyping<T = proto.IMessage>(number: string, message: T, options?: Options) {
     this.logger.verbose('Sending message with typing');
 
-    const numberWA = await this.whatsappNumber({ numbers: [number] });
-    const isWA = numberWA[0];
+    const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
@@ -1911,7 +1910,6 @@ export class WAStartupService {
                 const jid = this.createJid(mention);
                 if (isJidGroup(jid)) {
                   return null;
-                  // throw new BadRequestException('Mentions must be a number');
                 }
                 return jid;
               });
