@@ -1,2 +1,2 @@
-web: npm run start:prod
+web: node ./dist/src/main.js
 
