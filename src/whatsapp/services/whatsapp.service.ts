@@ -657,14 +657,14 @@ export class WAStartupService {
         this.logger.verbose('Sending data to rabbitMQ on channel: ' + this.instance.name);
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
           this.logger.verbose('Sending data to rabbitMQ on event: ' + event);
-          const exchangeName = this.instanceName ?? 'evolution_exchange';
+          const exchangeName = this.instance.name ?? 'evolution_exchange';
 
           amqp.assertExchange(exchangeName, 'topic', {
             durable: true,
             autoDelete: false,
           });
 
-          const queueName = `${this.instanceName}.${event}`;
+          const queueName = `${this.instance.name}.${event}`;
 
           amqp.assertQueue(queueName, {
             durable: true,
