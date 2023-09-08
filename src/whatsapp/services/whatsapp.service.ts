@@ -1984,7 +1984,7 @@ export class WAStartupService {
         this.logger.verbose('Sending presence update: paused');
       }
 
-      const linkPreview = options?.linkPreview != false ? undefined : false;
+      const linkPreview = options?.linkPreview == true ? undefined : options?.linkPreview || false;
 
       let quoted: WAMessage;
 
