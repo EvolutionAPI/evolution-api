@@ -654,7 +654,9 @@ export class WAStartupService {
       const amqp = getAMQP();
 
       if (amqp) {
+        this.logger.verbose('Sending data to rabbitMQ on channel: ' + this.instance.name);
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
+          this.logger.verbose('Sending data to rabbitMQ on event: ' + event);
           const exchangeName = this.instanceName ?? 'evolution_exchange';
 
           amqp.assertExchange(exchangeName, 'topic', {
