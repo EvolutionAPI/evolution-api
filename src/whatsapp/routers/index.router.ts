@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import fs from 'fs';
 
-import { Auth, configService } from '../../config/env.config';
+import { Auth, configService, HttpServer } from '../../config/env.config';
 import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { ChamaaiRouter } from './chamaai.router';
@@ -30,19 +30,27 @@ enum HttpStatus {
 
 const router = Router();
 const authType = configService.get<Auth>('AUTHENTICATION').TYPE;
+const httpServer = configService.get<HttpServer>('SERVER');
+
 const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard[authType]];
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
-router
-  .get('/', (req, res) => {
+// Hide index if needed
+
+if (!httpServer.HIDE_INDEX)
+  router.get('/', (req, res) => {
     res.status(HttpStatus.OK).json({
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
       version: packageJson.version,
     });
-  })
-  .use('/instance', new InstanceRouter(configService, ...guards).router)
+  });
+
+// Hide manager if needed
+if (!httpServer.HIDE_MANAGER) router.use('/manager', new ViewsRouter().router);
+
+router
   .use('/manager', new ViewsRouter().router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)

@@ -9,6 +9,8 @@ SERVER:
   TYPE: http # https
   PORT: 8080 # 443
   URL: localhost
+  HIDE_INDEX: false 
+  HIDE_MANAGER: false
 
 CORS:
   ORIGIN:
