@@ -183,8 +183,8 @@ export class ConfigService {
         HIDE_MANAGER: process.env?.SERVER_HIDE_MANAGER === 'true',
       },
       CORS: {
-        ORIGIN: process.env.CORS_ORIGIN.split(',') || ['*'],
-        METHODS: (process.env.CORS_METHODS.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'],
+        ORIGIN: process.env.CORS_ORIGIN?.split(',') || ['*'],
+        METHODS: (process.env.CORS_METHODS?.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'],
         CREDENTIALS: process.env?.CORS_CREDENTIALS === 'true',
       },
       SSL_CONF: {
