@@ -177,7 +177,7 @@ export class ConfigService {
     return {
       SERVER: {
         TYPE: process.env.SERVER_TYPE as 'http' | 'https',
-        PORT: Number.parseInt(process.env.SERVER_PORT) || 8080,
+        PORT: Number.parseInt(process.env.SERVER_PORT || process.env.PORT) || 8080,
         URL: process.env.SERVER_URL,
         HIDE_INDEX: process.env?.SERVER_HIDE_INDEX === 'true',
         HIDE_MANAGER: process.env?.SERVER_HIDE_MANAGER === 'true',
