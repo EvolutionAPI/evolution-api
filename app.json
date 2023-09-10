@@ -181,10 +181,6 @@
   },
   "image": "heroku/nodejs",
   "addons": [
-    "logtail:free",
-    {
-      "plan": "ormongo:5-wt",
-      "as": "DATABASE_CONNECTION"
-    }
+    "logtail:free"
   ]
 }
