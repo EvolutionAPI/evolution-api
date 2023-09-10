@@ -133,7 +133,8 @@
       "value": "false"
     },
     "RABBITMQ_URI": {
-      "description": "The URI for rabbitmq. (amqp://[username:password@]host[:port][/vhost])"
+      "description": "The URI for rabbitmq. (amqp://[username:password@]host[:port][/vhost])",
+      "required": false
     },
     "CONFIG_SESSION_PHONE_CLIENT": {
       "description": "The client name for the whatsapp web session.",
