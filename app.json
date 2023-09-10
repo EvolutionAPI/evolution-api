@@ -9,7 +9,7 @@
   ],
   "website": "https://evolution-api.com/",
   "repository": "https://github.com/EvolutionAPI/evolution-api",
-  "logo": "https://github.com/EvolutionAPI/evolution-api/blob/5bc33ac654f8ca0c90dc8d18597254b202710a67/public/images/atendai-logo.png",
+  "logo": "https://github.com/EvolutionAPI/evolution-api/blob/main/public/images/atendai-logo.png?raw=true",
   "success_url": "/manager",
   "env": {
     "SERVER_TYPE": {
@@ -17,8 +17,9 @@
       "value": "http"
     },
     "SERVER_URL": {
-      "description": "The URL of the server. For heroku, change this before first deploy to the heroku app URL."
-    },
+      "description": "The URL of the server. For heroku, change this before first deploy to the heroku app URL.",
+      "required": false
+    },	
     "SERVER_HIDE_INDEX": {
       "description": "Hide the index page.",
       "value": "false"
@@ -28,19 +29,24 @@
       "value": "false"
     },
     "CORS_ORIGIN": {
-      "description": "The origin to allow CORS requests from."
+      "description": "The origin to allow CORS requests from.",
+      "required": false
     },
     "CORS_METHODS": {
-      "description": "The methods to allow CORS requests for."
+      "description": "The methods to allow CORS requests for.",
+      "required": false
     },
     "CORS_CREDENTIALS": {
-      "description": "Allow CORS requests to send credentials."
+      "description": "Allow CORS requests to send credentials.",
+      "required": false
     },
     "SSL_CONF_PRIVKEY": {
-      "description": "The path to the SSL private key. For heroku, this should be empty."
+      "description": "The path to the SSL private key. For heroku, this should be empty.",
+      "required": false
     },
     "SSL_CONF_FULLCHAIN": {
-      "description": "The path to the SSL full chain. For heroku, this should be empty."
+      "description": "The path to the SSL full chain. For heroku, this should be empty.",
+      "required": false
     },
     "STORE_MESSAGES": {
       "description": "Enable message storage. (true/false)",
@@ -83,7 +89,8 @@
       "value": "true"
     },
     "DATABASE_CONNECTION_URI": {
-      "description": "The connection URI for the database. For heroku, this should be empty."
+      "description": "The connection URI for the database. For heroku, this should be empty.",
+      "required": false
     },
     "DATABASE_CONNECTION_DB_PREFIX_NAME": {
       "description": "The prefix name for the database.",
@@ -114,7 +121,8 @@
       "value": "false"
     },
     "REDIS_CONNECTION_URI": {
-      "description": "The connection URI for redis. (redis://[username:password@]host[:port][/db-number][?option=value])"
+      "description": "The connection URI for redis. (redis://[username:password@]host[:port][/db-number][?option=value])",
+      "required": false
     },
     "REDIS_PREFIX_KEY": {
       "description": "The prefix key for redis.",
