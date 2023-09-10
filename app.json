@@ -174,6 +174,10 @@
     "HEROKU_ENV": {
       "description": "Enable heroku env. (true/false) (only for heroku)",
       "value": "true"
+    },
+    "LOG_LEVEL": {
+      "description": "The log level. (error | warn | info | http | verbose | debug | silly)",
+      "value": "error,warn,info,http,verbose,debug,silly"
     }
   },
   "formation": {
