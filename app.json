@@ -89,8 +89,7 @@
       "value": "true"
     },
     "DATABASE_CONNECTION_URI": {
-      "description": "The connection URI for the database. For heroku, this should be empty.",
-      "required": false
+      "description": "The connection URI for the database. For heroku, this is required."
     },
     "DATABASE_CONNECTION_DB_PREFIX_NAME": {
       "description": "The prefix name for the database.",
