@@ -171,6 +171,10 @@
     "AUTHENTICATION_JWT_SECRET": {
       "description": "The secret for jwt. (only for jwt authentication)",
       "generator": "secret"
+    },
+    "HEROKU_ENV": {
+      "description": "Enable heroku env. (true/false) (only for heroku)",
+      "value": "true"
     }
   },
   "formation": {
