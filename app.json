@@ -1,0 +1,181 @@
+{
+  "name": "EvolutionAPI",
+  "description": "A Restful API service that controls WhatsApp functions.",
+  "keywords": [
+    "whatsapp",
+    "api",
+    "restful",
+    "whatsapp api"
+  ],
+  "website": "https://evolution-api.com/",
+  "repository": "https://github.com/EvolutionAPI/evolution-api",
+  "logo": "https://github.com/EvolutionAPI/evolution-api/blob/5bc33ac654f8ca0c90dc8d18597254b202710a67/public/images/atendai-logo.png",
+  "success_url": "/manager",
+  "env": {
+    "SERVER_TYPE": {
+      "description": "The type of server to run. For heroku, this should be 'http'.",
+      "value": "http"
+    },
+    "SERVER_URL": {
+      "description": "The URL of the server. For heroku, change this before first deploy to the heroku app URL."
+    },
+    "SERVER_HIDE_INDEX": {
+      "description": "Hide the index page.",
+      "value": "false"
+    },
+    "SERVER_HIDE_MANAGER": {
+      "description": "Hide the manager page.",
+      "value": "false"
+    },
+    "CORS_ORIGIN": {
+      "description": "The origin to allow CORS requests from."
+    },
+    "CORS_METHODS": {
+      "description": "The methods to allow CORS requests for."
+    },
+    "CORS_CREDENTIALS": {
+      "description": "Allow CORS requests to send credentials."
+    },
+    "SSL_CONF_PRIVKEY": {
+      "description": "The path to the SSL private key. For heroku, this should be empty."
+    },
+    "SSL_CONF_FULLCHAIN": {
+      "description": "The path to the SSL full chain. For heroku, this should be empty."
+    },
+    "STORE_MESSAGES": {
+      "description": "Enable message storage. (true/false)",
+      "value": "true"
+    },  
+    "STORE_MESSAGE_UP": {
+      "description": "Enable message upload storage. (true/false)",
+      "value": "true"
+    },    
+    "STORE_CONTACTS": {
+      "description": "Enable contact storage. (true/false)",
+      "value": "true"
+    },
+    "STORE_CHATS": {
+      "description": "Enable chat storage. (true/false)",
+      "value": "true"
+    },
+    "CLEAN_STORE_CLEANING_TERMINAL": {
+      "description": "Interval in seconds between cleaning terminal. default: 7200 (2 hours)",
+      "value": "7200"
+    },
+    "CLEAN_STORE_MESSAGES": {
+      "description": "Enable message cleaning. (true/false)",
+      "value": "true"
+    },
+    "CLEAN_STORE_MESSAGE_UP": {
+      "description": "Enable message upload cleaning. (true/false)",
+      "value": "true"
+    },
+    "CLEAN_STORE_CONTACTS": {
+      "description": "Enable contact cleaning. (true/false)",
+      "value": "true"
+    },
+    "CLEAN_STORE_CHATS": {
+      "description": "Enable chat cleaning. (true/false)",
+      "value": "true"
+    },
+    "DATABASE_ENABLED": {
+      "description": "Enable database. (true/false)",
+      "value": "true"
+    },
+    "DATABASE_CONNECTION_URI": {
+      "description": "The connection URI for the database. For heroku, this should be empty."
+    },
+    "DATABASE_CONNECTION_DB_PREFIX_NAME": {
+      "description": "The prefix name for the database.",
+      "value": "evolution"
+    },
+    "DATABASE_SAVE_DATA_INSTANCE": {
+      "description": "Enable instance data storage. For heroku, this should be true.",
+      "value": "true"
+    },
+    "DATABASE_SAVE_DATA_NEW_MESSAGE": {
+      "description": "Enable new message data storage. (true/false)",
+      "value": "false"
+    },
+    "DATABASE_SAVE_MESSAGE_UPDATE": {
+      "description": "Enable message update data storage. (true/false)",
+      "value": "false"
+    },
+    "DATABASE_SAVE_DATA_CONTACTS": {
+      "description": "Enable contacts data storage. (true/false)",
+      "value": "false"
+    },
+    "DATABASE_SAVE_DATA_CHATS": {
+      "description": "Enable chats data storage. (true/false)",
+      "value": "false"
+    },
+    "REDIS_ENABLED": {
+      "description": "Enable redis. (true/false)",
+      "value": "false"
+    },
+    "REDIS_CONNECTION_URI": {
+      "description": "The connection URI for redis. (redis://[username:password@]host[:port][/db-number][?option=value])"
+    },
+    "REDIS_PREFIX_KEY": {
+      "description": "The prefix key for redis.",
+      "value": "evolution"
+    },
+    "RABBITMQ_ENABLED": {
+      "description": "Enable rabbitmq. (true/false)",
+      "value": "false"
+    },
+    "RABBITMQ_URI": {
+      "description": "The URI for rabbitmq. (amqp://[username:password@]host[:port][/vhost])"
+    },
+    "CONFIG_SESSION_PHONE_CLIENT": {
+      "description": "The client name for the whatsapp web session.",
+      "value": "EvolutionAPI"
+    },
+    "CONFIG_SESSION_PHONE_NAME": {
+      "description": "The browser name for the whatsapp web session. (Chrome | Firefox | Edge | Opera | Safari)",
+      "value": "Chrome"
+    },
+    "QRCODE_LIMIT": { 
+      "description": "The limit of qrcode.",
+      "value": "30"
+    },
+    "QRCODE_COLOR": {
+      "description": "The color of qrcode. (hex color)",
+      "value": "#198754"
+    },
+    "AUTHENTICATION_TYPE": {
+      "description": "The type of authentication. (apikey | jwt)",
+      "value": "apikey"
+    },
+    "AUTHENTICATION_API_KEY": {
+      "description": "The api key for authentication. (only for apikey authentication)",
+      "generator": "secret"
+    },
+    "AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES": {
+      "description": "Expose the api key in fetch instances. (true/false)",
+      "value": "false"
+    },
+    "AUTHENTICATION_JWT_EXPIRIN_IN": {
+      "description": "The expiration time for jwt. (only for jwt authentication) (0 = never expires)",
+      "value": "0"
+    },
+    "AUTHENTICATION_JWT_SECRET": {
+      "description": "The secret for jwt. (only for jwt authentication)",
+      "generator": "secret"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "image": "heroku/nodejs",
+  "addons": [
+    "logtail:free",
+    {
+      "plan": "ormongo:5-wt",
+      "as": "DATABASE_CONNECTION"
+    }
+  ]
+}
