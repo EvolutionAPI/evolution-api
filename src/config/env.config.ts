@@ -208,7 +208,7 @@ export class ConfigService {
       },
       DATABASE: {
         CONNECTION: {
-          URI: process.env.DATABASE_CONNECTION_URI || '',
+          URI: process.env.DATABASE_CONNECTION_URI || process.env.DATABASE_CONNECTION_URL || '',
           DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME || 'evolution',
         },
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
