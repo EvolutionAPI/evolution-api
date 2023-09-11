@@ -113,7 +113,7 @@ import {
   SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { ProxyRaw, RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
+import { ChamaaiRaw, ProxyRaw, RabbitmqRaw, SettingsRaw, TypebotRaw } from '../models';
 import { ChatRaw } from '../models/chat.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
@@ -126,7 +126,9 @@ import { MessageUpQuery } from '../repository/messageUp.repository';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
+import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
+//import { SocksProxyAgent } from './socks-proxy-agent';
 import { TypebotService } from './typebot.service';
 
 export class WAStartupService {
@@ -151,6 +153,7 @@ export class WAStartupService {
   private readonly localRabbitmq: wa.LocalRabbitmq = {};
   public readonly localTypebot: wa.LocalTypebot = {};
   private readonly localProxy: wa.LocalProxy = {};
+  private readonly localChamaai: wa.LocalChamaai = {};
   public stateConnection: wa.StateConnection = { state: 'close' };
   public readonly storePath = join(ROOT_DIR, 'store');
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -163,6 +166,8 @@ export class WAStartupService {
   private chatwootService = new ChatwootService(waMonitor, this.configService);
 
   private typebotService = new TypebotService(waMonitor);
+
+  private chamaaiService = new ChamaaiService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
     this.logger.verbose(`Initializing instance '${name}'`);
@@ -515,6 +520,9 @@ export class WAStartupService {
     this.localTypebot.unknown_message = data?.unknown_message;
     this.logger.verbose(`Typebot unknown_message: ${this.localTypebot.unknown_message}`);
 
+    this.localTypebot.listening_from_me = data?.listening_from_me;
+    this.logger.verbose(`Typebot listening_from_me: ${this.localTypebot.listening_from_me}`);
+
     this.localTypebot.sessions = data?.sessions;
 
     this.logger.verbose('Typebot loaded');
@@ -528,6 +536,7 @@ export class WAStartupService {
     this.logger.verbose(`Typebot keyword_finish: ${data.keyword_finish}`);
     this.logger.verbose(`Typebot delay_message: ${data.delay_message}`);
     this.logger.verbose(`Typebot unknown_message: ${data.unknown_message}`);
+    this.logger.verbose(`Typebot listening_from_me: ${data.listening_from_me}`);
     Object.assign(this.localTypebot, data);
     this.logger.verbose('Typebot set');
   }
@@ -574,6 +583,52 @@ export class WAStartupService {
     if (!data) {
       this.logger.verbose('Proxy not found');
       throw new NotFoundException('Proxy not found');
+    }
+
+    return data;
+  }
+
+  private async loadChamaai() {
+    this.logger.verbose('Loading chamaai');
+    const data = await this.repository.chamaai.find(this.instanceName);
+
+    this.localChamaai.enabled = data?.enabled;
+    this.logger.verbose(`Chamaai enabled: ${this.localChamaai.enabled}`);
+
+    this.localChamaai.url = data?.url;
+    this.logger.verbose(`Chamaai url: ${this.localChamaai.url}`);
+
+    this.localChamaai.token = data?.token;
+    this.logger.verbose(`Chamaai token: ${this.localChamaai.token}`);
+
+    this.localChamaai.waNumber = data?.waNumber;
+    this.logger.verbose(`Chamaai waNumber: ${this.localChamaai.waNumber}`);
+
+    this.localChamaai.answerByAudio = data?.answerByAudio;
+    this.logger.verbose(`Chamaai answerByAudio: ${this.localChamaai.answerByAudio}`);
+
+    this.logger.verbose('Chamaai loaded');
+  }
+
+  public async setChamaai(data: ChamaaiRaw) {
+    this.logger.verbose('Setting chamaai');
+    await this.repository.chamaai.create(data, this.instanceName);
+    this.logger.verbose(`Chamaai url: ${data.url}`);
+    this.logger.verbose(`Chamaai token: ${data.token}`);
+    this.logger.verbose(`Chamaai waNumber: ${data.waNumber}`);
+    this.logger.verbose(`Chamaai answerByAudio: ${data.answerByAudio}`);
+
+    Object.assign(this.localChamaai, data);
+    this.logger.verbose('Chamaai set');
+  }
+
+  public async findChamaai() {
+    this.logger.verbose('Finding chamaai');
+    const data = await this.repository.chamaai.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Chamaai not found');
+      throw new NotFoundException('Chamaai not found');
     }
 
     return data;
@@ -633,6 +688,25 @@ export class WAStartupService {
           }
 
           amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+
+          if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+            const logData = {
+              local: WAStartupService.name + '.sendData-RabbitMQ',
+              event,
+              instance: this.instance.name,
+              data,
+              server_url: serverUrl,
+              apikey: (expose && instanceApikey) || null,
+              date_time: now,
+              sender: this.wuid,
+            };
+
+            if (expose && instanceApikey) {
+              logData['apikey'] = instanceApikey;
+            }
+
+            this.logger.log(logData);
+          }
         }
       }
     }
@@ -658,6 +732,25 @@ export class WAStartupService {
 
         this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
         io.of(`/${this.instance.name}`).emit(event, message);
+
+        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+          const logData = {
+            local: WAStartupService.name + '.sendData-Websocket',
+            event,
+            instance: this.instance.name,
+            data,
+            server_url: serverUrl,
+            apikey: (expose && instanceApikey) || null,
+            date_time: now,
+            sender: this.wuid,
+          };
+
+          if (expose && instanceApikey) {
+            logData['apikey'] = instanceApikey;
+          }
+
+          this.logger.log(logData);
+        }
       }
     }
 
@@ -696,7 +789,7 @@ export class WAStartupService {
         }
 
         try {
-          if (this.localWebhook.enabled && isURL(this.localWebhook.url)) {
+          if (this.localWebhook.enabled && isURL(this.localWebhook.url, { require_tld: false })) {
             const httpService = axios.create({ baseURL });
             const postData = {
               event,
@@ -1065,6 +1158,7 @@ export class WAStartupService {
       this.loadRabbitmq();
       this.loadTypebot();
       this.loadProxy();
+      this.loadChamaai();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -1338,7 +1432,12 @@ export class WAStartupService {
       this.logger.verbose('Event received: messages.upsert');
       const received = messages[0];
 
-      if (type !== 'notify' || received.message?.protocolMessage || received.message?.pollUpdateMessage) {
+      if (
+        type !== 'notify' ||
+        !received.message ||
+        received.message?.protocolMessage ||
+        received.message?.pollUpdateMessage
+      ) {
         this.logger.verbose('message rejected');
         return;
       }
@@ -1383,8 +1482,18 @@ export class WAStartupService {
         );
       }
 
-      if (this.localTypebot.enabled && messageRaw.key.remoteJid.includes('@s.whatsapp.net')) {
-        await this.typebotService.sendTypebot(
+      if (this.localTypebot.enabled) {
+        if (!(this.localTypebot.listening_from_me === false && messageRaw.key.fromMe === true)) {
+          await this.typebotService.sendTypebot(
+            { instanceName: this.instance.name },
+            messageRaw.key.remoteJid,
+            messageRaw,
+          );
+        }
+      }
+
+      if (this.localChamaai.enabled && messageRaw.key.fromMe === false) {
+        await this.chamaaiService.sendChamaai(
           { instanceName: this.instance.name },
           messageRaw.key.remoteJid,
           messageRaw,
@@ -1791,19 +1900,19 @@ export class WAStartupService {
 
   public async fetchProfile(instanceName: string, number?: string) {
     const jid = number ? this.createJid(number) : this.client?.user?.id;
-
+  
     this.logger.verbose('Getting profile with jid: ' + jid);
     try {
       this.logger.verbose('Getting profile info');
-      const business = await this.fetchBusinessProfile(jid);
-
+  
       if (number) {
         const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
-        const picture = await this.profilePicture(jid);
-        const status = await this.getStatus(jid);
-
+        const picture = await this.profilePicture(info?.jid);
+        const status = await this.getStatus(info?.jid);
+        const business = await this.fetchBusinessProfile(info?.jid);
+  
         return {
-          wuid: jid,
+          wuid: info?.jid || jid,
           name: info?.name,
           numberExists: info?.exists,
           picture: picture?.profilePictureUrl,
@@ -1815,6 +1924,7 @@ export class WAStartupService {
         };
       } else {
         const info = await waMonitor.instanceInfo(instanceName);
+        const business = await this.fetchBusinessProfile(jid);
 
         return {
           wuid: jid,
@@ -2315,7 +2425,7 @@ export class WAStartupService {
     return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options);
   }
 
-  private async processAudio(audio: string, number: string) {
+  public async processAudio(audio: string, number: string) {
     this.logger.verbose('Processing audio');
     let tempAudioPath: string;
     let outputAudio: string;
@@ -2969,7 +3079,9 @@ export class WAStartupService {
   public async createGroup(create: CreateGroupDto) {
     this.logger.verbose('Creating group: ' + create.subject);
     try {
-      const participants = create.participants.map((p) => this.createJid(p));
+      const participants = (await this.whatsappNumber({ numbers: create.participants }))
+        .filter((participant) => participant.exists)
+        .map((participant) => participant.jid);
       const { id } = await this.client.groupCreate(create.subject, participants);
       this.logger.verbose('Group created: ' + id);
 
@@ -2979,7 +3091,7 @@ export class WAStartupService {
       }
 
       if (create?.promoteParticipants) {
-        this.logger.verbose('Prometing group participants: ' + create.description);
+        this.logger.verbose('Prometing group participants: ' + participants);
         await this.updateGParticipant({
           groupJid: id,
           action: 'promote',
@@ -2987,8 +3099,8 @@ export class WAStartupService {
         });
       }
 
-      const group = await this.client.groupMetadata(id);
       this.logger.verbose('Getting group metadata');
+      const group = await this.client.groupMetadata(id);
 
       return group;
     } catch (error) {

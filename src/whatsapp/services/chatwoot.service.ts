@@ -460,7 +460,9 @@ export class ChatwootService {
       let contact: any;
       if (body.key.fromMe) {
         if (findContact) {
-          contact = findContact;
+          contact = await this.updateContact(instance, findContact.id, {
+            avatar_url: picture_url.profilePictureUrl || null,
+          });
         } else {
           const jid = isGroup ? null : body.key.remoteJid;
           contact = await this.createContact(
@@ -481,7 +483,9 @@ export class ChatwootService {
               avatar_url: picture_url.profilePictureUrl || null,
             });
           } else {
-            contact = findContact;
+            contact = await this.updateContact(instance, findContact.id, {
+              avatar_url: picture_url.profilePictureUrl || null,
+            });
           }
         } else {
           const jid = isGroup ? null : body.key.remoteJid;
@@ -994,6 +998,9 @@ export class ChatwootService {
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
+      // espera 500ms para evitar duplicidade de mensagens
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
       const client = await this.clientCw(instance);
 
@@ -1567,16 +1574,16 @@ export class ChatwootService {
         await this.createBotMessage(instance, msgStatus, 'incoming');
       }
 
-      if (event === 'connection.update') {
-        this.logger.verbose('event connection.update');
+      // if (event === 'connection.update') {
+      //   this.logger.verbose('event connection.update');
 
-        if (body.status === 'open') {
-          const msgConnection = `🚀 Connection successfully established!`;
+      //   if (body.status === 'open') {
+      //     const msgConnection = `🚀 Connection successfully established!`;
 
-          this.logger.verbose('send message to chatwoot');
-          await this.createBotMessage(instance, msgConnection, 'incoming');
-        }
-      }
+      //     this.logger.verbose('send message to chatwoot');
+      //     await this.createBotMessage(instance, msgConnection, 'incoming');
+      //   }
+      // }
 
       if (event === 'qrcode.updated') {
         this.logger.verbose('event qrcode.updated');

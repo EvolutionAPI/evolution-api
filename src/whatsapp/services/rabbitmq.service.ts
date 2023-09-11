@@ -1,4 +1,5 @@
 import { Logger } from '../../config/logger.config';
+import { initQueues } from '../../libs/amqp.server';
 import { InstanceDto } from '../dto/instance.dto';
 import { RabbitmqDto } from '../dto/rabbitmq.dto';
 import { RabbitmqRaw } from '../models';
@@ -13,6 +14,7 @@ export class RabbitmqService {
     this.logger.verbose('create rabbitmq: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setRabbitmq(data);
 
+    initQueues(instance.instanceName, data.events);
     return { rabbitmq: { ...instance, rabbitmq: data } };
   }
 

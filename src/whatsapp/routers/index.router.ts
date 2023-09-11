@@ -4,6 +4,7 @@ import fs from 'fs';
 import { Auth, configService } from '../../config/env.config';
 import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
+import { ChamaaiRouter } from './chamaai.router';
 import { ChatRouter } from './chat.router';
 import { ChatwootRouter } from './chatwoot.router';
 import { GroupRouter } from './group.router';
@@ -52,6 +53,7 @@ router
   .use('/websocket', new WebsocketRouter(...guards).router)
   .use('/rabbitmq', new RabbitmqRouter(...guards).router)
   .use('/typebot', new TypebotRouter(...guards).router)
-  .use('/proxy', new ProxyRouter(...guards).router);
+  .use('/proxy', new ProxyRouter(...guards).router)
+  .use('/chamaai', new ChamaaiRouter(...guards).router);
 
 export { HttpStatus, router };
