@@ -711,7 +711,7 @@ export class WAStartupService {
       }
     }
 
-    if (this.configService.get<Websocket>('WEBSOCKET').ENABLED && this.localWebsocket.enabled) {
+    if (this.configService.get<Websocket>('WEBSOCKET')?.ENABLED && this.localWebsocket.enabled) {
       this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
       if (Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
         this.logger.verbose('Sending data to websocket on event: ' + event);
@@ -1954,9 +1954,10 @@ export class WAStartupService {
   private async sendMessageWithTyping<T = proto.IMessage>(number: string, message: T, options?: Options) {
     this.logger.verbose('Sending message with typing');
 
-    const numberWA = await this.whatsappNumber({ numbers: [number] });
-    const isWA = numberWA[0];
+    this.logger.verbose(`Check if number "${number}" is WhatsApp`);
+    const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
+    this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       throw new BadRequestException(isWA);
     }
@@ -2000,9 +2001,9 @@ export class WAStartupService {
       let mentions: string[];
       if (isJidGroup(sender)) {
         try {
-          const groupMetadata = await this.client.groupMetadata(sender);
+          const group = await this.findGroup({ groupJid: sender }, 'inner');
 
-          if (!groupMetadata) {
+          if (!group) {
             throw new NotFoundException('Group not found');
           }
 
@@ -2013,7 +2014,7 @@ export class WAStartupService {
               this.logger.verbose('Mentions everyone');
 
               this.logger.verbose('Getting group metadata');
-              mentions = groupMetadata.participants.map((participant) => participant.id);
+              mentions = group.participants.map((participant) => participant.id);
               this.logger.verbose('Getting group metadata for mentions');
             } else if (options.mentions?.mentioned?.length) {
               this.logger.verbose('Mentions manually defined');
@@ -2021,7 +2022,6 @@ export class WAStartupService {
                 const jid = this.createJid(mention);
                 if (isJidGroup(jid)) {
                   return null;
-                  // throw new BadRequestException('Mentions must be a number');
                 }
                 return jid;
               });

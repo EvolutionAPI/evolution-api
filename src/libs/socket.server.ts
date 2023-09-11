@@ -11,7 +11,7 @@ let io: SocketIO;
 const cors = configService.get<Cors>('CORS').ORIGIN;
 
 export const initIO = (httpServer: Server) => {
-  if (configService.get<Websocket>('WEBSOCKET').ENABLED) {
+  if (configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
     io = new SocketIO(httpServer, {
       cors: {
         origin: cors,
