@@ -161,11 +161,15 @@ export class ConfigService {
   }
 
   private loadEnv() {
-    this.env = !(process.env?.DOCKER_ENV === 'true') && !process.env?.HEROKU_ENV ? this.envYaml() : this.envProcess();
+    this.env =
+      !(process.env?.DOCKER_ENV === 'true') && !(process.env?.HEROKU_ENV === 'true')
+        ? this.envYaml()
+        : this.envProcess();
     this.env.PRODUCTION = process.env?.NODE_ENV === 'PROD';
-    if (process.env?.DOCKER_ENV === 'true') {
+
+    if ((process.env?.DOCKER_ENV === 'true', process.env?.HEROKU_ENV === 'true')) {
       this.env.SERVER.TYPE = 'http';
-      this.env.SERVER.PORT = 8080;
+      this.env.SERVER.PORT = parseInt(process.env.PORT) || 8080;
     }
   }
 
