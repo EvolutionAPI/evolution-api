@@ -1900,17 +1900,17 @@ export class WAStartupService {
 
   public async fetchProfile(instanceName: string, number?: string) {
     const jid = number ? this.createJid(number) : this.client?.user?.id;
-  
+
     this.logger.verbose('Getting profile with jid: ' + jid);
     try {
       this.logger.verbose('Getting profile info');
-  
+
       if (number) {
         const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
         const picture = await this.profilePicture(info?.jid);
         const status = await this.getStatus(info?.jid);
         const business = await this.fetchBusinessProfile(info?.jid);
-  
+
         return {
           wuid: info?.jid || jid,
           name: info?.name,

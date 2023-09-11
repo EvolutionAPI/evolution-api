@@ -11,6 +11,7 @@
 ### Fixed
 
 * Fix looping connection messages in chatwoot
+* Improved performance of fetch instances
 
 # 1.5.0 (2023-08-18 12:47)
 
