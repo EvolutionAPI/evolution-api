@@ -70,6 +70,10 @@ export type Websocket = {
   ENABLED: boolean;
 };
 
+export type Chatwoot = {
+  USE_REPLY_ID: boolean;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
@@ -134,6 +138,7 @@ export interface Env {
   QRCODE: QrCode;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
+  CHATWOOT?: Chatwoot;
 }
 
 export type Key = keyof Env;
@@ -224,9 +229,7 @@ export class ConfigService {
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
-      DEL_INSTANCE: process.env?.DEL_INSTANCE === 'true'
-        ? 5
-        : Number.parseInt(process.env.DEL_INSTANCE) || false,
+      DEL_INSTANCE: process.env?.DEL_INSTANCE === 'true' ? 5 : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
           URL: process.env?.WEBHOOK_GLOBAL_URL,
@@ -277,6 +280,9 @@ export class ConfigService {
             : 3600,
           SECRET: process.env.AUTHENTICATION_JWT_SECRET,
         },
+      },
+      CHATWOOT: {
+        USE_REPLY_ID: process.env?.USE_REPLY_ID === 'true',
       },
     };
   }

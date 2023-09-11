@@ -5,7 +5,7 @@ import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
-import { ConfigService } from '../../config/env.config';
+import { Chatwoot, ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
@@ -966,25 +966,29 @@ export class ChatwootService {
     messageId: number,
     sourceId: string | null,
   ) {
-    this.logger.verbose('update message to chatwoot instance: ' + instance.instanceName);
-    const client = await this.clientCw(instance);
+    // const useReplyId = this.configService.get<DelInstance>('DEL_INSTANCE');
+    const useReplyId = this.configService.get<Chatwoot>('CHATWOOT')?.USE_REPLY_ID;
+    if (useReplyId === true) {
+      this.logger.verbose('update message to chatwoot instance: ' + instance.instanceName);
+      const client = await this.clientCw(instance);
 
-    if (!client) {
-      this.logger.warn('client not found');
-      return null;
-    }
-    this.logger.verbose('check if sourceId to update');
-    if (sourceId) {
-      this.logger.verbose('update message to chatwoot');
-      const dataUpdated = {
-        source_id: sourceId,
-      };
-      await client.messages.update({
-        accountId,
-        conversationId,
-        data: dataUpdated,
-        messageId,
-      });
+      if (!client) {
+        this.logger.warn('client not found');
+        return null;
+      }
+      this.logger.verbose('check if sourceId to update');
+      if (sourceId) {
+        this.logger.verbose('update message to chatwoot');
+        const dataUpdated = {
+          source_id: sourceId,
+        };
+        await client.messages.update({
+          accountId,
+          conversationId,
+          data: dataUpdated,
+          messageId,
+        });
+      }
     }
   }
 
