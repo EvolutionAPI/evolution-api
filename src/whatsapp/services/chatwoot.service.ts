@@ -949,7 +949,7 @@ export class ChatwootService {
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
-      // espera 500ms para evitar duplicidade de mensagens
+// espera 500ms para evitar duplicidade de mensagens
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
@@ -1284,9 +1284,9 @@ export class ChatwootService {
         }
 
         this.logger.verbose('get conversation in chatwoot');
-        const getConversion = await this.createConversation(instance, body);
+        const getConversation = await this.createConversation(instance, body);
 
-        if (!getConversion) {
+        if (!getConversation) {
           this.logger.warn('conversation not found');
           return;
         }
@@ -1337,7 +1337,7 @@ export class ChatwootService {
             }
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversion, fileName, messageType, content);
+            const send = await this.sendData(getConversation, fileName, messageType, content);
 
             if (!send) {
               this.logger.warn('message not sent');
@@ -1358,7 +1358,7 @@ export class ChatwootService {
             this.logger.verbose('message is not group');
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversion, fileName, messageType, bodyMessage);
+            const send = await this.sendData(getConversation, fileName, messageType, bodyMessage);
 
             if (!send) {
               this.logger.warn('message not sent');
@@ -1394,7 +1394,7 @@ export class ChatwootService {
           }
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(instance, getConversion, content, messageType);
+          const send = await this.createMessage(instance, getConversation, content, messageType);
 
           if (!send) {
             this.logger.warn('message not sent');
@@ -1415,7 +1415,7 @@ export class ChatwootService {
           this.logger.verbose('message is not group');
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(instance, getConversion, bodyMessage, messageType);
+          const send = await this.createMessage(instance, getConversation, bodyMessage, messageType);
 
           if (!send) {
             this.logger.warn('message not sent');
@@ -1452,14 +1452,14 @@ export class ChatwootService {
       }
 
       // if (event === 'connection.update') {
-      //   this.logger.verbose('event connection.update');
+        //   this.logger.verbose('event connection.update');
 
-      //   if (body.status === 'open') {
-      //     const msgConnection = `🚀 Connection successfully established!`;
+        //   if (body.status === 'open') {
+          //     const msgConnection = `🚀 Connection successfully established!`;
 
-      //     this.logger.verbose('send message to chatwoot');
-      //     await this.createBotMessage(instance, msgConnection, 'incoming');
-      //   }
+          //     this.logger.verbose('send message to chatwoot');
+          //     await this.createBotMessage(instance, msgConnection, 'incoming');
+        //   }
       // }
 
       if (event === 'qrcode.updated') {
