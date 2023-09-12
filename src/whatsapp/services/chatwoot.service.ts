@@ -1125,6 +1125,20 @@ export class ChatwootService {
     return result;
   }
 
+  private getAdsMessage(msg: any) {
+    interface AdsMessage {
+      title: string;
+      body: string;
+      thumbnailUrl: string;
+      sourceUrl: string;
+    }
+    let adsMessage: AdsMessage | undefined = msg.extendedTextMessage?.contextInfo.externalAdReply;
+
+    this.logger.verbose('Get ads message if it exist');
+    adsMessage && this.logger.verbose('Ads message: ' + adsMessage);
+    return adsMessage;
+  }
+
   private getTypeMessage(msg: any) {
     this.logger.verbose('get type message');
 
@@ -1278,6 +1292,8 @@ export class ChatwootService {
 
         const isMedia = this.isMediaMessage(body.message);
 
+        const adsMessage = this.getAdsMessage(body.message);
+
         if (!bodyMessage && !isMedia) {
           this.logger.warn('no body message found');
           return;
@@ -1376,6 +1392,64 @@ export class ChatwootService {
 
             return send;
           }
+        }
+
+        this.logger.verbose('check if has Ads Message');
+        if (adsMessage) {
+          this.logger.verbose('message is from Ads');
+
+          this.logger.verbose('get base64 from media ads message');
+          const getBase64AdMsg = await axios.get(adsMessage.thumbnailUrl, { responseType: 'arraybuffer' });
+          const base64 = getBase64AdMsg.data.toString('base64');
+
+          const contentType = getBase64AdMsg.headers['content-type'];
+          const extension = mimeTypes.extension(contentType);
+          const mimeType = extension && mimeTypes.lookup(extension);
+
+          if (!mimeType) {
+            this.logger.warn('mimetype of Ads message not found');
+            return;
+          }
+
+          const random = Math.random().toString(36).substring(7);
+          const nameFile = `${random}.${mimeTypes.extension(mimeType)}`;
+          const fileData = Buffer.from(base64, 'base64');
+          const fileName = `${path.join(waInstance?.storePath, 'temp', `${nameFile}`)}`;
+
+          this.logger.verbose('temp file name: ' + nameFile);
+
+          this.logger.verbose('create temp file');
+          writeFileSync(fileName, fileData, 'utf8');
+          const truncStr = (str: string, len: number) => {
+            return str.length > len ? str.substring(0, len) + '...' : str;
+          };
+
+          const title = truncStr(adsMessage.title, 40);
+          const description = truncStr(adsMessage.body, 75);
+
+          this.logger.verbose('send data to chatwoot');
+          const send = await this.sendData(
+            getConversation,
+            fileName,
+            messageType,
+            `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`,
+          );
+
+          if (!send) {
+            this.logger.warn('message not sent');
+            return;
+          }
+
+          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+
+          this.messageCache = this.loadMessageCache();
+
+          this.messageCache.add(send.id.toString());
+
+          this.logger.verbose('save message cache');
+          this.saveMessageCache();
+
+          return send;
         }
 
         this.logger.verbose('check if is group');
