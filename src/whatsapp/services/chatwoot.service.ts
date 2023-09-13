@@ -2,6 +2,7 @@ import ChatwootClient from '@figuro/chatwoot-sdk';
 import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
@@ -1399,11 +1400,9 @@ export class ChatwootService {
           this.logger.verbose('message is from Ads');
 
           this.logger.verbose('get base64 from media ads message');
-          const getBase64AdMsg = await axios.get(adsMessage.thumbnailUrl, { responseType: 'arraybuffer' });
-          const base64 = getBase64AdMsg.data.toString('base64');
+          const imgBuffer = await axios.get(adsMessage.thumbnailUrl, { responseType: 'arraybuffer' });
 
-          const contentType = getBase64AdMsg.headers['content-type'];
-          const extension = mimeTypes.extension(contentType);
+          const extension = mimeTypes.extension(imgBuffer.headers['content-type']);
           const mimeType = extension && mimeTypes.lookup(extension);
 
           if (!mimeType) {
@@ -1413,13 +1412,18 @@ export class ChatwootService {
 
           const random = Math.random().toString(36).substring(7);
           const nameFile = `${random}.${mimeTypes.extension(mimeType)}`;
-          const fileData = Buffer.from(base64, 'base64');
+          const fileData = Buffer.from(imgBuffer.data, 'binary');
           const fileName = `${path.join(waInstance?.storePath, 'temp', `${nameFile}`)}`;
 
           this.logger.verbose('temp file name: ' + nameFile);
-
           this.logger.verbose('create temp file');
-          writeFileSync(fileName, fileData, 'utf8');
+          await Jimp.read(fileData)
+            .then(async (img) => {
+              await img.cover(320, 180).writeAsync(fileName);
+            })
+            .catch((err) => {
+              this.logger.error(`image is not write: ${err}`);
+            });
           const truncStr = (str: string, len: number) => {
             return str.length > len ? str.substring(0, len) + '...' : str;
           };
