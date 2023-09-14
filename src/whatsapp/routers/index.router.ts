@@ -51,6 +51,7 @@ if (!httpServer.HIDE_INDEX)
 if (!httpServer.HIDE_MANAGER) router.use('/manager', new ViewsRouter().router);
 
 router
+  .use('/instance', new InstanceRouter(configService, ...guards).router)
   .use('/manager', new ViewsRouter().router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
