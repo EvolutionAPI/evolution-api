@@ -7,6 +7,7 @@
 * Added webhooks for typebot events
 * Added ChamaAI integration
 * Added webhook to send errors
+* Added support for messaging with ads on chatwoot
 
 ### Fixed
 
@@ -26,7 +27,6 @@
 * Added Typebot integration
 * Added proxy endpoint
 * Added send and date_time in webhook data
-* Added support for messaging with ads on chatwoot
 
 ### Fixed
 
