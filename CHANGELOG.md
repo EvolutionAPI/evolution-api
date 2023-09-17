@@ -1,3 +1,19 @@
+# 1.5.1 (2023-09-17 13:50)
+
+### Feature
+
+* Added listening_from_me option in Set Typebot
+* Added variables options in Start Typebot
+* Added webhooks for typebot events
+* Added ChamaAI integration
+* Added webhook to send errors
+* Added support for messaging with ads on chatwoot
+
+### Fixed
+
+* Fix looping connection messages in chatwoot
+* Improved performance of fetch instances
+
 # 1.5.0 (2023-08-18 12:47)
 
 ### Feature

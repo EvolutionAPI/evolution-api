@@ -7,7 +7,6 @@ import { join } from 'path';
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import { NotFoundException } from '../../exceptions';
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
@@ -76,77 +75,57 @@ export class WAMonitoringService {
 
   public async instanceInfo(instanceName?: string) {
     this.logger.verbose('get instance info');
-    if (instanceName && !this.waInstances[instanceName]) {
-      throw new NotFoundException(`Instance "${instanceName}" not found`);
-    }
 
-    const instances: any[] = [];
+    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
-    for await (const [key, value] of Object.entries(this.waInstances)) {
-      if (value) {
-        this.logger.verbose('get instance info: ' + key);
-        let chatwoot: any;
+    const instances: any[] = await Promise.all(
+      Object.entries(this.waInstances).map(async ([key, value]) => {
+        const status = value?.connectionStatus?.state || 'unknown';
 
-        const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-
-        const findChatwoot = await this.waInstances[key].findChatwoot();
-
-        if (findChatwoot && findChatwoot.enabled) {
-          chatwoot = {
-            ...findChatwoot,
-            webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
-          };
+        if (status === 'unknown') {
+          return null;
         }
 
-        if (value.connectionStatus.state === 'open') {
+        if (status === 'open') {
           this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
-
-          const instanceData = {
-            instance: {
-              instanceName: key,
-              owner: value.wuid,
-              profileName: (await value.getProfileName()) || 'not loaded',
-              profilePictureUrl: value.profilePictureUrl,
-              profileStatus: (await value.getProfileStatus()) || '',
-              status: value.connectionStatus.state,
-            },
-          };
-
-          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
-
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
-
-            instanceData.instance['chatwoot'] = chatwoot;
-          }
-
-          instances.push(instanceData);
-        } else {
-          this.logger.verbose('instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state);
-
-          const instanceData = {
-            instance: {
-              instanceName: key,
-              status: value.connectionStatus.state,
-            },
-          };
-
-          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
-
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
-
-            instanceData.instance['chatwoot'] = chatwoot;
-          }
-
-          instances.push(instanceData);
         }
-      }
-    }
+
+        const instanceData: any = {
+          instance: {
+            instanceName: key,
+            owner: value.wuid,
+            profileName: (await value.getProfileName()) || 'not loaded',
+            profilePictureUrl: value.profilePictureUrl,
+            profileStatus: (await value.getProfileStatus()) || '',
+            status: status,
+          },
+        };
+
+        if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+          instanceData.instance.serverUrl = urlServer;
+          instanceData.instance.apikey = (await this.repository.auth.find(key))?.apikey;
+
+          const findChatwoot = await this.waInstances[key].findChatwoot();
+          if (findChatwoot && findChatwoot.enabled) {
+            instanceData.instance.chatwoot = {
+              ...findChatwoot,
+              webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
+            };
+          }
+        }
+
+        return instanceData;
+      }),
+    ).then((results) => results.filter((instance) => instance !== null));
 
     this.logger.verbose('return instance info: ' + instances.length);
 
-    return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
+    if (instanceName) {
+      const instance = instances.find((i) => i.instance.instanceName === instanceName);
+      return instance || [];
+    }
+
+    return instances;
   }
 
   private delInstanceFiles() {
@@ -161,8 +140,7 @@ export class WAMonitoringService {
           });
           this.logger.verbose('instance files deleted: ' + name);
         });
-        // } else if (this.redis.ENABLED) {
-      } else {
+      } else if (!this.redis.ENABLED) {
         const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
         for await (const dirent of dir) {
           if (dirent.isDirectory()) {
@@ -220,6 +198,11 @@ export class WAMonitoringService {
       execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'chamaai', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'proxy', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'rabbitmq', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'typebot', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'websocket', instanceName + '*')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'settings', instanceName + '*')}`);
 
       return;
@@ -240,66 +223,83 @@ export class WAMonitoringService {
   }
 
   public async loadInstance() {
-    this.logger.verbose('load instances');
-    const set = async (name: string) => {
-      const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
-      instance.instanceName = name;
-      this.logger.verbose('instance loaded: ' + name);
-
-      await instance.connectToWhatsapp();
-      this.logger.verbose('connectToWhatsapp: ' + name);
-
-      this.waInstances[name] = instance;
-    };
+    this.logger.verbose('Loading instances');
 
     try {
       if (this.redis.ENABLED) {
-        this.logger.verbose('redis enabled');
-        await this.cache.connect(this.redis as Redis);
-        const keys = await this.cache.instanceKeys();
-        if (keys?.length > 0) {
-          this.logger.verbose('reading instance keys and setting instances');
-          keys.forEach(async (k) => await set(k.split(':')[1]));
-        } else {
-          this.logger.verbose('no instance keys found');
-        }
-        return;
-      }
-
-      if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
-        this.logger.verbose('database enabled');
-        await this.repository.dbServer.connect();
-        const collections: any[] = await this.dbInstance.collections();
-        if (collections.length > 0) {
-          this.logger.verbose('reading collections and setting instances');
-          collections.forEach(async (coll) => await set(coll.namespace.replace(/^[\w-]+\./, '')));
-        } else {
-          this.logger.verbose('no collections found');
-        }
-        return;
-      }
-
-      this.logger.verbose('store in files enabled');
-      const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
-      for await (const dirent of dir) {
-        if (dirent.isDirectory()) {
-          this.logger.verbose('reading instance files and setting instances');
-          const files = readdirSync(join(INSTANCE_DIR, dirent.name), {
-            encoding: 'utf-8',
-          });
-          if (files.length === 0) {
-            rmSync(join(INSTANCE_DIR, dirent.name), { recursive: true, force: true });
-            break;
-          }
-
-          await set(dirent.name);
-        } else {
-          this.logger.verbose('no instance files found');
-        }
+        await this.loadInstancesFromRedis();
+      } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+        await this.loadInstancesFromDatabase();
+      } else {
+        await this.loadInstancesFromFiles();
       }
     } catch (error) {
       this.logger.error(error);
     }
+  }
+
+  private async setInstance(name: string) {
+    const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
+    instance.instanceName = name;
+    this.logger.verbose('Instance loaded: ' + name);
+
+    await instance.connectToWhatsapp();
+    this.logger.verbose('connectToWhatsapp: ' + name);
+
+    this.waInstances[name] = instance;
+  }
+
+  private async loadInstancesFromRedis() {
+    this.logger.verbose('Redis enabled');
+    await this.cache.connect(this.redis as Redis);
+    const keys = await this.cache.instanceKeys();
+
+    if (keys?.length > 0) {
+      this.logger.verbose('Reading instance keys and setting instances');
+      await Promise.all(keys.map((k) => this.setInstance(k.split(':')[1])));
+    } else {
+      this.logger.verbose('No instance keys found');
+    }
+  }
+
+  private async loadInstancesFromDatabase() {
+    this.logger.verbose('Database enabled');
+    await this.repository.dbServer.connect();
+    const collections: any[] = await this.dbInstance.collections();
+
+    if (collections.length > 0) {
+      this.logger.verbose('Reading collections and setting instances');
+      await Promise.all(collections.map((coll) => this.setInstance(coll.namespace.replace(/^[\w-]+\./, ''))));
+    } else {
+      this.logger.verbose('No collections found');
+    }
+  }
+
+  private async loadInstancesFromFiles() {
+    this.logger.verbose('Store in files enabled');
+    const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
+    const instanceDirs = [];
+
+    for await (const dirent of dir) {
+      if (dirent.isDirectory()) {
+        instanceDirs.push(dirent.name);
+      } else {
+        this.logger.verbose('No instance files found');
+      }
+    }
+
+    await Promise.all(
+      instanceDirs.map(async (instanceName) => {
+        this.logger.verbose('Reading instance files and setting instances: ' + instanceName);
+        const files = readdirSync(join(INSTANCE_DIR, instanceName), { encoding: 'utf-8' });
+
+        if (files.length === 0) {
+          rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+        } else {
+          await this.setInstance(instanceName);
+        }
+      }),
+    );
   }
 
   private removeInstance() {
