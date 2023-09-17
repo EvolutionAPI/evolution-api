@@ -43,7 +43,7 @@
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@figuro/chatwoot-sdk": "^1.1.14",
+    "@figuro/chatwoot-sdk": "^1.1.16",
     "@hapi/boom": "^10.0.1",
     "@sentry/node": "^7.59.2",
     "@whiskeysockets/baileys": "^6.4.0",
