@@ -2,6 +2,7 @@ import ChatwootClient from '@figuro/chatwoot-sdk';
 import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
@@ -998,7 +999,7 @@ export class ChatwootService {
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
-      // espera 500ms para evitar duplicidade de mensagens
+// espera 500ms para evitar duplicidade de mensagens
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       this.logger.verbose('receive webhook to chatwoot instance: ' + instance.instanceName);
@@ -1177,6 +1178,20 @@ export class ChatwootService {
 
     this.logger.verbose('is media message: ' + result);
     return result;
+  }
+
+  private getAdsMessage(msg: any) {
+    interface AdsMessage {
+      title: string;
+      body: string;
+      thumbnailUrl: string;
+      sourceUrl: string;
+    }
+    let adsMessage: AdsMessage | undefined = msg.extendedTextMessage?.contextInfo.externalAdReply;
+
+    this.logger.verbose('Get ads message if it exist');
+    adsMessage && this.logger.verbose('Ads message: ' + adsMessage);
+    return adsMessage;
   }
 
   private getTypeMessage(msg: any) {
@@ -1378,15 +1393,17 @@ export class ChatwootService {
 
         const isMedia = this.isMediaMessage(body.message);
 
+        const adsMessage = this.getAdsMessage(body.message);
+
         if (!bodyMessage && !isMedia) {
           this.logger.warn('no body message found');
           return;
         }
 
         this.logger.verbose('get conversation in chatwoot');
-        const getConversion = await this.createConversation(instance, body);
+        const getConversation = await this.createConversation(instance, body);
 
-        if (!getConversion) {
+        if (!getConversation) {
           this.logger.warn('conversation not found');
           return;
         }
@@ -1439,7 +1456,7 @@ export class ChatwootService {
             }
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversion, fileName, messageType, content, source_id, source_reply_id);
+            const send = await this.sendData(getConversation, fileName, messageType, content, source_id, source_reply_id);
 
             if (!send) {
               this.logger.warn('message not sent');
@@ -1461,7 +1478,7 @@ export class ChatwootService {
 
             this.logger.verbose('send data to chatwoot');
             const send = await this.sendData(
-              getConversion,
+              getConversation,
               fileName,
               messageType,
               bodyMessage,
@@ -1487,6 +1504,67 @@ export class ChatwootService {
           }
         }
 
+        this.logger.verbose('check if has Ads Message');
+        if (adsMessage) {
+          this.logger.verbose('message is from Ads');
+
+          this.logger.verbose('get base64 from media ads message');
+          const imgBuffer = await axios.get(adsMessage.thumbnailUrl, { responseType: 'arraybuffer' });
+
+          const extension = mimeTypes.extension(imgBuffer.headers['content-type']);
+          const mimeType = extension && mimeTypes.lookup(extension);
+
+          if (!mimeType) {
+            this.logger.warn('mimetype of Ads message not found');
+            return;
+          }
+
+          const random = Math.random().toString(36).substring(7);
+          const nameFile = `${random}.${mimeTypes.extension(mimeType)}`;
+          const fileData = Buffer.from(imgBuffer.data, 'binary');
+          const fileName = `${path.join(waInstance?.storePath, 'temp', `${nameFile}`)}`;
+
+          this.logger.verbose('temp file name: ' + nameFile);
+          this.logger.verbose('create temp file');
+          await Jimp.read(fileData)
+            .then(async (img) => {
+              await img.cover(320, 180).writeAsync(fileName);
+            })
+            .catch((err) => {
+              this.logger.error(`image is not write: ${err}`);
+            });
+          const truncStr = (str: string, len: number) => {
+            return str.length > len ? str.substring(0, len) + '...' : str;
+          };
+
+          const title = truncStr(adsMessage.title, 40);
+          const description = truncStr(adsMessage.body, 75);
+
+          this.logger.verbose('send data to chatwoot');
+          const send = await this.sendData(
+            getConversation,
+            fileName,
+            messageType,
+            `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`,
+          );
+
+          if (!send) {
+            this.logger.warn('message not sent');
+            return;
+          }
+
+          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+
+          this.messageCache = this.loadMessageCache();
+
+          this.messageCache.add(send.id.toString());
+
+          this.logger.verbose('save message cache');
+          this.saveMessageCache();
+
+          return send;
+        }
+
         this.logger.verbose('check if is group');
         if (body.key.remoteJid.includes('@g.us')) {
           this.logger.verbose('message is group');
@@ -1505,7 +1583,7 @@ export class ChatwootService {
           this.logger.verbose('send data to chatwoot');
           const send = await this.createMessage(
             instance,
-            getConversion,
+            getConversation,
             content,
             messageType,
             source_id,
@@ -1533,7 +1611,7 @@ export class ChatwootService {
           this.logger.verbose('send data to chatwoot');
           const send = await this.createMessage(
             instance,
-            getConversion,
+            getConversation,
             bodyMessage,
             messageType,
             source_id,
@@ -1575,14 +1653,14 @@ export class ChatwootService {
       }
 
       // if (event === 'connection.update') {
-      //   this.logger.verbose('event connection.update');
+        //   this.logger.verbose('event connection.update');
 
-      //   if (body.status === 'open') {
-      //     const msgConnection = `🚀 Connection successfully established!`;
+        //   if (body.status === 'open') {
+          //     const msgConnection = `🚀 Connection successfully established!`;
 
-      //     this.logger.verbose('send message to chatwoot');
-      //     await this.createBotMessage(instance, msgConnection, 'incoming');
-      //   }
+          //     this.logger.verbose('send message to chatwoot');
+          //     await this.createBotMessage(instance, msgConnection, 'incoming');
+        //   }
       // }
 
       if (event === 'qrcode.updated') {
