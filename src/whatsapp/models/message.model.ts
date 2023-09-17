@@ -20,6 +20,8 @@ export class MessageRaw {
   messageTimestamp?: number | Long.Long;
   owner: string;
   source?: 'android' | 'web' | 'ios';
+  source_id?: string;
+  source_reply_id?: string;
 }
 
 const messageSchema = new Schema<MessageRaw>({
