@@ -67,7 +67,6 @@ export class InstanceController {
     typebot_keyword_finish,
     typebot_delay_message,
     typebot_unknown_message,
-    typebot_listening_from_me,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -127,9 +126,6 @@ export class InstanceController {
               'CONNECTION_UPDATE',
               'CALL',
               'NEW_JWT_TOKEN',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = events;
@@ -176,12 +172,9 @@ export class InstanceController {
               'CONNECTION_UPDATE',
               'CALL',
               'NEW_JWT_TOKEN',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-              'CHAMA_AI_ACTION',
             ];
           } else {
-            newEvents = websocket_events;
+            newEvents = events;
           }
           this.websocketService.create(instance, {
             enabled: true,
@@ -223,12 +216,9 @@ export class InstanceController {
               'CONNECTION_UPDATE',
               'CALL',
               'NEW_JWT_TOKEN',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-              'CHAMA_AI_ACTION',
             ];
           } else {
-            newEvents = rabbitmq_events;
+            newEvents = events;
           }
           this.rabbitmqService.create(instance, {
             enabled: true,
@@ -257,7 +247,6 @@ export class InstanceController {
             keyword_finish: typebot_keyword_finish,
             delay_message: typebot_delay_message,
             unknown_message: typebot_unknown_message,
-            listening_from_me: typebot_listening_from_me,
           });
         } catch (error) {
           this.logger.log(error);
@@ -315,7 +304,6 @@ export class InstanceController {
             keyword_finish: typebot_keyword_finish,
             delay_message: typebot_delay_message,
             unknown_message: typebot_unknown_message,
-            listening_from_me: typebot_listening_from_me,
           },
           settings,
           qrcode: getQrcode,
@@ -408,7 +396,6 @@ export class InstanceController {
           keyword_finish: typebot_keyword_finish,
           delay_message: typebot_delay_message,
           unknown_message: typebot_unknown_message,
-          listening_from_me: typebot_listening_from_me,
         },
         settings,
         chatwoot: {
@@ -495,13 +482,12 @@ export class InstanceController {
   }
 
   public async fetchInstances({ instanceName }: InstanceDto) {
+    this.logger.verbose('requested fetchInstances from ' + instanceName + ' instance');
     if (instanceName) {
-      this.logger.verbose('requested fetchInstances from ' + instanceName + ' instance');
       this.logger.verbose('instanceName: ' + instanceName);
       return this.waMonitor.instanceInfo(instanceName);
     }
 
-    this.logger.verbose('requested fetchInstances (all instances)');
     return this.waMonitor.instanceInfo();
   }
 
