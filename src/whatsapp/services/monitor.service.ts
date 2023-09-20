@@ -7,6 +7,9 @@ import { join } from 'path';
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
+//inserido por Francis  inicio
+import { NotFoundException } from '../../exceptions';
+//inserido por Francis final
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
@@ -76,6 +79,14 @@ export class WAMonitoringService {
   public async instanceInfo(instanceName?: string) {
     this.logger.verbose('get instance info');
 
+    //inserido pot Francis - inicio
+
+     if (instanceName && !this.waInstances[instanceName]) {
+      throw new NotFoundException(`Instance "${instanceName}" not found`);
+    }
+ //inserido pot Francis - inicio
+
+
     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
     const instances: any[] = await Promise.all(
@@ -102,11 +113,10 @@ export class WAMonitoringService {
         };
 
         if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-        //  instanceData.instance.serverUrl = urlServer;
-          instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
-         // instanceData.instance.apikey = (await this.repository.auth.find(key))?.apikey;
-         instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
+         instanceData.instance.serverUrl = urlServer;
+         instanceData.instance.apikey = (await this.repository.auth.find(key))?.apikey;
          
+
           const findChatwoot = await this.waInstances[key].findChatwoot();
           if (findChatwoot && findChatwoot.enabled) {
             instanceData.instance.chatwoot = {
