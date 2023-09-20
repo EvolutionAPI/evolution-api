@@ -108,7 +108,8 @@ export class WAMonitoringService {
             profileName: (await value.getProfileName()) || 'not loaded',
             profilePictureUrl: value.profilePictureUrl,
             profileStatus: (await value.getProfileStatus()) || '',
-            status: status,
+            //status: status,
+            status: value.connectionStatus.state,
           },
         };
 
