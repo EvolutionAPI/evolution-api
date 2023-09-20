@@ -7,6 +7,9 @@ import { join } from 'path';
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
+// inserido por francis inicio
+import { NotFoundException } from '../../exceptions';
+// inserido por francis fim 
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
