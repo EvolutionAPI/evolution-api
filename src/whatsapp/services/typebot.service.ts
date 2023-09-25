@@ -205,10 +205,10 @@ export class TypebotService {
       startParams: {
         typebot: data.typebot,
         prefilledVariables: {
+          ...data.prefilledVariables,
           remoteJid: data.remoteJid,
           pushName: data.pushName || 'Default Name',
           instanceName: instance.instanceName,
-          ...data.prefilledVariables,
         },
       },
     };
@@ -223,10 +223,10 @@ export class TypebotService {
         createdAt: Date.now(),
         updateAt: Date.now(),
         prefilledVariables: {
+          ...data.prefilledVariables,
           remoteJid: data.remoteJid,
           pushName: data.pushName || 'Default Name',
           instanceName: instance.instanceName,
-          ...data.prefilledVariables,
         }
       });
 
