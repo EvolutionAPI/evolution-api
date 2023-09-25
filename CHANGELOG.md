@@ -1,3 +1,10 @@
+
+# 1.5.2 (Development)
+
+### Fixed
+
+* Fix chatwootSchema in chatwoot model to store reopen_conversation and conversation_pending options
+
 # 1.5.1 (2023-09-17 13:50)
 
 ### Feature
