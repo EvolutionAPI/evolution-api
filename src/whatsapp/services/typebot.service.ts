@@ -409,7 +409,7 @@ export class TypebotService {
     const listening_from_me = findTypebot.listening_from_me;
 
     const session = sessions.find((session) => session.remoteJid === remoteJid);
-    session.prefilledVariables.pushName = msg.pushName;
+    //session.prefilledVariables.pushName = msg.pushName;
 
     if (session && expire && expire > 0) {
       const now = Date.now();
