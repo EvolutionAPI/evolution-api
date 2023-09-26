@@ -2308,9 +2308,10 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
-      // inserido francis inicio
+      // *inserido francis inicio
       let mimetype: string;
-      // inserido francis final
+      // *inserido francis final
+
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
