@@ -2308,6 +2308,9 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
+      // inserido francis inicio
+      let mimetype: string;
+      // inserido francis final
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
@@ -2324,9 +2327,9 @@ export class WAStartupService {
         // inserido francis final
       }
 
-      let mimetype: string;
+ // ocultado francis inicio
+   //   let mimetype: string;
 
-     // ocultado francis inicio
 
    //   if (isURL(mediaMessage.media)) {
    //     mimetype = getMIMEType(mediaMessage.media);
