@@ -2311,19 +2311,29 @@ export class WAStartupService {
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
+        // inserido francis inicio
+        mimetype = 'image/png';
+        // inserido francis inicio
+
       }
 
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'video.mp4';
+        // inserido francis inicio
+        mimetype = 'video/mp4';
+        // inserido francis final
       }
 
       let mimetype: string;
 
-      if (isURL(mediaMessage.media)) {
-        mimetype = getMIMEType(mediaMessage.media);
-      } else {
-        mimetype = getMIMEType(mediaMessage.fileName);
-      }
+     // ocultado francis inicio
+
+   //   if (isURL(mediaMessage.media)) {
+   //     mimetype = getMIMEType(mediaMessage.media);
+   //   } else {
+   //     mimetype = getMIMEType(mediaMessage.fileName);
+   //   }
+  // ocultado francis final
 
       this.logger.verbose('Mimetype: ' + mimetype);
 
