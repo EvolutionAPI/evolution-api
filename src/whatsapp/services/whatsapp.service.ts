@@ -2308,22 +2308,36 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
+      // *inserido francis inicio
+      let mimetype: string;
+      // *inserido francis final
+
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
+        // inserido francis inicio
+        mimetype = 'image/png';
+        // inserido francis inicio
+
       }
 
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'video.mp4';
+        // inserido francis inicio
+        mimetype = 'video/mp4';
+        // inserido francis final
       }
 
-      let mimetype: string;
+ // ocultado francis inicio
+   //   let mimetype: string;
 
-      if (isURL(mediaMessage.media)) {
-        mimetype = getMIMEType(mediaMessage.media);
-      } else {
-        mimetype = getMIMEType(mediaMessage.fileName);
-      }
+
+   //   if (isURL(mediaMessage.media)) {
+   //     mimetype = getMIMEType(mediaMessage.media);
+   //   } else {
+   //     mimetype = getMIMEType(mediaMessage.fileName);
+   //   }
+  // ocultado francis final
 
       this.logger.verbose('Mimetype: ' + mimetype);
 
