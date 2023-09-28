@@ -4,6 +4,13 @@ export class Session {
   status?: string;
   createdAt?: number;
   updateAt?: number;
+  prefilledVariables?: PrefilledVariables;
+}
+
+export class PrefilledVariables {
+  remoteJid?: string;
+  pushName?: string;
+  additionalData?: { [key: string]: any };
 }
 
 export class TypebotDto {

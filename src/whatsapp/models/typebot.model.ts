@@ -8,6 +8,11 @@ class Session {
   status?: string;
   createdAt?: number;
   updateAt?: number;
+  prefilledVariables?: {
+    remoteJid?: string;
+    pushName?: string;
+    additionalData?: { [key: string]: any };
+  };
 }
 
 export class TypebotRaw {
@@ -40,6 +45,11 @@ const typebotSchema = new Schema<TypebotRaw>({
       status: { type: String, required: true },
       createdAt: { type: Number, required: true },
       updateAt: { type: Number, required: true },
+      prefilledVariables: {
+        remoteJid: { type: String, required: false },
+        pushName: { type: String, required: false },
+        additionalData: { type: Schema.Types.Mixed, required: false }
+      },
     },
   ],
 });

@@ -24,6 +24,8 @@ const chatwootSchema = new Schema<ChatwootRaw>({
   name_inbox: { type: String, required: true },
   sign_msg: { type: Boolean, required: true },
   number: { type: String, required: true },
+  reopen_conversation: { type: Boolean, required: true },
+  conversation_pending: { type: Boolean, required: true },
 });
 
 export const ChatwootModel = dbserver?.model(ChatwootRaw.name, chatwootSchema, 'chatwoot');
