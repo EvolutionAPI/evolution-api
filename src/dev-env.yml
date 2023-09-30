@@ -95,6 +95,8 @@ WEBHOOK:
     ENABLED: false
     # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
     WEBHOOK_BY_EVENTS: false
+    WEBHOOK_BASE64 : true #Inserido por Amilton
+
   # Automatically maps webhook paths
   # Set the events you want to hear
   EVENTS:
