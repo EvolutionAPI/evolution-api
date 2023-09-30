@@ -534,6 +534,8 @@ export class InstanceController {
       throw new BadRequestException('The "' + instanceName + '" instance needs to be disconnected');
     }
     try {
+      this.waMonitor.waInstances[instanceName]?.removeRabbitmqQueues();
+
       if (instance.state === 'connecting') {
         this.logger.verbose('logging out instance: ' + instanceName);
 

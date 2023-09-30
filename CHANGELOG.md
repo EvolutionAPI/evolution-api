@@ -1,3 +1,8 @@
+# 1.5.3 (develop)
+
+### Fixed
+
+* Remove rabbitmq queues when delete instances
 
 # 1.5.2 (2023-09-28 17:56)
 

@@ -40,7 +40,6 @@ import EventEmitter2 from 'eventemitter2';
 import fs, { existsSync, readFileSync } from 'fs';
 import Long from 'long';
 import NodeCache from 'node-cache';
-import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
@@ -66,7 +65,7 @@ import {
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
-import { getAMQP } from '../../libs/amqp.server';
+import { getAMQP, removeQueues } from '../../libs/amqp.server';
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import { getIO } from '../../libs/socket.server';
@@ -493,6 +492,14 @@ export class WAStartupService {
 
     this.logger.verbose(`Rabbitmq events: ${data.events}`);
     return data;
+  }
+
+  public async removeRabbitmqQueues() {
+    this.logger.verbose('Removing rabbitmq');
+
+    if (this.localRabbitmq.enabled) {
+      removeQueues(this.instanceName, this.localRabbitmq.events);
+    }
   }
 
   private async loadTypebot() {
@@ -2308,36 +2315,17 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
-      // *inserido francis inicio
       let mimetype: string;
-      // *inserido francis final
-
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
-        // inserido francis inicio
         mimetype = 'image/png';
-        // inserido francis inicio
-
       }
 
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'video.mp4';
-        // inserido francis inicio
         mimetype = 'video/mp4';
-        // inserido francis final
       }
-
- // ocultado francis inicio
-   //   let mimetype: string;
-
-
-   //   if (isURL(mediaMessage.media)) {
-   //     mimetype = getMIMEType(mediaMessage.media);
-   //   } else {
-   //     mimetype = getMIMEType(mediaMessage.fileName);
-   //   }
-  // ocultado francis final
 
       this.logger.verbose('Mimetype: ' + mimetype);
 
@@ -2714,6 +2702,7 @@ export class WAStartupService {
 
   public async markMessageAsRead(data: ReadMessageDto) {
     this.logger.verbose('Marking message as read');
+
     try {
       const keys: proto.IMessageKey[] = [];
       data.read_messages.forEach((read) => {
