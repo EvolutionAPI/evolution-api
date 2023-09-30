@@ -475,10 +475,19 @@ export class InstanceController {
     try {
       this.logger.verbose('requested restartInstance from ' + instanceName + ' instance');
 
-      this.logger.verbose('logging out instance: ' + instanceName);
-      this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
+      const instance = this.waMonitor.waInstances[instanceName];
+      const state = instance?.connectionStatus?.state;
 
-      return { status: 'SUCCESS', error: false, response: { message: 'Instance restarted' } };
+      switch (state) {
+        case 'open':
+          this.logger.verbose('logging out instance: ' + instanceName);
+          await instance.reloadConnection();
+          await delay(2000);
+
+          return await this.connectionState({ instanceName });
+        default:
+          return await this.connectionState({ instanceName });
+      }
     } catch (error) {
       this.logger.error(error);
     }

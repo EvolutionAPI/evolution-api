@@ -1247,6 +1247,74 @@ export class WAStartupService {
     }
   }
 
+  public async reloadConnection(): Promise<WASocket> {
+    try {
+      this.instance.authState = await this.defineAuthState();
+
+      const { version } = await fetchLatestBaileysVersion();
+      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+
+      let options;
+
+      if (this.localProxy.enabled) {
+        this.logger.verbose('Proxy enabled');
+        options = {
+          agent: new ProxyAgent(this.localProxy.proxy as any),
+          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
+        };
+      }
+
+      const socketConfig: UserFacingSocketConfig = {
+        ...options,
+        auth: {
+          creds: this.instance.authState.state.creds,
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
+        },
+        logger: P({ level: this.logBaileys }),
+        printQRInTerminal: false,
+        browser,
+        version,
+        markOnlineOnConnect: this.localSettings.always_online,
+        connectTimeoutMs: 60_000,
+        qrTimeout: 40_000,
+        defaultQueryTimeoutMs: undefined,
+        emitOwnEvents: false,
+        msgRetryCounterCache: this.msgRetryCounterCache,
+        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+        generateHighQualityLinkPreview: true,
+        syncFullHistory: true,
+        userDevicesCache: this.userDevicesCache,
+        transactionOpts: { maxCommitRetries: 1, delayBetweenTriesMs: 10 },
+        patchMessageBeforeSending: (message) => {
+          const requiresPatch = !!(message.buttonsMessage || message.listMessage || message.templateMessage);
+          if (requiresPatch) {
+            message = {
+              viewOnceMessageV2: {
+                message: {
+                  messageContextInfo: {
+                    deviceListMetadataVersion: 2,
+                    deviceListMetadata: {},
+                  },
+                  ...message,
+                },
+              },
+            };
+          }
+
+          return message;
+        },
+      };
+
+      this.client = makeWASocket(socketConfig);
+
+      return this.client;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(error?.toString());
+    }
+  }
+
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[], database: Database) => {
       this.logger.verbose('Event received: chats.upsert');

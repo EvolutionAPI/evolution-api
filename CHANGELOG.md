@@ -3,6 +3,7 @@
 ### Fixed
 
 * Remove rabbitmq queues when delete instances
+* Improvement in restart instance to completely redo the connection
 
 # 1.5.2 (2023-09-28 17:56)
 
