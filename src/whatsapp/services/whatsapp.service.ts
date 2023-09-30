@@ -40,6 +40,7 @@ import EventEmitter2 from 'eventemitter2';
 import fs, { existsSync, readFileSync } from 'fs';
 import Long from 'long';
 import NodeCache from 'node-cache';
+import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
@@ -65,7 +66,7 @@ import {
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
-import { getAMQP, removeQueues } from '../../libs/amqp.server';
+import { getAMQP } from '../../libs/amqp.server';
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import { getIO } from '../../libs/socket.server';
@@ -492,14 +493,6 @@ export class WAStartupService {
 
     this.logger.verbose(`Rabbitmq events: ${data.events}`);
     return data;
-  }
-
-  public async removeRabbitmqQueues() {
-    this.logger.verbose('Removing rabbitmq');
-
-    if (this.localRabbitmq.enabled) {
-      removeQueues(this.instanceName, this.localRabbitmq.events);
-    }
   }
 
   private async loadTypebot() {
@@ -1247,74 +1240,6 @@ export class WAStartupService {
     }
   }
 
-  public async reloadConnection(): Promise<WASocket> {
-    try {
-      this.instance.authState = await this.defineAuthState();
-
-      const { version } = await fetchLatestBaileysVersion();
-      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-
-      let options;
-
-      if (this.localProxy.enabled) {
-        this.logger.verbose('Proxy enabled');
-        options = {
-          agent: new ProxyAgent(this.localProxy.proxy as any),
-          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
-        };
-      }
-
-      const socketConfig: UserFacingSocketConfig = {
-        ...options,
-        auth: {
-          creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
-        },
-        logger: P({ level: this.logBaileys }),
-        printQRInTerminal: false,
-        browser,
-        version,
-        markOnlineOnConnect: this.localSettings.always_online,
-        connectTimeoutMs: 60_000,
-        qrTimeout: 40_000,
-        defaultQueryTimeoutMs: undefined,
-        emitOwnEvents: false,
-        msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: true,
-        userDevicesCache: this.userDevicesCache,
-        transactionOpts: { maxCommitRetries: 1, delayBetweenTriesMs: 10 },
-        patchMessageBeforeSending: (message) => {
-          const requiresPatch = !!(message.buttonsMessage || message.listMessage || message.templateMessage);
-          if (requiresPatch) {
-            message = {
-              viewOnceMessageV2: {
-                message: {
-                  messageContextInfo: {
-                    deviceListMetadataVersion: 2,
-                    deviceListMetadata: {},
-                  },
-                  ...message,
-                },
-              },
-            };
-          }
-
-          return message;
-        },
-      };
-
-      this.client = makeWASocket(socketConfig);
-
-      return this.client;
-    } catch (error) {
-      this.logger.error(error);
-      throw new InternalServerErrorException(error?.toString());
-    }
-  }
-
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[], database: Database) => {
       this.logger.verbose('Event received: chats.upsert');
@@ -1527,6 +1452,50 @@ export class WAStartupService {
         return;
       }
 
+    //----------------------Inserido por Amilton------------------------
+      let messageRaw: MessageRaw;
+
+      const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
+
+      if (globalWebhook.WEBHOOK_BASE64 === true && received?.message.documentMessage ||  received?.message.imageMessage  ) {
+        const buffer = await downloadMediaMessage(
+          { key: received.key, message: received?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }),
+            reuploadRequest: this.client.updateMediaMessage,
+          },
+        );
+
+        messageRaw = {
+          key: received.key,
+          pushName: received.pushName,
+          message: {
+            ...received.message,
+            base64: buffer ? buffer.toString('base64') : undefined,
+          },
+          messageType: getContentType(received.message),
+          messageTimestamp: received.messageTimestamp as number,
+          owner: this.instance.name,
+          source: getDevice(received.key.id),
+        };
+      } else {
+        messageRaw = {
+          key: received.key,
+          pushName: received.pushName,
+          message: { ...received.message },
+          messageType: getContentType(received.message),
+          messageTimestamp: received.messageTimestamp as number,
+          owner: this.instance.name,
+          source: getDevice(received.key.id),
+        };
+      }
+
+      // Fim----------------------Inserido por Amilton------------------------
+
+      // --------------------------Ocultado por Amilton-----------------------
+      /*
       const messageRaw: MessageRaw = {
         key: received.key,
         pushName: received.pushName,
@@ -1536,10 +1505,12 @@ export class WAStartupService {
         owner: this.instance.name,
         source: getDevice(received.key.id),
       };
+      */
 
       if (this.localSettings.read_messages && received.key.id !== 'status@broadcast') {
         await this.client.readMessages([received.key]);
       }
+
 
       if (this.localSettings.read_status && received.key.id === 'status@broadcast') {
         await this.client.readMessages([received.key]);
@@ -2383,17 +2354,36 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
+      // *inserido francis inicio
       let mimetype: string;
+      // *inserido francis final
+
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
+        // inserido francis inicio
         mimetype = 'image/png';
+        // inserido francis inicio
+
       }
 
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'video.mp4';
+        // inserido francis inicio
         mimetype = 'video/mp4';
+        // inserido francis final
       }
+
+ // ocultado francis inicio
+   //   let mimetype: string;
+
+
+   //   if (isURL(mediaMessage.media)) {
+   //     mimetype = getMIMEType(mediaMessage.media);
+   //   } else {
+   //     mimetype = getMIMEType(mediaMessage.fileName);
+   //   }
+  // ocultado francis final
 
       this.logger.verbose('Mimetype: ' + mimetype);
 
@@ -2770,7 +2760,6 @@ export class WAStartupService {
 
   public async markMessageAsRead(data: ReadMessageDto) {
     this.logger.verbose('Marking message as read');
-
     try {
       const keys: proto.IMessageKey[] = [];
       data.read_messages.forEach((read) => {
