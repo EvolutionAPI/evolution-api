@@ -121,7 +121,7 @@ export class TypebotService {
     if (enabled_typebot === true || enabled_typebot !== true && enabled_typebot !== false  ) {
 
     if (enabled_typebot !== true && enabled_typebot !== false  ) { 
-    enabled_typebot = true;
+    let enabled_typebot = true;
     }
 
 const response = await this.createNewSession(instance, {
