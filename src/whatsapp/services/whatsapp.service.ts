@@ -2321,19 +2321,11 @@ export class WAStartupService {
       let mimetype: string;
 
       // novo critério para adotar mimetype quando nao está presente na url e no filenemae - inicio
-    if (isURL(mediaMessage.media) {
-if (isURL(mediaMessage.media) {
-mimetype = getMIMEType(mediaMessage.media);
-} else {
-mimetype = getMIMEType(mediaMessage.fileName);
-}
-} else {
-if (mediaMessage.mediatype === 'image') {
- mimetype = 'image/png';
-}
-if (mediaMessage.mediatype === 'video') {
-mimetype = 'video/mp4';
-} 
+ if (isURL(mediaMessage.media)) {
+        mimetype = getMIMEType(mediaMessage.media);
+      } else {
+        mimetype = getMIMEType(mediaMessage.fileName);
+      }
       // novo critério para adotar mimetype quando nao está presente na url e no filenemae - fim
  
       this.logger.verbose('Mimetype: ' + mimetype);
