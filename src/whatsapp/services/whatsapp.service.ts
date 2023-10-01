@@ -2320,7 +2320,7 @@ export class WAStartupService {
  
       let mimetype: string;
 
-      // novo critério para adotar mimetype quando nao está presente na url e no filenemae - inicio
+      // novo critério para adotar mimetype quando nao está presente na url e no filename - inicio
       if (isURL(mediaMessage.media) || mediaMessage.fileName) {
       if (isURL(mediaMessage.media)) {
         mimetype = getMIMEType(mediaMessage.media);
@@ -2335,7 +2335,7 @@ export class WAStartupService {
         mimetype = 'video/mp4';
       }     
       }
-      // novo critério para adotar mimetype quando nao está presente na url e no filenemae - fim
+      // novo critério para adotar mimetype quando nao está presente na url e no filename - fim
  
       this.logger.verbose('Mimetype: ' + mimetype);
 
