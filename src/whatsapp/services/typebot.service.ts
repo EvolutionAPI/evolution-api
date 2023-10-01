@@ -118,11 +118,10 @@ export class TypebotService {
       prefilledVariables[variable.name] = variable.value;
     });
     // linha incluida  por Francis:
-    if (enabled_typebot === true || enabled_typebot !== true && enabled_typebot !== false  ) {
-
-    if (enabled_typebot !== true && enabled_typebot !== false  ) { 
+    if (enabled_typebot !== false  ) {
+ 
     let enabled_typebot = true;
-    }
+  
 
 const response = await this.createNewSession(instance, {
       url: url,
