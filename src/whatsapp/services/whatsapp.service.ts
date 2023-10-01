@@ -2308,37 +2308,35 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
-      // *inserido francis inicio
-      let mimetype: string;
-      // *inserido francis final
-
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
-        mediaMessage.fileName = 'image.png';
-        // inserido francis inicio
-        mimetype = 'image/png';
-        // inserido francis inicio
-
+       mediaMessage.fileName = 'image.png';     
       }
 
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'video.mp4';
-        // inserido francis inicio
-        mimetype = 'video/mp4';
-        // inserido francis final
       }
 
- // ocultado francis inicio
-   //   let mimetype: string;
+ 
+      let mimetype: string;
 
-
-   //   if (isURL(mediaMessage.media)) {
-   //     mimetype = getMIMEType(mediaMessage.media);
-   //   } else {
-   //     mimetype = getMIMEType(mediaMessage.fileName);
-   //   }
-  // ocultado francis final
-
+      // novo critério para adotar mimetype quando nao está presente na url e no filename - inicio
+      if (isURL(mediaMessage.media) || mediaMessage.fileName) {
+      if (isURL(mediaMessage.media)) {
+        mimetype = getMIMEType(mediaMessage.media);
+      } else {
+        mimetype = getMIMEType(mediaMessage.fileName);
+      }
+      } else {
+      if (mediaMessage.mediatype === 'image') {
+        mimetype = 'image/png';
+      }
+      if (mediaMessage.mediatype === 'video') {
+        mimetype = 'video/mp4';
+      }     
+      }
+      // novo critério para adotar mimetype quando nao está presente na url e no filename - fim
+ 
       this.logger.verbose('Mimetype: ' + mimetype);
 
       prepareMedia[mediaType].caption = mediaMessage?.caption;
