@@ -120,6 +120,10 @@ export class TypebotService {
     // linha incluida  por Francis:
     if (enabled_typebot === true || enabled_typebot !== true && enabled_typebot !== false  ) {
 
+    if (enabled_typebot !== true && enabled_typebot !== false  ) { 
+    enabled_typebot = true;
+    }
+
 const response = await this.createNewSession(instance, {
       url: url,
       // linha incluida  por Francis:
