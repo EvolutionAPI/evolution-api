@@ -118,7 +118,10 @@ export class TypebotService {
       prefilledVariables[variable.name] = variable.value;
     });
     // linha incluida  por Francis:
-    if (enabled_typebot === true) {
+    if (enabled_typebot !== false  ) {
+ 
+    let enabled_typebot = true;
+  
 
 const response = await this.createNewSession(instance, {
       url: url,
@@ -189,6 +192,23 @@ const id = Math.floor(Math.random() * 10000000000).toString();
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // ate aqui
