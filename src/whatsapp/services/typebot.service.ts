@@ -125,7 +125,8 @@ export class TypebotService {
 
 const response = await this.createNewSession(instance, {
       url: url,
-      // linha incluida  por Francis:
+      // linha incluida  por Francis new5:
+      enabled: true,
       enabled_typebot: enabled_typebot,
       typebot: typebot,
       remoteJid: remoteJid,
