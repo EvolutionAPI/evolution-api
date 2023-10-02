@@ -111,6 +111,7 @@ export class TypebotService {
 
     const prefilledVariables = {
       remoteJid: remoteJid,
+      instanceName: instance.instanceName,
     };
 
     variables.forEach((variable) => {
@@ -525,7 +526,7 @@ export class TypebotService {
       return;
     }
 
-    if (content.toLowerCase() === keyword_finish.toLowerCase()) {
+    if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
       sessions.splice(sessions.indexOf(session), 1);
 
       const typebotData = {
