@@ -2335,6 +2335,7 @@ export class WAStartupService {
         mimetype = 'video/mp4';
       }     
       }
+
       // novo critério para adotar mimetype quando nao está presente na url e no filename - fim
  
       this.logger.verbose('Mimetype: ' + mimetype);
