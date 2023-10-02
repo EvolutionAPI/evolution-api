@@ -125,8 +125,7 @@ export class TypebotService {
 
 const response = await this.createNewSession(instance, {
       url: url,
-      // linha incluida  por Francis new5:
-      enabled: true,
+      // linha incluida  por Francis
       enabled_typebot: enabled_typebot,
       typebot: typebot,
       remoteJid: remoteJid,
@@ -202,8 +201,8 @@ const id = Math.floor(Math.random() * 10000000000).toString();
       typebot: {
         ...instance,
         typebot: {
-          // linha incluida  por Francis neu 4:
-       //   enabled_typebot: enabled_typebot,
+          // linha incluida  por Francis:
+          enabled_typebot: enabled_typebot,
           url: url,
           remoteJid: remoteJid,
           typebot: typebot,
@@ -282,8 +281,9 @@ const id = Math.floor(Math.random() * 10000000000).toString();
       });
 
       const typebotData = {
-        // linha incluida  por Francis new4:
-        // enabled: data.enabled_typebot,
+        // linha incluida  por Francis new 4:
+       // enabled: data.enabled_typebot,
+        enabled: true,
         url: data.url,
         typebot: data.typebot,
         expire: data.expire,
