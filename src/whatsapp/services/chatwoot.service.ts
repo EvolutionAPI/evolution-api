@@ -1279,7 +1279,7 @@ export class ChatwootService {
         return null;
       }
 
-      if (event === 'messages.upsert') {
+      if (event === 'messages.upsert' || event === 'send.messages') {
         this.logger.verbose('event messages.upsert');
 
         if (body.key.remoteJid === 'status@broadcast') {

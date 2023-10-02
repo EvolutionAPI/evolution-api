@@ -40,6 +40,7 @@ import EventEmitter2 from 'eventemitter2';
 import fs, { existsSync, readFileSync } from 'fs';
 import Long from 'long';
 import NodeCache from 'node-cache';
+import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
@@ -2387,12 +2388,16 @@ export class WAStartupService {
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
-        mimetype = 'image/png';
       }
 
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'video.mp4';
-        mimetype = 'video/mp4';
+      }
+
+      if (isURL(mediaMessage.media)) {
+        mimetype = getMIMEType(mediaMessage.media);
+      } else {
+        mimetype = getMIMEType(mediaMessage.fileName);
       }
 
       this.logger.verbose('Mimetype: ' + mimetype);

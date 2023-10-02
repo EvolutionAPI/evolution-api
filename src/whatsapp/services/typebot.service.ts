@@ -99,6 +99,7 @@ export class TypebotService {
     const remoteJid = data.remoteJid;
     const url = data.url;
     const typebot = data.typebot;
+    const startSession = data.startSession;
     const variables = data.variables;
     const findTypebot = await this.find(instance);
     const sessions = (findTypebot.sessions as Session[]) ?? [];
@@ -116,37 +117,61 @@ export class TypebotService {
       prefilledVariables[variable.name] = variable.value;
     });
 
-    const response = await this.createNewSession(instance, {
-      url: url,
-      typebot: typebot,
-      remoteJid: remoteJid,
-      expire: expire,
-      keyword_finish: keyword_finish,
-      delay_message: delay_message,
-      unknown_message: unknown_message,
-      listening_from_me: listening_from_me,
-      sessions: sessions,
-      prefilledVariables: prefilledVariables,
-    });
+    if (startSession) {
+      const response = await this.createNewSession(instance, {
+        url: url,
+        typebot: typebot,
+        remoteJid: remoteJid,
+        expire: expire,
+        keyword_finish: keyword_finish,
+        delay_message: delay_message,
+        unknown_message: unknown_message,
+        listening_from_me: listening_from_me,
+        sessions: sessions,
+        prefilledVariables: prefilledVariables,
+      });
 
-    if (response.sessionId) {
+      if (response.sessionId) {
+        await this.sendWAMessage(instance, remoteJid, response.messages, response.input, response.clientSideActions);
+
+        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
+          remoteJid: remoteJid,
+          url: url,
+          typebot: typebot,
+          prefilledVariables: prefilledVariables,
+          sessionId: `${response.sessionId}`,
+        });
+      } else {
+        throw new Error('Session ID not found in response');
+      }
+    } else {
+      const id = Math.floor(Math.random() * 10000000000).toString();
+
+      const reqData = {
+        sessionId: id,
+        startParams: {
+          typebot: data.typebot,
+          prefilledVariables: prefilledVariables,
+        },
+      };
+
+      const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+
       await this.sendWAMessage(
         instance,
         remoteJid,
-        response.messages,
-        response.input,
-        response.clientSideActions,
+        request.data.messages,
+        request.data.input,
+        request.data.clientSideActions,
       );
 
       this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
         remoteJid: remoteJid,
         url: url,
         typebot: typebot,
-        prefilledVariables: prefilledVariables,
-        sessionId: `${response.sessionId}`, 
+        variables: variables,
+        sessionId: id,
       });
-    } else {
-        throw new Error("Session ID not found in response");
     }
 
     return {
@@ -227,7 +252,7 @@ export class TypebotService {
           remoteJid: data.remoteJid,
           pushName: data.pushName || 'Default Name',
           instanceName: instance.instanceName,
-        }
+        },
       });
 
       const typebotData = {
