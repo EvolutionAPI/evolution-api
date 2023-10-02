@@ -10,6 +10,8 @@
 * Improvement in restart instance to completely redo the connection
 * Update node version: v20
 * Correction of messages sent by the api and typebot not appearing in chatwoot
+* Adjustment to start typebot, added startSession parameter
+* Chatwoot now receives messages sent via api and typebot
 
 # 1.5.2 (2023-09-28 17:56)
 

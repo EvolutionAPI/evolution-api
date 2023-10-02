@@ -1132,7 +1132,7 @@ export class ChatwootService {
       thumbnailUrl: string;
       sourceUrl: string;
     }
-    const adsMessage: AdsMessage | undefined = msg.extendedTextMessage?.contextInfo.externalAdReply;
+    const adsMessage: AdsMessage | undefined = msg.extendedTextMessage?.contextInfo?.externalAdReply;
 
     this.logger.verbose('Get ads message if it exist');
     adsMessage && this.logger.verbose('Ads message: ' + adsMessage);
@@ -1279,7 +1279,7 @@ export class ChatwootService {
         return null;
       }
 
-      if (event === 'messages.upsert' || event === 'send.messages') {
+      if (event === 'messages.upsert' || event === 'send.message') {
         this.logger.verbose('event messages.upsert');
 
         if (body.key.remoteJid === 'status@broadcast') {
