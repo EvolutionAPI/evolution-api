@@ -99,7 +99,6 @@ export class TypebotService {
     const remoteJid = data.remoteJid;
     const url = data.url;
     const typebot = data.typebot;
-    const enabled_typebot = data.enabled_typebot;
     const variables = data.variables;
     const findTypebot = await this.find(instance);
     const sessions = (findTypebot.sessions as Session[]) ?? [];
@@ -117,13 +116,8 @@ export class TypebotService {
       prefilledVariables[variable.name] = variable.value;
     });
 
-    if (enabled_typebot !== false  ) {
-   let enabled_typebot = true;
-  
-
-const response = await this.createNewSession(instance, {
+    const response = await this.createNewSession(instance, {
       url: url,
-      enabled_typebot: enabled_typebot,
       typebot: typebot,
       remoteJid: remoteJid,
       expire: expire,
@@ -147,7 +141,6 @@ const response = await this.createNewSession(instance, {
       this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
         remoteJid: remoteJid,
         url: url,
-        enabled_typebot: enabled_typebot,
         typebot: typebot,
         prefilledVariables: prefilledVariables,
         sessionId: `${response.sessionId}`, 
@@ -155,45 +148,11 @@ const response = await this.createNewSession(instance, {
     } else {
         throw new Error("Session ID not found in response");
     }
-  
-} else {
-
-const id = Math.floor(Math.random() * 10000000000).toString();
-
-    const reqData = {
-      sessionId: id,
-      startParams: {
-        typebot: data.typebot,
-        prefilledVariables: prefilledVariables,
-      },
-    };
-
-    const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
-
-    await this.sendWAMessage(
-      instance,
-      remoteJid,
-      request.data.messages,
-      request.data.input,
-      request.data.clientSideActions,
-    );
-
-    this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
-      remoteJid: remoteJid,
-      url: url,
-      typebot: typebot,
-      variables: variables,
-      sessionId: id,
-    });
-
-
-}
 
     return {
       typebot: {
         ...instance,
         typebot: {
-          enabled_typebot: enabled_typebot,
           url: url,
           remoteJid: remoteJid,
           typebot: typebot,
@@ -545,6 +504,7 @@ const id = Math.floor(Math.random() * 10000000000).toString();
       sessions.splice(sessions.indexOf(session), 1);
 
       const typebotData = {
+        enabled: true,
         url: url,
         typebot: typebot,
         expire: expire,
