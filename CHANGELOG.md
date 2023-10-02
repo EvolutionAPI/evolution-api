@@ -12,6 +12,7 @@
 * Correction of messages sent by the api and typebot not appearing in chatwoot
 * Adjustment to start typebot, added startSession parameter
 * Chatwoot now receives messages sent via api and typebot
+* Fixed problem with starting with an input in typebot
 
 # 1.5.2 (2023-09-28 17:56)
 

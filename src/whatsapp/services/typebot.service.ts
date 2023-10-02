@@ -149,7 +149,6 @@ export class TypebotService {
       const id = Math.floor(Math.random() * 10000000000).toString();
 
       const reqData = {
-        sessionId: id,
         startParams: {
           typebot: data.typebot,
           prefilledVariables: prefilledVariables,
@@ -227,7 +226,6 @@ export class TypebotService {
   public async createNewSession(instance: InstanceDto, data: any) {
     const id = Math.floor(Math.random() * 10000000000).toString();
     const reqData = {
-      sessionId: id,
       startParams: {
         typebot: data.typebot,
         prefilledVariables: {
@@ -461,6 +459,62 @@ export class TypebotService {
 
         await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
 
+        if (data.messages.length === 0) {
+          const content = this.getConversationMessage(msg.message);
+
+          if (!content) {
+            if (unknown_message) {
+              this.waMonitor.waInstances[instance.instanceName].textMessage({
+                number: remoteJid.split('@')[0],
+                options: {
+                  delay: delay_message || 1000,
+                  presence: 'composing',
+                },
+                textMessage: {
+                  text: unknown_message,
+                },
+              });
+            }
+            return;
+          }
+
+          if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+            sessions.splice(sessions.indexOf(session), 1);
+
+            const typebotData = {
+              enabled: true,
+              url: url,
+              typebot: typebot,
+              expire: expire,
+              keyword_finish: keyword_finish,
+              delay_message: delay_message,
+              unknown_message: unknown_message,
+              listening_from_me: listening_from_me,
+              sessions,
+            };
+
+            this.create(instance, typebotData);
+
+            return;
+          }
+
+          const reqData = {
+            message: content,
+            sessionId: data.sessionId,
+          };
+
+          const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+          console.log('request', request);
+          await this.sendWAMessage(
+            instance,
+            remoteJid,
+            request.data.messages,
+            request.data.input,
+            request.data.clientSideActions,
+          );
+        }
+
         return;
       }
     }
@@ -485,6 +539,61 @@ export class TypebotService {
 
       await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
 
+      if (data.messages.length === 0) {
+        const content = this.getConversationMessage(msg.message);
+
+        if (!content) {
+          if (unknown_message) {
+            this.waMonitor.waInstances[instance.instanceName].textMessage({
+              number: remoteJid.split('@')[0],
+              options: {
+                delay: delay_message || 1000,
+                presence: 'composing',
+              },
+              textMessage: {
+                text: unknown_message,
+              },
+            });
+          }
+          return;
+        }
+
+        if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+          sessions.splice(sessions.indexOf(session), 1);
+
+          const typebotData = {
+            enabled: true,
+            url: url,
+            typebot: typebot,
+            expire: expire,
+            keyword_finish: keyword_finish,
+            delay_message: delay_message,
+            unknown_message: unknown_message,
+            listening_from_me: listening_from_me,
+            sessions,
+          };
+
+          this.create(instance, typebotData);
+
+          return;
+        }
+
+        const reqData = {
+          message: content,
+          sessionId: data.sessionId,
+        };
+
+        const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+        console.log('request', request);
+        await this.sendWAMessage(
+          instance,
+          remoteJid,
+          request.data.messages,
+          request.data.input,
+          request.data.clientSideActions,
+        );
+      }
       return;
     }
 
