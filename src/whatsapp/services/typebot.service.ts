@@ -118,8 +118,7 @@ export class TypebotService {
     });
 
     if (enabled_typebot !== false  ) {
- 
-    let enabled_typebot = true;
+   let enabled_typebot = true;
   
 
 const response = await this.createNewSession(instance, {
