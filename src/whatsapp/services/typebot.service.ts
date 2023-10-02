@@ -281,8 +281,8 @@ const id = Math.floor(Math.random() * 10000000000).toString();
       });
 
       const typebotData = {
-        // linha incluida  por Francis:
-        enabled: data.enabled_typebot,
+        // linha incluida  por Francis new3:
+        enabled: true,
         url: data.url,
         typebot: data.typebot,
         expire: data.expire,
