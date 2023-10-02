@@ -40,6 +40,7 @@ router
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
       version: packageJson.version,
+      documentation: `${req.protocol}://${req.get('host')}/docs`,
     });
   })
   .use('/instance', new InstanceRouter(configService, ...guards).router)

@@ -1,9 +1,14 @@
 # 1.5.3 (develop)
 
+### Feature
+
+* Swagger documentation
+
 ### Fixed
 
 * Remove rabbitmq queues when delete instances
 * Improvement in restart instance to completely redo the connection
+* Update node version: v20
 
 # 1.5.2 (2023-09-28 17:56)
 
