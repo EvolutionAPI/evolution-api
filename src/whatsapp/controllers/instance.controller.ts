@@ -41,6 +41,7 @@ export class InstanceController {
     instanceName,
     webhook,
     webhook_by_events,
+    webhook_base64,
     events,
     qrcode,
     number,
@@ -139,6 +140,7 @@ export class InstanceController {
             url: webhook,
             events: newEvents,
             webhook_by_events,
+            webhook_base64,
           });
 
           webhookEvents = (await this.webhookService.find(instance)).events;
@@ -297,6 +299,7 @@ export class InstanceController {
           webhook: {
             webhook,
             webhook_by_events,
+            webhook_base64,
             events: webhookEvents,
           },
           websocket: {
@@ -390,6 +393,7 @@ export class InstanceController {
         webhook: {
           webhook,
           webhook_by_events,
+          webhook_base64,
           events: webhookEvents,
         },
         websocket: {
