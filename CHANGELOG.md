@@ -9,10 +9,10 @@
 * Remove rabbitmq queues when delete instances
 * Improvement in restart instance to completely redo the connection
 * Update node version: v20
-* Correction of messages sent by the api and typebot not appearing in chatwoot
-* Adjustment to start typebot, added startSession parameter
-* Chatwoot now receives messages sent via api and typebot
-* Fixed problem with starting with an input in typebot
+* Correction of messages sent by the api and Typebot not appearing in chatwoot
+* Adjustment to start Typebot, added startSession parameter
+* Chatwoot now receives messages sent via api and Typebot
+* Fixed problem with starting with an input in Typebot
 
 # 1.5.2 (2023-09-28 17:56)
 
