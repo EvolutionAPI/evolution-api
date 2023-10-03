@@ -5,6 +5,7 @@ export class InstanceDto {
   token?: string;
   webhook?: string;
   webhook_by_events?: boolean;
+  webhook_base64?: boolean;
   events?: string[];
   reject_call?: boolean;
   msg_call?: string;
