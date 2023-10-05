@@ -114,9 +114,11 @@ export class TypebotService {
       instanceName: instance.instanceName,
     };
 
-    variables.forEach((variable) => {
-      prefilledVariables[variable.name] = variable.value;
-    });
+    if (variables?.length) {
+      variables.forEach((variable: { name: string | number; value: string }) => {
+        prefilledVariables[variable.name] = variable.value;
+      });
+    }
 
     if (startSession) {
       const response = await this.createNewSession(instance, {
