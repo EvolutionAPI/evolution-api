@@ -97,6 +97,7 @@ WEBHOOK:
     WEBHOOK_BY_EVENTS: false
   # Automatically maps webhook paths
   # Set the events you want to hear
+    WEBHOOK_BASE64: false 
   EVENTS:
     APPLICATION_STARTUP: false
     QRCODE_UPDATED: true

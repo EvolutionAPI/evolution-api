@@ -26,7 +26,7 @@ export class WebhookService {
 
       return result;
     } catch (error) {
-      return { enabled: false, url: '', events: [], webhook_by_events: false };
+       return { enabled: false, url: '', events: [], webhook_by_events: false, webhook_base64 : false };
     }
   }
 }
