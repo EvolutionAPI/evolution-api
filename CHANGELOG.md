@@ -3,6 +3,7 @@
 ### Feature
 
 * Swagger documentation
+* Added base 64 sending option via webhook
 
 ### Fixed
 
@@ -13,6 +14,7 @@
 * Adjustment to start typebot, added startSession parameter
 * Chatwoot now receives messages sent via api and typebot
 * Fixed problem with starting with an input in typebot
+* Added check to ensure variables are not empty before executing foreach in start typebot
 
 # 1.5.2 (2023-09-28 17:56)
 
