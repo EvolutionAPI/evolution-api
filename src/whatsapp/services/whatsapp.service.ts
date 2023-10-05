@@ -279,7 +279,6 @@ export class WAStartupService {
     this.localWebhook.webhook_base64 = data?.webhook_base64;
     this.logger.verbose(`Webhook by webhook_base64: ${this.localWebhook.webhook_base64}`);
 
-
     this.logger.verbose('Webhook loaded');
   }
 
@@ -1533,8 +1532,11 @@ export class WAStartupService {
       }
 
       let messageRaw: MessageRaw;
-      const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
-      if (this.localWebhook.webhook_base64 === true && received?.message.documentMessage ||  received?.message.imageMessage  ) {
+
+      if (
+        (this.localWebhook.webhook_base64 === true && received?.message.documentMessage) ||
+        received?.message.imageMessage
+      ) {
         const buffer = await downloadMediaMessage(
           { key: received.key, message: received?.message },
           'buffer',
