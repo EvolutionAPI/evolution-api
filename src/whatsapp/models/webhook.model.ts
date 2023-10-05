@@ -8,6 +8,7 @@ export class WebhookRaw {
   enabled?: boolean;
   events?: string[];
   webhook_by_events?: boolean;
+  webhook_base64?: boolean;
 }
 
 const webhookSchema = new Schema<WebhookRaw>({
@@ -16,6 +17,7 @@ const webhookSchema = new Schema<WebhookRaw>({
   enabled: { type: Boolean, required: true },
   events: { type: [String], required: true },
   webhook_by_events: { type: Boolean, required: true },
+  webhook_base64: { type: Boolean, required: true },
 });
 
 export const WebhookModel = dbserver?.model(WebhookRaw.name, webhookSchema, 'webhook');

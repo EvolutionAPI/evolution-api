@@ -276,6 +276,10 @@ export class WAStartupService {
     this.localWebhook.webhook_by_events = data?.webhook_by_events;
     this.logger.verbose(`Webhook by events: ${this.localWebhook.webhook_by_events}`);
 
+    this.localWebhook.webhook_base64 = data?.webhook_base64;
+    this.logger.verbose(`Webhook by webhook_base64: ${this.localWebhook.webhook_base64}`);
+
+
     this.logger.verbose('Webhook loaded');
   }
 
@@ -1528,15 +1532,42 @@ export class WAStartupService {
         return;
       }
 
-      const messageRaw: MessageRaw = {
-        key: received.key,
-        pushName: received.pushName,
-        message: { ...received.message },
-        messageType: getContentType(received.message),
-        messageTimestamp: received.messageTimestamp as number,
-        owner: this.instance.name,
-        source: getDevice(received.key.id),
-      };
+      let messageRaw: MessageRaw;
+      const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
+      if (this.localWebhook.webhook_base64 === true && received?.message.documentMessage ||  received?.message.imageMessage  ) {
+        const buffer = await downloadMediaMessage(
+          { key: received.key, message: received?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }),
+            reuploadRequest: this.client.updateMediaMessage,
+          },
+        );
+        console.log(buffer);
+        messageRaw = {
+          key: received.key,
+          pushName: received.pushName,
+          message: {
+            ...received.message,
+            base64: buffer ? buffer.toString('base64') : undefined,
+          },
+          messageType: getContentType(received.message),
+          messageTimestamp: received.messageTimestamp as number,
+          owner: this.instance.name,
+          source: getDevice(received.key.id),
+        };
+      } else {
+        messageRaw = {
+          key: received.key,
+          pushName: received.pushName,
+          message: { ...received.message },
+          messageType: getContentType(received.message),
+          messageTimestamp: received.messageTimestamp as number,
+          owner: this.instance.name,
+          source: getDevice(received.key.id),
+        };
+      }
 
       if (this.localSettings.read_messages && received.key.id !== 'status@broadcast') {
         await this.client.readMessages([received.key]);
