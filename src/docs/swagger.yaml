@@ -23,7 +23,7 @@ info:
       This project is based on the [evolution](https://github.com/code-chat-br/whatsapp-api). The original project is an implementation of [Baileys](https://github.com/WhiskeySockets/Baileys), serving as a Restful API service that controls WhatsApp functions.</br> 
       The code allows the creation of multiservice chats, service bots, or any other system that utilizes WhatsApp. The documentation provides instructions on how to set up and use the project, as well as additional information about its features and configuration options.
     </font>
-  
+
     [![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/26869335-5546d063-156b-4529-915f-909dd628c090?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D26869335-5546d063-156b-4529-915f-909dd628c090%26entityType%3Dcollection%26workspaceId%3D339a4ee7-378b-45c9-b5b8-fd2c0a9c2442)
   version: 1.5.2
   contact:
@@ -83,13 +83,13 @@ paths:
                   type: boolean
                   description: QR Code of the instance (optional).
               example:
-                instanceName: 'exampleInstance'
-                token: '87F3F7D0-4B8A-45D0-8618-7399E4AD6469'
+                instanceName: "exampleInstance"
+                token: "87F3F7D0-4B8A-45D0-8618-7399E4AD6469"
                 qrcode: true
       security:
         - apikeyAuth: []
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -106,15 +106,15 @@ paths:
           schema:
             type: string
           description: Retrieve one or all instances (optional).
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
               schema:
                 type: array
-                items: 
+                items:
                   type: object
                   properties:
                     instance:
@@ -148,9 +148,9 @@ paths:
           schema:
             type: string
           description: Connect to your instance.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json:
@@ -162,6 +162,24 @@ paths:
                   base64:
                     type: string
                     description: The QR Code as a string.
+  /instance/restart/{instanceName}:
+    put:
+      tags:
+        - Instance Controller
+      summary: Instance Restart
+      parameters:
+        - name: instanceName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Connect to your instance.
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
   /instance/connectionState/{instanceName}:
     get:
       tags:
@@ -174,9 +192,9 @@ paths:
           schema:
             type: string
           description: Check the connection state of your instance.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -192,9 +210,9 @@ paths:
           schema:
             type: string
           description: Logout from your instance.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -210,9 +228,9 @@ paths:
           schema:
             type: string
           description: Delete your instance.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -232,14 +250,14 @@ paths:
                 number:
                   type: string
                   description: The recipient's phone number.
-                  example: '1234567890'
+                  example: "1234567890"
                 textMessage:
                   type: object
                   properties:
                     text:
                       type: string
                       description: The content of the text message.
-                      example: 'Hello, World!'
+                      example: "Hello, World!"
                 options:
                   type: object
                   properties:
@@ -248,8 +266,43 @@ paths:
                       description: Delay time before sending the message.
                     presence:
                       type: string
-                      enum: ['composing', 'recording', 'paused']
+                      enum: ["composing", "recording", "paused"]
                       description: Indicates the sender's action/status.
+                    linkPreview:
+                      type: boolean
+                      description: Indicates whether to enable link preview.
+                    quoted:
+                      type: object
+                      properties:
+                        key:
+                          type: object
+                          properties:
+                            remoteJid:
+                              type: string
+                              description: The ID of the recipient of the original message.
+                            fromMe:
+                              type: boolean
+                              description: Indicates if the message was sent from the user.
+                            id:
+                              type: string
+                              description: The ID of the original message.
+                        message:
+                          type: object
+                          properties:
+                            conversation:
+                              type: string
+                              description: The content of the quoted message.
+                    mentions:
+                      type: object
+                      properties:
+                        everyone:
+                          type: boolean
+                          description: Indicates whether to mention everyone.
+                        mentioned:
+                          type: array
+                          items:
+                            type: string
+                            description: The phone numbers of the users to be mentioned.
               required:
                 - number
                 - textMessage
@@ -260,9 +313,61 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the message should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /message/sendStatus/{instanceName}:
+    post:
+      tags:
+        - Send Message Controller
+      summary: Send a status message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                statusMessage:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: ["text", "image", "video", "audio"]
+                      description: Type of the status message.
+                    content:
+                      type: string
+                      description: The content of the status message.
+                    backgroundColor:
+                      type: string
+                      description: The background color of the status message.
+                    font:
+                      type: integer
+                      enum: [1, 2, 3, 4, 5]
+                      description: The font of the status message.
+                    allContacts:
+                      type: boolean
+                      description: Indicates whether to send the status message to all contacts.
+                    statusJidList:
+                      type: array
+                      items:
+                        type: string
+                        description: The phone numbers of the users to whom the status message should be sent.
+                  required:
+                    - type
+      parameters:
+        - name: instanceName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the instance to which the status message should be sent.
+          example: "evolution"
+      responses:
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -281,13 +386,13 @@ paths:
                 number:
                   type: string
                   description: The recipient's phone number.
-                  example: '1234567890'
+                  example: "1234567890"
                 mediaMessage:
                   type: object
                   properties:
                     mediatype:
                       type: string
-                      enum: ['image', 'document', 'video', 'audio']
+                      enum: ["image", "document", "video", "audio"]
                       description: Type of the media content.
                     fileName:
                       type: string
@@ -309,8 +414,43 @@ paths:
                       description: Delay time before sending the message.
                     presence:
                       type: string
-                      enum: ['composing', 'recording', 'paused']
+                      enum: ["composing", "recording", "paused"]
                       description: Indicates the sender's action/status.
+                    linkPreview:
+                      type: boolean
+                      description: Indicates whether to enable link preview.
+                    quoted:
+                      type: object
+                      properties:
+                        key:
+                          type: object
+                          properties:
+                            remoteJid:
+                              type: string
+                              description: The ID of the recipient of the original message.
+                            fromMe:
+                              type: boolean
+                              description: Indicates if the message was sent from the user.
+                            id:
+                              type: string
+                              description: The ID of the original message.
+                        message:
+                          type: object
+                          properties:
+                            conversation:
+                              type: string
+                              description: The content of the quoted message.
+                    mentions:
+                      type: object
+                      properties:
+                        everyone:
+                          type: boolean
+                          description: Indicates whether to mention everyone.
+                        mentioned:
+                          type: array
+                          items:
+                            type: string
+                            description: The phone numbers of the users to be mentioned.
       parameters:
         - name: instanceName
           in: path
@@ -318,60 +458,146 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the media message should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
-  /message/sendMediaFile/{instanceName}:
+  /message/sendWhatsAppAudio/{instanceName}:
     post:
       tags:
         - Send Message Controller
-      summary: Send a media file (image, video, document, audio) directly to a specified instance.
+      summary: Send an audio message via WhatsApp to a specified instance.
+      description: This endpoint allows users to share an audio message.
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
               properties:
                 number:
                   type: string
                   description: The recipient's phone number.
-                  example: '1234567890'
-                caption:
-                  type: string
-                  description: Caption to accompany the media (optional).
-                attachment:
-                  type: string
-                  format: binary
-                  description: The media file to be sent.
-                mediatype:
-                  type: string
-                  enum: ['image', 'document', 'video', 'audio']
-                  description: Type of the media content.
-                presence:
-                  type: string
-                  enum: ['composing', 'recording', 'paused']
-                  description: Indicates the sender's action/status (optional).
-                delay:
-                  type: integer
-                  description: Delay time before sending the message (optional).
+                  example: "1234567890"
+                audioMessage:
+                  type: object
+                  properties:
+                    audio:
+                      type: string
+                      description: URL of the audio file to be sent.
+                  required:
+                    - audio
+                options:
+                  type: object
+                  properties:
+                    delay:
+                      type: integer
+                      description: Delay time before sending the message.
+                    presence:
+                      type: string
+                      enum: ["composing", "recording", "paused"]
+                      description: Indicates the sender's action/status.
+                    linkPreview:
+                      type: boolean
+                      description: Indicates whether to enable link preview.
+                    quoted:
+                      type: object
+                      properties:
+                        key:
+                          type: object
+                          properties:
+                            remoteJid:
+                              type: string
+                              description: The ID of the recipient of the original message.
+                            fromMe:
+                              type: boolean
+                              description: Indicates if the message was sent from the user.
+                            id:
+                              type: string
+                              description: The ID of the original message.
+                        message:
+                          type: object
+                          properties:
+                            conversation:
+                              type: string
+                              description: The content of the quoted message.
+                    mentions:
+                      type: object
+                      properties:
+                        everyone:
+                          type: boolean
+                          description: Indicates whether to mention everyone.
+                        mentioned:
+                          type: array
+                          items:
+                            type: string
+                            description: The phone numbers of the users to be mentioned.
               required:
                 - number
-                - attachment
-                - mediatype
+                - audioMessage.audio
       parameters:
         - name: instanceName
           in: path
           required: true
           schema:
             type: string
-          description: The name of the instance to which the media file should be sent.
-          example: 'evolution'
+          description: The name of the instance to which the audio should be sent.
+          example: "evolution"
       responses:
-        '200':
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /message/sendSticker/{instanceName}:
+    post:
+      tags:
+        - Send Message Controller
+      summary: Send an sticker to a specified instance.
+      description: This endpoint allows users to share an sticker message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                  description: The recipient's phone number.
+                  example: "1234567890"
+                stickerMessage:
+                  type: object
+                  properties:
+                    image:
+                      type: string
+                      description: URL of the audio file to be sent.
+                  required:
+                    - image
+                options:
+                  type: object
+                  properties:
+                    delay:
+                      type: integer
+                      description: Delay time before sending the message.
+                    presence:
+                      type: string
+                      enum: ["composing", "recording", "paused"]
+                      description: Indicates the sender's action/status.
+              required:
+                - number
+                - audioMessage.audio
+      parameters:
+        - name: instanceName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the instance to which the audio should be sent.
+          example: "evolution"
+      responses:
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -391,7 +617,7 @@ paths:
                 number:
                   type: string
                   description: The recipient's phone number.
-                  example: '1234567890'
+                  example: "1234567890"
                 locationMessage:
                   type: object
                   properties:
@@ -417,8 +643,43 @@ paths:
                       description: Delay time before sending the message.
                     presence:
                       type: string
-                      enum: ['composing', 'recording', 'paused']
+                      enum: ["composing", "recording", "paused"]
                       description: Indicates the sender's action/status.
+                    linkPreview:
+                      type: boolean
+                      description: Indicates whether to enable link preview.
+                    quoted:
+                      type: object
+                      properties:
+                        key:
+                          type: object
+                          properties:
+                            remoteJid:
+                              type: string
+                              description: The ID of the recipient of the original message.
+                            fromMe:
+                              type: boolean
+                              description: Indicates if the message was sent from the user.
+                            id:
+                              type: string
+                              description: The ID of the original message.
+                        message:
+                          type: object
+                          properties:
+                            conversation:
+                              type: string
+                              description: The content of the quoted message.
+                    mentions:
+                      type: object
+                      properties:
+                        everyone:
+                          type: boolean
+                          description: Indicates whether to mention everyone.
+                        mentioned:
+                          type: array
+                          items:
+                            type: string
+                            description: The phone numbers of the users to be mentioned.
               required:
                 - number
                 - locationMessage.latitude
@@ -430,9 +691,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the location should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -452,7 +713,7 @@ paths:
                 number:
                   type: string
                   description: The recipient's phone number.
-                  example: '1234567890'
+                  example: "1234567890"
                 contactMessage:
                   type: array
                   items:
@@ -467,6 +728,15 @@ paths:
                       phoneNumber:
                         type: string
                         description: Phone number of the contact.
+                      organization:
+                        type: string
+                        description: Organization of the contact.
+                      email:
+                        type: string
+                        description: Email address of the contact.
+                      url:
+                        type: string
+                        description: Url of the contact.
                     required:
                       - fullName
                       - wuid
@@ -476,11 +746,46 @@ paths:
                   properties:
                     delay:
                       type: integer
-                      description: Delay time before sending the contact.
+                      description: Delay time before sending the message.
                     presence:
                       type: string
-                      enum: ['composing', 'recording', 'paused']
+                      enum: ["composing", "recording", "paused"]
                       description: Indicates the sender's action/status.
+                    linkPreview:
+                      type: boolean
+                      description: Indicates whether to enable link preview.
+                    quoted:
+                      type: object
+                      properties:
+                        key:
+                          type: object
+                          properties:
+                            remoteJid:
+                              type: string
+                              description: The ID of the recipient of the original message.
+                            fromMe:
+                              type: boolean
+                              description: Indicates if the message was sent from the user.
+                            id:
+                              type: string
+                              description: The ID of the original message.
+                        message:
+                          type: object
+                          properties:
+                            conversation:
+                              type: string
+                              description: The content of the quoted message.
+                    mentions:
+                      type: object
+                      properties:
+                        everyone:
+                          type: boolean
+                          description: Indicates whether to mention everyone.
+                        mentioned:
+                          type: array
+                          items:
+                            type: string
+                            description: The phone numbers of the users to be mentioned.
               required:
                 - number
       parameters:
@@ -490,9 +795,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the contacts should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -540,18 +845,18 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
-  /message/sendWhatsAppAudio/{instanceName}:
+  /message/sendPoll/{instanceName}:
     post:
       tags:
         - Send Message Controller
-      summary: Send an audio message via WhatsApp to a specified instance.
-      description: This endpoint allows users to share an audio message.
+      summary: Send a poll to a specified instance.
+      description: This endpoint allows users to send a poll to a chat.
       requestBody:
         required: true
         content:
@@ -562,75 +867,76 @@ paths:
                 number:
                   type: string
                   description: The recipient's phone number.
-                  example: '1234567890'
-                audioMessage:
+                  example: "1234567890"
+                pollMessage:
                   type: object
                   properties:
-                    audio:
+                    name:
                       type: string
-                      description: URL of the audio file to be sent.
-                  required:
-                    - audio
+                      description: Name or title of the poll.
+                    selectableCount:
+                      type: integer
+                      description: Number of selectable options.
+                    values:
+                      type: array
+                      items:
+                        type: string
+                        description: The options of the poll.
                 options:
                   type: object
                   properties:
                     delay:
                       type: integer
-                      description: Delay time before sending the audio message.
-              required:
-                - number
-                - audioMessage.audio
+                      description: Delay time before sending the message.
+                    presence:
+                      type: string
+                      enum: ["composing", "recording", "paused"]
+                      description: Indicates the sender's action/status.
+                    linkPreview:
+                      type: boolean
+                      description: Indicates whether to enable link preview.
+                    quoted:
+                      type: object
+                      properties:
+                        key:
+                          type: object
+                          properties:
+                            remoteJid:
+                              type: string
+                              description: The ID of the recipient of the original message.
+                            fromMe:
+                              type: boolean
+                              description: Indicates if the message was sent from the user.
+                            id:
+                              type: string
+                              description: The ID of the original message.
+                        message:
+                          type: object
+                          properties:
+                            conversation:
+                              type: string
+                              description: The content of the quoted message.
+                    mentions:
+                      type: object
+                      properties:
+                        everyone:
+                          type: boolean
+                          description: Indicates whether to mention everyone.
+                        mentioned:
+                          type: array
+                          items:
+                            type: string
+                            description: The phone numbers of the users to be mentioned.
       parameters:
         - name: instanceName
           in: path
           required: true
           schema:
             type: string
-          description: The name of the instance to which the audio should be sent.
-          example: 'evolution'
+          description: The name of the instance to which the poll should be sent.
+          example: "evolution"
       responses:
-        '200':
-          description: Successful response
-          content:
-            application/json: {}
-  /message/sendWhatsAppAudioFile/{instanceName}:
-    post:
-      tags:
-        - Send Message Controller
-      summary: Upload and send a WhatsApp audio file to a specified instance.
-      description: This endpoint allows users to upload and send an audio file via WhatsApp.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                number:
-                  type: string
-                  description: The recipient's phone number.
-                  example: '1234567890'
-                attachment:
-                  type: string
-                  description: Audio file to be sent.
-                  format: binary
-                delay:
-                  type: integer
-                  description: Delay time before sending the audio message.
-                  example: 5
-              required:
-                - number
-                - attachment
-      parameters:
-        - name: instanceName
-          in: path
-          required: true
-          schema:
-            type: string
-          description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
-      responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -654,7 +960,7 @@ paths:
                     type: string
                     description: WhatsApp phone number.
                   example:
-                    - '1234567890'
+                    - "1234567890"
               required:
                 - numbers
       parameters:
@@ -664,9 +970,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -683,7 +989,7 @@ paths:
             schema:
               type: object
               properties:
-                readMessages:
+                read_messages:
                   type: array
                   items:
                     type: object
@@ -702,7 +1008,7 @@ paths:
                       - fromMe
                       - id
               required:
-                - readMessages
+                - read_messages
       parameters:
         - name: instanceName
           in: path
@@ -710,9 +1016,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -762,9 +1068,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -781,9 +1087,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -812,9 +1118,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -845,9 +1151,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -863,14 +1169,18 @@ paths:
             schema:
               type: object
               properties:
-                key:
+                message:
                   type: object
                   properties:
-                    id:
-                      type: string
-                      description: Unique ID of the media message to be converted.
-                  required:
-                    - id
+                    key:
+                      type: object
+                      properties:
+                        id: string
+                        description: Unique ID of the message.
+                convertToMp4:
+                  type: boolean
+                  description: Indicates whether to convert the media to MP4 format.
+                  example: true
       parameters:
         - name: instanceName
           in: path
@@ -878,9 +1188,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -929,9 +1239,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -962,9 +1272,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -981,9 +1291,9 @@ paths:
           schema:
             type: string
           description: The name of the instance to which the reaction should be sent.
-          example: 'evolution'
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1002,25 +1312,25 @@ paths:
               properties:
                 subject:
                   type: string
-                  description: '- required - The name of the group.'
+                  description: "- required - The name of the group."
                 description:
                   type: string
-                  description: '- optional - A brief description or summary of the group.'
+                  description: "- optional - A brief description or summary of the group."
                 participants:
                   type: array
                   items:
                     type: string
-                  description: '- required - List of participant phone numbers.'
+                  description: "- required - List of participant phone numbers."
       parameters:
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1038,23 +1348,23 @@ paths:
               properties:
                 image:
                   type: string
-                  description: '- required - URL of the new group picture.'
+                  description: "- required - URL of the new group picture."
       parameters:
         - name: groupJid
           in: query
           schema:
             type: string
-          description: '- required - The unique identifier of the group.'
-          example: '120363046555718472@g.us'
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1068,17 +1378,17 @@ paths:
           in: query
           schema:
             type: string
-          description: '- required - The unique identifier of the group.'
-          example: '120363046555718472@g.us'
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1092,17 +1402,17 @@ paths:
           in: query
           schema:
             type: string
-          description: '- required - The unique identifier of the group.'
-          example: '120363046555718472@g.us'
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1116,17 +1426,17 @@ paths:
           in: query
           schema:
             type: string
-          description: '- required - The unique identifier of the group.'
-          example: '120363046555718472@g.us'
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1142,17 +1452,17 @@ paths:
           in: query
           schema:
             type: string
-          description: '- required - The unique identifier of the group.'
-          example: '120363046555718472@g.us'
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1170,23 +1480,23 @@ paths:
               properties:
                 action:
                   type: string
-                  enum: ['add', 'remove', 'promote', 'demote']
-                  description: '- required - The action to be taken on the participant.'
+                  enum: ["add", "remove", "promote", "demote"]
+                  description: "- required - The action to be taken on the participant."
                 participants:
                   type: array
                   items:
                     type: string
-                  description: '- required - List of participant phone numbers to be updated.'
+                  description: "- required - List of participant phone numbers to be updated."
       parameters:
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1201,10 +1511,10 @@ paths:
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1223,9 +1533,9 @@ paths:
               properties:
                 oldToken:
                   type: string
-                  description: '- required - The expired JWT token.'
+                  description: "- required - The expired JWT token."
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1244,21 +1554,21 @@ paths:
               properties:
                 enabled:
                   type: boolean
-                  description: 'Indicates whether the webhook is active.'
+                  description: "Indicates whether the webhook is active."
                 url:
                   type: string
                   format: uri
-                  description: 'The endpoint URL where the webhook data will be sent.'
+                  description: "The endpoint URL where the webhook data will be sent."
       parameters:
         - name: instanceName
           in: path
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}
@@ -1273,10 +1583,10 @@ paths:
           schema:
             type: string
           required: true
-          description: '- required'
-          example: 'evolution'
+          description: "- required"
+          example: "evolution"
       responses:
-        '200':
+        "200":
           description: Successful response
           content:
             application/json: {}

@@ -2384,7 +2384,6 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
-      let mimetype: string;
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
@@ -2393,6 +2392,8 @@ export class WAStartupService {
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'video.mp4';
       }
+
+      let mimetype: string;
 
       if (isURL(mediaMessage.media)) {
         mimetype = getMIMEType(mediaMessage.media);
