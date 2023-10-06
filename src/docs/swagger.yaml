@@ -1368,6 +1368,181 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /group/updateGroupSubject/{instanceName}:
+    put:
+      tags:
+        - Group Controller
+      summary: Update the group's display picture.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                  description: "- required - The new name of the group."
+      parameters:
+        - name: groupJid
+          in: query
+          schema:
+            type: string
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /group/updateGroupDescription/{instanceName}:
+    put:
+      tags:
+        - Group Controller
+      summary: Update the group's display picture.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: "- required - The new description of the group."
+      parameters:
+        - name: groupJid
+          in: query
+          schema:
+            type: string
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /group/inviteCode/{instanceName}:
+    get:
+      tags:
+        - Group Controller
+      summary: Update the group's display picture.
+      parameters:
+        - name: groupJid
+          in: query
+          schema:
+            type: string
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /group/revokeInviteCode/{instanceName}:
+    put:
+      tags:
+        - Group Controller
+      summary: Update the group's display picture.
+      parameters:
+        - name: groupJid
+          in: query
+          schema:
+            type: string
+          description: "- required - The unique identifier of the group."
+          example: "120363046555718472@g.us"
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /group/sendInvite/{instanceName}:
+    post:
+      tags:
+        - Group Controller
+      summary: Update the group's display picture.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                groupJid:
+                  type: string
+                  description: "The unique identifier of the group."
+                description:
+                  type: string
+                  description: "The new description of the group."
+                numbers:
+                  type: array
+                  description: "List of participant phone numbers to be invited."
+                  items:
+                    type: string
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /group/inviteInfo/{instanceName}:
+    get:
+      tags:
+        - Group Controller
+      summary: Retrieve details about a specific group.
+      parameters:
+        - name: inviteCode
+          in: query
+          schema:
+            type: string
+          description: "- required - The invite code of the group."
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
   /group/findGroupInfos/{instanceName}:
     get:
       tags:
@@ -1392,61 +1567,34 @@ paths:
           description: Successful response
           content:
             application/json: {}
+  /group/fetchAllGroups/{instanceName}:
+    get:
+      tags:
+        - Group Controller
+      summary: Retrieve details about a specific group.
+      parameters:
+        - name: getParticipants
+          in: query
+          schema:
+            type: boolean
+          description: "- required - Indicates whether to retrieve the participants of the group."
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
   /group/participants/{instanceName}:
     get:
       tags:
         - Group Controller
       summary: Retrieve a list of participants in a specific group.
-      parameters:
-        - name: groupJid
-          in: query
-          schema:
-            type: string
-          description: "- required - The unique identifier of the group."
-          example: "120363046555718472@g.us"
-        - name: instanceName
-          in: path
-          schema:
-            type: string
-          required: true
-          description: "- required"
-          example: "evolution"
-      responses:
-        "200":
-          description: Successful response
-          content:
-            application/json: {}
-  /group/inviteCode/{instanceName}:
-    get:
-      tags:
-        - Group Controller
-      summary: Retrieve the group's invite link.
-      parameters:
-        - name: groupJid
-          in: query
-          schema:
-            type: string
-          description: "- required - The unique identifier of the group."
-          example: "120363046555718472@g.us"
-        - name: instanceName
-          in: path
-          schema:
-            type: string
-          required: true
-          description: "- required"
-          example: "evolution"
-      responses:
-        "200":
-          description: Successful response
-          content:
-            application/json: {}
-  /group/revokeInviteCode/{instanceName}:
-    put:
-      tags:
-        - Group Controller
-      summary: Invalidate the existing group invite link.
-      requestBody:
-        content: {}
       parameters:
         - name: groupJid
           in: query
@@ -1487,6 +1635,63 @@ paths:
                   items:
                     type: string
                   description: "- required - List of participant phone numbers to be updated."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /group/updateSetting/{instanceName}:
+    put:
+      tags:
+        - Group Controller
+      summary: Update the status or role of a participant in the group.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: ["announcement", "not_announcement", "locked", "unlocked"]
+                  description: "- required - The action to be taken on the participant."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /group/toggleEphemeral/{instanceName}:
+    put:
+      tags:
+        - Group Controller
+      summary: Update the status or role of a participant in the group.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiration:
+                  type: number
+                  description: "- required - The action to be taken on the participant."
       parameters:
         - name: instanceName
           in: path
@@ -1552,13 +1757,23 @@ paths:
             schema:
               type: object
               properties:
-                enabled:
-                  type: boolean
-                  description: "Indicates whether the webhook is active."
                 url:
                   type: string
                   format: uri
                   description: "The endpoint URL where the webhook data will be sent."
+                webhook_by_events:
+                  type: boolean
+                  description: "Indicates whether to send the webhook data by events."
+                webhook_base64:
+                  type: boolean
+                  description: "Indicates whether to send the webhook data in Base64 format."
+                events:
+                  type: array
+                  enum: [ "APPLICATION_STARTUP", "QRCODE_UPDATED", "MESSAGES_SET", "MESSAGES_UPSERT", "MESSAGES_UPDATE", "MESSAGES_DELETE", "SEND_MESSAGE", "CONTACTS_SET", "CONTACTS_UPSERT", "CONTACTS_UPDATE", "PRESENCE_UPDATE", "CHATS_SET", "CHATS_UPSERT", "CHATS_UPDATE", "CHATS_DELETE", "GROUPS_UPSERT", "GROUP_UPDATE", "GROUP_PARTICIPANTS_UPDATE", "CONNECTION_UPDATE", "CALL", "NEW_JWT_TOKEN" ]  
+                  items:
+                    type: string
+                  description: "List of events to be sent to the webhook."
+
       parameters:
         - name: instanceName
           in: path
