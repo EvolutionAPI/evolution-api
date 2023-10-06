@@ -7,9 +7,7 @@ import { join } from 'path';
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-// inserido por francis inicio
 import { NotFoundException } from '../../exceptions';
-// inserido por francis fim 
 import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
@@ -66,8 +64,10 @@ export class WAMonitoringService {
             await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
             this.waInstances[instance]?.client?.ws?.close();
             this.waInstances[instance]?.client?.end(undefined);
+            this.waInstances[instance]?.removeRabbitmqQueues();
             delete this.waInstances[instance];
           } else {
+            this.waInstances[instance]?.removeRabbitmqQueues();
             delete this.waInstances[instance];
             this.eventEmitter.emit('remove.instance', instance, 'inner');
           }
@@ -75,67 +75,8 @@ export class WAMonitoringService {
       }, 1000 * 60 * time);
     }
   }
-/* ocultado por francis inicio
+
   public async instanceInfo(instanceName?: string) {
-    this.logger.verbose('get instance info');
-
-    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-
-    const instances: any[] = await Promise.all(
-      Object.entries(this.waInstances).map(async ([key, value]) => {
-        const status = value?.connectionStatus?.state || 'unknown';
-
-        if (status === 'unknown') {
-          return null;
-        }
-
-        if (status === 'open') {
-          this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
-        }
-
-        const instanceData: any = {
-          instance: {
-            instanceName: key,
-            owner: value.wuid,
-            profileName: (await value.getProfileName()) || 'not loaded',
-            profilePictureUrl: value.profilePictureUrl,
-            profileStatus: (await value.getProfileStatus()) || '',
-            status: status,
-          },
-        };
-
-        if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-          instanceData.instance.serverUrl = urlServer;
-          instanceData.instance.apikey = (await this.repository.auth.find(key))?.apikey;
-
-          const findChatwoot = await this.waInstances[key].findChatwoot();
-          if (findChatwoot && findChatwoot.enabled) {
-            instanceData.instance.chatwoot = {
-              ...findChatwoot,
-              webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
-            };
-          }
-        }
-
-        return instanceData;
-      }),
-    ).then((results) => results.filter((instance) => instance !== null));
-
-    this.logger.verbose('return instance info: ' + instances.length);
-
-    if (instanceName) {
-      const instance = instances.find((i) => i.instance.instanceName === instanceName);
-      return instance || [];
-    }
-
-    return instances;
-  }
-
-ocultado por francis fim */
-
-// inserido por francis inicio
-
-public async instanceInfo(instanceName?: string) {
     this.logger.verbose('get instance info');
     if (instanceName && !this.waInstances[instanceName]) {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
@@ -209,17 +150,6 @@ public async instanceInfo(instanceName?: string) {
 
     return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
   }
-
-
-
-// inserido por francis fim
-
-
-
-
-
-
-
 
   private delInstanceFiles() {
     this.logger.verbose('cron to delete instance files started');

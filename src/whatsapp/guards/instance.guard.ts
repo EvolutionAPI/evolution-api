@@ -65,6 +65,7 @@ export async function instanceLoggedGuard(req: Request, _: Response, next: NextF
     }
 
     if (waMonitor.waInstances[instance.instanceName]) {
+      waMonitor.waInstances[instance.instanceName]?.removeRabbitmqQueues();
       delete waMonitor.waInstances[instance.instanceName];
     }
   }

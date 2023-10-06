@@ -48,7 +48,7 @@ const typebotSchema = new Schema<TypebotRaw>({
       prefilledVariables: {
         remoteJid: { type: String, required: false },
         pushName: { type: String, required: false },
-        additionalData: { type: Schema.Types.Mixed, required: false }
+        additionalData: { type: Schema.Types.Mixed, required: false },
       },
     },
   ],

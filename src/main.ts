@@ -10,6 +10,7 @@ import { Auth, configService, Cors, HttpServer, Rabbitmq, Webhook } from './conf
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
+import { swaggerRouter } from './docs/swagger.conf';
 import { initAMQP } from './libs/amqp.server';
 import { initIO } from './libs/socket.server';
 import { ServerUP } from './utils/server-up';
@@ -51,6 +52,7 @@ function bootstrap() {
   app.use('/store', express.static(join(ROOT_DIR, 'store')));
 
   app.use('/', router);
+  app.use(swaggerRouter);
 
   app.use(
     (err: Error, req: Request, res: Response, next: NextFunction) => {

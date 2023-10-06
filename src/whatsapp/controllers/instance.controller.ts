@@ -41,6 +41,7 @@ export class InstanceController {
     instanceName,
     webhook,
     webhook_by_events,
+    webhook_base64,
     events,
     qrcode,
     number,
@@ -139,6 +140,7 @@ export class InstanceController {
             url: webhook,
             events: newEvents,
             webhook_by_events,
+            webhook_base64,
           });
 
           webhookEvents = (await this.webhookService.find(instance)).events;
@@ -297,6 +299,7 @@ export class InstanceController {
           webhook: {
             webhook,
             webhook_by_events,
+            webhook_base64,
             events: webhookEvents,
           },
           websocket: {
@@ -390,6 +393,7 @@ export class InstanceController {
         webhook: {
           webhook,
           webhook_by_events,
+          webhook_base64,
           events: webhookEvents,
         },
         websocket: {
@@ -475,10 +479,19 @@ export class InstanceController {
     try {
       this.logger.verbose('requested restartInstance from ' + instanceName + ' instance');
 
-      this.logger.verbose('logging out instance: ' + instanceName);
-      this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
+      const instance = this.waMonitor.waInstances[instanceName];
+      const state = instance?.connectionStatus?.state;
 
-      return { status: 'SUCCESS', error: false, response: { message: 'Instance restarted' } };
+      switch (state) {
+        case 'open':
+          this.logger.verbose('logging out instance: ' + instanceName);
+          await instance.reloadConnection();
+          await delay(2000);
+
+          return await this.connectionState({ instanceName });
+        default:
+          return await this.connectionState({ instanceName });
+      }
     } catch (error) {
       this.logger.error(error);
     }
@@ -534,6 +547,8 @@ export class InstanceController {
       throw new BadRequestException('The "' + instanceName + '" instance needs to be disconnected');
     }
     try {
+      this.waMonitor.waInstances[instanceName]?.removeRabbitmqQueues();
+
       if (instance.state === 'connecting') {
         this.logger.verbose('logging out instance: ' + instanceName);
 

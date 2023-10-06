@@ -50,6 +50,7 @@ export declare namespace wa {
     url?: string;
     events?: string[];
     webhook_by_events?: boolean;
+    webhook_base64?: boolean;
   };
 
   export type LocalChatwoot = {
