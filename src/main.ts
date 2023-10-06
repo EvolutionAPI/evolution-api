@@ -16,16 +16,27 @@ import { ServerUP } from './utils/server-up';
 import { HttpStatus, router } from './whatsapp/routers/index.router';
 import { waMonitor } from './whatsapp/whatsapp.module';
 
+/**
+ * Initializes WhatsApp monitoring.
+ */
 function initWA() {
   waMonitor.loadInstance();
 }
 
+/**
+ * Bootstrap the application.
+ */
 function bootstrap() {
   const logger = new Logger('SERVER');
   const app = express();
 
   app.use(
     cors({
+      /**
+       * Determine if the request origin is allowed by CORS.
+       * @param requestOrigin The origin of the incoming request.
+       * @param callback The callback function to invoke.
+       */
       origin(requestOrigin, callback) {
         const { ORIGIN } = configService.get<Cors>('CORS');
         if (ORIGIN.includes('*')) {
@@ -53,12 +64,19 @@ function bootstrap() {
   app.use('/', router);
 
   app.use(
+    /**
+     * Error handling middleware.
+     * @param err The error object.
+     * @param req The Express request object.
+     * @param res The Express response object.
+     * @param next The next function to invoke.
+     */
     (err: Error, req: Request, res: Response, next: NextFunction) => {
       if (err) {
         const webhook = configService.get<Webhook>('WEBHOOK');
 
         if (webhook.EVENTS.ERRORS_WEBHOOK && webhook.EVENTS.ERRORS_WEBHOOK != '' && webhook.EVENTS.ERRORS) {
-          const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
+          const tzoffset = new Date().getTimezoneOffset() * 60000; // offset in milliseconds
           const localISOTime = new Date(Date.now() - tzoffset).toISOString();
           const now = localISOTime;
           const globalApiKey = configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
@@ -98,6 +116,12 @@ function bootstrap() {
 
       next();
     },
+    /**
+     * 404 Not Found middleware.
+     * @param req The Express request object.
+     * @param res The Express response object.
+     * @param next The next function to invoke.
+     */
     (req: Request, res: Response, next: NextFunction) => {
       const { method, url } = req;
 

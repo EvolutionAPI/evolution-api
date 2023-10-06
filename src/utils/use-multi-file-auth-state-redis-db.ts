@@ -9,6 +9,11 @@ import {
 import { Logger } from '../config/logger.config';
 import { RedisCache } from '../libs/redis.client';
 
+/**
+ * Provides a function to handle AuthenticationState and credentials using a Redis cache.
+ * @param {RedisCache} cache - The RedisCache instance to store and retrieve data.
+ * @returns {Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }>} An object with AuthenticationState and saveCreds function.
+ */
 export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
   state: AuthenticationState;
   saveCreds: () => Promise<void>;
@@ -27,11 +32,12 @@ export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
     try {
       return await cache.readData(key);
     } catch (error) {
-      logger.error({ readData: 'writeData', error });
+      logger.error({ readData: 'readData', error });
       return;
     }
   };
 
+  // Helper function to remove data from the Redis cache.
   const removeData = async (key: string) => {
     try {
       return await cache.removeData(key);
@@ -40,6 +46,7 @@ export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
     }
   };
 
+  // Initialize AuthenticationCreds using stored or default values.
   const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds();
 
   return {
@@ -77,6 +84,7 @@ export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
         },
       },
     },
+    // Save the credentials to the Redis cache.
     saveCreds: async () => {
       return await writeData(creds, 'creds');
     },

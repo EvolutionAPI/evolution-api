@@ -1,14 +1,20 @@
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { v4 } from 'uuid';
 
+/**
+ * Represents a utility function to generate JSON schema for non-empty properties.
+ *
+ * @param {string[]} propertyNames - The names of properties to check for non-emptiness.
+ * @returns {JSONSchema7} A JSON schema with non-empty property checks.
+ */
 const isNotEmpty = (...propertyNames: string[]): JSONSchema7 => {
   const properties = {};
   propertyNames.forEach(
     (property) =>
-      (properties[property] = {
-        minLength: 1,
-        description: `The "${property}" cannot be empty`,
-      }),
+    (properties[property] = {
+      minLength: 1,
+      description: `The "${property}" cannot be empty`,
+    }),
   );
   return {
     if: {
@@ -21,6 +27,11 @@ const isNotEmpty = (...propertyNames: string[]): JSONSchema7 => {
 };
 
 // Instance Schema
+/**
+ * JSON schema for an instance with properties like instanceName, webhook, and more.
+ *
+ * @type {JSONSchema7}
+ */
 export const instanceNameSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { AuthenticationState, WAConnectionState } from '@whiskeysockets/baileys';
 
+/**
+ * Enumeration of various application events.
+ */
 export enum Events {
   APPLICATION_STARTUP = 'application.startup',
   QRCODE_UPDATED = 'qrcode.updated',
@@ -28,13 +30,23 @@ export enum Events {
   CHAMA_AI_ACTION = 'chama-ai.action',
 }
 
+/**
+ * Namespace containing various WhatsApp-related types.
+ */
 export declare namespace wa {
+  /**
+   * Represents a QR code for pairing with WhatsApp.
+   */
   export type QrCode = {
     count?: number;
     pairingCode?: string;
     base64?: string;
     code?: string;
   };
+
+  /**
+   * Represents information about a WhatsApp instance.
+   */
   export type Instance = {
     qrcode?: QrCode;
     pairingCode?: string;
@@ -45,6 +57,9 @@ export declare namespace wa {
     profilePictureUrl?: string;
   };
 
+  /**
+   * Represents local webhook settings.
+   */
   export type LocalWebHook = {
     enabled?: boolean;
     url?: string;
@@ -52,6 +67,9 @@ export declare namespace wa {
     webhook_by_events?: boolean;
   };
 
+  /**
+   * Represents local Chatwoot settings.
+   */
   export type LocalChatwoot = {
     enabled?: boolean;
     account_id?: string;
@@ -64,6 +82,9 @@ export declare namespace wa {
     conversation_pending?: boolean;
   };
 
+  /**
+   * Represents local settings.
+   */
   export type LocalSettings = {
     reject_call?: boolean;
     msg_call?: string;
@@ -73,22 +94,34 @@ export declare namespace wa {
     read_status?: boolean;
   };
 
+  /**
+   * Represents local WebSocket settings.
+   */
   export type LocalWebsocket = {
     enabled?: boolean;
     events?: string[];
   };
 
+  /**
+   * Represents local RabbitMQ settings.
+   */
   export type LocalRabbitmq = {
     enabled?: boolean;
     events?: string[];
   };
 
+  /**
+   * Represents a session within a Typebot instance.
+   */
   type Session = {
     remoteJid?: string;
     sessionId?: string;
     createdAt?: number;
   };
 
+  /**
+   * Represents local Typebot settings.
+   */
   export type LocalTypebot = {
     enabled?: boolean;
     url?: string;
@@ -101,11 +134,17 @@ export declare namespace wa {
     sessions?: Session[];
   };
 
+  /**
+   * Represents local proxy settings.
+   */
   export type LocalProxy = {
     enabled?: boolean;
     proxy?: string;
   };
 
+  /**
+   * Represents local Chamaai settings.
+   */
   export type LocalChamaai = {
     enabled?: boolean;
     url?: string;
@@ -114,17 +153,29 @@ export declare namespace wa {
     answerByAudio?: boolean;
   };
 
+  /**
+   * Represents the state of a connection with a WhatsApp instance.
+   */
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';
     statusReason?: number;
   };
 
+  /**
+   * Represents a status message type.
+   */
   export type StatusMessage = 'ERROR' | 'PENDING' | 'SERVER_ACK' | 'DELIVERY_ACK' | 'READ' | 'DELETED' | 'PLAYED';
 }
 
+/**
+ * Array of media message types.
+ */
 export const TypeMediaMessage = ['imageMessage', 'documentMessage', 'audioMessage', 'videoMessage', 'stickerMessage'];
 
+/**
+ * Array of message subtype types.
+ */
 export const MessageSubtype = [
   'ephemeralMessage',
   'documentWithCaptionMessage',

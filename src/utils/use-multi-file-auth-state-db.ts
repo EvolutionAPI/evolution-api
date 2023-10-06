@@ -11,17 +11,25 @@ import { configService, Database } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 import { dbserver } from '../libs/db.connect';
 
+/**
+ * Provides a function to handle AuthenticationState and credentials using a MongoDB collection.
+ * @param {string} coll - The name of the MongoDB collection.
+ * @returns {Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }>} An object with AuthenticationState and saveCreds function.
+ */
 export async function useMultiFileAuthStateDb(
   coll: string,
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> {
   const logger = new Logger(useMultiFileAuthStateDb.name);
 
+  // Get the MongoDB client from the database server connection.
   const client = dbserver.getClient();
 
+  // Construct the collection name based on the database prefix.
   const collection = client
     .db(configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_NAME + '-instances')
     .collection(coll);
 
+  // Helper function to write data to the MongoDB collection.
   const writeData = async (data: any, key: string): Promise<any> => {
     try {
       await client.connect();
@@ -33,6 +41,7 @@ export async function useMultiFileAuthStateDb(
     }
   };
 
+  // Helper function to read data from the MongoDB collection.
   const readData = async (key: string): Promise<any> => {
     try {
       await client.connect();
@@ -44,6 +53,7 @@ export async function useMultiFileAuthStateDb(
     }
   };
 
+  // Helper function to remove data from the MongoDB collection.
   const removeData = async (key: string) => {
     try {
       await client.connect();
@@ -53,6 +63,7 @@ export async function useMultiFileAuthStateDb(
     }
   };
 
+  // Initialize AuthenticationCreds using stored or default values.
   const creds: AuthenticationCreds = (await readData('creds')) || initAuthCreds();
 
   return {
@@ -60,8 +71,6 @@ export async function useMultiFileAuthStateDb(
       creds,
       keys: {
         get: async (type, ids: string[]) => {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           const data: { [_: string]: SignalDataTypeMap[type] } = {};
           await Promise.all(
             ids.map(async (id) => {
@@ -90,6 +99,7 @@ export async function useMultiFileAuthStateDb(
         },
       },
     },
+    // Save the credentials to the MongoDB collection.
     saveCreds: async () => {
       return writeData(creds, 'creds');
     },

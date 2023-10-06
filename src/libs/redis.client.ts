@@ -4,13 +4,24 @@ import { BufferJSON } from '@whiskeysockets/baileys';
 import { Redis } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 
+/**
+ * Class representing a Redis cache.
+ */
 export class RedisCache {
+  /**
+   * Disconnects from the Redis server.
+   */
   async disconnect() {
     await this.client.disconnect();
     this.statusConnection = false;
   }
+
+  /**
+   * Creates a new instance of RedisCache.
+   */
   constructor() {
     this.logger.verbose('instance created');
+
     process.on('beforeExit', async () => {
       this.logger.verbose('instance destroyed');
       if (this.statusConnection) {
@@ -24,11 +35,19 @@ export class RedisCache {
   private instanceName: string;
   private redisEnv: Redis;
 
+  /**
+   * Sets the reference for the Redis instance.
+   * @param {string} reference - The reference to set.
+   */
   public set reference(reference: string) {
     this.logger.verbose('set reference: ' + reference);
     this.instanceName = reference;
   }
 
+  /**
+   * Connects to the Redis server.
+   * @param {Redis} redisEnv - The Redis configuration.
+   */
   public async connect(redisEnv: Redis) {
     this.logger.verbose('connecting');
     this.client = createClient({ url: redisEnv.URI });
@@ -41,6 +60,10 @@ export class RedisCache {
   private readonly logger = new Logger(RedisCache.name);
   private client: RedisClientType;
 
+  /**
+   * Retrieves keys for the Redis instance.
+   * @returns {Promise<string[]>} An array of keys.
+   */
   public async instanceKeys(): Promise<string[]> {
     try {
       this.logger.verbose('instance keys: ' + this.redisEnv.PREFIX_KEY + ':*');
@@ -50,6 +73,11 @@ export class RedisCache {
     }
   }
 
+  /**
+   * Checks if a specific key exists.
+   * @param {string} key - The key to check.
+   * @returns {Promise<boolean>} `true` if the key exists, otherwise `false`.
+   */
   public async keyExists(key?: string) {
     if (key) {
       this.logger.verbose('keyExists: ' + key);
@@ -59,6 +87,12 @@ export class RedisCache {
     return !!(await this.instanceKeys()).find((i) => i === this.instanceName);
   }
 
+  /**
+   * Writes data to Redis cache.
+   * @param {string} field - The field to write data to.
+   * @param {any} data - The data to write.
+   * @returns {Promise<boolean>} `true` if the write is successful, otherwise `false`.
+   */
   public async writeData(field: string, data: any) {
     try {
       this.logger.verbose('writeData: ' + field);
@@ -70,6 +104,11 @@ export class RedisCache {
     }
   }
 
+  /**
+   * Reads data from Redis cache.
+   * @param {string} field - The field to read data from.
+   * @returns {Promise<any | null>} The data if found, otherwise `null`.
+   */
   public async readData(field: string) {
     try {
       this.logger.verbose('readData: ' + field);
@@ -87,6 +126,11 @@ export class RedisCache {
     }
   }
 
+  /**
+   * Removes data from Redis cache.
+   * @param {string} field - The field to remove data from.
+   * @returns {Promise<boolean>} `true` if the removal is successful, otherwise `false`.
+   */
   public async removeData(field: string) {
     try {
       this.logger.verbose('removeData: ' + field);
@@ -96,6 +140,11 @@ export class RedisCache {
     }
   }
 
+  /**
+   * Deletes all data associated with the Redis instance.
+   * @param {string} hash - The hash to delete, defaults to the instance name.
+   * @returns {Promise<boolean>} `true` if the deletion is successful, otherwise `false`.
+   */
   public async delAll(hash?: string) {
     try {
       this.logger.verbose('instance delAll: ' + hash);

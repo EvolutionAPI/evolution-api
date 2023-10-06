@@ -11,6 +11,9 @@ import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { WAMonitoringService } from './monitor.service';
 
+/**
+ * Represents the payload of a JWT token.
+ */
 export type JwtPayload = {
   instanceName: string;
   apiName: string;
@@ -19,19 +22,36 @@ export type JwtPayload = {
   tokenId: string;
 };
 
+/**
+ * Represents the structure of an old JWT token.
+ */
 export class OldToken {
   oldToken: string;
 }
-
+/**
+ * Service responsible for authentication-related operations.
+ */
 export class AuthService {
+  /**
+   * Creates an instance of AuthService.
+   * @param configService The configuration service.
+   * @param waMonitor The monitoring service for WhatsApp instances.
+   * @param repository The repository manager for database operations.
+   */
   constructor(
     private readonly configService: ConfigService,
     private readonly waMonitor: WAMonitoringService,
     private readonly repository: RepositoryBroker,
-  ) {}
+  ) { }
 
   private readonly logger = new Logger(AuthService.name);
 
+  /**
+   * Generates a JWT token for a given instance.
+   * @param instance The instance DTO for which to generate the token.
+   * @returns An object containing the generated JWT token.
+   * @throws BadRequestException if an error occurs during token generation.
+   */
   private async jwt(instance: InstanceDto) {
     const jwtOpts = this.configService.get<Auth>('AUTHENTICATION').JWT;
     const token = sign(
@@ -61,6 +81,13 @@ export class AuthService {
     return { jwt: token };
   }
 
+  /**
+     * Generates an API key for a given instance.
+     * @param instance The instance DTO for which to generate the API key.
+     * @param token (Optional) An existing API key to use.
+     * @returns An object containing the generated or defined API key.
+     * @throws BadRequestException if an error occurs during API key generation.
+     */
   private async apikey(instance: InstanceDto, token?: string) {
     const apikey = token ? token : v4().toUpperCase();
 
@@ -81,6 +108,11 @@ export class AuthService {
     return { apikey };
   }
 
+  /**
+   * Checks for the existence of a duplicate token among instances.
+   * @param token The token to check for duplication.
+   * @returns `true` if the token is not duplicated among instances, otherwise throws a BadRequestException.
+   */
   public async checkDuplicateToken(token: string) {
     const instances = await this.waMonitor.instanceInfo();
 
@@ -97,6 +129,12 @@ export class AuthService {
     return true;
   }
 
+  /**
+  * Generates an authentication hash (JWT token or API key) based on the authentication type.
+  * @param instance The instance DTO for which to generate the hash.
+  * @param token (Optional) An existing token to use (for API key generation).
+  * @returns An object containing the generated authentication hash (JWT token or API key).
+  */
   public async generateHash(instance: InstanceDto, token?: string) {
     const options = this.configService.get<Auth>('AUTHENTICATION');
 
@@ -105,6 +143,12 @@ export class AuthService {
     return (await this[options.TYPE](instance, token)) as { jwt: string } | { apikey: string };
   }
 
+  /**
+   * Refreshes a JWT token based on an old JWT token.
+   * @param oldToken An old JWT token to refresh.
+   * @returns An object containing the refreshed JWT token and instanceName.
+   * @throws BadRequestException if the oldToken is invalid or an error occurs during token refresh.
+   */
   public async refreshToken({ oldToken }: OldToken) {
     this.logger.verbose('refreshing token');
 

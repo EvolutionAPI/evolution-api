@@ -24,41 +24,95 @@ import {
 import { RepositoryBroker } from '../repository/repository.manager';
 import { WAStartupService } from './whatsapp.service';
 
+/**
+ * Represents a service for monitoring WhatsApp instances.
+ */
 export class WAMonitoringService {
+  /**
+   * Creates an instance of WAMonitoringService.
+   * @param {EventEmitter2} eventEmitter - Event emitter for handling events.
+   * @param {ConfigService} configService - Configuration service.
+   * @param {RepositoryBroker} repository - Repository broker for database operations.
+   * @param {RedisCache} cache - Redis cache for storing data.
+   */
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
     private readonly cache: RedisCache,
   ) {
+    /**
+     * Logger instance for logging service activities.
+     * @private
+     * @type {Logger}
+     */
     this.logger.verbose('instance created');
 
+    // Initialize service functionalities
     this.removeInstance();
     this.noConnection();
     this.delInstanceFiles();
 
+    // Load configuration settings
     Object.assign(this.db, configService.get<Database>('DATABASE'));
     Object.assign(this.redis, configService.get<Redis>('REDIS'));
 
+    // Initialize the MongoDB database instance
     this.dbInstance = this.db.ENABLED
       ? this.repository.dbServer?.db(this.db.CONNECTION.DB_PREFIX_NAME + '-instances')
       : undefined;
   }
 
+  /**
+   * Configuration settings for the database.
+   * @private
+   * @type {Partial<Database>}
+   */
   private readonly db: Partial<Database> = {};
+
+  /**
+   * Configuration settings for Redis.
+   * @private
+   * @type {Partial<Redis>}
+   */
   private readonly redis: Partial<Redis> = {};
 
+  /**
+   * Database instance for instance management.
+   * @private
+   * @type {Db}
+   */
   private dbInstance: Db;
 
+  /**
+   * Database store connection.
+   * @private
+   * @type {Db}
+   */
   private dbStore = dbserver;
 
+  /**
+   * Logger instance for logging service activities.
+   * @private
+   * @type {Logger}
+   */
   private readonly logger = new Logger(WAMonitoringService.name);
+
+  /**
+   * A dictionary of WhatsApp instances being monitored.
+   * @public
+   * @type {Record<string, WAStartupService>}
+   */
   public readonly waInstances: Record<string, WAStartupService> = {};
 
+  /**
+   * Initiates a timer to remove an instance after a specific time of inactivity.
+   * @param {string} instance - The name of the instance to monitor.
+   */
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
     if (typeof time === 'number' && time > 0) {
-      this.logger.verbose(`Instance "${instance}" don't have connection, will be removed in ${time} minutes`);
+      this.logger.verbose(`Instance "${instance}" doesn't have a connection, will be removed in ${time} minutes`);
 
       setTimeout(async () => {
         if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
@@ -75,67 +129,74 @@ export class WAMonitoringService {
       }, 1000 * 60 * time);
     }
   }
-/* ocultado por francis inicio
-  public async instanceInfo(instanceName?: string) {
-    this.logger.verbose('get instance info');
-
-    const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-
-    const instances: any[] = await Promise.all(
-      Object.entries(this.waInstances).map(async ([key, value]) => {
-        const status = value?.connectionStatus?.state || 'unknown';
-
-        if (status === 'unknown') {
-          return null;
-        }
-
-        if (status === 'open') {
-          this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
-        }
-
-        const instanceData: any = {
-          instance: {
-            instanceName: key,
-            owner: value.wuid,
-            profileName: (await value.getProfileName()) || 'not loaded',
-            profilePictureUrl: value.profilePictureUrl,
-            profileStatus: (await value.getProfileStatus()) || '',
-            status: status,
-          },
-        };
-
-        if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
-          instanceData.instance.serverUrl = urlServer;
-          instanceData.instance.apikey = (await this.repository.auth.find(key))?.apikey;
-
-          const findChatwoot = await this.waInstances[key].findChatwoot();
-          if (findChatwoot && findChatwoot.enabled) {
-            instanceData.instance.chatwoot = {
-              ...findChatwoot,
-              webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
-            };
+  /* ocultado por francis inicio
+    public async instanceInfo(instanceName?: string) {
+      this.logger.verbose('get instance info');
+  
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+  
+      const instances: any[] = await Promise.all(
+        Object.entries(this.waInstances).map(async ([key, value]) => {
+          const status = value?.connectionStatus?.state || 'unknown';
+  
+          if (status === 'unknown') {
+            return null;
           }
-        }
-
-        return instanceData;
-      }),
-    ).then((results) => results.filter((instance) => instance !== null));
-
-    this.logger.verbose('return instance info: ' + instances.length);
-
-    if (instanceName) {
-      const instance = instances.find((i) => i.instance.instanceName === instanceName);
-      return instance || [];
+  
+          if (status === 'open') {
+            this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
+          }
+  
+          const instanceData: any = {
+            instance: {
+              instanceName: key,
+              owner: value.wuid,
+              profileName: (await value.getProfileName()) || 'not loaded',
+              profilePictureUrl: value.profilePictureUrl,
+              profileStatus: (await value.getProfileStatus()) || '',
+              status: status,
+            },
+          };
+  
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            instanceData.instance.serverUrl = urlServer;
+            instanceData.instance.apikey = (await this.repository.auth.find(key))?.apikey;
+  
+            const findChatwoot = await this.waInstances[key].findChatwoot();
+            if (findChatwoot && findChatwoot.enabled) {
+              instanceData.instance.chatwoot = {
+                ...findChatwoot,
+                webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
+              };
+            }
+          }
+  
+          return instanceData;
+        }),
+      ).then((results) => results.filter((instance) => instance !== null));
+  
+      this.logger.verbose('return instance info: ' + instances.length);
+  
+      if (instanceName) {
+        const instance = instances.find((i) => i.instance.instanceName === instanceName);
+        return instance || [];
+      }
+  
+      return instances;
     }
+  
+  ocultado por francis fim */
 
-    return instances;
-  }
+  // inserido por francis inicio
 
-ocultado por francis fim */
 
-// inserido por francis inicio
-
-public async instanceInfo(instanceName?: string) {
+  /**
+   * Retrieves information about WhatsApp instances, including details about the connection, owner, and status.
+   * @param instanceName The name of the WhatsApp instance to retrieve information for. Optional.
+   * @returns An array of objects containing information about WhatsApp instances.
+   * @throws NotFoundException If `instanceName` is specified, and the instance is not found. 
+   */
+  public async instanceInfo(instanceName?: string) {
     this.logger.verbose('get instance info');
     if (instanceName && !this.waInstances[instanceName]) {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
@@ -212,7 +273,7 @@ public async instanceInfo(instanceName?: string) {
 
 
 
-// inserido por francis fim
+  // inserido por francis fim
 
 
 
@@ -220,7 +281,9 @@ public async instanceInfo(instanceName?: string) {
 
 
 
-
+  /**
+   * Initializes a cron job to delete instance files at regular intervals.
+   */
   private delInstanceFiles() {
     this.logger.verbose('cron to delete instance files started');
     setInterval(async () => {
@@ -255,6 +318,10 @@ public async instanceInfo(instanceName?: string) {
     }, 3600 * 1000 * 2);
   }
 
+  /**
+   * Cleans data for a specific WhatsApp instance, including the database, cache, or files, depending on the configuration.
+   * @param instanceName The name of the WhatsApp instance to clean up.
+   */
   public async cleaningUp(instanceName: string) {
     this.logger.verbose('cleaning up instance: ' + instanceName);
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
@@ -278,6 +345,11 @@ public async instanceInfo(instanceName?: string) {
     rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
   }
 
+  /**
+   * Cleans storage files for a specific WhatsApp instance, including messages, contacts, etc.
+   *
+   * @param instanceName The name of the WhatsApp instance to clean storage files for.
+   */
   public async cleaningStoreFiles(instanceName: string) {
     if (!this.db.ENABLED) {
       this.logger.verbose('cleaning store files instance: ' + instanceName);
@@ -314,7 +386,9 @@ public async instanceInfo(instanceName?: string) {
 
     return;
   }
-
+  /**
+   * Loads WhatsApp instances based on storage settings, such as Redis, a database, or local files.
+   */
   public async loadInstance() {
     this.logger.verbose('Loading instances');
 
@@ -330,7 +404,11 @@ public async instanceInfo(instanceName?: string) {
       this.logger.error(error);
     }
   }
-
+  /**
+   * Configures a new WhatsApp instance and connects it to the WhatsApp service.
+   *
+   * @param name The name of the WhatsApp instance to configure.
+   */
   private async setInstance(name: string) {
     const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
     instance.instanceName = name;
@@ -394,7 +472,11 @@ public async instanceInfo(instanceName?: string) {
       }),
     );
   }
-
+  /**
+   * Removes a WhatsApp instance from memory and performs associated data cleanup.
+   *
+   * @param instanceName The name of the WhatsApp instance to remove.
+   */
   private removeInstance() {
     this.eventEmitter.on('remove.instance', async (instanceName: string) => {
       this.logger.verbose('remove instance: ' + instanceName);
@@ -423,7 +505,9 @@ public async instanceInfo(instanceName?: string) {
       }
     });
   }
-
+  /**
+   * Checks for WhatsApp instances without a connection and takes appropriate actions, such as logout and connection closure.
+   */
   private noConnection() {
     this.logger.verbose('checking instances without connection');
     this.eventEmitter.on('no.connection', async (instanceName) => {
