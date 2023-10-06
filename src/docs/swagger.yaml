@@ -1662,7 +1662,8 @@ paths:
               properties:
                 action:
                   type: string
-                  enum: ["announcement", "not_announcement", "locked", "unlocked"]
+                  enum:
+                    ["announcement", "not_announcement", "locked", "unlocked"]
                   description: "- required - The action to be taken on the participant."
       parameters:
         - name: instanceName
@@ -1769,11 +1770,33 @@ paths:
                   description: "Indicates whether to send the webhook data in Base64 format."
                 events:
                   type: array
-                  enum: [ "APPLICATION_STARTUP", "QRCODE_UPDATED", "MESSAGES_SET", "MESSAGES_UPSERT", "MESSAGES_UPDATE", "MESSAGES_DELETE", "SEND_MESSAGE", "CONTACTS_SET", "CONTACTS_UPSERT", "CONTACTS_UPDATE", "PRESENCE_UPDATE", "CHATS_SET", "CHATS_UPSERT", "CHATS_UPDATE", "CHATS_DELETE", "GROUPS_UPSERT", "GROUP_UPDATE", "GROUP_PARTICIPANTS_UPDATE", "CONNECTION_UPDATE", "CALL", "NEW_JWT_TOKEN" ]  
+                  enum:
+                    [
+                      "APPLICATION_STARTUP",
+                      "QRCODE_UPDATED",
+                      "MESSAGES_SET",
+                      "MESSAGES_UPSERT",
+                      "MESSAGES_UPDATE",
+                      "MESSAGES_DELETE",
+                      "SEND_MESSAGE",
+                      "CONTACTS_SET",
+                      "CONTACTS_UPSERT",
+                      "CONTACTS_UPDATE",
+                      "PRESENCE_UPDATE",
+                      "CHATS_SET",
+                      "CHATS_UPSERT",
+                      "CHATS_UPDATE",
+                      "CHATS_DELETE",
+                      "GROUPS_UPSERT",
+                      "GROUP_UPDATE",
+                      "GROUP_PARTICIPANTS_UPDATE",
+                      "CONNECTION_UPDATE",
+                      "CALL",
+                      "NEW_JWT_TOKEN",
+                    ]
                   items:
                     type: string
                   description: "List of events to be sent to the webhook."
-
       parameters:
         - name: instanceName
           in: path
@@ -1792,6 +1815,773 @@ paths:
       tags:
         - Webhook
       summary: Retrieve the webhook settings for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /websocket/set/{instanceName}:
+    post:
+      tags:
+        - Websocket
+      summary: Set up or modify the Websocket for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: "Indicates whether to enable the websocket."
+                events:
+                  type: array
+                  enum:
+                    [
+                      "APPLICATION_STARTUP",
+                      "QRCODE_UPDATED",
+                      "MESSAGES_SET",
+                      "MESSAGES_UPSERT",
+                      "MESSAGES_UPDATE",
+                      "MESSAGES_DELETE",
+                      "SEND_MESSAGE",
+                      "CONTACTS_SET",
+                      "CONTACTS_UPSERT",
+                      "CONTACTS_UPDATE",
+                      "PRESENCE_UPDATE",
+                      "CHATS_SET",
+                      "CHATS_UPSERT",
+                      "CHATS_UPDATE",
+                      "CHATS_DELETE",
+                      "GROUPS_UPSERT",
+                      "GROUP_UPDATE",
+                      "GROUP_PARTICIPANTS_UPDATE",
+                      "CONNECTION_UPDATE",
+                      "CALL",
+                      "NEW_JWT_TOKEN",
+                    ]
+                  items:
+                    type: string
+                  description: "List of events to be sent to the websocket."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /websocket/find/{instanceName}:
+    get:
+      tags:
+        - Websocket
+      summary: Retrieve the websocket settings for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /rabbitmq/set/{instanceName}:
+    post:
+      tags:
+        - RabbitMQ
+      summary: Set up or modify the RabbitMQ for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: "Indicates whether to enable the RabbitMQ."
+                events:
+                  type: array
+                  enum:
+                    [
+                      "APPLICATION_STARTUP",
+                      "QRCODE_UPDATED",
+                      "MESSAGES_SET",
+                      "MESSAGES_UPSERT",
+                      "MESSAGES_UPDATE",
+                      "MESSAGES_DELETE",
+                      "SEND_MESSAGE",
+                      "CONTACTS_SET",
+                      "CONTACTS_UPSERT",
+                      "CONTACTS_UPDATE",
+                      "PRESENCE_UPDATE",
+                      "CHATS_SET",
+                      "CHATS_UPSERT",
+                      "CHATS_UPDATE",
+                      "CHATS_DELETE",
+                      "GROUPS_UPSERT",
+                      "GROUP_UPDATE",
+                      "GROUP_PARTICIPANTS_UPDATE",
+                      "CONNECTION_UPDATE",
+                      "CALL",
+                      "NEW_JWT_TOKEN",
+                    ]
+                  items:
+                    type: string
+                  description: "List of events to be sent to the RabbitMQ."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /rabbitmq/find/{instanceName}:
+    get:
+      tags:
+        - RabbitMQ
+      summary: Retrieve the RabbitMQ settings for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /settings/set/{instanceName}:
+    post:
+      tags:
+        - Settings
+      summary: Set up or modify the Settings for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reject_call:
+                  type: boolean
+                  description: "Indicates whether to reject incoming calls."
+                msg_call:
+                  type: string
+                  description: "Message to be sent when rejecting a call."
+                groups_ignore:
+                  type: boolean
+                  description: "Indicates whether to ignore group messages."
+                always_online:
+                  type: boolean
+                  description: "Indicates whether to keep the instance always online."
+                read_messages:
+                  type: boolean
+                  description: "Indicates whether to mark messages as read."
+                read_status:
+                  type: boolean
+                  description: "Indicates whether to mark status messages as read."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /settings/find/{instanceName}:
+    get:
+      tags:
+        - Settings
+      summary: Retrieve the Settings for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /chatwoot/set/{instanceName}:
+    post:
+      tags:
+        - Chatwoot
+      summary: Set up or modify the Chatwoot for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: "Indicates whether to enable the Chatwoot integration."
+                account_id:
+                  type: string
+                  description: "The Chatwoot account ID."
+                token:
+                  type: string
+                  description: "The Chatwoot token."
+                url:
+                  type: string
+                  description: "The Chatwoot URL."
+                sign_msg:
+                  type: boolean
+                  description: "Indicates whether to sign messages."
+                reopen_conversation:
+                  type: boolean
+                  description: "Indicates whether to reopen conversations."
+                conversation_pending:
+                  type: boolean
+                  description: "Indicates whether to mark conversations as pending."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chatwoot/find/{instanceName}:
+    get:
+      tags:
+        - Chatwoot
+      summary: Retrieve the Chatwoot for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /typebot/set/{instanceName}:
+    post:
+      tags:
+        - Typebot
+      summary: Set up or modify the Typebot for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: "Indicates whether to enable the Typebot integration."
+                url:
+                  type: string
+                  description: "The Chatwoot URL."
+                typebot:
+                  type: string
+                  description: "The Typebot Name."
+                expire:
+                  type: number
+                  description: "The Typebot Expire."
+                keyword_finish:
+                  type: string
+                  description: "The Typebot Keyword Finish."
+                delay_message:
+                  type: number
+                  description: "The Typebot Delay Message."
+                unknown_message:
+                  type: string
+                  description: "The Typebot Unknown Message."
+                listening_from_me:
+                  type: boolean
+                  description: "Indicates whether to listening from me."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /typebot/start/{instanceName}:
+    post:
+      tags:
+        - Typebot
+      summary: Start the Typebot for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: "The Typebot URL."
+                typebot:
+                  type: string
+                  description: "The Typebot Name."
+                remoteJid:
+                  type: string
+                  description: "The Typebot RemoteJid."
+                startSession:
+                  type: boolean
+                  description: "Indicates whether to start session."
+                variables:
+                  type: array
+                  description: "List of variables."
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: "The variable name."
+                      value:
+                        type: string
+                        description: "The variable value."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /typebot/find/{instanceName}:
+    get:
+      tags:
+        - Typebot
+      summary: Retrieve the Typebot for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /typebot/changeStatus/{instanceName}:
+    post:
+      tags:
+        - Typebot
+      summary: Change the status of the Typebot for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                remoteJid:
+                  type: string
+                  description: "The Typebot RemoteJid."
+                status:
+                  type: string
+                  description: "The Typebot Status."
+                  enum: ["opened", "paused", "closed"]
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /proxy/set/{instanceName}:
+    post:
+      tags:
+        - Proxy
+      summary: Set up or modify the Proxy for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: "Indicates whether to enable the Proxy integration."
+                proxy:
+                  type: string
+                  description: "The Proxy URI."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /proxy/find/{instanceName}:
+    get:
+      tags:
+        - Proxy
+      summary: Retrieve the Proxy for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /chamaai/set/{instanceName}:
+    post:
+      tags:
+        - Chama AI
+      summary: Set up or modify the Chama AI for an instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                  description: "Indicates whether to enable the Chamai AI integration."
+                url:
+                  type: string
+                  description: "The Chamai AI URL."
+                token:
+                  type: string
+                  description: "The Chamai AI Token."
+                waNumber:
+                  type: string
+                  description: "The Chamai AI WhatsApp Number."
+                answerByAudio:
+                  type: boolean
+                  description: "Indicates whether to answer by audio."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chamaai/find/{instanceName}:
+    get:
+      tags:
+        - Chama AI
+      summary: Retrieve the Chama AI for a specific instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+
+  /chat/fetchBusinessProfile/{instanceName}:
+    post:
+      tags:
+        - Profile Settings
+      summary: Fetch the business profile of a specific contact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                  description: "- required - The phone number of the contact."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chat/fetchProfile/{instanceName}:
+    post:
+      tags:
+        - Profile Settings
+      summary: Fetch the profile of a specific contact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                  description: "- required - The phone number of the contact."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chat/updateProfileName/{instanceName}:
+    post:
+      tags:
+        - Profile Settings
+      summary: Update the name of a specific contact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "- required - The new name of the contact."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chat/updateProfileStatus/{instanceName}:
+    post:
+      tags:
+        - Profile Settings
+      summary: Update the status of a specific contact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: "- required - The new status of the contact."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chat/updateProfilePicture/{instanceName}:
+    put:
+      tags:
+        - Profile Settings
+      summary: Update the profile picture of a specific contact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                picture:
+                  type: string
+                  description: "- required - The new profile picture of the contact."
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chat/removeProfilePicture/{instanceName}:
+    delete:
+      tags:
+        - Profile Settings
+      summary: Remove the profile picture of a specific contact.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chat/fetchPrivacySettings/{instanceName}:
+    get:
+      tags:
+        - Profile Settings
+      summary: Fetch the privacy settings of a specific contact.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+  /chat/updatePrivacySettings/{instanceName}:
+    put:
+      tags:
+        - Profile Settings
+      summary: Update the privacy settings of a specific contact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                privacySettings:
+                  type: object
+                  description: "- required - The new privacy settings of the contact."
+                  properties:
+                    readreceipts:
+                      type: string
+                      enum: ["all", "none"]
+                      description: "- required - The new read receipts privacy setting of the contact."
+                    profile:
+                      type: string
+                      enum: ["all", "contacts", "contact_blacklist", "none"]
+                      description: "- required - The new profile privacy setting of the contact."
+                    status:
+                      type: string
+                      enum: ["all", "contacts", "contact_blacklist", "none"]
+                      description: "- required - The new status privacy setting of the contact."
+                    online:
+                      type: string
+                      enum: ["all", "match_last_seen"]
+                      description: "- required - The new online privacy setting of the contact."
+                    last:
+                      type: string
+                      enum: ["all", "contacts", "contact_blacklist", "none"]
+                      description: "- required - The new last seen privacy setting of the contact."
+                    groupadd:
+                      type: string
+                      enum: ["all", "contacts", "contact_blacklist", "none"]
+                      description: "- required - The new group add privacy setting of the contact."
       parameters:
         - name: instanceName
           in: path
