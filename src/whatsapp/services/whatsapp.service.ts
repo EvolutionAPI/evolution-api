@@ -1193,7 +1193,7 @@ export class WAStartupService {
         ...options,
         auth: {
           creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
@@ -1273,7 +1273,7 @@ export class WAStartupService {
         ...options,
         auth: {
           creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
@@ -1542,7 +1542,7 @@ export class WAStartupService {
           'buffer',
           {},
           {
-            logger: P({ level: 'error' }),
+            logger: P({ level: 'error' }) as any,
             reuploadRequest: this.client.updateMediaMessage,
           },
         );
@@ -2061,7 +2061,12 @@ export class WAStartupService {
     }
   }
 
-  private async sendMessageWithTyping<T = proto.IMessage>(number: string, message: T, options?: Options) {
+  private async sendMessageWithTyping<T = proto.IMessage>(
+    number: string,
+    message: T,
+    options?: Options,
+    isChatwoot = false,
+  ) {
     this.logger.verbose('Sending message with typing');
 
     this.logger.verbose(`Check if number "${number}" is WhatsApp`);
@@ -2219,7 +2224,7 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.localChatwoot.enabled) {
+      if (this.localChatwoot.enabled && !isChatwoot) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
       }
 
@@ -2244,7 +2249,7 @@ export class WAStartupService {
   }
 
   // Send Message Controller
-  public async textMessage(data: SendTextDto) {
+  public async textMessage(data: SendTextDto, isChatwoot = false) {
     this.logger.verbose('Sending text message');
     return await this.sendMessageWithTyping(
       data.number,
@@ -2252,6 +2257,7 @@ export class WAStartupService {
         conversation: data.textMessage.text,
       },
       data?.options,
+      isChatwoot,
     );
   }
 
@@ -2528,11 +2534,11 @@ export class WAStartupService {
     return result;
   }
 
-  public async mediaMessage(data: SendMediaDto) {
+  public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
-    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options);
+    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
   }
 
   public async processAudio(audio: string, number: string) {
@@ -2589,7 +2595,7 @@ export class WAStartupService {
     });
   }
 
-  public async audioWhatsapp(data: SendAudioDto) {
+  public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
     this.logger.verbose('Sending audio whatsapp');
 
     if (!data.options?.encoding && data.options?.encoding !== false) {
@@ -2608,6 +2614,7 @@ export class WAStartupService {
             mimetype: 'audio/mp4',
           },
           { presence: 'recording', delay: data?.options?.delay },
+          isChatwoot,
         );
 
         fs.unlinkSync(convert);
@@ -2629,6 +2636,7 @@ export class WAStartupService {
         mimetype: 'audio/ogg; codecs=opus',
       },
       { presence: 'recording', delay: data?.options?.delay },
+      isChatwoot,
     );
   }
 
@@ -2939,7 +2947,7 @@ export class WAStartupService {
         'buffer',
         {},
         {
-          logger: P({ level: 'error' }),
+          logger: P({ level: 'error' }) as any,
           reuploadRequest: this.client.updateMediaMessage,
         },
       );

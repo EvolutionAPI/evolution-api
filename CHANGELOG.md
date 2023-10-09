@@ -1,3 +1,10 @@
+# 1.5.4 (2023-10-09 20:43)
+
+### Fixed
+
+* Baileys logger typing issue resolved
+* Solved problem with duplicate messages in chatwoot
+
 # 1.5.3 (2023-10-06 18:55)
 
 ### Feature
