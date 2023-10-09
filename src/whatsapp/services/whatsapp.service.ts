@@ -1273,7 +1273,7 @@ export class WAStartupService {
         ...options,
         auth: {
           creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
