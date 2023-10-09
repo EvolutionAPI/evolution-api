@@ -33,7 +33,6 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
 } from '@whiskeysockets/baileys';
-import MAIN_LOGGER from '@whiskeysockets/baileys/lib/Utils/logger';
 import axios from 'axios';
 import { exec, execSync } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
@@ -131,8 +130,6 @@ import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
 //import { SocksProxyAgent } from './socks-proxy-agent';
 import { TypebotService } from './typebot.service';
-
-const logger = MAIN_LOGGER.child({});
 
 export class WAStartupService {
   constructor(
@@ -1545,7 +1542,7 @@ export class WAStartupService {
           'buffer',
           {},
           {
-            logger: logger,
+            logger: P({ level: 'error' }) as any,
             reuploadRequest: this.client.updateMediaMessage,
           },
         );
