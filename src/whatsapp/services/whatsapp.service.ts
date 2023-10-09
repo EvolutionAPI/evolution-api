@@ -2947,7 +2947,7 @@ export class WAStartupService {
         'buffer',
         {},
         {
-          logger: P({ level: 'error' }),
+          logger: P({ level: 'error' }) as any,
           reuploadRequest: this.client.updateMediaMessage,
         },
       );
