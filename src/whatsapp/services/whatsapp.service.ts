@@ -1512,11 +1512,11 @@ export class WAStartupService {
       const received = messages[0];
 
       if (
-        type !== 'notify' ||
-        !received?.message ||
-        received.message?.protocolMessage ||
-        received.message.senderKeyDistributionMessage ||
-        received.message?.pollUpdateMessage
+        type !== 'notify'
+        // !received?.message ||
+        // received.message?.protocolMessage ||
+        // received.message.senderKeyDistributionMessage ||
+        // received.message?.pollUpdateMessage
       ) {
         this.logger.verbose('message rejected');
         return;
