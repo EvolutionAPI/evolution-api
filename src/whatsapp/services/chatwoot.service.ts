@@ -1278,8 +1278,8 @@ export class ChatwootService {
         this.logger.warn('wa instance not found');
         return null;
       }
-
-      if (event === 'messages.upsert' || event === 'send.message') {
+      let conversation: any;
+      if (event === 'messages.upsert' || event === 'send.message' && conversation.status !== 'resolved') {
         this.logger.verbose('event messages.upsert');
 
         if (body.key.remoteJid === 'status@broadcast') {
