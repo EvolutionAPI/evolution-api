@@ -128,9 +128,7 @@ import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types'
 import { waMonitor } from '../whatsapp.module';
 import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
-//import { SocksProxyAgent } from './socks-proxy-agent';
 import { TypebotService } from './typebot.service';
-
 export class WAStartupService {
   constructor(
     private readonly configService: ConfigService,
@@ -584,7 +582,7 @@ export class WAStartupService {
     Object.assign(this.localProxy, data);
     this.logger.verbose('Proxy set');
 
-    this.client?.ws?.close();
+    this.reloadConnection();
   }
 
   public async findProxy() {
@@ -1183,10 +1181,22 @@ export class WAStartupService {
 
       if (this.localProxy.enabled) {
         this.logger.verbose('Proxy enabled');
-        options = {
-          agent: new ProxyAgent(this.localProxy.proxy as any),
-          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
-        };
+
+        if (this.localProxy.proxy.includes('proxyscrape')) {
+          const response = await axios.get(this.localProxy.proxy);
+          const text = response.data;
+          const proxyUrls = text.split('\r\n');
+          const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
+          const proxyUrl = 'http://' + proxyUrls[rand];
+          console.log(proxyUrl);
+          options = {
+            agent: new ProxyAgent(proxyUrl as any),
+          };
+        } else {
+          options = {
+            agent: new ProxyAgent(this.localProxy.proxy as any),
+          };
+        }
       }
 
       const socketConfig: UserFacingSocketConfig = {
@@ -1546,7 +1556,6 @@ export class WAStartupService {
             reuploadRequest: this.client.updateMediaMessage,
           },
         );
-        console.log(buffer);
         messageRaw = {
           key: received.key,
           pushName: received.pushName,
@@ -3086,7 +3095,7 @@ export class WAStartupService {
       await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
       this.logger.verbose('Groups add privacy updated');
 
-      this.client?.ws?.close();
+      this.reloadConnection();
 
       return {
         update: 'success',

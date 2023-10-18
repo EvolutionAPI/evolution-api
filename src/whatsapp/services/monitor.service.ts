@@ -117,7 +117,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
@@ -136,7 +136,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
