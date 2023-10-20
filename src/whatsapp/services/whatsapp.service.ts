@@ -3311,7 +3311,7 @@ export class WAStartupService {
           subject: group.subject,
           subjectOwner: group.subjectOwner,
           subjectTime: group.subjectTime,
-          size: group.size,
+          size: group.participants.length,
           creation: group.creation,
           owner: group.owner,
           desc: group.desc,
