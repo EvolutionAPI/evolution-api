@@ -121,6 +121,12 @@ export class TypebotService {
     }
 
     if (startSession) {
+      const session = sessions.find((session) => session.remoteJid === remoteJid);
+
+      if (session) {
+        sessions.splice(sessions.indexOf(session), 1);
+      }
+
       const response = await this.createNewSession(instance, {
         url: url,
         typebot: typebot,
