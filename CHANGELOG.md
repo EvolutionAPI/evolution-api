@@ -3,6 +3,7 @@
 ### Fixed
 
 * Adjusts in proxy
+* Adjusts in start session for Typebot
 
 # 1.5.4 (2023-10-09 20:43)
 
