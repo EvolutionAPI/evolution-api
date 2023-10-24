@@ -36,8 +36,6 @@ const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard[authType]];
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
-// Hide index if needed
-
 if (!httpServer.HIDE_INDEX)
   router.get('/', (req, res) => {
     res.status(HttpStatus.OK).json({
@@ -46,13 +44,10 @@ if (!httpServer.HIDE_INDEX)
       version: packageJson.version,
     });
   });
-
-// Hide manager if needed
 if (!httpServer.HIDE_MANAGER) router.use('/manager', new ViewsRouter().router);
 
 router
   .use('/instance', new InstanceRouter(configService, ...guards).router)
-  .use('/manager', new ViewsRouter().router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)

@@ -1,4 +1,15 @@
-# 1.5.1 (homolog)
+
+# 1.5.2 (2023-09-28 17:56)
+
+### Fixed
+
+* Fix chatwootSchema in chatwoot model to store reopen_conversation and conversation_pending options
+* Problem resolved when sending files from minio to typebot
+* Improvement in the "startTypebot" method to create persistent session when triggered
+* New manager for Evo 1.5.2 - Set Typebot update
+* Resolved problems when reading/querying instances
+
+# 1.5.1 (2023-09-17 13:50)
 
 ### Feature
 
@@ -7,10 +18,12 @@
 * Added webhooks for typebot events
 * Added ChamaAI integration
 * Added webhook to send errors
+* Added support for messaging with ads on chatwoot
 
 ### Fixed
 
 * Fix looping connection messages in chatwoot
+* Improved performance of fetch instances
 
 # 1.5.0 (2023-08-18 12:47)
 

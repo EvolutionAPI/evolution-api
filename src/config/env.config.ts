@@ -76,6 +76,10 @@ export type Websocket = {
   ENABLED: boolean;
 };
 
+export type Chatwoot = {
+  USE_REPLY_ID: boolean;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
@@ -145,6 +149,7 @@ export interface Env {
   QRCODE: QrCode;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
+  CHATWOOT?: Chatwoot;
 }
 
 export type Key = keyof Env;
@@ -166,11 +171,10 @@ export class ConfigService {
         ? this.envYaml()
         : this.envProcess();
     this.env.PRODUCTION = process.env?.NODE_ENV === 'PROD';
-
-    if ((process.env?.DOCKER_ENV === 'true', process.env?.HEROKU_ENV === 'true')) {
-      this.env.SERVER.TYPE = 'http';
-      this.env.SERVER.PORT = parseInt(process.env.PORT) || 8080;
-    }
+//     if ((process.env?.DOCKER_ENV === 'true', process.env?.HEROKU_ENV === 'true')) {
+//       this.env.SERVER.TYPE = 'http';
+//       this.env.SERVER.PORT = parseInt(process.env.PORT) || 8080;
+//     }
   }
 
   private envYaml(): Env {
@@ -250,9 +254,7 @@ export class ConfigService {
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
-      DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
-        ? process.env.DEL_INSTANCE === 'true'
-        : Number.parseInt(process.env.DEL_INSTANCE) || false,
+      DEL_INSTANCE: process.env?.DEL_INSTANCE === 'true' ? 5 : Number.parseInt(process.env.DEL_INSTANCE) || false,
       WEBHOOK: {
         GLOBAL: {
           URL: process.env?.WEBHOOK_GLOBAL_URL || '',
@@ -308,6 +310,9 @@ export class ConfigService {
             : 3600,
           SECRET: process.env.AUTHENTICATION_JWT_SECRET || 'L=0YWt]b2w[WF>#>:&E`',
         },
+      },
+      CHATWOOT: {
+        USE_REPLY_ID: process.env?.USE_REPLY_ID === 'true',
       },
     };
   }
