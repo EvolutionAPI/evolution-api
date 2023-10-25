@@ -1188,7 +1188,6 @@ export class WAStartupService {
           const proxyUrls = text.split('\r\n');
           const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
           const proxyUrl = 'http://' + proxyUrls[rand];
-          console.log(proxyUrl);
           options = {
             agent: new ProxyAgent(proxyUrl as any),
           };
@@ -2447,10 +2446,14 @@ export class WAStartupService {
 
       let mimetype: string;
 
-      if (isURL(mediaMessage.media)) {
-        mimetype = getMIMEType(mediaMessage.media);
+      if (mediaMessage.mimetype) {
+        mimetype = mediaMessage.mimetype;
       } else {
-        mimetype = getMIMEType(mediaMessage.fileName);
+        if (isURL(mediaMessage.media)) {
+          mimetype = getMIMEType(mediaMessage.media);
+        } else {
+          mimetype = getMIMEType(mediaMessage.fileName);
+        }
       }
 
       this.logger.verbose('Mimetype: ' + mimetype);
