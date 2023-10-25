@@ -1601,7 +1601,7 @@ export class WAStartupService {
         );
       }
 
-      if (this.localTypebot.enabled) {
+      if (this.localTypebot.enabled || this.localTypebot.sessions?.length > 0) {
         if (!(this.localTypebot.listening_from_me === false && messageRaw.key.fromMe === true)) {
           await this.typebotService.sendTypebot(
             { instanceName: this.instance.name },
