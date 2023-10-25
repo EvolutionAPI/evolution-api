@@ -1601,7 +1601,11 @@ export class WAStartupService {
         );
       }
 
-      if (this.localTypebot.enabled || this.localTypebot.sessions?.length > 0) {
+      const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
+        (session) => session.remoteJid === received.key.remoteJid,
+      );
+
+      if (this.localTypebot.enabled || typebotSessionRemoteJid) {
         if (!(this.localTypebot.listening_from_me === false && messageRaw.key.fromMe === true)) {
           await this.typebotService.sendTypebot(
             { instanceName: this.instance.name },

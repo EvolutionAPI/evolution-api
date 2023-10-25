@@ -518,7 +518,7 @@ export class TypebotService {
             const newSessions = await this.clearSessions(instance, remoteJid);
 
             const typebotData = {
-              enabled: true,
+              enabled: findTypebot.enabled,
               url: url,
               typebot: typebot,
               expire: expire,
@@ -598,7 +598,7 @@ export class TypebotService {
           sessions.splice(sessions.indexOf(session), 1);
 
           const typebotData = {
-            enabled: true,
+            enabled: findTypebot.enabled,
             url: url,
             typebot: typebot,
             expire: expire,
@@ -639,7 +639,7 @@ export class TypebotService {
     });
 
     const typebotData = {
-      enabled: true,
+      enabled: findTypebot.enabled,
       url: url,
       typebot: typebot,
       expire: expire,
@@ -674,7 +674,7 @@ export class TypebotService {
       sessions.splice(sessions.indexOf(session), 1);
 
       const typebotData = {
-        enabled: true,
+        enabled: findTypebot.enabled,
         url: url,
         typebot: typebot,
         expire: expire,
