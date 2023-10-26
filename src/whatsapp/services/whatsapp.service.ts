@@ -1520,11 +1520,12 @@ export class WAStartupService {
       this.logger.verbose('Event received: messages.upsert');
       const received = messages[0];
 
+      console.log(received, type);
       if (
         type !== 'notify' ||
         !received?.message ||
         received.message?.protocolMessage ||
-        received.message.senderKeyDistributionMessage ||
+        // received.message.senderKeyDistributionMessage ||
         received.message?.pollUpdateMessage
       ) {
         this.logger.verbose('message rejected');
