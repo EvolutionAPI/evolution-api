@@ -1801,7 +1801,7 @@ export class WAStartupService {
             this.client.rejectCall(call.id, call.from);
           }
 
-          if (settings?.msg_call.trim().length > 0 && call.status == 'offer') {
+          if (settings?.msg_call?.trim().length > 0 && call.status == 'offer') {
             this.logger.verbose('Sending message in call');
             const msg = await this.client.sendMessage(call.from, {
               text: settings.msg_call,
