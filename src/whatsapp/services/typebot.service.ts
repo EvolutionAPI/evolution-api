@@ -96,6 +96,8 @@ export class TypebotService {
   }
 
   public async startTypebot(instance: InstanceDto, data: any) {
+    if (data.remoteJid === 'status@broadcast') return;
+
     const remoteJid = data.remoteJid;
     const url = data.url;
     const typebot = data.typebot;
@@ -155,7 +157,13 @@ export class TypebotService {
         },
       };
 
-      const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+      let request: any;
+      try {
+        request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+      } catch (error) {
+        this.logger.error(error);
+        return;
+      }
 
       await this.sendWAMessage(
         instance,
@@ -224,7 +232,9 @@ export class TypebotService {
   }
 
   public async createNewSession(instance: InstanceDto, data: any) {
+    if (data.remoteJid === 'status@broadcast') return;
     const id = Math.floor(Math.random() * 10000000000).toString();
+
     const reqData = {
       startParams: {
         typebot: data.typebot,
@@ -237,7 +247,13 @@ export class TypebotService {
       },
     };
 
-    const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+    let request: any;
+    try {
+      request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+    } catch (error) {
+      this.logger.error(error);
+      return;
+    }
 
     if (request.data.sessionId) {
       data.sessions.push({
@@ -503,7 +519,13 @@ export class TypebotService {
             sessionId: data.sessionId,
           };
 
-          const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+          let request: any;
+          try {
+            request = await axios.post(url + '/api/v1/sendMessage', reqData);
+          } catch (error) {
+            this.logger.error(error);
+            return;
+          }
 
           console.log('request', request);
           await this.sendWAMessage(
@@ -583,7 +605,13 @@ export class TypebotService {
           sessionId: data.sessionId,
         };
 
-        const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+        let request: any;
+        try {
+          request = await axios.post(url + '/api/v1/sendMessage', reqData);
+        } catch (error) {
+          this.logger.error(error);
+          return;
+        }
 
         console.log('request', request);
         await this.sendWAMessage(
@@ -660,7 +688,13 @@ export class TypebotService {
       sessionId: session.sessionId.split('-')[1],
     };
 
-    const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+    let request: any;
+    try {
+      request = await axios.post(url + '/api/v1/sendMessage', reqData);
+    } catch (error) {
+      this.logger.error(error);
+      return;
+    }
 
     await this.sendWAMessage(
       instance,
