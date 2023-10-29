@@ -157,29 +157,28 @@ export class TypebotService {
         },
       };
 
-      let request: any;
       try {
-        request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+        const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+
+        await this.sendWAMessage(
+          instance,
+          remoteJid,
+          request.data.messages,
+          request.data.input,
+          request.data.clientSideActions,
+        );
+
+        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
+          remoteJid: remoteJid,
+          url: url,
+          typebot: typebot,
+          variables: variables,
+          sessionId: id,
+        });
       } catch (error) {
         this.logger.error(error);
         return;
       }
-
-      await this.sendWAMessage(
-        instance,
-        remoteJid,
-        request.data.messages,
-        request.data.input,
-        request.data.clientSideActions,
-      );
-
-      this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
-        remoteJid: remoteJid,
-        url: url,
-        typebot: typebot,
-        variables: variables,
-        sessionId: id,
-      });
     }
 
     return {
@@ -255,7 +254,7 @@ export class TypebotService {
       return;
     }
 
-    if (request.data.sessionId) {
+    if (request?.data?.sessionId) {
       data.sessions.push({
         remoteJid: data.remoteJid,
         sessionId: `${id}-${request.data.sessionId}`,
@@ -519,22 +518,21 @@ export class TypebotService {
             sessionId: data.sessionId,
           };
 
-          let request: any;
           try {
-            request = await axios.post(url + '/api/v1/sendMessage', reqData);
+            const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+            console.log('request', request);
+            await this.sendWAMessage(
+              instance,
+              remoteJid,
+              request.data.messages,
+              request.data.input,
+              request.data.clientSideActions,
+            );
           } catch (error) {
             this.logger.error(error);
             return;
           }
-
-          console.log('request', request);
-          await this.sendWAMessage(
-            instance,
-            remoteJid,
-            request.data.messages,
-            request.data.input,
-            request.data.clientSideActions,
-          );
         }
 
         return;
@@ -608,19 +606,19 @@ export class TypebotService {
         let request: any;
         try {
           request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+          console.log('request', request);
+          await this.sendWAMessage(
+            instance,
+            remoteJid,
+            request.data.messages,
+            request.data.input,
+            request.data.clientSideActions,
+          );
         } catch (error) {
           this.logger.error(error);
           return;
         }
-
-        console.log('request', request);
-        await this.sendWAMessage(
-          instance,
-          remoteJid,
-          request.data.messages,
-          request.data.input,
-          request.data.clientSideActions,
-        );
       }
       return;
     }
@@ -691,18 +689,18 @@ export class TypebotService {
     let request: any;
     try {
       request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+      await this.sendWAMessage(
+        instance,
+        remoteJid,
+        request.data.messages,
+        request.data.input,
+        request.data.clientSideActions,
+      );
     } catch (error) {
       this.logger.error(error);
       return;
     }
-
-    await this.sendWAMessage(
-      instance,
-      remoteJid,
-      request.data.messages,
-      request.data.input,
-      request.data.clientSideActions,
-    );
 
     return;
   }
