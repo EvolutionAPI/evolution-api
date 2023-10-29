@@ -47,7 +47,7 @@ export class TypebotService {
         findData.sessions.splice(findData.sessions.indexOf(session), 1);
 
         const typebotData = {
-          enabled: true,
+          enabled: findData.enabled,
           url: findData.url,
           typebot: findData.typebot,
           expire: findData.expire,
@@ -71,7 +71,7 @@ export class TypebotService {
     }
 
     const typebotData = {
-      enabled: true,
+      enabled: findData.enabled,
       url: findData.url,
       typebot: findData.typebot,
       expire: findData.expire,
@@ -104,7 +104,6 @@ export class TypebotService {
     const startSession = data.startSession;
     const variables = data.variables;
     const findTypebot = await this.find(instance);
-    const sessions = (findTypebot.sessions as Session[]) ?? [];
     const expire = findTypebot.expire;
     const keyword_finish = findTypebot.keyword_finish;
     const delay_message = findTypebot.delay_message;
@@ -116,12 +115,17 @@ export class TypebotService {
       instanceName: instance.instanceName,
     };
 
-    variables.forEach((variable) => {
-      prefilledVariables[variable.name] = variable.value;
-    });
+    if (variables?.length) {
+      variables.forEach((variable: { name: string | number; value: string }) => {
+        prefilledVariables[variable.name] = variable.value;
+      });
+    }
 
     if (startSession) {
+      const newSessions = await this.clearSessions(instance, remoteJid);
+
       const response = await this.createNewSession(instance, {
+        enabled: findTypebot.enabled,
         url: url,
         typebot: typebot,
         remoteJid: remoteJid,
@@ -130,7 +134,7 @@ export class TypebotService {
         delay_message: delay_message,
         unknown_message: unknown_message,
         listening_from_me: listening_from_me,
-        sessions: sessions,
+        sessions: newSessions,
         prefilledVariables: prefilledVariables,
       });
 
@@ -246,45 +250,74 @@ export class TypebotService {
       },
     };
 
-    let request: any;
     try {
-      request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+      const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+
+      if (request?.data?.sessionId) {
+        data.sessions.push({
+          remoteJid: data.remoteJid,
+          sessionId: `${id}-${request.data.sessionId}`,
+          status: 'opened',
+          createdAt: Date.now(),
+          updateAt: Date.now(),
+          prefilledVariables: {
+            ...data.prefilledVariables,
+            remoteJid: data.remoteJid,
+            pushName: data.pushName || '',
+            instanceName: instance.instanceName,
+          },
+        });
+
+        const typebotData = {
+          enabled: data.enabled,
+          url: data.url,
+          typebot: data.typebot,
+          expire: data.expire,
+          keyword_finish: data.keyword_finish,
+          delay_message: data.delay_message,
+          unknown_message: data.unknown_message,
+          listening_from_me: data.listening_from_me,
+          sessions: data.sessions,
+        };
+
+        this.create(instance, typebotData);
+      }
+      return request.data;
     } catch (error) {
       this.logger.error(error);
       return;
     }
+  }
 
-    if (request?.data?.sessionId) {
-      data.sessions.push({
-        remoteJid: data.remoteJid,
-        sessionId: `${id}-${request.data.sessionId}`,
-        status: 'opened',
-        createdAt: Date.now(),
-        updateAt: Date.now(),
-        prefilledVariables: {
-          ...data.prefilledVariables,
-          remoteJid: data.remoteJid,
-          pushName: data.pushName || '',
-          instanceName: instance.instanceName,
-        },
+  public async clearSessions(instance: InstanceDto, remoteJid: string) {
+    const findTypebot = await this.find(instance);
+    const sessions = (findTypebot.sessions as Session[]) ?? [];
+
+    const sessionWithRemoteJid = sessions.filter((session) => session.remoteJid === remoteJid);
+
+    if (sessionWithRemoteJid.length > 0) {
+      sessionWithRemoteJid.forEach((session) => {
+        sessions.splice(sessions.indexOf(session), 1);
       });
 
       const typebotData = {
-        enabled: true,
-        url: data.url,
-        typebot: data.typebot,
-        expire: data.expire,
-        keyword_finish: data.keyword_finish,
-        delay_message: data.delay_message,
-        unknown_message: data.unknown_message,
-        listening_from_me: data.listening_from_me,
-        sessions: data.sessions,
+        enabled: findTypebot.enabled,
+        url: findTypebot.url,
+        typebot: findTypebot.typebot,
+        expire: findTypebot.expire,
+        keyword_finish: findTypebot.keyword_finish,
+        delay_message: findTypebot.delay_message,
+        unknown_message: findTypebot.unknown_message,
+        listening_from_me: findTypebot.listening_from_me,
+        sessions,
       };
 
       this.create(instance, typebotData);
+
+      return sessions;
     }
 
-    return request.data;
+    return sessions;
   }
 
   public async sendWAMessage(
@@ -457,9 +490,10 @@ export class TypebotService {
       const diffInMinutes = Math.floor(diff / 1000 / 60);
 
       if (diffInMinutes > expire) {
-        sessions.splice(sessions.indexOf(session), 1);
+        const newSessions = await this.clearSessions(instance, remoteJid);
 
         const data = await this.createNewSession(instance, {
+          enabled: findTypebot.enabled,
           url: url,
           typebot: typebot,
           expire: expire,
@@ -467,7 +501,7 @@ export class TypebotService {
           delay_message: delay_message,
           unknown_message: unknown_message,
           listening_from_me: listening_from_me,
-          sessions: sessions,
+          sessions: newSessions,
           remoteJid: remoteJid,
           pushName: msg.pushName,
         });
@@ -494,10 +528,10 @@ export class TypebotService {
           }
 
           if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
-            sessions.splice(sessions.indexOf(session), 1);
+            const newSessions = await this.clearSessions(instance, remoteJid);
 
             const typebotData = {
-              enabled: true,
+              enabled: findTypebot.enabled,
               url: url,
               typebot: typebot,
               expire: expire,
@@ -505,7 +539,7 @@ export class TypebotService {
               delay_message: delay_message,
               unknown_message: unknown_message,
               listening_from_me: listening_from_me,
-              sessions,
+              sessions: newSessions,
             };
 
             this.create(instance, typebotData);
@@ -521,7 +555,6 @@ export class TypebotService {
           try {
             const request = await axios.post(url + '/api/v1/sendMessage', reqData);
 
-            console.log('request', request);
             await this.sendWAMessage(
               instance,
               remoteJid,
@@ -545,6 +578,7 @@ export class TypebotService {
 
     if (!session) {
       const data = await this.createNewSession(instance, {
+        enabled: findTypebot.enabled,
         url: url,
         typebot: typebot,
         expire: expire,
@@ -582,7 +616,7 @@ export class TypebotService {
           sessions.splice(sessions.indexOf(session), 1);
 
           const typebotData = {
-            enabled: true,
+            enabled: findTypebot.enabled,
             url: url,
             typebot: typebot,
             expire: expire,
@@ -606,8 +640,6 @@ export class TypebotService {
         let request: any;
         try {
           request = await axios.post(url + '/api/v1/sendMessage', reqData);
-
-          console.log('request', request);
           await this.sendWAMessage(
             instance,
             remoteJid,
@@ -630,7 +662,7 @@ export class TypebotService {
     });
 
     const typebotData = {
-      enabled: true,
+      enabled: findTypebot.enabled,
       url: url,
       typebot: typebot,
       expire: expire,
@@ -665,7 +697,7 @@ export class TypebotService {
       sessions.splice(sessions.indexOf(session), 1);
 
       const typebotData = {
-        enabled: true,
+        enabled: findTypebot.enabled,
         url: url,
         typebot: typebot,
         expire: expire,
