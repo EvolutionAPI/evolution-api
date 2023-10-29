@@ -320,6 +320,37 @@ export class TypebotService {
     return sessions;
   }
 
+  public async clearSessions(instance: InstanceDto, remoteJid: string) {
+    const findTypebot = await this.find(instance);
+    const sessions = (findTypebot.sessions as Session[]) ?? [];
+
+    const sessionWithRemoteJid = sessions.filter((session) => session.remoteJid === remoteJid);
+
+    if (sessionWithRemoteJid.length > 0) {
+      sessionWithRemoteJid.forEach((session) => {
+        sessions.splice(sessions.indexOf(session), 1);
+      });
+
+      const typebotData = {
+        enabled: findTypebot.enabled,
+        url: findTypebot.url,
+        typebot: findTypebot.typebot,
+        expire: findTypebot.expire,
+        keyword_finish: findTypebot.keyword_finish,
+        delay_message: findTypebot.delay_message,
+        unknown_message: findTypebot.unknown_message,
+        listening_from_me: findTypebot.listening_from_me,
+        sessions,
+      };
+
+      this.create(instance, typebotData);
+
+      return sessions;
+    }
+
+    return sessions;
+  }
+
   public async sendWAMessage(
     instance: InstanceDto,
     remoteJid: string,

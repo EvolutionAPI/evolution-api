@@ -128,9 +128,7 @@ import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types'
 import { waMonitor } from '../whatsapp.module';
 import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
-//import { SocksProxyAgent } from './socks-proxy-agent';
 import { TypebotService } from './typebot.service';
-
 export class WAStartupService {
   constructor(
     private readonly configService: ConfigService,
@@ -275,6 +273,9 @@ export class WAStartupService {
 
     this.localWebhook.webhook_by_events = data?.webhook_by_events;
     this.logger.verbose(`Webhook by events: ${this.localWebhook.webhook_by_events}`);
+
+    this.localWebhook.webhook_base64 = data?.webhook_base64;
+    this.logger.verbose(`Webhook by webhook_base64: ${this.localWebhook.webhook_base64}`);
 
     this.logger.verbose('Webhook loaded');
   }
@@ -581,7 +582,7 @@ export class WAStartupService {
     Object.assign(this.localProxy, data);
     this.logger.verbose('Proxy set');
 
-    this.client?.ws?.close();
+    this.reloadConnection();
   }
 
   public async findProxy() {
@@ -1180,17 +1181,28 @@ export class WAStartupService {
 
       if (this.localProxy.enabled) {
         this.logger.verbose('Proxy enabled');
-        options = {
-          agent: new ProxyAgent(this.localProxy.proxy as any),
-          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
-        };
+
+        if (this.localProxy.proxy.includes('proxyscrape')) {
+          const response = await axios.get(this.localProxy.proxy);
+          const text = response.data;
+          const proxyUrls = text.split('\r\n');
+          const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
+          const proxyUrl = 'http://' + proxyUrls[rand];
+          options = {
+            agent: new ProxyAgent(proxyUrl as any),
+          };
+        } else {
+          options = {
+            agent: new ProxyAgent(this.localProxy.proxy as any),
+          };
+        }
       }
 
       const socketConfig: UserFacingSocketConfig = {
         ...options,
         auth: {
           creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
@@ -1270,7 +1282,7 @@ export class WAStartupService {
         ...options,
         auth: {
           creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' })),
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
@@ -1508,11 +1520,12 @@ export class WAStartupService {
       this.logger.verbose('Event received: messages.upsert');
       const received = messages[0];
 
+      console.log(received, type);
       if (
         type !== 'notify' ||
         !received?.message ||
         received.message?.protocolMessage ||
-        received.message.senderKeyDistributionMessage ||
+        // received.message.senderKeyDistributionMessage ||
         received.message?.pollUpdateMessage
       ) {
         this.logger.verbose('message rejected');
@@ -1528,15 +1541,44 @@ export class WAStartupService {
         return;
       }
 
-      const messageRaw: MessageRaw = {
-        key: received.key,
-        pushName: received.pushName,
-        message: { ...received.message },
-        messageType: getContentType(received.message),
-        messageTimestamp: received.messageTimestamp as number,
-        owner: this.instance.name,
-        source: getDevice(received.key.id),
-      };
+      let messageRaw: MessageRaw;
+
+      if (
+        (this.localWebhook.webhook_base64 === true && received?.message.documentMessage) ||
+        received?.message.imageMessage
+      ) {
+        const buffer = await downloadMediaMessage(
+          { key: received.key, message: received?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }) as any,
+            reuploadRequest: this.client.updateMediaMessage,
+          },
+        );
+        messageRaw = {
+          key: received.key,
+          pushName: received.pushName,
+          message: {
+            ...received.message,
+            base64: buffer ? buffer.toString('base64') : undefined,
+          },
+          messageType: getContentType(received.message),
+          messageTimestamp: received.messageTimestamp as number,
+          owner: this.instance.name,
+          source: getDevice(received.key.id),
+        };
+      } else {
+        messageRaw = {
+          key: received.key,
+          pushName: received.pushName,
+          message: { ...received.message },
+          messageType: getContentType(received.message),
+          messageTimestamp: received.messageTimestamp as number,
+          owner: this.instance.name,
+          source: getDevice(received.key.id),
+        };
+      }
 
       if (this.localSettings.read_messages && received.key.id !== 'status@broadcast') {
         await this.client.readMessages([received.key]);
@@ -1559,7 +1601,11 @@ export class WAStartupService {
         );
       }
 
-      if (this.localTypebot.enabled) {
+      const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
+        (session) => session.remoteJid === received.key.remoteJid,
+      );
+
+      if (this.localTypebot.enabled || typebotSessionRemoteJid) {
         if (!(this.localTypebot.listening_from_me === false && messageRaw.key.fromMe === true)) {
           await this.typebotService.sendTypebot(
             { instanceName: this.instance.name },
@@ -1901,8 +1947,8 @@ export class WAStartupService {
   private createJid(number: string): string {
     this.logger.verbose('Creating jid with number: ' + number);
 
-    if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
-      this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
+    if (number.includes('@g.us') || number.includes('@s.whatsapp.net') || number.includes('@lid')) {
+      this.logger.verbose('Number already contains @g.us or @s.whatsapp.net or @lid');
       return number;
     }
 
@@ -2028,7 +2074,12 @@ export class WAStartupService {
     }
   }
 
-  private async sendMessageWithTyping<T = proto.IMessage>(number: string, message: T, options?: Options) {
+  private async sendMessageWithTyping<T = proto.IMessage>(
+    number: string,
+    message: T,
+    options?: Options,
+    isChatwoot = false,
+  ) {
     this.logger.verbose('Sending message with typing');
 
     this.logger.verbose(`Check if number "${number}" is WhatsApp`);
@@ -2186,7 +2237,7 @@ export class WAStartupService {
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.localChatwoot.enabled) {
+      if (this.localChatwoot.enabled && !isChatwoot) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
       }
 
@@ -2211,7 +2262,7 @@ export class WAStartupService {
   }
 
   // Send Message Controller
-  public async textMessage(data: SendTextDto) {
+  public async textMessage(data: SendTextDto, isChatwoot = false) {
     this.logger.verbose('Sending text message');
     return await this.sendMessageWithTyping(
       data.number,
@@ -2219,6 +2270,7 @@ export class WAStartupService {
         conversation: data.textMessage.text,
       },
       data?.options,
+      isChatwoot,
     );
   }
 
@@ -2384,7 +2436,6 @@ export class WAStartupService {
         mediaMessage.fileName = arrayMatch[1];
         this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
-      let mimetype: string;
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
         mediaMessage.fileName = 'image.png';
@@ -2394,10 +2445,16 @@ export class WAStartupService {
         mediaMessage.fileName = 'video.mp4';
       }
 
-      if (isURL(mediaMessage.media)) {
-        mimetype = getMIMEType(mediaMessage.media);
+      let mimetype: string;
+
+      if (mediaMessage.mimetype) {
+        mimetype = mediaMessage.mimetype;
       } else {
-        mimetype = getMIMEType(mediaMessage.fileName);
+        if (isURL(mediaMessage.media)) {
+          mimetype = getMIMEType(mediaMessage.media);
+        } else {
+          mimetype = getMIMEType(mediaMessage.fileName);
+        }
       }
 
       this.logger.verbose('Mimetype: ' + mimetype);
@@ -2494,11 +2551,11 @@ export class WAStartupService {
     return result;
   }
 
-  public async mediaMessage(data: SendMediaDto) {
+  public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
-    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options);
+    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
   }
 
   public async processAudio(audio: string, number: string) {
@@ -2555,7 +2612,7 @@ export class WAStartupService {
     });
   }
 
-  public async audioWhatsapp(data: SendAudioDto) {
+  public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
     this.logger.verbose('Sending audio whatsapp');
 
     if (!data.options?.encoding && data.options?.encoding !== false) {
@@ -2574,6 +2631,7 @@ export class WAStartupService {
             mimetype: 'audio/mp4',
           },
           { presence: 'recording', delay: data?.options?.delay },
+          isChatwoot,
         );
 
         fs.unlinkSync(convert);
@@ -2595,6 +2653,7 @@ export class WAStartupService {
         mimetype: 'audio/ogg; codecs=opus',
       },
       { presence: 'recording', delay: data?.options?.delay },
+      isChatwoot,
     );
   }
 
@@ -2905,7 +2964,7 @@ export class WAStartupService {
         'buffer',
         {},
         {
-          logger: P({ level: 'error' }),
+          logger: P({ level: 'error' }) as any,
           reuploadRequest: this.client.updateMediaMessage,
         },
       );
@@ -3044,7 +3103,7 @@ export class WAStartupService {
       await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
       this.logger.verbose('Groups add privacy updated');
 
-      this.client?.ws?.close();
+      this.reloadConnection();
 
       return {
         update: 'success',

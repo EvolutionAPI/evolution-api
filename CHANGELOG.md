@@ -1,8 +1,24 @@
-# 1.5.3 (develop)
+# 1.5.5 (develop)
+
+### Fixed
+
+* Adjusts in proxy
+* Adjusts in start session for Typebot
+* Added mimetype field when sending media
+
+# 1.5.4 (2023-10-09 20:43)
+
+### Fixed
+
+* Baileys logger typing issue resolved
+* Solved problem with duplicate messages in chatwoot
+
+# 1.5.3 (2023-10-06 18:55)
 
 ### Feature
 
 * Swagger documentation
+* Added base 64 sending option via webhook
 
 ### Fixed
 
@@ -13,6 +29,7 @@
 * Adjustment to start typebot, added startSession parameter
 * Chatwoot now receives messages sent via api and typebot
 * Fixed problem with starting with an input in typebot
+* Added check to ensure variables are not empty before executing foreach in start typebot
 
 # 1.5.2 (2023-09-28 17:56)
 
