@@ -914,7 +914,7 @@ export class ChatwootService {
           },
         };
 
-        await waInstance?.audioWhatsapp(data);
+        await waInstance?.audioWhatsapp(data, true);
 
         this.logger.verbose('audio sent');
         return;
@@ -939,7 +939,7 @@ export class ChatwootService {
         data.mediaMessage.caption = caption;
       }
 
-      await waInstance?.mediaMessage(data);
+      await waInstance?.mediaMessage(data, true);
 
       this.logger.verbose('media sent');
       return;
@@ -1074,7 +1074,7 @@ export class ChatwootService {
               },
             };
 
-            await waInstance?.textMessage(data);
+            await waInstance?.textMessage(data, true);
           }
         }
       }
