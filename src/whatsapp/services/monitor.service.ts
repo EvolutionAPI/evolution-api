@@ -12,12 +12,18 @@ import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
   AuthModel,
+  ChamaaiModel,
+  ChatModel,
   ChatwootModel,
   ContactModel,
   MessageModel,
   MessageUpModel,
+  ProxyModel,
+  RabbitmqModel,
   SettingsModel,
+  TypebotModel,
   WebhookModel,
+  WebsocketModel,
 } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { WAStartupService } from './whatsapp.service';
@@ -233,13 +239,19 @@ export class WAMonitoringService {
 
     this.logger.verbose('cleaning store database instance: ' + instanceName);
 
-    await AuthModel.deleteMany({ owner: instanceName });
+    await ChatModel.deleteMany({ owner: instanceName });
     await ContactModel.deleteMany({ owner: instanceName });
-    await MessageModel.deleteMany({ owner: instanceName });
     await MessageUpModel.deleteMany({ owner: instanceName });
+    await MessageModel.deleteMany({ owner: instanceName });
+
     await AuthModel.deleteMany({ _id: instanceName });
     await WebhookModel.deleteMany({ _id: instanceName });
     await ChatwootModel.deleteMany({ _id: instanceName });
+    await ChamaaiModel.deleteMany({ _id: instanceName });
+    await ProxyModel.deleteMany({ _id: instanceName });
+    await RabbitmqModel.deleteMany({ _id: instanceName });
+    await TypebotModel.deleteMany({ _id: instanceName });
+    await WebsocketModel.deleteMany({ _id: instanceName });
     await SettingsModel.deleteMany({ _id: instanceName });
 
     return;
