@@ -553,15 +553,13 @@ export class InstanceController {
         this.logger.verbose('logging out instance: ' + instanceName);
 
         await this.logout({ instanceName });
-        delete this.waMonitor.waInstances[instanceName];
-        return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
-      } else {
-        this.logger.verbose('deleting instance: ' + instanceName);
-
-        delete this.waMonitor.waInstances[instanceName];
-        this.eventEmitter.emit('remove.instance', instanceName, 'inner');
-        return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
       }
+
+      this.logger.verbose('deleting instance: ' + instanceName);
+
+      delete this.waMonitor.waInstances[instanceName];
+      this.eventEmitter.emit('remove.instance', instanceName, 'inner');
+      return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
     } catch (error) {
       throw new BadRequestException(error.toString());
     }
