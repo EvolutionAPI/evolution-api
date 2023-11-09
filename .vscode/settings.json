@@ -7,5 +7,7 @@
   "editor.codeActionsOnSave": {
      "source.fixAll.eslint": true,
      "source.fixAll": true
-  }
+  },
+  "prisma-smart-formatter.typescript.defaultFormatter": "esbenp.prettier-vscode",
+  "prisma-smart-formatter.prisma.defaultFormatter": "Prisma.prisma"
 }
