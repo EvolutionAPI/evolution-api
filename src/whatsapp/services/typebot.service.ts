@@ -157,7 +157,7 @@ export class TypebotService {
         },
       };
 
-      const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+      const request = await axios.post(data.url + '/api/v2/sendMessage', reqData);
 
       await this.sendWAMessage(
         instance,
@@ -239,7 +239,7 @@ export class TypebotService {
       },
     };
 
-    const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+    const request = await axios.post(data.url + '/api/v2/sendMessage', reqData);
 
     if (request.data.sessionId) {
       data.sessions.push({
@@ -505,7 +505,7 @@ export class TypebotService {
             sessionId: data.sessionId,
           };
 
-          const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+          const request = await axios.post(url + '/api/v2/sendMessage', reqData);
 
           console.log('request', request);
           await this.sendWAMessage(
@@ -585,7 +585,7 @@ export class TypebotService {
           sessionId: data.sessionId,
         };
 
-        const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+        const request = await axios.post(url + '/api/v2/sendMessage', reqData);
 
         console.log('request', request);
         await this.sendWAMessage(
@@ -662,7 +662,7 @@ export class TypebotService {
       sessionId: session.sessionId.split('-')[1],
     };
 
-    const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+    const request = await axios.post(url + '/api/v2/sendMessage', reqData);
 
     await this.sendWAMessage(
       instance,
