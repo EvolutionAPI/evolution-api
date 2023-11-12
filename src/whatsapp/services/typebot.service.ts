@@ -361,7 +361,7 @@ export class TypebotService {
             },
             mediaMessage: {
               mediatype: 'image',
-              media: message.content.url,
+              media: message.content.url + ".png",
             },
           });
         }
