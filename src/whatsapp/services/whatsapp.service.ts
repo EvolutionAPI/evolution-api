@@ -2159,6 +2159,21 @@ export class WAStartupService {
           !message['conversation'] &&
           sender !== 'status@broadcast'
         ) {
+
+          if (message['reactionMessage']) {
+            this.logger.verbose('Sending reaction');
+            return await this.client.sendMessage(
+                sender,
+                {
+                  react: {
+                    text: message['reactionMessage']['text'],
+                    key: message['reactionMessage']['key']
+                  }
+                } as unknown as AnyMessageContent,
+                option as unknown as MiscMessageGenerationOptions,
+            );
+          }
+
           if (!message['audio']) {
             this.logger.verbose('Sending message');
             return await this.client.sendMessage(
@@ -2174,7 +2189,6 @@ export class WAStartupService {
             );
           }
         }
-
         if (message['conversation']) {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
