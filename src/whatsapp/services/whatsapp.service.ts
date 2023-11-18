@@ -2172,6 +2172,21 @@ export class WAStartupService {
           !message['conversation'] &&
           sender !== 'status@broadcast'
         ) {
+
+          if (message['reactionMessage']) {
+            this.logger.verbose('Sending reaction');
+            return await this.client.sendMessage(
+                sender,
+                {
+                  react: {
+                    text: message['reactionMessage']['text'],
+                    key: message['reactionMessage']['key']
+                  }
+                } as unknown as AnyMessageContent,
+                option as unknown as MiscMessageGenerationOptions,
+            );
+          }
+
           if (!message['audio']) {
             this.logger.verbose('Sending message');
             return await this.client.sendMessage(
@@ -2187,7 +2202,6 @@ export class WAStartupService {
             );
           }
         }
-
         if (message['conversation']) {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
@@ -2235,7 +2249,7 @@ export class WAStartupService {
       this.logger.log(messageRaw);
 
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
-      await this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
+      this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
       if (this.localChatwoot.enabled && !isChatwoot) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
