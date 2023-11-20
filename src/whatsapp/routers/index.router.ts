@@ -13,6 +13,7 @@ import { ProxyRouter } from './proxy.router';
 import { RabbitmqRouter } from './rabbitmq.router';
 import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
+import { SqsRouter } from './sqs.router';
 import { TypebotRouter } from './typebot.router';
 import { ViewsRouter } from './view.router';
 import { WebhookRouter } from './webhook.router';
@@ -53,6 +54,7 @@ router
   .use('/settings', new SettingsRouter(...guards).router)
   .use('/websocket', new WebsocketRouter(...guards).router)
   .use('/rabbitmq', new RabbitmqRouter(...guards).router)
+  .use('/sqs', new SqsRouter(...guards).router)
   .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
   .use('/chamaai', new ChamaaiRouter(...guards).router);

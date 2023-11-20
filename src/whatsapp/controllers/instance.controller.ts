@@ -13,6 +13,7 @@ import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { RabbitmqService } from '../services/rabbitmq.service';
 import { SettingsService } from '../services/settings.service';
+import { SqsService } from '../services/sqs.service';
 import { TypebotService } from '../services/typebot.service';
 import { WebhookService } from '../services/webhook.service';
 import { WebsocketService } from '../services/websocket.service';
@@ -31,6 +32,7 @@ export class InstanceController {
     private readonly settingsService: SettingsService,
     private readonly websocketService: WebsocketService,
     private readonly rabbitmqService: RabbitmqService,
+    private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
     private readonly cache: RedisCache,
   ) {}
@@ -62,6 +64,8 @@ export class InstanceController {
     websocket_events,
     rabbitmq_enabled,
     rabbitmq_events,
+    sqs_enabled,
+    sqs_events,
     typebot_url,
     typebot,
     typebot_expire,
@@ -243,6 +247,53 @@ export class InstanceController {
         }
       }
 
+      let sqsEvents: string[];
+
+      if (sqs_enabled) {
+        this.logger.verbose('creating sqs');
+        try {
+          let newEvents: string[] = [];
+          if (sqs_events.length === 0) {
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'CALL',
+              'NEW_JWT_TOKEN',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+              'CHAMA_AI_ACTION',
+            ];
+          } else {
+            newEvents = sqs_events;
+          }
+          this.sqsService.create(instance, {
+            enabled: true,
+            events: newEvents,
+          });
+
+          sqsEvents = (await this.sqsService.find(instance)).events;
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
       if (typebot_url) {
         try {
           if (!isURL(typebot_url, { require_tld: false })) {
@@ -309,6 +360,10 @@ export class InstanceController {
           rabbitmq: {
             enabled: rabbitmq_enabled,
             events: rabbitmqEvents,
+          },
+          sqs: {
+            enabled: sqs_enabled,
+            events: sqsEvents,
           },
           typebot: {
             enabled: typebot_url ? true : false,
@@ -403,6 +458,10 @@ export class InstanceController {
         rabbitmq: {
           enabled: rabbitmq_enabled,
           events: rabbitmqEvents,
+        },
+        sqs: {
+          enabled: sqs_enabled,
+          events: sqsEvents,
         },
         typebot: {
           enabled: typebot_url ? true : false,

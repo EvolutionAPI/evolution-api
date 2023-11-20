@@ -23,6 +23,8 @@ export class InstanceDto {
   websocket_events?: string[];
   rabbitmq_enabled?: boolean;
   rabbitmq_events?: string[];
+  sqs_enabled?: boolean;
+  sqs_events?: string[];
   typebot_url?: string;
   typebot?: string;
   typebot_expire?: number;

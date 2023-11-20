@@ -84,6 +84,11 @@ export declare namespace wa {
     events?: string[];
   };
 
+  export type LocalSqs = {
+    enabled?: boolean;
+    events?: string[];
+  };
+
   type Session = {
     remoteJid?: string;
     sessionId?: string;

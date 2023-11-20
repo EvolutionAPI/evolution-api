@@ -66,6 +66,14 @@ export type Rabbitmq = {
   URI: string;
 };
 
+export type Sqs = {
+  ENABLED: boolean;
+  ACCESS_KEY_ID: string;
+  SECRET_ACCESS_KEY: string;
+  ACCOUNT_ID: string;
+  REGION: string;
+};
+
 export type Websocket = {
   ENABLED: boolean;
 };
@@ -135,6 +143,7 @@ export interface Env {
   DATABASE: Database;
   REDIS: Redis;
   RABBITMQ: Rabbitmq;
+  SQS: Sqs;
   WEBSOCKET: Websocket;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
@@ -225,6 +234,13 @@ export class ConfigService {
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
         URI: process.env.RABBITMQ_URI || '',
+      },
+      SQS: {
+        ENABLED: process.env?.SQS_ENABLED === 'true',
+        ACCESS_KEY_ID: process.env.SQS_ACCESS_KEY_ID || '',
+        SECRET_ACCESS_KEY: process.env.SQS_SECRET_ACCESS_KEY || '',
+        ACCOUNT_ID: process.env.SQS_ACCOUNT_ID || '',
+        REGION: process.env.SQS_REGION || '',
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',

@@ -6,13 +6,14 @@ import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
 
-import { Auth, configService, Cors, HttpServer, Rabbitmq, Webhook } from './config/env.config';
+import { Auth, configService, Cors, HttpServer, Rabbitmq, Sqs, Webhook } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
 import { swaggerRouter } from './docs/swagger.conf';
 import { initAMQP } from './libs/amqp.server';
 import { initIO } from './libs/socket.server';
+import { initSQS } from './libs/sqs.server';
 import { ServerUP } from './utils/server-up';
 import { HttpStatus, router } from './whatsapp/routers/index.router';
 import { waMonitor } from './whatsapp/whatsapp.module';
@@ -127,6 +128,8 @@ function bootstrap() {
   initIO(server);
 
   if (configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) initAMQP();
+
+  if (configService.get<Sqs>('SQS')?.ENABLED) initSQS();
 
   onUnexpectedError();
 }
