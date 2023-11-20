@@ -1,4 +1,7 @@
-# 1.5.5 (develop)
+# 1.6.0 (develop)
+
+### Feature
+* Added AWS SQS Integration
 
 ### Fixed
 
