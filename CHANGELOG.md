@@ -8,6 +8,7 @@
 * Adjusts in proxy
 * Adjusts in start session for Typebot
 * Added mimetype field when sending media
+* Fixed lids messages
 
 # 1.5.4 (2023-10-09 20:43)
 
