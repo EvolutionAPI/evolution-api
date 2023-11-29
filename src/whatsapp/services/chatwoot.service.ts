@@ -338,14 +338,18 @@ export class ChatwootService {
     }
 
     this.logger.verbose('update contact in chatwoot');
-    const contact = await client.contacts.update({
-      accountId: this.provider.account_id,
-      id,
-      data,
-    });
+    try {
+      const contact = await client.contacts.update({
+        accountId: this.provider.account_id,
+        id,
+        data,
+      });
 
-    this.logger.verbose('contact updated');
-    return contact;
+      this.logger.verbose('contact updated');
+      return contact;
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   public async findContact(instance: InstanceDto, phoneNumber: string) {
@@ -487,6 +491,9 @@ export class ChatwootService {
             contact = await this.updateContact(instance, findContact.id, {
               avatar_url: picture_url.profilePictureUrl || null,
             });
+          }
+          if (!contact) {
+            contact = await this.findContact(instance, chatId);
           }
         } else {
           const jid = isGroup ? null : body.key.remoteJid;
