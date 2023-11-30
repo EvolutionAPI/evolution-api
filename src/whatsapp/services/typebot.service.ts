@@ -369,7 +369,7 @@ export class TypebotService {
               }
 
               if (element.underline) {
-                text = `~${text}~`;
+                text = `*${text}*`;
               }
 
               if (element.url) {
