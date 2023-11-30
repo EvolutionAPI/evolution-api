@@ -9,6 +9,7 @@
 * Adjusts in start session for Typebot
 * Added mimetype field when sending media
 * Fixed lids messages
+* Ajusts in validations to messages.upsert
 
 # 1.5.4 (2023-10-09 20:43)
 
