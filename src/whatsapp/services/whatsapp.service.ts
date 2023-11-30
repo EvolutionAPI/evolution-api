@@ -1466,10 +1466,10 @@ export class WAStartupService {
       }
 
       this.logger.verbose('Sending data to webhook in event CHATS_UPSERT');
-      await this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
+      this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
 
       this.logger.verbose('Inserting chats in database');
-      await this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
+      this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
     },
 
     'chats.update': async (
@@ -1487,7 +1487,7 @@ export class WAStartupService {
       });
 
       this.logger.verbose('Sending data to webhook in event CHATS_UPDATE');
-      await this.sendDataWebhook(Events.CHATS_UPDATE, chatsRaw);
+      this.sendDataWebhook(Events.CHATS_UPDATE, chatsRaw);
     },
 
     'chats.delete': async (chats: string[]) => {
@@ -1502,7 +1502,7 @@ export class WAStartupService {
       );
 
       this.logger.verbose('Sending data to webhook in event CHATS_DELETE');
-      await this.sendDataWebhook(Events.CHATS_DELETE, [...chats]);
+      this.sendDataWebhook(Events.CHATS_DELETE, [...chats]);
     },
   };
 
@@ -1531,10 +1531,10 @@ export class WAStartupService {
       }
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
-      await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
+      this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
       this.logger.verbose('Inserting contacts in database');
-      await this.repository.contact.insert(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+      this.repository.contact.insert(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
     },
 
     'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
@@ -1552,10 +1552,10 @@ export class WAStartupService {
       }
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
-      await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
+      this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
       this.logger.verbose('Updating contacts in database');
-      await this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+      this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
     },
   };
 
@@ -1585,10 +1585,10 @@ export class WAStartupService {
         });
 
         this.logger.verbose('Sending data to webhook in event CHATS_SET');
-        await this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
+        this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         this.logger.verbose('Inserting chats in database');
-        await this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
+        this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
       }
 
       const messagesRaw: MessageRaw[] = [];
@@ -1702,7 +1702,7 @@ export class WAStartupService {
       this.logger.log(messageRaw);
 
       this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
-      await this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
+      this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
       if (this.localChatwoot.enabled) {
         await this.chatwootService.eventWhatsapp(
@@ -1764,7 +1764,7 @@ export class WAStartupService {
         };
 
         this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
-        await this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
+        this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
         if (this.localChatwoot.enabled) {
           await this.chatwootService.eventWhatsapp(
@@ -1782,10 +1782,10 @@ export class WAStartupService {
       this.logger.verbose('Contact not found in database');
 
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
-      await this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
+      this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
       this.logger.verbose('Inserting contact in database');
-      await this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+      this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
     },
 
     'messages.update': async (args: WAMessageUpdate[], database: Database, settings: SettingsRaw) => {
@@ -1829,7 +1829,7 @@ export class WAStartupService {
             this.logger.verbose('Message deleted');
 
             this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
-            await this.sendDataWebhook(Events.MESSAGES_DELETE, key);
+            this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
             const message: MessageUpdateRaw = {
               ...key,
@@ -1860,10 +1860,10 @@ export class WAStartupService {
           this.logger.verbose(message);
 
           this.logger.verbose('Sending data to webhook in event MESSAGES_UPDATE');
-          await this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
+          this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
           this.logger.verbose('Inserting message in database');
-          await this.repository.messageUpdate.insert([message], this.instance.name, database.SAVE_DATA.MESSAGE_UPDATE);
+          this.repository.messageUpdate.insert([message], this.instance.name, database.SAVE_DATA.MESSAGE_UPDATE);
         }
       }
     },
