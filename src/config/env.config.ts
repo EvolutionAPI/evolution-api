@@ -132,6 +132,7 @@ export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
 export type QrCode = { LIMIT: number; COLOR: string };
+export type Typebot = { API_VERSION: string };
 export type Production = boolean;
 
 export interface Env {
@@ -150,6 +151,7 @@ export interface Env {
   WEBHOOK: Webhook;
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
   QRCODE: QrCode;
+  TYPEBOT: Typebot;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
   CHATWOOT?: Chatwoot;
@@ -304,6 +306,9 @@ export class ConfigService {
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
         COLOR: process.env.QRCODE_COLOR || '#198754',
+      },
+      TYPEBOT: {
+        API_VERSION: process.env?.TYPEBOT_API_VERSION || 'v1',
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'apikey',

@@ -2,6 +2,7 @@
 
 ### Feature
 * Added AWS SQS Integration
+* Added compatibility with typebot v2
 
 ### Fixed
 

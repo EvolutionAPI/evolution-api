@@ -166,7 +166,7 @@ export class WAStartupService {
 
   private chatwootService = new ChatwootService(waMonitor, this.configService);
 
-  private typebotService = new TypebotService(waMonitor);
+  private typebotService = new TypebotService(waMonitor, this.configService);
 
   private chamaaiService = new ChamaaiService(waMonitor, this.configService);
 

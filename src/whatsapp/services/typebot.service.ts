@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+import { ConfigService, Typebot } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { Session, TypebotDto } from '../dto/typebot.dto';
@@ -8,7 +9,7 @@ import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class TypebotService {
-  constructor(private readonly waMonitor: WAMonitoringService) {}
+  constructor(private readonly waMonitor: WAMonitoringService, private readonly configService: ConfigService) {}
 
   private readonly logger = new Logger(TypebotService.name);
 
@@ -162,7 +163,8 @@ export class TypebotService {
       };
 
       try {
-        const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+        const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
+        const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
 
         await this.sendWAMessage(
           instance,
@@ -251,7 +253,8 @@ export class TypebotService {
     };
 
     try {
-      const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+      const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
+      const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
 
       if (request?.data?.sessionId) {
         data.sessions.push({
@@ -554,7 +557,8 @@ export class TypebotService {
             };
 
             try {
-              const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+              const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
+              const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
 
               await this.sendWAMessage(
                 instance,
@@ -640,7 +644,9 @@ export class TypebotService {
 
           let request: any;
           try {
-            request = await axios.post(url + '/api/v1/sendMessage', reqData);
+            const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
+            request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
+
             await this.sendWAMessage(
               instance,
               remoteJid,
@@ -719,7 +725,8 @@ export class TypebotService {
         sessionId: session.sessionId.split('-')[1],
       };
 
-      const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+      const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
+      const request = await axios.post(`${url}/api/${version}/sendMessage`, reqData);
 
       await this.sendWAMessage(
         instance,

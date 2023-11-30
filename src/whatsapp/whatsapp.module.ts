@@ -102,7 +102,7 @@ export const waMonitor = new WAMonitoringService(eventEmitter, configService, re
 
 const authService = new AuthService(configService, waMonitor, repository);
 
-const typebotService = new TypebotService(waMonitor);
+const typebotService = new TypebotService(waMonitor, configService);
 
 export const typebotController = new TypebotController(typebotService);
 

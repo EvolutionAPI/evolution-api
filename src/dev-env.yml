@@ -83,6 +83,13 @@ RABBITMQ:
   ENABLED: false
   URI: "amqp://guest:guest@localhost:5672"
 
+SQS:
+  ENABLED: true
+  ACCESS_KEY_ID: ""
+  SECRET_ACCESS_KEY: ""
+  ACCOUNT_ID: ""
+  REGION: "us-east-1"
+
 WEBSOCKET:
   ENABLED: false
 
@@ -138,6 +145,9 @@ CONFIG_SESSION_PHONE:
 QRCODE:
   LIMIT: 30
   COLOR: "#198754"
+
+TYPEBOT:
+  API_VERSION: 'v1' # v1 | v2
 
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,
