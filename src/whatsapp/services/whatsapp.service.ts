@@ -2283,18 +2283,17 @@ export class WAStartupService {
           !message['conversation'] &&
           sender !== 'status@broadcast'
         ) {
-
           if (message['reactionMessage']) {
             this.logger.verbose('Sending reaction');
             return await this.client.sendMessage(
-                sender,
-                {
-                  react: {
-                    text: message['reactionMessage']['text'],
-                    key: message['reactionMessage']['key']
-                  }
-                } as unknown as AnyMessageContent,
-                option as unknown as MiscMessageGenerationOptions,
+              sender,
+              {
+                react: {
+                  text: message['reactionMessage']['text'],
+                  key: message['reactionMessage']['key'],
+                },
+              } as unknown as AnyMessageContent,
+              option as unknown as MiscMessageGenerationOptions,
             );
           }
 
