@@ -15,6 +15,7 @@
 * Fix workaround to manage param data as an array in mongodb
 * Removed await from webhook when sending a message
 * Update typebot.service.ts - element.underline change ~ for *
+* Adjusts in proxy
 
 # 1.5.4 (2023-10-09 20:43)
 
