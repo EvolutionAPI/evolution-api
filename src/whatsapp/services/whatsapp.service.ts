@@ -1297,7 +1297,7 @@ export class WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.verbose('Proxy enabled');
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy);
 
         if (this.localProxy.proxy.includes('proxyscrape')) {
           const response = await axios.get(this.localProxy.proxy);

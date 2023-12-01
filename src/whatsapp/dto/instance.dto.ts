@@ -32,6 +32,5 @@ export class InstanceDto {
   typebot_delay_message?: number;
   typebot_unknown_message?: string;
   typebot_listening_from_me?: boolean;
-  proxy_enabled?: boolean;
-  proxy_proxy?: string;
+  proxy?: string;
 }
