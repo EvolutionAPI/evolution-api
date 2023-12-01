@@ -1656,7 +1656,7 @@ export class WAStartupService {
 
       if (
         (this.localWebhook.webhook_base64 === true && received?.message.documentMessage) ||
-        received?.message.imageMessage
+        received?.message?.imageMessage
       ) {
         const buffer = await downloadMediaMessage(
           { key: received.key, message: received?.message },
