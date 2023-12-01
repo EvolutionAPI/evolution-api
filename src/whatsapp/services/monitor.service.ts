@@ -277,7 +277,6 @@ export class WAMonitoringService {
     const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
     instance.instanceName = name;
     this.logger.verbose('Instance loaded: ' + name);
-    console.log('Instance loaded: ' + name);
     await instance.connectToWhatsapp();
     this.logger.verbose('connectToWhatsapp: ' + name);
 
@@ -304,7 +303,6 @@ export class WAMonitoringService {
 
     if (collections.length > 0) {
       this.logger.verbose('Reading collections and setting instances');
-      console.log(collections);
       await Promise.all(collections.map((coll) => this.setInstance(coll.namespace.replace(/^[\w-]+\./, ''))));
     } else {
       this.logger.verbose('No collections found');
