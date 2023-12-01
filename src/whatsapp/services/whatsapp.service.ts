@@ -1326,7 +1326,7 @@ export class WAStartupService {
         browser,
         version,
         markOnlineOnConnect: this.localSettings.always_online,
-        // retryRequestDelayMs: 10,
+        retryRequestDelayMs: 10,
         connectTimeoutMs: 60_000,
         qrTimeout: 40_000,
         defaultQueryTimeoutMs: undefined,
