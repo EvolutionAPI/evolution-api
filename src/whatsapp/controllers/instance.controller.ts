@@ -253,10 +253,14 @@ export class InstanceController {
       if (proxy) {
         this.logger.verbose('creating proxy');
         try {
-          this.proxyService.create(instance, {
-            enabled: true,
-            proxy,
-          });
+          this.proxyService.create(
+            instance,
+            {
+              enabled: true,
+              proxy,
+            },
+            false,
+          );
         } catch (error) {
           this.logger.log(error);
         }

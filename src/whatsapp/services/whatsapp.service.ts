@@ -620,14 +620,16 @@ export class WAStartupService {
     this.logger.verbose('Proxy loaded');
   }
 
-  public async setProxy(data: ProxyRaw) {
+  public async setProxy(data: ProxyRaw, reload = true) {
     this.logger.verbose('Setting proxy');
     await this.repository.proxy.create(data, this.instanceName);
     this.logger.verbose(`Proxy proxy: ${data.proxy}`);
     Object.assign(this.localProxy, data);
     this.logger.verbose('Proxy set');
 
-    this.reloadConnection();
+    if (reload) {
+      this.reloadConnection();
+    }
   }
 
   public async findProxy() {

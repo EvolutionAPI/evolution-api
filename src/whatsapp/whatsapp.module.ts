@@ -149,6 +149,7 @@ export const instanceController = new InstanceController(
   settingsService,
   websocketService,
   rabbitmqService,
+  proxyService,
   sqsService,
   typebotService,
   cache,

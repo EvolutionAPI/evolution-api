@@ -9,9 +9,9 @@ export class ProxyService {
 
   private readonly logger = new Logger(ProxyService.name);
 
-  public create(instance: InstanceDto, data: ProxyDto) {
+  public create(instance: InstanceDto, data: ProxyDto, reload = true) {
     this.logger.verbose('create proxy: ' + instance.instanceName);
-    this.waMonitor.waInstances[instance.instanceName].setProxy(data);
+    this.waMonitor.waInstances[instance.instanceName].setProxy(data, reload);
 
     return { proxy: { ...instance, proxy: data } };
   }
