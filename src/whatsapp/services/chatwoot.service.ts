@@ -1023,6 +1023,10 @@ export class ChatwootService {
           const state = waInstance?.connectionStatus?.state;
 
           if (state !== 'open') {
+            if (state === 'close') {
+              this.logger.verbose('request cleaning up instance: ' + instance.instanceName);
+              await this.waMonitor.cleaningUp(instance.instanceName);
+            }
             this.logger.verbose('connect to whatsapp');
             const number = command.split(':')[1];
             await waInstance.connectToWhatsapp(number);
@@ -1331,17 +1335,17 @@ export class ChatwootService {
   public async eventWhatsapp(event: string, instance: InstanceDto, body: any) {
     this.logger.verbose('event whatsapp to instance: ' + instance.instanceName);
     try {
-      const client = await this.clientCw(instance);
-
-      if (!client) {
-        this.logger.warn('client not found');
-        return null;
-      }
-
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       if (!waInstance) {
         this.logger.warn('wa instance not found');
+        return null;
+      }
+
+      const client = await this.clientCw(instance);
+
+      if (!client) {
+        this.logger.warn('client not found');
         return null;
       }
 
@@ -1600,16 +1604,18 @@ export class ChatwootService {
         await this.createBotMessage(instance, msgStatus, 'incoming');
       }
 
-      // if (event === 'connection.update') {
-      //   this.logger.verbose('event connection.update');
+      if (event === 'connection.update') {
+        this.logger.verbose('event connection.update');
 
-      //   if (body.status === 'open') {
-      //     const msgConnection = `🚀 Connection successfully established!`;
-
-      //     this.logger.verbose('send message to chatwoot');
-      //     await this.createBotMessage(instance, msgConnection, 'incoming');
-      //   }
-      // }
+        if (body.status === 'open') {
+          // if we have qrcode count then we understand that a new connection was established
+          if (this.waMonitor.waInstances[instance.instanceName].qrCode.count > 0) {
+            const msgConnection = `🚀 Connection successfully established!`;
+            this.logger.verbose('send message to chatwoot');
+            await this.createBotMessage(instance, msgConnection, 'incoming');
+          }
+        }
+      }
 
       if (event === 'qrcode.updated') {
         this.logger.verbose('event qrcode.updated');
