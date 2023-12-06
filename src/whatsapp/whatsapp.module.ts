@@ -10,6 +10,7 @@ import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';
 import { ProxyController } from './controllers/proxy.controller';
 import { RabbitmqController } from './controllers/rabbitmq.controller';
+import { OpenaiController } from './controllers/openai.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { SqsController } from './controllers/sqs.controller';
@@ -27,6 +28,8 @@ import {
   MessageUpModel,
   ProxyModel,
   RabbitmqModel,
+  OpenaiModel,
+  ContactOpenaiModel,
   SettingsModel,
   SqsModel,
   TypebotModel,
@@ -42,6 +45,7 @@ import { MessageRepository } from './repository/message.repository';
 import { MessageUpRepository } from './repository/messageUp.repository';
 import { ProxyRepository } from './repository/proxy.repository';
 import { RabbitmqRepository } from './repository/rabbitmq.repository';
+import { OpenaiRepository } from './repository/openai.repository';
 import { RepositoryBroker } from './repository/repository.manager';
 import { SettingsRepository } from './repository/settings.repository';
 import { SqsRepository } from './repository/sqs.repository';
@@ -54,6 +58,7 @@ import { ChatwootService } from './services/chatwoot.service';
 import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { RabbitmqService } from './services/rabbitmq.service';
+import { OpenaiService } from './services/openai.service';
 import { SettingsService } from './services/settings.service';
 import { SqsService } from './services/sqs.service';
 import { TypebotService } from './services/typebot.service';
@@ -72,9 +77,10 @@ const websocketRepository = new WebsocketRepository(WebsocketModel, configServic
 const proxyRepository = new ProxyRepository(ProxyModel, configService);
 const chamaaiRepository = new ChamaaiRepository(ChamaaiModel, configService);
 const rabbitmqRepository = new RabbitmqRepository(RabbitmqModel, configService);
-const sqsRepository = new SqsRepository(SqsModel, configService);
+const openaiRepository = new OpenaiRepository(OpenaiModel,ContactOpenaiModel, configService);
 const chatwootRepository = new ChatwootRepository(ChatwootModel, configService);
 const settingsRepository = new SettingsRepository(SettingsModel, configService);
+const sqsRepository = new SqsRepository(SqsModel, configService);
 const authRepository = new AuthRepository(AuthModel, configService);
 
 export const repository = new RepositoryBroker(
@@ -87,6 +93,8 @@ export const repository = new RepositoryBroker(
   settingsRepository,
   websocketRepository,
   rabbitmqRepository,
+  openaiRepository,
+  openaiRepository,
   sqsRepository,
   typebotRepository,
   proxyRepository,
@@ -130,6 +138,10 @@ const sqsService = new SqsService(waMonitor);
 
 export const sqsController = new SqsController(sqsService);
 
+const openaiService = new OpenaiService(waMonitor);
+
+export const openaiController = new OpenaiController(openaiService);
+
 const chatwootService = new ChatwootService(waMonitor, configService);
 
 export const chatwootController = new ChatwootController(chatwootService, configService);
@@ -149,6 +161,7 @@ export const instanceController = new InstanceController(
   settingsService,
   websocketService,
   rabbitmqService,
+  openaiService,
   proxyService,
   sqsService,
   typebotService,

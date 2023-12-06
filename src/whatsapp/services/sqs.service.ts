@@ -6,7 +6,7 @@ import { SqsRaw } from '../models';
 import { WAMonitoringService } from './monitor.service';
 
 export class SqsService {
-  constructor(private readonly waMonitor: WAMonitoringService) {}
+  constructor(private readonly waMonitor: WAMonitoringService) { }
 
   private readonly logger = new Logger(SqsService.name);
 

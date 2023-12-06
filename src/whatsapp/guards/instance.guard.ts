@@ -29,7 +29,9 @@ async function getInstance(instanceName: string) {
     if (db.ENABLED) {
       const collection = dbserver
         .getClient()
-        .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
+        .db(
+          db.CONNECTION.DB_PREFIX_NAME +
+          db.CONNECTION.DB_PREFIX_FINAL_NAME)
         .collection(instanceName);
       return exists || (await collection.find({}).toArray()).length > 0;
     }

@@ -7,8 +7,8 @@
 # Choose the server type for the application
 SERVER:
   TYPE: http # https
-  PORT: 8080 # 443
-  URL: localhost
+  PORT: 3333 # 443
+  URL: 127.0.0.1
 
 CORS:
   ORIGIN:
@@ -48,8 +48,8 @@ DEL_INSTANCE: false # or false
 
 # Temporary data storage
 STORE:
-  MESSAGES: true
-  MESSAGE_UP: true
+  MESSAGES: false
+  MESSAGE_UP: false
   CONTACTS: true
   CHATS: true
 
@@ -62,17 +62,20 @@ CLEAN_STORE:
 
 # Permanent data storage
 DATABASE:
-  ENABLED: false
+  ENABLED: true
   CONNECTION:
     URI: "mongodb://root:root@localhost:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true"
-    DB_PREFIX_NAME: evolution
+
+    DB_PREFIX_NAME: whatsapp
+    DB_PREFIX_FINAL_NAME: "-api"
+    DB_PREFIX_FINAL_NAME_VENOM: "-venom"
   # Choose the data you want to save in the application's database or store
   SAVE_DATA:
-    INSTANCE: false
+    INSTANCE: true
     NEW_MESSAGE: false
     MESSAGE_UPDATE: false
-    CONTACTS: false
-    CHATS: false
+    CONTACTS: true
+    CHATS: true
 
 REDIS:
   ENABLED: false
@@ -83,22 +86,31 @@ RABBITMQ:
   ENABLED: false
   URI: "amqp://guest:guest@localhost:5672"
 
+OPENAI:
+  CHAVE: ""
+  ENABLED: false
+  PROMPTS: false
+  URI: ""
+
 SQS:
-  ENABLED: true
+  ENABLED: false
   ACCESS_KEY_ID: ""
   SECRET_ACCESS_KEY: ""
   ACCOUNT_ID: ""
   REGION: "us-east-1"
-
+  
 WEBSOCKET:
   ENABLED: false
+
+TYPEBOT:
+  API_VERSION: 'v1' # v1 | v2
 
 # Global Webhook Settings
 # Each instance's Webhook URL and events will be requested at the time it is created
 WEBHOOK:
   # Define a global webhook that will listen for enabled events from all instances
   GLOBAL:
-    URL: <url>
+    URL: ""
     ENABLED: false
     # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
     WEBHOOK_BY_EVENTS: false
@@ -134,7 +146,7 @@ WEBHOOK:
     CHAMA_AI_ACTION: false
     # This event is used to send errors to the webhook
     ERRORS: false
-    ERRORS_WEBHOOK: <url>
+    ERRORS_WEBHOOK: ""
 
 CONFIG_SESSION_PHONE:
   # Name that will be displayed on smartphone connection
@@ -145,9 +157,6 @@ CONFIG_SESSION_PHONE:
 QRCODE:
   LIMIT: 30
   COLOR: "#198754"
-
-TYPEBOT:
-  API_VERSION: 'v1' # v1 | v2
 
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,

@@ -128,7 +128,7 @@ function bootstrap() {
   initIO(server);
 
   if (configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) initAMQP();
-
+  
   if (configService.get<Sqs>('SQS')?.ENABLED) initSQS();
 
   onUnexpectedError();

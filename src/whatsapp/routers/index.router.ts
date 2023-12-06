@@ -11,6 +11,7 @@ import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
 import { ProxyRouter } from './proxy.router';
 import { RabbitmqRouter } from './rabbitmq.router';
+import { OpenaiRouter } from './openai.router';
 import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
 import { SqsRouter } from './sqs.router';
@@ -39,9 +40,9 @@ router
   .get('/', (req, res) => {
     res.status(HttpStatus.OK).json({
       status: HttpStatus.OK,
-      message: 'Welcome to the Evolution API, it is working!',
-      version: packageJson.version,
-      documentation: `${req.protocol}://${req.get('host')}/docs`,
+      message: 'Api',
+      // version: packageJson.version,
+      // documentation: `${req.protocol}://${req.get('host')}/docs`,
     });
   })
   .use('/instance', new InstanceRouter(configService, ...guards).router)
@@ -54,7 +55,7 @@ router
   .use('/settings', new SettingsRouter(...guards).router)
   .use('/websocket', new WebsocketRouter(...guards).router)
   .use('/rabbitmq', new RabbitmqRouter(...guards).router)
-  .use('/sqs', new SqsRouter(...guards).router)
+  .use('/openai', new OpenaiRouter(...guards).router)
   .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
   .use('/chamaai', new ChamaaiRouter(...guards).router);

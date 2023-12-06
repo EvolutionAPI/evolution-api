@@ -11,3 +11,5 @@ export * from './sqs.model';
 export * from './typebot.model';
 export * from './webhook.model';
 export * from './websocket.model';
+export * from './openai.model';
+export * from './contactOpenai.model';

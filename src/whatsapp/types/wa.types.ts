@@ -88,6 +88,12 @@ export declare namespace wa {
     enabled?: boolean;
     events?: string[];
   };
+  
+  export type LocalOpenai = {
+    chave?: string;
+    enabled?: boolean;
+    events?: string[];
+  };
 
   type Session = {
     remoteJid?: string;
