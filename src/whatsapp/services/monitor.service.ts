@@ -13,11 +13,11 @@ import { RedisCache } from '../../libs/redis.client';
 import {
   AuthModel,
   ChamaaiModel,
-  ChatModel,
+  // ChatModel,
   ChatwootModel,
-  ContactModel,
-  MessageModel,
-  MessageUpModel,
+  // ContactModel,
+  // MessageModel,
+  // MessageUpModel,
   ProxyModel,
   RabbitmqModel,
   SettingsModel,
@@ -39,7 +39,7 @@ export class WAMonitoringService {
 
     this.removeInstance();
     this.noConnection();
-    this.delInstanceFiles();
+    // this.delInstanceFiles();
 
     Object.assign(this.db, configService.get<Database>('DATABASE'));
     Object.assign(this.redis, configService.get<Redis>('REDIS'));
@@ -193,6 +193,13 @@ export class WAMonitoringService {
 
   public async cleaningUp(instanceName: string) {
     this.logger.verbose('cleaning up instance: ' + instanceName);
+    if (this.redis.ENABLED) {
+      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
+      this.cache.reference = instanceName;
+      await this.cache.delAll();
+      return;
+    }
+
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       this.logger.verbose('cleaning up instance in database: ' + instanceName);
       await this.repository.dbServer.connect();
@@ -200,13 +207,6 @@ export class WAMonitoringService {
       if (collections.length > 0) {
         await this.dbInstance.dropCollection(instanceName);
       }
-      return;
-    }
-
-    if (this.redis.ENABLED) {
-      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
-      this.cache.reference = instanceName;
-      await this.cache.delAll();
       return;
     }
 
@@ -239,10 +239,10 @@ export class WAMonitoringService {
 
     this.logger.verbose('cleaning store database instance: ' + instanceName);
 
-    await ChatModel.deleteMany({ owner: instanceName });
-    await ContactModel.deleteMany({ owner: instanceName });
-    await MessageUpModel.deleteMany({ owner: instanceName });
-    await MessageModel.deleteMany({ owner: instanceName });
+    // await ChatModel.deleteMany({ owner: instanceName });
+    // await ContactModel.deleteMany({ owner: instanceName });
+    // await MessageUpModel.deleteMany({ owner: instanceName });
+    // await MessageModel.deleteMany({ owner: instanceName });
 
     await AuthModel.deleteMany({ _id: instanceName });
     await WebhookModel.deleteMany({ _id: instanceName });
@@ -357,8 +357,8 @@ export class WAMonitoringService {
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       this.logger.verbose('logout instance: ' + instanceName);
       try {
-        this.logger.verbose('request cleaning up instance: ' + instanceName);
-        this.cleaningUp(instanceName);
+        // this.logger.verbose('request cleaning up instance: ' + instanceName);
+        // this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - LOGOUT`);
       }

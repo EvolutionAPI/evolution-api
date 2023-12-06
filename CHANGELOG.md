@@ -3,6 +3,7 @@
 ### Feature
 * Added AWS SQS Integration
 * Added compatibility with typebot v2
+* Added endpoint sendPresence
 
 ### Fixed
 
@@ -16,6 +17,8 @@
 * Removed await from webhook when sending a message
 * Update typebot.service.ts - element.underline change ~ for *
 * Adjusts in proxy
+* Removed api restart on receiving an error
+* Fixes in mongodb and chatwoot
 
 # 1.5.4 (2023-10-09 20:43)
 

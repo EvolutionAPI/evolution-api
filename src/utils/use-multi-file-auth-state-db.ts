@@ -101,7 +101,7 @@ export async function useMultiFileAuthStateDb(
       },
     },
     saveCreds: async () => {
-      return writeData(creds, 'creds');
+      return await writeData(creds, 'creds');
     },
   };
 }
