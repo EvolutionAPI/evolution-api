@@ -69,6 +69,20 @@ export class TypebotService {
           session.status = status;
         }
       });
+    } else {
+      const session: Session = {
+        remoteJid: remoteJid,
+        sessionId: Math.floor(Math.random() * 10000000000).toString(),
+        status: status,
+        createdAt: Date.now(),
+        updateAt: Date.now(),
+        prefilledVariables: {
+          remoteJid: remoteJid,
+          pushName: '',
+          additionalData: {},
+        },
+      };
+      findData.sessions.push(session);
     }
 
     const typebotData = {
