@@ -40,7 +40,7 @@ export class MessageRouter extends RouterBroker {
     super();
     this.router
       .post(this.routerPath('sendPresence'), ...guards, async (req, res) => {
-        logger.verbose('request received in sendText');
+        logger.verbose('request received in sendPresence');
         logger.verbose('request body: ');
         logger.verbose(req.body);
 
