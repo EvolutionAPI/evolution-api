@@ -48,6 +48,7 @@ export type CleanStoreConf = {
 export type DBConnection = {
   URI: string;
   DB_PREFIX_NAME: string;
+  DB_PREFIX_FINAL_NAME: string;
 };
 export type Database = {
   CONNECTION: DBConnection;
@@ -72,6 +73,12 @@ export type Sqs = {
   SECRET_ACCESS_KEY: string;
   ACCOUNT_ID: string;
   REGION: string;
+};
+
+export type Openai = {
+  CHAVE: string;
+  ENABLED: boolean;
+  URI: string;
 };
 
 export type Websocket = {
@@ -145,6 +152,7 @@ export interface Env {
   REDIS: Redis;
   RABBITMQ: Rabbitmq;
   SQS: Sqs;
+  OPENAI: Openai;
   WEBSOCKET: Websocket;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
@@ -218,6 +226,7 @@ export class ConfigService {
         CONNECTION: {
           URI: process.env.DATABASE_CONNECTION_URI || '',
           DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME || 'evolution',
+          DB_PREFIX_FINAL_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_FINAL_NAME || '-api',
         },
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
         SAVE_DATA: {
@@ -243,6 +252,12 @@ export class ConfigService {
         SECRET_ACCESS_KEY: process.env.SQS_SECRET_ACCESS_KEY || '',
         ACCOUNT_ID: process.env.SQS_ACCOUNT_ID || '',
         REGION: process.env.SQS_REGION || '',
+      },
+
+      OPENAI: {
+        CHAVE: process.env?.OPENAI_ENABLED || '',
+        ENABLED: process.env?.OPENAI_ENABLED === 'true',
+        URI: process.env.OPENAI_URI || '',
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',

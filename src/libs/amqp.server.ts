@@ -1,6 +1,6 @@
 import * as amqp from 'amqplib/callback_api';
 
-import { configService, Rabbitmq } from '../config/env.config';
+import { configService, Rabbitmq, Openai } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 
 const logger = new Logger('AMQP');

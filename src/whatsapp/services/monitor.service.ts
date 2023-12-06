@@ -24,6 +24,7 @@ import {
   TypebotModel,
   WebhookModel,
   WebsocketModel,
+  
 } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { WAStartupService } from './whatsapp.service';
@@ -45,7 +46,10 @@ export class WAMonitoringService {
     Object.assign(this.redis, configService.get<Redis>('REDIS'));
 
     this.dbInstance = this.db.ENABLED
-      ? this.repository.dbServer?.db(this.db.CONNECTION.DB_PREFIX_NAME + '-instances')
+      ? this.repository.dbServer?.db(
+        this.db.CONNECTION.DB_PREFIX_NAME +
+        this.db.CONNECTION.DB_PREFIX_FINAL_NAME
+      )
       : undefined;
   }
 
@@ -122,7 +126,7 @@ export class WAMonitoringService {
 
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
-
+            
             instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
@@ -239,21 +243,23 @@ export class WAMonitoringService {
 
     this.logger.verbose('cleaning store database instance: ' + instanceName);
 
+    await AuthModel.deleteMany({ owner: instanceName });
     await ChatModel.deleteMany({ owner: instanceName });
     await ContactModel.deleteMany({ owner: instanceName });
-    await MessageUpModel.deleteMany({ owner: instanceName });
     await MessageModel.deleteMany({ owner: instanceName });
-
-    await AuthModel.deleteMany({ _id: instanceName });
+    
+    await MessageUpModel.deleteMany({ owner: instanceName });
     await WebhookModel.deleteMany({ _id: instanceName });
     await ChatwootModel.deleteMany({ _id: instanceName });
+
     await ChamaaiModel.deleteMany({ _id: instanceName });
     await ProxyModel.deleteMany({ _id: instanceName });
     await RabbitmqModel.deleteMany({ _id: instanceName });
     await TypebotModel.deleteMany({ _id: instanceName });
     await WebsocketModel.deleteMany({ _id: instanceName });
+    
     await SettingsModel.deleteMany({ _id: instanceName });
-
+    
     return;
   }
 
@@ -277,6 +283,7 @@ export class WAMonitoringService {
     const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
     instance.instanceName = name;
     this.logger.verbose('Instance loaded: ' + name);
+
     await instance.connectToWhatsapp();
     this.logger.verbose('connectToWhatsapp: ' + name);
 

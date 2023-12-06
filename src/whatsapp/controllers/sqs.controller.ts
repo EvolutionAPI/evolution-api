@@ -6,7 +6,7 @@ import { SqsService } from '../services/sqs.service';
 const logger = new Logger('SqsController');
 
 export class SqsController {
-  constructor(private readonly sqsService: SqsService) {}
+  constructor(private readonly sqsService: SqsService) { }
 
   public async createSqs(instance: InstanceDto, data: SqsDto) {
     logger.verbose('requested createSqs from ' + instance.instanceName + ' instance');

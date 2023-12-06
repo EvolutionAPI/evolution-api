@@ -115,7 +115,8 @@ import {
   SendTextDto,
   StatusMessage,
 } from '../dto/sendMessage.dto';
-import { ChamaaiRaw, ProxyRaw, RabbitmqRaw, SettingsRaw, SqsRaw, TypebotRaw } from '../models';
+import { ChamaaiRaw, ProxyRaw, RabbitmqRaw, OpenaiRaw, SettingsRaw, SqsRaw, TypebotRaw, ContactOpenaiRaw } from '../models';
+
 import { ChatRaw } from '../models/chat.model';
 import { ChatwootRaw } from '../models/chatwoot.model';
 import { ContactRaw } from '../models/contact.model';
@@ -130,7 +131,51 @@ import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types'
 import { waMonitor } from '../whatsapp.module';
 import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
+//import { SocksProxyAgent } from './socks-proxy-agent';
 import { TypebotService } from './typebot.service';
+
+import { Configuration, OpenAIApi, ChatCompletionRequestMessage } from "openai"
+
+import { openai, OpenAIService } from "../../libs/openai"
+import { redis } from "../../libs/redis"
+
+import { initPrompt } from "../../utils/initPrompt"
+import { ContactOpenaiDto } from '../dto/contactopenai.dto';
+
+// https://wa.me/+5512982754592
+interface CustomerChat {
+  status?: "open" | "closed"
+  orderCode: string
+  chatAt: string
+  customer: {
+    name: string
+    phone: string
+  }
+  messages: ChatCompletionRequestMessage[]
+  orderSummary?: string
+}
+
+async function completion(
+  apiKey: string,
+  messages: ChatCompletionRequestMessage[]
+): Promise<string | undefined> {
+
+  const configuration = new Configuration({
+    apiKey: apiKey,
+  })
+
+  const openai = new OpenAIApi(configuration)
+
+  const completion = await openai.createChatCompletion({
+    model: "gpt-3.5-turbo",
+    temperature: 0,
+    max_tokens: 256,
+    messages,
+  })
+
+  return completion.data.choices[0].message?.content
+}
+
 export class WAStartupService {
   constructor(
     private readonly configService: ConfigService,
@@ -151,6 +196,7 @@ export class WAStartupService {
   private readonly localSettings: wa.LocalSettings = {};
   private readonly localWebsocket: wa.LocalWebsocket = {};
   private readonly localRabbitmq: wa.LocalRabbitmq = {};
+  private readonly localOpenai: wa.LocalOpenai = {};
   private readonly localSqs: wa.LocalSqs = {};
   public readonly localTypebot: wa.LocalTypebot = {};
   private readonly localProxy: wa.LocalProxy = {};
@@ -166,6 +212,7 @@ export class WAStartupService {
 
   private chatwootService = new ChatwootService(waMonitor, this.configService);
 
+  //private typebotService = new TypebotService(waMonitor);
   private typebotService = new TypebotService(waMonitor, this.configService);
 
   private chamaaiService = new ChamaaiService(waMonitor, this.configService);
@@ -216,7 +263,10 @@ export class WAStartupService {
         this.logger.verbose('Database enabled, trying to get from database');
         const collection = dbserver
           .getClient()
-          .db(this.configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_NAME + '-instances')
+          .db(
+            this.configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_NAME +
+            this.configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_FINAL_NAME
+          )
           .collection(this.instanceName);
         const data = await collection.findOne({ _id: 'creds' });
         if (data) {
@@ -465,6 +515,72 @@ export class WAStartupService {
     return data;
   }
 
+  private async loadOpenai() {
+    this.logger.verbose('Loading openai');
+    const data = await this.repository.openai.find(this.instanceName);
+
+    this.localOpenai.chave = data?.chave;
+    this.logger.verbose(`Openai chave: ${this.localOpenai.chave}`);
+
+    this.localOpenai.enabled = data?.enabled;
+    this.logger.verbose(`Openai enabled: ${this.localOpenai.enabled}`);
+
+    this.localOpenai.events = data?.events;
+    this.logger.verbose(`Openai events: ${this.localOpenai.events}`);
+
+    this.logger.verbose('Openai loaded');
+  }
+
+  public async setOpenai(data: OpenaiRaw) {
+    this.logger.verbose('Setting openai');
+    await this.repository.openai.create(data, this.instanceName);
+    this.logger.verbose(`Openai events: ${data.events}`);
+    Object.assign(this.localOpenai, data);
+    this.logger.verbose('Openai set');
+  }
+
+  public async setContactOpenai(data: ContactOpenaiRaw) {
+    this.logger.verbose('Setting openai');
+    await this.repository.openai.createContact(data, this.instanceName);
+
+    this.logger.verbose(`Openai events: ${data.enabled}`);
+    Object.assign(this.localOpenai, data);
+    this.logger.verbose('Openai set');
+  }
+
+  public async findContactOpenai() {
+    this.logger.verbose('Finding openai');
+    const data = await this.repository.openai.findContactAll(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Openai not found');
+      throw new NotFoundException('Openai not found');
+    }
+
+    return data;
+  }
+
+  public async findOpenai() {
+    this.logger.verbose('Finding openai');
+    const data = await this.repository.openai.find(this.instanceName);
+
+    if (!data) {
+      this.logger.verbose('Openai not found');
+      throw new NotFoundException('Openai not found');
+    }
+
+    this.logger.verbose(`Openai events: ${data.events}`);
+    return data;
+  }
+
+  public async removeOpenaiQueues() {
+    this.logger.verbose('Removing openai');
+
+    if (this.localOpenai.enabled) {
+      removeQueues(this.instanceName, this.localOpenai.events);
+    }
+  }
+
   private async loadRabbitmq() {
     this.logger.verbose('Loading rabbitmq');
     const data = await this.repository.rabbitmq.find(this.instanceName);
@@ -506,6 +622,7 @@ export class WAStartupService {
       removeQueues(this.instanceName, this.localRabbitmq.events);
     }
   }
+
 
   private async loadSqs() {
     this.logger.verbose('Loading sqs');
@@ -626,10 +743,11 @@ export class WAStartupService {
     this.logger.verbose(`Proxy proxy: ${data.proxy}`);
     Object.assign(this.localProxy, data);
     this.logger.verbose('Proxy set');
-
+    //this.reloadConnection();
     if (reload) {
       this.reloadConnection();
     }
+    //this.client?.ws?.close();
   }
 
   public async findProxy() {
@@ -767,6 +885,7 @@ export class WAStartupService {
         }
       }
     }
+
 
     if (this.localSqs.enabled) {
       const sqs = getSQS();
@@ -1299,14 +1418,18 @@ export class WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy);
-
+        this.logger.verbose('Proxy enabled');
+        // options = {
+        //   agent: new ProxyAgent(this.localProxy.proxy as any),
+        //   fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
+        // };
         if (this.localProxy.proxy.includes('proxyscrape')) {
           const response = await axios.get(this.localProxy.proxy);
           const text = response.data;
           const proxyUrls = text.split('\r\n');
           const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
           const proxyUrl = 'http://' + proxyUrls[rand];
+          console.log(proxyUrl);
           options = {
             agent: new ProxyAgent(proxyUrl as any),
           };
@@ -1656,9 +1779,132 @@ export class WAStartupService {
 
       let messageRaw: MessageRaw;
 
+      if (received.key.remoteJid.includes('@g.us')) {
+      }else{
+
+        if (messages[0].message.conversation){
+
+          const openai = await this.repository.openai_contact.find(this.instance.name);
+
+          if (openai && openai?.chave && openai?.enabled == true && openai?.prompts){
+
+            const customerPhone = `+${received.key.remoteJid.replace("@s.whatsapp.net", "")}`
+            const customerName = messages[0].pushName
+
+            const contactOpenaiC = await this.repository.openai_contact.findContact(this.instance.name, customerPhone);
+            if (!contactOpenaiC){
+              var data = new ContactOpenaiDto;
+              data.contact = customerPhone;
+              data.enabled = true;
+              data.owner = this.instance.name;
+
+              await this.repository.openai_contact.createContact(data, this.instance.name)
+            }
+            
+            const contactOpenai = await this.repository.openai_contact.findContact(this.instance.name, customerPhone);
+
+            if(contactOpenai?.enabled == true){
+
+              const customerKey = `instancia:${this.instance.name}customer:${customerPhone}:chat`
+              const orderCode = `#sk-${("00000" + Math.random()).slice(-5)}`
+
+              const lastChat = JSON.parse((await redis.get(customerKey)) || "{}")
+              var storeName = 'Nome';
+              const customerChat: CustomerChat =
+                lastChat?.status === "open"
+                  ? (lastChat as CustomerChat)
+                  : {
+                    status: "open",
+                    orderCode,
+                    chatAt: new Date().toISOString(),
+                    customer: {
+                      name: customerName,
+                      phone: customerPhone,
+                    },
+                    messages: [
+                      {
+                        role: "system",
+                        content: initPrompt(storeName, orderCode, openai?.prompts),
+                      },
+                    ],
+                    orderSummary: "",
+                  }
+
+              this.logger.verbose(customerPhone+" 👤 "+ messages[0].message.conversation)
+
+              customerChat.messages.push({
+                role: "user",
+                content: messages[0].message.conversation,
+              })
+
+              const content =
+                (await completion(openai.chave,
+                  customerChat.messages)) || "Não entendi..."
+
+              customerChat.messages.push({
+                role: "assistant",
+                content,
+              })
+
+              this.logger.verbose(customerPhone + " 🤖 "+ content)
+
+              var dadosMessage = {
+                textMessage: received.message.conversation,
+              };
+
+              let mentions: string[];
+
+              const linkPreview = true;
+
+              let quoted: WAMessage;
+
+              const option = {
+                quoted,
+              };
+
+              this.client.sendMessage(
+                received.key.remoteJid,
+                {
+                  text: content,
+                  mentions,
+                  linkPreview: linkPreview,
+                } as unknown as AnyMessageContent,
+                option as unknown as MiscMessageGenerationOptions,
+              );
+
+              if (
+                customerChat.status === "open" &&
+                content.match(customerChat.orderCode)
+              ) {
+                customerChat.status = "closed"
+
+                customerChat.messages.push({
+                  role: "user",
+                  content:
+                    "Gere um resumo de pedido para registro no sistema da pizzaria, quem está solicitando é um robô.",
+                })
+
+                const content =
+                  (await completion(openai.chave,customerChat.messages)) || "Não entendi..."
+
+                this.logger.verbose(customerPhone + " 📦 "+ content)
+
+                customerChat.orderSummary = content
+              }
+              redis.set(customerKey, JSON.stringify(customerChat))
+
+              this.logger.verbose(received);
+
+            }
+          }
+
+        }
+
+      }
+
       if (
         (this.localWebhook.webhook_base64 === true && received?.message.documentMessage) ||
-        received?.message?.imageMessage
+        received?.message.imageMessage
       ) {
         const buffer = await downloadMediaMessage(
           { key: received.key, message: received?.message },
@@ -1714,6 +1960,7 @@ export class WAStartupService {
         );
       }
 
+      //if (this.localTypebot.enabled) {
       const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
         (session) => session.remoteJid === received.key.remoteJid,
       );
@@ -2060,7 +2307,9 @@ export class WAStartupService {
   private createJid(number: string): string {
     this.logger.verbose('Creating jid with number: ' + number);
 
+    //if (number.includes('@g.us') || number.includes('@s.whatsapp.net')) {
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net') || number.includes('@lid')) {
+      //this.logger.verbose('Number already contains @g.us or @s.whatsapp.net');
       this.logger.verbose('Number already contains @g.us or @s.whatsapp.net or @lid');
       return number;
     }
@@ -2285,6 +2534,7 @@ export class WAStartupService {
           !message['conversation'] &&
           sender !== 'status@broadcast'
         ) {
+          
           if (message['reactionMessage']) {
             this.logger.verbose('Sending reaction');
             return await this.client.sendMessage(
@@ -2314,6 +2564,7 @@ export class WAStartupService {
             );
           }
         }
+
         if (message['conversation']) {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
@@ -2573,9 +2824,15 @@ export class WAStartupService {
 
       let mimetype: string;
 
+      // if (isURL(mediaMessage.media)) {
+      //   mimetype = getMIMEType(mediaMessage.media);
+      // } else {
+      //   mimetype = getMIMEType(mediaMessage.fileName);
+      // }
+
       if (mediaMessage.mimetype) {
         mimetype = mediaMessage.mimetype;
-      } else {
+      }else{
         if (isURL(mediaMessage.media)) {
           mimetype = getMIMEType(mediaMessage.media);
         } else {
@@ -3229,6 +3486,7 @@ export class WAStartupService {
       await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
       this.logger.verbose('Groups add privacy updated');
 
+      //this.client?.ws?.close();
       this.reloadConnection();
 
       return {

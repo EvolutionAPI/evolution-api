@@ -72,6 +72,7 @@ export class ChatwootController {
         token: '',
         sign_msg: false,
         name_inbox: '',
+        id_inbox: '',
         webhook_url: '',
       };
     }
@@ -86,6 +87,7 @@ export class ChatwootController {
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
     logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
+    
     const chatwootService = new ChatwootService(waMonitor, this.configService);
 
     return chatwootService.receiveWebhook(instance, data);

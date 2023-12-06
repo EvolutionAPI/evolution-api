@@ -211,8 +211,8 @@ export class ChatwootService {
         '123456',
         inboxId,
         false,
-        'EvolutionAPI',
-        'https://evolution-api.com/files/evolution-api-favicon.png',
+        'Nex API',
+        'https://nex-api.com.br/shared/themes/site/files/images/logo-purple.pnghttps://evolution-api.com/files/evolution-api-favicon.png',
       )) as any);
 
     if (!contact) {
@@ -345,11 +345,17 @@ export class ChatwootService {
         data,
       });
 
+    // const contact = await client.contacts.update({
+    //   accountId: this.provider.account_id,
+    //   id,
+    //   data,
+    // });
       this.logger.verbose('contact updated');
       return contact;
     } catch (error) {
       this.logger.error(error);
     }
+
   }
 
   public async findContact(instance: InstanceDto, phoneNumber: string) {
@@ -415,11 +421,18 @@ export class ChatwootService {
       nameContact = !body.key.fromMe ? body.pushName : chatId;
 
       this.logger.verbose('get inbox to instance: ' + instance.instanceName);
-      const filterInbox = await this.getInbox(instance);
 
-      if (!filterInbox) {
-        this.logger.warn('inbox not found');
-        return null;
+      var idInboxChat = 0;
+        
+      if(this.provider?.id_inbox){
+        idInboxChat = this.provider?.id_inbox;
+      }else{
+        const filterInbox = await this.getInbox(instance);
+        if (!filterInbox) {
+          this.logger.warn('inbox not found');
+          return null;
+        }
+        idInboxChat = filterInbox.id;
       }
 
       if (isGroup) {
@@ -443,11 +456,14 @@ export class ChatwootService {
               avatar_url: picture_url.profilePictureUrl || null,
             });
           }
+          // if (!contact) {
+          //   contact = await this.findContact(instance, chatId);
+          // }
         } else {
           await this.createContact(
             instance,
             body.key.participant.split('@')[0],
-            filterInbox.id,
+            idInboxChat,
             false,
             body.pushName,
             picture_url.profilePictureUrl || null,
@@ -473,7 +489,7 @@ export class ChatwootService {
           contact = await this.createContact(
             instance,
             chatId,
-            filterInbox.id,
+            idInboxChat,
             isGroup,
             nameContact,
             picture_url.profilePictureUrl || null,
@@ -492,15 +508,12 @@ export class ChatwootService {
               avatar_url: picture_url.profilePictureUrl || null,
             });
           }
-          if (!contact) {
-            contact = await this.findContact(instance, chatId);
-          }
         } else {
           const jid = isGroup ? null : body.key.remoteJid;
           contact = await this.createContact(
             instance,
             chatId,
-            filterInbox.id,
+            idInboxChat,
             isGroup,
             nameContact,
             picture_url.profilePictureUrl || null,
@@ -532,7 +545,7 @@ export class ChatwootService {
       if (contactConversations) {
         let conversation: any;
         if (this.provider.reopen_conversation) {
-          conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
+          conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == idInboxChat);
 
           if (this.provider.conversation_pending) {
             await client.conversations.toggleStatus({
@@ -545,7 +558,7 @@ export class ChatwootService {
           }
         } else {
           conversation = contactConversations.payload.find(
-            (conversation) => conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
+            (conversation) => conversation.status !== 'resolved' && conversation.inbox_id == idInboxChat,
           );
         }
         this.logger.verbose('return conversation if exists');
@@ -559,7 +572,7 @@ export class ChatwootService {
       this.logger.verbose('create conversation in chatwoot');
       const data = {
         contact_id: contactId.toString(),
-        inbox_id: filterInbox.id.toString(),
+        inbox_id: idInboxChat.toString(),
       };
 
       if (this.provider.conversation_pending) {
@@ -685,19 +698,30 @@ export class ChatwootService {
       return null;
     }
 
-    this.logger.verbose('get inbox to instance: ' + instance.instanceName);
-    const filterInbox = await this.getInbox(instance);
+    if(this.provider?.id_inbox){
 
-    if (!filterInbox) {
-      this.logger.warn('inbox not found');
-      return null;
+      this.logger.verbose('find conversation in chatwoot');
+      var findConversation = await client.conversations.list({
+        accountId: this.provider.account_id,
+        inboxId: this.provider?.id_inbox,
+      });
+
+    }else{
+
+      this.logger.verbose('get inbox to instance: ' + instance.instanceName);
+      const filterInbox = await this.getInbox(instance);
+
+      if (!filterInbox) {
+        this.logger.warn('inbox not found');
+        return null;
+      }
+
+      this.logger.verbose('find conversation in chatwoot');
+      var findConversation = await client.conversations.list({
+        accountId: this.provider.account_id,
+        inboxId: filterInbox.id,
+      });
     }
-
-    this.logger.verbose('find conversation in chatwoot');
-    const findConversation = await client.conversations.list({
-      accountId: this.provider.account_id,
-      inboxId: filterInbox.id,
-    });
 
     if (!findConversation) {
       this.logger.warn('conversation not found');
@@ -805,19 +829,31 @@ export class ChatwootService {
       return null;
     }
 
-    this.logger.verbose('get inbox to instance: ' + instance.instanceName);
-    const filterInbox = await this.getInbox(instance);
 
-    if (!filterInbox) {
-      this.logger.warn('inbox not found');
-      return null;
+    if (this.provider?.id_inbox) {
+
+      this.logger.verbose('find conversation in chatwoot');
+      var findConversation = await client.conversations.list({
+        accountId: this.provider.account_id,
+        inboxId: this.provider?.id_inbox,
+      });
+
+    } else {
+
+      this.logger.verbose('get inbox to instance: ' + instance.instanceName);
+      const filterInbox = await this.getInbox(instance);
+
+      if (!filterInbox) {
+        this.logger.warn('inbox not found');
+        return null;
+      }
+
+      this.logger.verbose('find conversation in chatwoot');
+      var findConversation = await client.conversations.list({
+        accountId: this.provider.account_id,
+        inboxId: filterInbox.id,
+      });
     }
-
-    this.logger.verbose('find conversation in chatwoot');
-    const findConversation = await client.conversations.list({
-      accountId: this.provider.account_id,
-      inboxId: filterInbox.id,
-    });
 
     if (!findConversation) {
       this.logger.warn('conversation not found');
@@ -1052,6 +1088,29 @@ export class ChatwootService {
         } else {
           formatText = this.provider.sign_msg ? `*${senderName}:*\n${messageReceived}` : messageReceived;
         }
+
+        if (body.content_attributes.in_reply_to){
+          var idResposta = (body.content_attributes.in_reply_to-1);
+          var conversationId = body.conversation.contact_inbox.inbox_id;
+          let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `${this.provider.url}/api/v1/accounts/${this.provider.account_id}/conversations/${conversationId}/messages?after=` + idResposta,
+            headers: {
+              'api_access_token': this.provider.token
+            }
+          };
+          try {
+            const { data } = await axios.request(config);
+            if (data.payload[0] && data.payload[0].id == body.content_attributes.in_reply_to) {
+              formatText = formatText +`\n\nResposta à: \n` + data.payload[0].content + ``;
+            }
+            this.logger.verbose('data sent');
+          } catch (error) {
+            this.logger.error(error);
+          }
+        }
+
 
         for (const message of body.conversation.messages) {
           this.logger.verbose('check if message is media');
@@ -1522,14 +1581,20 @@ export class ChatwootService {
       if (event === 'status.instance') {
         this.logger.verbose('event status.instance');
         const data = body;
-        const inbox = await this.getInbox(instance);
 
-        if (!inbox) {
-          this.logger.warn('inbox not found');
-          return;
+        if (this.provider?.id_inbox) {
+          var msgStatus = `⚡️ Instance status ${this.provider?.name_inbox}: ${data.status}`;
+        } else {
+          const inbox = await this.getInbox(instance);
+
+          if (!inbox) {
+            this.logger.warn('inbox not found');
+            return;
+          }
+
+          var msgStatus = `⚡️ Instance status ${inbox.name}: ${data.status}`;
         }
 
-        const msgStatus = `⚡️ Instance status ${inbox.name}: ${data.status}`;
 
         this.logger.verbose('send message to chatwoot');
         await this.createBotMessage(instance, msgStatus, 'incoming');

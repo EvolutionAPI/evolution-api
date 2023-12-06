@@ -32,7 +32,15 @@ export class InstanceRouter extends RouterBroker {
           execute: (instance) => instanceController.createInstance(instance),
         });
 
-        return res.status(HttpStatus.CREATED).json(response);
+
+        if (req.query['qrcode']) {
+          return res.status(HttpStatus.OK).render('qrcode', {
+            qrcode: response.qrcode.base64,
+          });
+        } else {
+          return res.status(HttpStatus.CREATED).json(response);
+        }
+        //return res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('restart'), ...guards, async (req, res) => {
         logger.verbose('request received in restartInstance');
@@ -49,6 +57,22 @@ export class InstanceRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.OK).json(response);
+      })
+      .get(this.routerPath('qr'), ...guards, async (req, res) => {
+        logger.verbose('request received in get qrCode');
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: instanceNameSchema,
+          ClassRef: InstanceDto,
+          execute: (instance) => instanceController.qrInstance(instance),
+        });
+        return res.status(HttpStatus.OK).render('qrcode', {
+          qrcode: response,
+        });
+
       })
       .get(this.routerPath('connect'), ...guards, async (req, res) => {
         logger.verbose('request received in connectInstance');

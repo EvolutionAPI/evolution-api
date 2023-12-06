@@ -9,6 +9,7 @@ export class ChatwootRaw {
   token?: string;
   url?: string;
   name_inbox?: string;
+  id_inbox?: string;
   sign_msg?: boolean;
   number?: string;
   reopen_conversation?: boolean;
@@ -22,6 +23,7 @@ const chatwootSchema = new Schema<ChatwootRaw>({
   token: { type: String, required: true },
   url: { type: String, required: true },
   name_inbox: { type: String, required: true },
+  id_inbox: { type: String, required: true },
   sign_msg: { type: Boolean, required: true },
   number: { type: String, required: true },
   reopen_conversation: { type: Boolean, required: true },

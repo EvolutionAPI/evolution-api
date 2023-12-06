@@ -9,7 +9,8 @@ import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class TypebotService {
-  constructor(private readonly waMonitor: WAMonitoringService, private readonly configService: ConfigService) {}
+  //constructor(private readonly waMonitor: WAMonitoringService) {}
+  constructor(private readonly waMonitor: WAMonitoringService, private readonly configService: ConfigService) { }
 
   private readonly logger = new Logger(TypebotService.name);
 
@@ -177,6 +178,8 @@ export class TypebotService {
       };
 
       try {
+        //const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+
         const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
         const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
 
@@ -267,6 +270,8 @@ export class TypebotService {
     };
 
     try {
+      //const request = await axios.post(data.url + '/api/v1/sendMessage', reqData);
+
       const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
       const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
 
@@ -386,7 +391,7 @@ export class TypebotService {
               }
 
               if (element.underline) {
-                text = `*${text}*`;
+                text = `~${text}~`;
               }
 
               if (element.url) {
@@ -498,7 +503,7 @@ export class TypebotService {
     const listening_from_me = findTypebot.listening_from_me;
 
     const session = sessions.find((session) => session.remoteJid === remoteJid);
-
+    
     try {
       if (session && expire && expire > 0) {
         const now = Date.now();
@@ -571,6 +576,7 @@ export class TypebotService {
             };
 
             try {
+              //const request = await axios.post(url + '/api/v1/sendMessage', reqData);
               const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
               const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
 
@@ -658,9 +664,9 @@ export class TypebotService {
 
           let request: any;
           try {
+            //request = await axios.post(url + '/api/v1/sendMessage', reqData);
             const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
             request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
-
             await this.sendWAMessage(
               instance,
               remoteJid,
@@ -739,6 +745,7 @@ export class TypebotService {
         sessionId: session.sessionId.split('-')[1],
       };
 
+      //const request = await axios.post(url + '/api/v1/sendMessage', reqData);
       const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
       const request = await axios.post(`${url}/api/${version}/sendMessage`, reqData);
 
@@ -755,5 +762,249 @@ export class TypebotService {
       this.logger.error(error);
       return;
     }
+
+    /*
+    if (session && expire && expire > 0) {
+      const now = Date.now();
+
+      const diff = now - session.updateAt;
+
+      const diffInMinutes = Math.floor(diff / 1000 / 60);
+
+      if (diffInMinutes > expire) {
+        //sessions.splice(sessions.indexOf(session), 1);
+        const newSessions = await this.clearSessions(instance, remoteJid);
+
+        const data = await this.createNewSession(instance, {
+          enabled: findTypebot.enabled,
+          url: url,
+          typebot: typebot,
+          expire: expire,
+          keyword_finish: keyword_finish,
+          delay_message: delay_message,
+          unknown_message: unknown_message,
+          listening_from_me: listening_from_me,
+          //sessions: sessions,
+          sessions: newSessions,
+          remoteJid: remoteJid,
+          pushName: msg.pushName,
+        });
+
+        await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
+
+        if (data.messages.length === 0) {
+          const content = this.getConversationMessage(msg.message);
+
+          if (!content) {
+            if (unknown_message) {
+              this.waMonitor.waInstances[instance.instanceName].textMessage({
+                number: remoteJid.split('@')[0],
+                options: {
+                  delay: delay_message || 1000,
+                  presence: 'composing',
+                },
+                textMessage: {
+                  text: unknown_message,
+                },
+              });
+            }
+            return;
+          }
+
+          if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+            sessions.splice(sessions.indexOf(session), 1);
+
+            const typebotData = {
+              enabled: findTypebot.enabled,
+              url: url,
+              typebot: typebot,
+              expire: expire,
+              keyword_finish: keyword_finish,
+              delay_message: delay_message,
+              unknown_message: unknown_message,
+              listening_from_me: listening_from_me,
+              sessions,
+            };
+
+            this.create(instance, typebotData);
+
+            return;
+          }
+
+          const reqData = {
+            message: content,
+            sessionId: data.sessionId,
+          };
+
+          const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+          await this.sendWAMessage(
+            instance,
+            remoteJid,
+            request.data.messages,
+            request.data.input,
+            request.data.clientSideActions,
+          );
+        }
+
+        return;
+      }
+    }
+
+
+    if (session && session.status !== 'opened') {
+      return;
+    }
+
+    if (!session) {
+      const data = await this.createNewSession(instance, {
+        enabled: findTypebot.enabled,
+        url: url,
+        typebot: typebot,
+        expire: expire,
+        keyword_finish: keyword_finish,
+        delay_message: delay_message,
+        unknown_message: unknown_message,
+        listening_from_me: listening_from_me,
+        sessions: sessions,
+        remoteJid: remoteJid,
+        pushName: msg.pushName,
+      });
+
+      await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
+
+      if (data.messages.length === 0) {
+        const content = this.getConversationMessage(msg.message);
+
+        if (!content) {
+          if (unknown_message) {
+            this.waMonitor.waInstances[instance.instanceName].textMessage({
+              number: remoteJid.split('@')[0],
+              options: {
+                delay: delay_message || 1000,
+                presence: 'composing',
+              },
+              textMessage: {
+                text: unknown_message,
+              },
+            });
+          }
+          return;
+        }
+
+        if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+          sessions.splice(sessions.indexOf(session), 1);
+
+          const typebotData = {
+            enabled: findTypebot.enabled,
+            url: url,
+            typebot: typebot,
+            expire: expire,
+            keyword_finish: keyword_finish,
+            delay_message: delay_message,
+            unknown_message: unknown_message,
+            listening_from_me: listening_from_me,
+            sessions,
+          };
+
+          this.create(instance, typebotData);
+
+          return;
+        }
+
+        const reqData = {
+          message: content,
+          sessionId: data.sessionId,
+        };
+
+        const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+        await this.sendWAMessage(
+          instance,
+          remoteJid,
+          request.data.messages,
+          request.data.input,
+          request.data.clientSideActions,
+        );
+      }
+      return;
+    }
+
+    sessions.map((session) => {
+      if (session.remoteJid === remoteJid) {
+        session.updateAt = Date.now();
+      }
+    });
+
+    const typebotData = {
+      enabled: findTypebot.enabled,
+      url: url,
+      typebot: typebot,
+      expire: expire,
+      keyword_finish: keyword_finish,
+      delay_message: delay_message,
+      unknown_message: unknown_message,
+      listening_from_me: listening_from_me,
+      sessions,
+    };
+
+    this.create(instance, typebotData);
+
+    const content = this.getConversationMessage(msg.message);
+
+    if (!content) {
+      if (unknown_message) {
+        this.waMonitor.waInstances[instance.instanceName].textMessage({
+          number: remoteJid.split('@')[0],
+          options: {
+            delay: delay_message || 1000,
+            presence: 'composing',
+          },
+          textMessage: {
+            text: unknown_message,
+          },
+        });
+      }
+      return;
+    }
+
+    if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+      sessions.splice(sessions.indexOf(session), 1);
+
+      const typebotData = {
+        enabled: findTypebot.enabled,
+        url: url,
+        typebot: typebot,
+        expire: expire,
+        keyword_finish: keyword_finish,
+        delay_message: delay_message,
+        unknown_message: unknown_message,
+        listening_from_me: listening_from_me,
+        sessions,
+      };
+
+      this.create(instance, typebotData);
+
+      return;
+    }
+
+    const reqData = {
+      message: content,
+      sessionId: session.sessionId.split('-')[1],
+    };
+
+    const request = await axios.post(url + '/api/v1/sendMessage', reqData);
+
+    await this.sendWAMessage(
+      instance,
+      remoteJid,
+      request.data.messages,
+      request.data.input,
+      request.data.clientSideActions,
+    );
+
+    return;
+    
+    */
   }
 }
