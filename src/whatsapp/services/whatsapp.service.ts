@@ -109,6 +109,7 @@ import {
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
+  SendPresenceDto,
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
@@ -2385,6 +2386,38 @@ export class WAStartupService {
   public get connectionStatus() {
     this.logger.verbose('Getting connection status');
     return this.stateConnection;
+  }
+
+  public async sendPresence(data: SendPresenceDto) {
+    try {
+      const { number } = data;
+
+      this.logger.verbose(`Check if number "${number}" is WhatsApp`);
+      const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
+
+      this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
+      if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+        throw new BadRequestException(isWA);
+      }
+
+      const sender = isWA.jid;
+
+      this.logger.verbose('Sending presence');
+      await this.client.presenceSubscribe(sender);
+      this.logger.verbose('Subscribing to presence');
+
+      await this.client.sendPresenceUpdate(data.options?.presence ?? 'composing', sender);
+      this.logger.verbose('Sending presence update: ' + data.options?.presence ?? 'composing');
+
+      await delay(data.options.delay);
+      this.logger.verbose('Set delay: ' + data.options.delay);
+
+      await this.client.sendPresenceUpdate('paused', sender);
+      this.logger.verbose('Sending presence update: paused');
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
   }
 
   // Send Message Controller

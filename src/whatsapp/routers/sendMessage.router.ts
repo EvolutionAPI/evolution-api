@@ -9,6 +9,7 @@ import {
   locationMessageSchema,
   mediaMessageSchema,
   pollMessageSchema,
+  presenceSchema,
   reactionMessageSchema,
   statusMessageSchema,
   stickerMessageSchema,
@@ -23,6 +24,7 @@ import {
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
+  SendPresenceDto,
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
@@ -37,6 +39,22 @@ export class MessageRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
+      .post(this.routerPath('sendPresence'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendText');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<null>({
+          request: req,
+          schema: presenceSchema,
+          ClassRef: SendPresenceDto,
+          execute: (instance, data) => sendMessageController.sendPresence(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
       .post(this.routerPath('sendText'), ...guards, async (req, res) => {
         logger.verbose('request received in sendText');
         logger.verbose('request body: ');

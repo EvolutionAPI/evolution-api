@@ -46,7 +46,16 @@ class PollMessage {
   values: string[];
   messageSecret?: Uint8Array;
 }
+export class SendPresenceDto extends Metadata {
+  options: {
+    presence: WAPresence;
+    delay: number;
+  };
+}
 export class SendTextDto extends Metadata {
+  textMessage: TextMessage;
+}
+export class SendPresence extends Metadata {
   textMessage: TextMessage;
 }
 

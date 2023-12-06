@@ -11,6 +11,7 @@ import {
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
+  SendPresenceDto,
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
@@ -22,6 +23,11 @@ const logger = new Logger('MessageRouter');
 
 export class SendMessageController {
   constructor(private readonly waMonitor: WAMonitoringService) {}
+
+  public async sendPresence({ instanceName }: InstanceDto, data: SendPresenceDto) {
+    logger.verbose('requested sendPresence from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].sendPresence(data);
+  }
 
   public async sendText({ instanceName }: InstanceDto, data: SendTextDto) {
     logger.verbose('requested sendText from ' + instanceName + ' instance');

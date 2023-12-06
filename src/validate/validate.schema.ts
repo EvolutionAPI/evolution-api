@@ -149,6 +149,16 @@ export const textMessageSchema: JSONSchema7 = {
   required: ['textMessage', 'number'],
 };
 
+export const presenceSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    options: { ...optionsSchema, required: ['presence', 'delay'] },
+  },
+  required: ['options', 'number'],
+};
+
 export const pollMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
