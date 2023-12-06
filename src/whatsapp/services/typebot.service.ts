@@ -263,7 +263,7 @@ export class TypebotService {
         prefilledVariables: {
           ...data.prefilledVariables,
           remoteJid: data.remoteJid,
-          pushName: data.pushName || '',
+          pushName: data.pushName || data.prefilledVariables?.pushName || '',
           instanceName: instance.instanceName,
         },
       },
