@@ -78,10 +78,6 @@ export type Websocket = {
   ENABLED: boolean;
 };
 
-export type Chatwoot = {
-  USE_REPLY_ID: boolean;
-};
-
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   QRCODE_UPDATED: boolean;
@@ -154,7 +150,6 @@ export interface Env {
   TYPEBOT: Typebot;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
-  CHATWOOT?: Chatwoot;
 }
 
 export type Key = keyof Env;
@@ -322,9 +317,6 @@ export class ConfigService {
             : 3600,
           SECRET: process.env.AUTHENTICATION_JWT_SECRET || 'L=0YWt]b2w[WF>#>:&E`',
         },
-      },
-      CHATWOOT: {
-        USE_REPLY_ID: process.env?.USE_REPLY_ID === 'true',
       },
     };
   }

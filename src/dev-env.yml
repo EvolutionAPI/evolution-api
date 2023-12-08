@@ -164,7 +164,3 @@ AUTHENTICATION:
   JWT:
     EXPIRIN_IN: 0 # seconds - 3600s === 1h | zero (0) - never expires
     SECRET: L=0YWt]b2w[WF>#>:&E`
-
-# Configure to chatwoot
-CHATWOOT:
-  USE_REPLY_ID: false
