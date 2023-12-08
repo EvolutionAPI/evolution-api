@@ -83,6 +83,7 @@ import {
   OnWhatsAppDto,
   PrivacySettingDto,
   ReadMessageDto,
+  SendPresenceDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import {
@@ -109,7 +110,6 @@ import {
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
-  SendPresenceDto,
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
