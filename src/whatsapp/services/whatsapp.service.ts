@@ -304,7 +304,14 @@ export class WAStartupService {
 
     this.logger.verbose(`Webhook url: ${data.url}`);
     this.logger.verbose(`Webhook events: ${data.events}`);
-    return data;
+
+    return {
+      enabled: data.enabled,
+      url: data.url,
+      events: data.events,
+      webhook_by_events: data.webhook_by_events,
+      webhook_base64: data.webhook_base64,
+    };
   }
 
   private async loadChatwoot() {
@@ -372,7 +379,16 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
     this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
 
-    return data;
+    return {
+      enabled: data.enabled,
+      account_id: data.account_id,
+      token: data.token,
+      url: data.url,
+      name_inbox: data.name_inbox,
+      sign_msg: data.sign_msg,
+      reopen_conversation: data.reopen_conversation,
+      conversation_pending: data.conversation_pending,
+    };
   }
 
   private async loadSettings() {
@@ -429,7 +445,14 @@ export class WAStartupService {
     this.logger.verbose(`Settings always_online: ${data.always_online}`);
     this.logger.verbose(`Settings read_messages: ${data.read_messages}`);
     this.logger.verbose(`Settings read_status: ${data.read_status}`);
-    return data;
+    return {
+      reject_call: data.reject_call,
+      msg_call: data.msg_call,
+      groups_ignore: data.groups_ignore,
+      always_online: data.always_online,
+      read_messages: data.read_messages,
+      read_status: data.read_status,
+    };
   }
 
   private async loadWebsocket() {
@@ -463,7 +486,10 @@ export class WAStartupService {
     }
 
     this.logger.verbose(`Websocket events: ${data.events}`);
-    return data;
+    return {
+      enabled: data.enabled,
+      events: data.events,
+    };
   }
 
   private async loadRabbitmq() {
@@ -497,7 +523,10 @@ export class WAStartupService {
     }
 
     this.logger.verbose(`Rabbitmq events: ${data.events}`);
-    return data;
+    return {
+      enabled: data.enabled,
+      events: data.events,
+    };
   }
 
   public async removeRabbitmqQueues() {
@@ -539,7 +568,10 @@ export class WAStartupService {
     }
 
     this.logger.verbose(`Sqs events: ${data.events}`);
-    return data;
+    return {
+      enabled: data.enabled,
+      events: data.events,
+    };
   }
 
   public async removeSqsQueues() {
@@ -605,7 +637,17 @@ export class WAStartupService {
       throw new NotFoundException('Typebot not found');
     }
 
-    return data;
+    return {
+      enabled: data.enabled,
+      url: data.url,
+      typebot: data.typebot,
+      expire: data.expire,
+      keyword_finish: data.keyword_finish,
+      delay_message: data.delay_message,
+      unknown_message: data.unknown_message,
+      listening_from_me: data.listening_from_me,
+      sessions: data.sessions,
+    };
   }
 
   private async loadProxy() {
@@ -642,7 +684,10 @@ export class WAStartupService {
       throw new NotFoundException('Proxy not found');
     }
 
-    return data;
+    return {
+      enabled: data.enabled,
+      proxy: data.proxy,
+    };
   }
 
   private async loadChamaai() {
@@ -688,7 +733,13 @@ export class WAStartupService {
       throw new NotFoundException('Chamaai not found');
     }
 
-    return data;
+    return {
+      enabled: data.enabled,
+      url: data.url,
+      token: data.token,
+      waNumber: data.waNumber,
+      answerByAudio: data.answerByAudio,
+    };
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
