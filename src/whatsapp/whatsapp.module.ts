@@ -14,7 +14,6 @@ import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { SqsController } from './controllers/sqs.controller';
 import { TypebotController } from './controllers/typebot.controller';
-import { ViewsController } from './controllers/views.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import { WebsocketController } from './controllers/websocket.controller';
 import {
@@ -154,7 +153,6 @@ export const instanceController = new InstanceController(
   typebotService,
   cache,
 );
-export const viewsController = new ViewsController(waMonitor, configService);
 export const sendMessageController = new SendMessageController(waMonitor);
 export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
