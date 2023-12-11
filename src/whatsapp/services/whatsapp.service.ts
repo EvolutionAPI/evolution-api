@@ -3427,7 +3427,7 @@ export class WAStartupService {
       await this.client.updateProfilePicture(this.instance.wuid, pic);
       this.logger.verbose('Profile picture updated');
 
-      this.reloadConnection();
+      await this.reloadConnection();
 
       return { update: 'success' };
     } catch (error) {
