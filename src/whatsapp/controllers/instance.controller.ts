@@ -446,15 +446,8 @@ export class InstanceController {
           number,
           reopen_conversation: chatwoot_reopen_conversation || false,
           conversation_pending: chatwoot_conversation_pending || false,
+          auto_create: true,
         });
-
-        this.chatwootService.initInstanceChatwoot(
-          instance,
-          instance.instanceName.split('-cwId-')[0],
-          `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
-          qrcode,
-          number,
-        );
       } catch (error) {
         this.logger.log(error);
       }

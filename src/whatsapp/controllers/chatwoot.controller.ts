@@ -42,6 +42,7 @@ export class ChatwootController {
       data.sign_msg = false;
       data.reopen_conversation = false;
       data.conversation_pending = false;
+      data.auto_create = false;
     }
 
     data.name_inbox = instance.instanceName;

@@ -6,7 +6,7 @@ import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
-import { ConfigService } from '../../config/env.config';
+import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
@@ -99,9 +99,22 @@ export class ChatwootService {
 
   public create(instance: InstanceDto, data: ChatwootDto) {
     this.logger.verbose('create chatwoot: ' + instance.instanceName);
+
     this.waMonitor.waInstances[instance.instanceName].setChatwoot(data);
 
     this.logger.verbose('chatwoot created');
+
+    if (data.auto_create) {
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
+      this.initInstanceChatwoot(
+        instance,
+        instance.instanceName.split('-cwId-')[0],
+        `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
+        true,
+        data.number,
+      );
+    }
     return data;
   }
 

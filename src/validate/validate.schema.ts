@@ -891,6 +891,7 @@ export const chatwootSchema: JSONSchema7 = {
     sign_msg: { type: 'boolean', enum: [true, false] },
     reopen_conversation: { type: 'boolean', enum: [true, false] },
     conversation_pending: { type: 'boolean', enum: [true, false] },
+    auto_create: { type: 'boolean', enum: [true, false] },
   },
   required: ['enabled', 'account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'],
   ...isNotEmpty('account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'),
