@@ -3423,6 +3423,7 @@ export class WAStartupService {
       } else {
         throw new BadRequestException('"profilePicture" must be a url or a base64');
       }
+
       await this.client.updateProfilePicture(this.instance.wuid, pic);
       this.logger.verbose('Profile picture updated');
 

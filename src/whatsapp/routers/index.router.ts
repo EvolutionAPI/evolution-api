@@ -42,6 +42,7 @@ router
       message: 'Welcome to the Evolution API, it is working!',
       version: packageJson.version,
       documentation: `${req.protocol}://${req.get('host')}/docs`,
+      manager: `${req.protocol}://${req.get('host')}/manager`,
     });
   })
   .use('/instance', new InstanceRouter(configService, ...guards).router)

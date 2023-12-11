@@ -4,6 +4,7 @@
 * Added AWS SQS Integration
 * Added compatibility with typebot v2
 * Added endpoint sendPresence
+* New Instance Manager
 
 ### Fixed
 
