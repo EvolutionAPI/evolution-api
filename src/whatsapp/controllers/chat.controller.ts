@@ -9,6 +9,7 @@ import {
   ProfilePictureDto,
   ProfileStatusDto,
   ReadMessageDto,
+  SendPresenceDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
@@ -75,6 +76,11 @@ export class ChatController {
   public async fetchChats({ instanceName }: InstanceDto) {
     logger.verbose('requested fetchChats from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].fetchChats();
+  }
+
+  public async sendPresence({ instanceName }: InstanceDto, data: SendPresenceDto) {
+    logger.verbose('requested sendPresence from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].sendPresence(data);
   }
 
   public async fetchPrivacySettings({ instanceName }: InstanceDto) {

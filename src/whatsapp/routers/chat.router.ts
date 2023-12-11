@@ -7,6 +7,7 @@ import {
   deleteMessageSchema,
   messageUpSchema,
   messageValidateSchema,
+  presenceSchema,
   privacySettingsSchema,
   profileNameSchema,
   profilePictureSchema,
@@ -26,6 +27,7 @@ import {
   ProfilePictureDto,
   ProfileStatusDto,
   ReadMessageDto,
+  SendPresenceDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
@@ -227,6 +229,22 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('sendPresence'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendPresence');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<null>({
+          request: req,
+          schema: presenceSchema,
+          ClassRef: SendPresenceDto,
+          execute: (instance, data) => chatController.sendPresence(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
       })
       // Profile routes
       .get(this.routerPath('fetchPrivacySettings'), ...guards, async (req, res) => {
