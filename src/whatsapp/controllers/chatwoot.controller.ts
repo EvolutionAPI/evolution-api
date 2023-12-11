@@ -64,7 +64,7 @@ export class ChatwootController {
 
     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
-    if (Object.keys(result).length === 0) {
+    if (Object.keys(result || {}).length === 0) {
       return {
         enabled: false,
         url: '',
