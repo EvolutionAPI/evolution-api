@@ -22,6 +22,7 @@
 * Removed api restart on receiving an error
 * Fixes in mongodb and chatwoot
 * Adjusted return from queries in mongodb
+* Added restart instance when update profile picture
 
 # 1.5.4 (2023-10-09 20:43)
 
