@@ -69,7 +69,7 @@ export class TypebotService {
           session.status = status;
         }
       });
-    } else {
+    } else if (status === 'paused') {
       const session: Session = {
         remoteJid: remoteJid,
         sessionId: Math.floor(Math.random() * 10000000000).toString(),
