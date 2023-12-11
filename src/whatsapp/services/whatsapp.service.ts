@@ -3427,6 +3427,8 @@ export class WAStartupService {
       await this.client.updateProfilePicture(this.instance.wuid, pic);
       this.logger.verbose('Profile picture updated');
 
+      this.reloadConnection();
+
       return { update: 'success' };
     } catch (error) {
       throw new InternalServerErrorException('Error updating profile picture', error.toString());
@@ -3437,6 +3439,8 @@ export class WAStartupService {
     this.logger.verbose('Removing profile picture');
     try {
       await this.client.removeProfilePicture(this.instance.wuid);
+
+      this.reloadConnection();
 
       return { update: 'success' };
     } catch (error) {
