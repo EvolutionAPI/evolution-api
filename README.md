@@ -39,12 +39,13 @@ This code was produced based on the baileys library and it is still under develo
   </a>
 </div>
 
-#### Buy me coffe
+#### Buy me coffe - PIX
 
 <div align="center">
   <a href="https://bmc.link/evolutionapi" target="_blank" rel="noopener noreferrer">
-    <img src="./public/images/bmc_qr.png" style="width: 50% !important;">
+    <img src="./public/images/qrcode-pix.png" style="width: 50% !important;">
   </a>
+  <p><b>CHAVE PIX (Telefone):</b> (74)99987-9409</p>
 </div>
 
 </br>

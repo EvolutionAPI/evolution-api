@@ -25,7 +25,14 @@ export async function useMultiFileAuthStateDb(
   const writeData = async (data: any, key: string): Promise<any> => {
     try {
       await client.connect();
-      return await collection.replaceOne({ _id: key }, JSON.parse(JSON.stringify(data, BufferJSON.replacer)), {
+      let msgParsed = JSON.parse(JSON.stringify(data, BufferJSON.replacer));
+      if (Array.isArray(msgParsed)) {
+        msgParsed = {
+          _id: key,
+          content_array: msgParsed,
+        };
+      }
+      return await collection.replaceOne({ _id: key }, msgParsed, {
         upsert: true,
       });
     } catch (error) {
@@ -36,7 +43,10 @@ export async function useMultiFileAuthStateDb(
   const readData = async (key: string): Promise<any> => {
     try {
       await client.connect();
-      const data = await collection.findOne({ _id: key });
+      let data = (await collection.findOne({ _id: key })) as any;
+      if (data?.content_array) {
+        data = data.content_array;
+      }
       const creds = JSON.stringify(data);
       return JSON.parse(creds, BufferJSON.reviver);
     } catch (error) {
@@ -91,7 +101,7 @@ export async function useMultiFileAuthStateDb(
       },
     },
     saveCreds: async () => {
-      return writeData(creds, 'creds');
+      return await writeData(creds, 'creds');
     },
   };
 }

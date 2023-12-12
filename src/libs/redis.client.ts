@@ -5,24 +5,19 @@ import { Redis } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 
 export class RedisCache {
-  async disconnect() {
-    await this.client.disconnect();
-    this.statusConnection = false;
-  }
-  constructor() {
-    this.logger.verbose('instance created');
-    process.on('beforeExit', async () => {
-      this.logger.verbose('instance destroyed');
-      if (this.statusConnection) {
-        this.logger.verbose('instance disconnect');
-        await this.client.disconnect();
-      }
-    });
-  }
-
+  private readonly logger = new Logger(RedisCache.name);
+  private client: RedisClientType;
   private statusConnection = false;
   private instanceName: string;
   private redisEnv: Redis;
+
+  constructor() {
+    this.logger.verbose('RedisCache instance created');
+    process.on('beforeExit', () => {
+      this.logger.verbose('RedisCache instance destroyed');
+      this.disconnect();
+    });
+  }
 
   public set reference(reference: string) {
     this.logger.verbose('set reference: ' + reference);
@@ -30,24 +25,35 @@ export class RedisCache {
   }
 
   public async connect(redisEnv: Redis) {
-    this.logger.verbose('connecting');
+    this.logger.verbose('Connecting to Redis...');
     this.client = createClient({ url: redisEnv.URI });
-    this.logger.verbose('connected in ' + redisEnv.URI);
+    this.client.on('error', (err) => this.logger.error('Redis Client Error ' + err));
+
     await this.client.connect();
     this.statusConnection = true;
     this.redisEnv = redisEnv;
+    this.logger.verbose(`Connected to ${redisEnv.URI}`);
   }
 
-  private readonly logger = new Logger(RedisCache.name);
-  private client: RedisClientType;
+  public async disconnect() {
+    if (this.statusConnection) {
+      await this.client.disconnect();
+      this.statusConnection = false;
+      this.logger.verbose('Redis client disconnected');
+    }
+  }
 
   public async instanceKeys(): Promise<string[]> {
+    const keys: string[] = [];
     try {
-      this.logger.verbose('instance keys: ' + this.redisEnv.PREFIX_KEY + ':*');
-      return await this.client.sendCommand(['keys', this.redisEnv.PREFIX_KEY + ':*']);
+      this.logger.verbose('Fetching instance keys');
+      for await (const key of this.client.scanIterator({ MATCH: `${this.redisEnv.PREFIX_KEY}:*` })) {
+        keys.push(key);
+      }
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error('Error fetching instance keys ' + error);
     }
+    return keys;
   }
 
   public async keyExists(key?: string) {

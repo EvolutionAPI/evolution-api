@@ -8,4 +8,5 @@ export class ChatwootDto {
   number?: string;
   reopen_conversation?: boolean;
   conversation_pending?: boolean;
+  auto_create?: boolean;
 }

@@ -12,12 +12,18 @@ import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
   AuthModel,
+  ChamaaiModel,
+  // ChatModel,
   ChatwootModel,
-  ContactModel,
-  MessageModel,
-  MessageUpModel,
+  // ContactModel,
+  // MessageModel,
+  // MessageUpModel,
+  ProxyModel,
+  RabbitmqModel,
   SettingsModel,
+  TypebotModel,
   WebhookModel,
+  WebsocketModel,
 } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { WAStartupService } from './whatsapp.service';
@@ -33,7 +39,7 @@ export class WAMonitoringService {
 
     this.removeInstance();
     this.noConnection();
-    this.delInstanceFiles();
+    // this.delInstanceFiles();
 
     Object.assign(this.db, configService.get<Database>('DATABASE'));
     Object.assign(this.redis, configService.get<Redis>('REDIS'));
@@ -117,7 +123,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
@@ -136,7 +142,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key)).apikey;
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
           }
@@ -187,6 +193,13 @@ export class WAMonitoringService {
 
   public async cleaningUp(instanceName: string) {
     this.logger.verbose('cleaning up instance: ' + instanceName);
+    if (this.redis.ENABLED) {
+      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
+      this.cache.reference = instanceName;
+      await this.cache.delAll();
+      return;
+    }
+
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       this.logger.verbose('cleaning up instance in database: ' + instanceName);
       await this.repository.dbServer.connect();
@@ -194,13 +207,6 @@ export class WAMonitoringService {
       if (collections.length > 0) {
         await this.dbInstance.dropCollection(instanceName);
       }
-      return;
-    }
-
-    if (this.redis.ENABLED) {
-      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
-      this.cache.reference = instanceName;
-      await this.cache.delAll();
       return;
     }
 
@@ -233,13 +239,19 @@ export class WAMonitoringService {
 
     this.logger.verbose('cleaning store database instance: ' + instanceName);
 
-    await AuthModel.deleteMany({ owner: instanceName });
-    await ContactModel.deleteMany({ owner: instanceName });
-    await MessageModel.deleteMany({ owner: instanceName });
-    await MessageUpModel.deleteMany({ owner: instanceName });
+    // await ChatModel.deleteMany({ owner: instanceName });
+    // await ContactModel.deleteMany({ owner: instanceName });
+    // await MessageUpModel.deleteMany({ owner: instanceName });
+    // await MessageModel.deleteMany({ owner: instanceName });
+
     await AuthModel.deleteMany({ _id: instanceName });
     await WebhookModel.deleteMany({ _id: instanceName });
     await ChatwootModel.deleteMany({ _id: instanceName });
+    await ChamaaiModel.deleteMany({ _id: instanceName });
+    await ProxyModel.deleteMany({ _id: instanceName });
+    await RabbitmqModel.deleteMany({ _id: instanceName });
+    await TypebotModel.deleteMany({ _id: instanceName });
+    await WebsocketModel.deleteMany({ _id: instanceName });
     await SettingsModel.deleteMany({ _id: instanceName });
 
     return;
@@ -265,7 +277,6 @@ export class WAMonitoringService {
     const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
     instance.instanceName = name;
     this.logger.verbose('Instance loaded: ' + name);
-
     await instance.connectToWhatsapp();
     this.logger.verbose('connectToWhatsapp: ' + name);
 
@@ -346,8 +357,8 @@ export class WAMonitoringService {
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       this.logger.verbose('logout instance: ' + instanceName);
       try {
-        this.logger.verbose('request cleaning up instance: ' + instanceName);
-        this.cleaningUp(instanceName);
+        // this.logger.verbose('request cleaning up instance: ' + instanceName);
+        // this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - LOGOUT`);
       }

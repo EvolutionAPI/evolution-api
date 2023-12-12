@@ -1,3 +1,44 @@
+# 1.6.1 (develop)
+
+### Fixed
+
+* Fixed Lid Messages
+
+# 1.6.0 (2023-12-12 17:24)
+
+### Feature
+* Added AWS SQS Integration
+* Added support for new typebot API
+* Added endpoint sendPresence
+* New Instance Manager
+* Added auto_create to the chatwoot set to create the inbox automatically or not
+* Added reply, delete and message reaction in chatwoot v3.3.1
+
+### Fixed
+
+* Adjusts in proxy
+* Adjusts in start session for Typebot
+* Added mimetype field when sending media
+* Ajusts in validations to messages.upsert
+* Fixed messages not received: error handling when updating contact in chatwoot
+* Fix workaround to manage param data as an array in mongodb
+* Removed await from webhook when sending a message
+* Update typebot.service.ts - element.underline change ~ for *
+* Adjusts in proxy
+* Removed api restart on receiving an error
+* Fixes in mongodb and chatwoot
+* Adjusted return from queries in mongodb
+* Added restart instance when update profile picture
+* Correction of chatwoot functioning with admin flows
+* Fixed problem that did not generate qrcode with the chatwoot_conversation_pending option enabled
+* Fixed issue where CSAT opened a new ticket when reopen_conversation was disabled
+* Fixed issue sending contact to Chatwoot via iOS
+
+### Integrations
+
+- Chatwoot: v3.3.1
+- Typebot: v2.20.0
+
 # 1.5.4 (2023-10-09 20:43)
 
 ### Fixed

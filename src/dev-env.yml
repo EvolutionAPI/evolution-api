@@ -83,6 +83,13 @@ RABBITMQ:
   ENABLED: false
   URI: "amqp://guest:guest@localhost:5672"
 
+SQS:
+  ENABLED: true
+  ACCESS_KEY_ID: ""
+  SECRET_ACCESS_KEY: ""
+  ACCOUNT_ID: ""
+  REGION: "us-east-1"
+
 WEBSOCKET:
   ENABLED: false
 
@@ -139,6 +146,9 @@ QRCODE:
   LIMIT: 30
   COLOR: "#198754"
 
+TYPEBOT:
+  API_VERSION: 'old' # old | latest
+
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,
 # if you use jwt, a random token will be generated and may be expired and you will have to generate a new token
@@ -154,7 +164,3 @@ AUTHENTICATION:
   JWT:
     EXPIRIN_IN: 0 # seconds - 3600s === 1h | zero (0) - never expires
     SECRET: L=0YWt]b2w[WF>#>:&E`
-
-# Configure to chatwoot
-CHATWOOT:
-  USE_REPLY_ID: false

@@ -11,8 +11,10 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
 import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
+import { ProxyService } from '../services/proxy.service';
 import { RabbitmqService } from '../services/rabbitmq.service';
 import { SettingsService } from '../services/settings.service';
+import { SqsService } from '../services/sqs.service';
 import { TypebotService } from '../services/typebot.service';
 import { WebhookService } from '../services/webhook.service';
 import { WebsocketService } from '../services/websocket.service';
@@ -31,6 +33,8 @@ export class InstanceController {
     private readonly settingsService: SettingsService,
     private readonly websocketService: WebsocketService,
     private readonly rabbitmqService: RabbitmqService,
+    private readonly proxyService: ProxyService,
+    private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
     private readonly cache: RedisCache,
   ) {}
@@ -62,6 +66,8 @@ export class InstanceController {
     websocket_events,
     rabbitmq_enabled,
     rabbitmq_events,
+    sqs_enabled,
+    sqs_events,
     typebot_url,
     typebot,
     typebot_expire,
@@ -69,6 +75,7 @@ export class InstanceController {
     typebot_delay_message,
     typebot_unknown_message,
     typebot_listening_from_me,
+    proxy,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -243,6 +250,69 @@ export class InstanceController {
         }
       }
 
+      if (proxy) {
+        this.logger.verbose('creating proxy');
+        try {
+          this.proxyService.create(
+            instance,
+            {
+              enabled: true,
+              proxy,
+            },
+            false,
+          );
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
+      let sqsEvents: string[];
+
+      if (sqs_enabled) {
+        this.logger.verbose('creating sqs');
+        try {
+          let newEvents: string[] = [];
+          if (sqs_events.length === 0) {
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'CALL',
+              'NEW_JWT_TOKEN',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+              'CHAMA_AI_ACTION',
+            ];
+          } else {
+            newEvents = sqs_events;
+          }
+          this.sqsService.create(instance, {
+            enabled: true,
+            events: newEvents,
+          });
+
+          sqsEvents = (await this.sqsService.find(instance)).events;
+        } catch (error) {
+          this.logger.log(error);
+        }
+      }
+
       if (typebot_url) {
         try {
           if (!isURL(typebot_url, { require_tld: false })) {
@@ -270,7 +340,7 @@ export class InstanceController {
       const settings: wa.LocalSettings = {
         reject_call: reject_call || false,
         msg_call: msg_call || '',
-        groups_ignore: groups_ignore || false,
+        groups_ignore: groups_ignore || true,
         always_online: always_online || false,
         read_messages: read_messages || false,
         read_status: read_status || false,
@@ -310,6 +380,10 @@ export class InstanceController {
             enabled: rabbitmq_enabled,
             events: rabbitmqEvents,
           },
+          sqs: {
+            enabled: sqs_enabled,
+            events: sqsEvents,
+          },
           typebot: {
             enabled: typebot_url ? true : false,
             url: typebot_url,
@@ -322,6 +396,7 @@ export class InstanceController {
           },
           settings,
           qrcode: getQrcode,
+          proxy,
         };
 
         this.logger.verbose('instance created');
@@ -371,15 +446,8 @@ export class InstanceController {
           number,
           reopen_conversation: chatwoot_reopen_conversation || false,
           conversation_pending: chatwoot_conversation_pending || false,
+          auto_create: true,
         });
-
-        this.chatwootService.initInstanceChatwoot(
-          instance,
-          instance.instanceName.split('-cwId-')[0],
-          `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
-          qrcode,
-          number,
-        );
       } catch (error) {
         this.logger.log(error);
       }
@@ -404,6 +472,10 @@ export class InstanceController {
           enabled: rabbitmq_enabled,
           events: rabbitmqEvents,
         },
+        sqs: {
+          enabled: sqs_enabled,
+          events: sqsEvents,
+        },
         typebot: {
           enabled: typebot_url ? true : false,
           url: typebot_url,
@@ -427,6 +499,7 @@ export class InstanceController {
           name_inbox: instance.instanceName,
           webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         },
+        proxy,
       };
     } catch (error) {
       this.logger.error(error.message[0]);
@@ -553,15 +626,13 @@ export class InstanceController {
         this.logger.verbose('logging out instance: ' + instanceName);
 
         await this.logout({ instanceName });
-        delete this.waMonitor.waInstances[instanceName];
-        return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
-      } else {
-        this.logger.verbose('deleting instance: ' + instanceName);
-
-        delete this.waMonitor.waInstances[instanceName];
-        this.eventEmitter.emit('remove.instance', instanceName, 'inner');
-        return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
       }
+
+      this.logger.verbose('deleting instance: ' + instanceName);
+
+      delete this.waMonitor.waInstances[instanceName];
+      this.eventEmitter.emit('remove.instance', instanceName, 'inner');
+      return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
     } catch (error) {
       throw new BadRequestException(error.toString());
     }

@@ -1,6 +1,6 @@
 FROM node:20.7.0-alpine
 
-LABEL version="1.5.4" description="Api to control whatsapp features through http requests." 
+LABEL version="1.6.0" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
@@ -56,6 +56,12 @@ ENV RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
 
 ENV WEBSOCKET_ENABLED=false
 
+ENV SQS_ENABLED=false
+ENV SQS_ACCESS_KEY_ID=
+ENV SQS_SECRET_ACCESS_KEY=
+ENV SQS_ACCOUNT_ID=
+ENV SQS_REGION=
+
 ENV WEBHOOK_GLOBAL_URL=
 ENV WEBHOOK_GLOBAL_ENABLED=false
 
@@ -97,6 +103,8 @@ ENV CONFIG_SESSION_PHONE_NAME=Chrome
 
 ENV QRCODE_LIMIT=30
 ENV QRCODE_COLOR=#198754
+
+ENV TYPEBOT_API_VERSION=latest
 
 ENV AUTHENTICATION_TYPE=apikey
 

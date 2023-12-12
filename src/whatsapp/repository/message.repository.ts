@@ -144,4 +144,55 @@ export class MessageRepository extends Repository {
       return [];
     }
   }
+
+  public async update(data: MessageRaw[], instanceName: string, saveDb?: boolean): Promise<IInsert> {
+    try {
+      if (this.dbSettings.ENABLED && saveDb) {
+        this.logger.verbose('updating messages in db');
+
+        const messages = data.map((message) => {
+          return {
+            updateOne: {
+              filter: { 'key.id': message.key.id },
+              update: { ...message },
+            },
+          };
+        });
+
+        const { nModified } = await this.messageModel.bulkWrite(messages);
+
+        this.logger.verbose('messages updated in db: ' + nModified + ' messages');
+        return { insertCount: nModified };
+      }
+
+      this.logger.verbose('updating messages in store');
+
+      const store = this.configService.get<StoreConf>('STORE');
+
+      if (store.MESSAGES) {
+        this.logger.verbose('updating messages in store');
+        data.forEach((message) => {
+          this.writeStore({
+            path: join(this.storePath, 'messages', instanceName),
+            fileName: message.key.id,
+            data: message,
+          });
+          this.logger.verbose(
+            'messages updated in store in path: ' +
+              join(this.storePath, 'messages', instanceName) +
+              '/' +
+              message.key.id,
+          );
+        });
+
+        this.logger.verbose('messages updated in store: ' + data.length + ' messages');
+        return { insertCount: data.length };
+      }
+
+      this.logger.verbose('messages not updated');
+      return { insertCount: 0 };
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
 }

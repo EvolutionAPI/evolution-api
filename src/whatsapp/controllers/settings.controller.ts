@@ -19,6 +19,7 @@ export class SettingsController {
 
   public async findSettings(instance: InstanceDto) {
     logger.verbose('requested findSettings from ' + instance.instanceName + ' instance');
-    return this.settingsService.find(instance);
+    const settings = this.settingsService.find(instance);
+    return settings;
   }
 }

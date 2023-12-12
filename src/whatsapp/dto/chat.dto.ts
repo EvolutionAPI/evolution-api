@@ -1,4 +1,4 @@
-import { proto, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '@whiskeysockets/baileys';
+import { proto, WAPresence, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '@whiskeysockets/baileys';
 
 export class OnWhatsAppDto {
   constructor(public readonly jid: string, public readonly exists: boolean, public readonly name?: string) {}
@@ -82,4 +82,21 @@ export class DeleteMessage {
   fromMe: boolean;
   remoteJid: string;
   participant?: string;
+}
+export class Options {
+  delay?: number;
+  presence?: WAPresence;
+}
+class OptionsMessage {
+  options: Options;
+}
+export class Metadata extends OptionsMessage {
+  number: string;
+}
+
+export class SendPresenceDto extends Metadata {
+  options: {
+    presence: WAPresence;
+    delay: number;
+  };
 }

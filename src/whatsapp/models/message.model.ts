@@ -22,6 +22,7 @@ export class MessageRaw {
   source?: 'android' | 'web' | 'ios';
   source_id?: string;
   source_reply_id?: string;
+  chatwootMessageId?: string;
 }
 
 const messageSchema = new Schema<MessageRaw>({
@@ -39,7 +40,13 @@ const messageSchema = new Schema<MessageRaw>({
   source: { type: String, minlength: 3, enum: ['android', 'web', 'ios'] },
   messageTimestamp: { type: Number, required: true },
   owner: { type: String, required: true, minlength: 1 },
+  chatwootMessageId: { type: String, required: false },
 });
+
+messageSchema.index({ chatwootMessageId: 1, owner: 1 });
+messageSchema.index({ 'key.id': 1 });
+messageSchema.index({ 'key.id': 1, owner: 1 });
+messageSchema.index({ owner: 1 });
 
 export const MessageModel = dbserver?.model(MessageRaw.name, messageSchema, 'messages');
 export type IMessageModel = typeof MessageModel;
