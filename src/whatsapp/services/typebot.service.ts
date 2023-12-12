@@ -171,14 +171,20 @@ export class TypebotService {
 
       const reqData = {
         startParams: {
-          typebot: data.typebot,
+          publicId: data.typebot,
           prefilledVariables: prefilledVariables,
         },
       };
 
       try {
         const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-        const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
+        let url: string;
+        if (version === 'latest') {
+          url = `${data.url}/api/v1/typebots/${data.typebot}/startChat`;
+        } else {
+          url = `${data.url}/api/v1/sendMessage`;
+        }
+        const request = await axios.post(url, reqData);
 
         await this.sendWAMessage(
           instance,
@@ -256,7 +262,7 @@ export class TypebotService {
 
     const reqData = {
       startParams: {
-        typebot: data.typebot,
+        publicId: data.typebot,
         prefilledVariables: {
           ...data.prefilledVariables,
           remoteJid: data.remoteJid,
@@ -268,7 +274,13 @@ export class TypebotService {
 
     try {
       const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-      const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
+      let url: string;
+      if (version === 'latest') {
+        url = `${data.url}/api/v1/typebots/${data.typebot}/startChat`;
+      } else {
+        url = `${data.url}/api/v1/sendMessage`;
+      }
+      const request = await axios.post(url, reqData);
 
       if (request?.data?.sessionId) {
         data.sessions.push({
@@ -565,14 +577,24 @@ export class TypebotService {
               return;
             }
 
-            const reqData = {
-              message: content,
-              sessionId: data.sessionId,
-            };
-
             try {
               const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-              const request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
+              let urlTypebot: string;
+              let reqData: {};
+              if (version === 'latest') {
+                urlTypebot = `${data.url}/api/v1/sessions/${data.sessionId}/continueChat`;
+                reqData = {
+                  message: content,
+                };
+              } else {
+                urlTypebot = `${data.url}/api/v1/sendMessage`;
+                reqData = {
+                  message: content,
+                  sessionId: data.sessionId,
+                };
+              }
+
+              const request = await axios.post(urlTypebot, reqData);
 
               await this.sendWAMessage(
                 instance,
@@ -651,15 +673,24 @@ export class TypebotService {
             return;
           }
 
-          const reqData = {
-            message: content,
-            sessionId: data.sessionId,
-          };
-
           let request: any;
           try {
             const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-            request = await axios.post(`${data.url}/api/${version}/sendMessage`, reqData);
+            let urlTypebot: string;
+            let reqData: {};
+            if (version === 'latest') {
+              urlTypebot = `${data.url}/api/v1/sessions/${data.sessionId}/continueChat`;
+              reqData = {
+                message: content,
+              };
+            } else {
+              urlTypebot = `${data.url}/api/v1/sendMessage`;
+              reqData = {
+                message: content,
+                sessionId: data.sessionId,
+              };
+            }
+            request = await axios.post(urlTypebot, reqData);
 
             await this.sendWAMessage(
               instance,
@@ -734,13 +765,22 @@ export class TypebotService {
         return;
       }
 
-      const reqData = {
-        message: content,
-        sessionId: session.sessionId.split('-')[1],
-      };
-
       const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-      const request = await axios.post(`${url}/api/${version}/sendMessage`, reqData);
+      let urlTypebot: string;
+      let reqData: {};
+      if (version === 'latest') {
+        urlTypebot = `${url}/api/v1/sessions/${session.sessionId.split('-')[1]}/continueChat`;
+        reqData = {
+          message: content,
+        };
+      } else {
+        urlTypebot = `${url}/api/v1/sendMessage`;
+        reqData = {
+          message: content,
+          sessionId: session.sessionId.split('-')[1],
+        };
+      }
+      const request = await axios.post(urlTypebot, reqData);
 
       await this.sendWAMessage(
         instance,

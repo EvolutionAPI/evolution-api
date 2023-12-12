@@ -2,7 +2,7 @@
 
 ### Feature
 * Added AWS SQS Integration
-* Added compatibility with typebot v2
+* Added support for new typebot API
 * Added endpoint sendPresence
 * New Instance Manager
 * Added auto_create to the chatwoot set to create the inbox automatically or not
