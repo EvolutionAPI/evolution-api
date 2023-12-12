@@ -249,10 +249,6 @@ export class ChatwootService {
         inbox_id: inboxId.toString(),
       };
 
-      if (this.provider.conversation_pending) {
-        data['status'] = 'pending';
-      }
-
       const conversation = await client.conversations.create({
         accountId: this.provider.account_id,
         data,

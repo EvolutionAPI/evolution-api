@@ -25,6 +25,7 @@
 * Adjusted return from queries in mongodb
 * Added restart instance when update profile picture
 * Correction of chatwoot functioning with admin flows
+* Fixed problem that did not generate qrcode with the chatwoot_conversation_pending option enabled
 
 ### Integrations
 
