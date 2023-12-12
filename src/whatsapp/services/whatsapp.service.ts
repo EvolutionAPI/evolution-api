@@ -1777,7 +1777,7 @@ export class WAStartupService {
           this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
-          if (this.localChatwoot.enabled) {
+          if (this.localChatwoot.enabled && !received.key.id.includes('@broadcast')) {
             const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
               Events.MESSAGES_UPSERT,
               { instanceName: this.instance.name },

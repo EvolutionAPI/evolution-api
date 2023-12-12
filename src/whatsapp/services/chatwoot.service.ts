@@ -1458,6 +1458,11 @@ export class ChatwootService {
         this.logger.verbose('get conversation message');
         const bodyMessage = await this.getConversationMessage(body.message);
 
+        if (bodyMessage.includes('Por favor, classifique esta conversa, http')) {
+          this.logger.verbose('conversation is closed');
+          return;
+        }
+
         const isMedia = this.isMediaMessage(body.message);
 
         const adsMessage = this.getAdsMessage(body.message);
