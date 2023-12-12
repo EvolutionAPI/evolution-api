@@ -303,7 +303,7 @@ export class ConfigService {
         COLOR: process.env.QRCODE_COLOR || '#198754',
       },
       TYPEBOT: {
-        API_VERSION: process.env?.TYPEBOT_API_VERSION || 'v1',
+        API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'apikey',

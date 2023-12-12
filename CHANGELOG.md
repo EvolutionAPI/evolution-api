@@ -1,4 +1,10 @@
-# 1.6.0 (develop)
+# 1.6.1 (develop)
+
+### Fixed
+
+* Fixed Lid Messages
+
+# 1.6.0 (2023-12-12 17:24)
 
 ### Feature
 * Added AWS SQS Integration
@@ -13,7 +19,6 @@
 * Adjusts in proxy
 * Adjusts in start session for Typebot
 * Added mimetype field when sending media
-* Fixed lids messages
 * Ajusts in validations to messages.upsert
 * Fixed messages not received: error handling when updating contact in chatwoot
 * Fix workaround to manage param data as an array in mongodb
@@ -32,7 +37,7 @@
 ### Integrations
 
 - Chatwoot: v3.3.1
-- Typebot: v2.16.0
+- Typebot: v2.20.0
 
 # 1.5.4 (2023-10-09 20:43)
 

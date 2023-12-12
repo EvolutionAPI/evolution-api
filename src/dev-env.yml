@@ -147,7 +147,7 @@ QRCODE:
   COLOR: "#198754"
 
 TYPEBOT:
-  API_VERSION: 'latest' # old | latest
+  API_VERSION: 'old' # old | latest
 
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,
