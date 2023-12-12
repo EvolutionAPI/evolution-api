@@ -166,7 +166,7 @@ export class WAStartupService {
 
   private phoneNumber: string;
 
-  private chatwootService = new ChatwootService(waMonitor, this.configService);
+  private chatwootService = new ChatwootService(waMonitor, this.configService, this.repository);
 
   private typebotService = new TypebotService(waMonitor, this.configService);
 
@@ -1778,11 +1778,15 @@ export class WAStartupService {
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
           if (this.localChatwoot.enabled) {
-            await this.chatwootService.eventWhatsapp(
+            const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
               Events.MESSAGES_UPSERT,
               { instanceName: this.instance.name },
               messageRaw,
             );
+
+            if (chatwootSentMessage?.id) {
+              messageRaw.chatwootMessageId = chatwootSentMessage.id;
+            }
           }
 
           const typebotSessionRemoteJid = this.localTypebot.sessions?.find(

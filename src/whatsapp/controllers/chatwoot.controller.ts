@@ -5,13 +5,18 @@ import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
+import { RepositoryBroker } from '../repository/repository.manager';
 import { ChatwootService } from '../services/chatwoot.service';
 import { waMonitor } from '../whatsapp.module';
 
 const logger = new Logger('ChatwootController');
 
 export class ChatwootController {
-  constructor(private readonly chatwootService: ChatwootService, private readonly configService: ConfigService) {}
+  constructor(
+    private readonly chatwootService: ChatwootService,
+    private readonly configService: ConfigService,
+    private readonly repository: RepositoryBroker,
+  ) {}
 
   public async createChatwoot(instance: InstanceDto, data: ChatwootDto) {
     logger.verbose('requested createChatwoot from ' + instance.instanceName + ' instance');
@@ -87,7 +92,7 @@ export class ChatwootController {
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
     logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
-    const chatwootService = new ChatwootService(waMonitor, this.configService);
+    const chatwootService = new ChatwootService(waMonitor, this.configService, this.repository);
 
     return chatwootService.receiveWebhook(instance, data);
   }

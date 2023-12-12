@@ -129,9 +129,9 @@ const sqsService = new SqsService(waMonitor);
 
 export const sqsController = new SqsController(sqsService);
 
-const chatwootService = new ChatwootService(waMonitor, configService);
+const chatwootService = new ChatwootService(waMonitor, configService, repository);
 
-export const chatwootController = new ChatwootController(chatwootService, configService);
+export const chatwootController = new ChatwootController(chatwootService, configService, repository);
 
 const settingsService = new SettingsService(waMonitor);
 

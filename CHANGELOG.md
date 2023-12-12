@@ -6,6 +6,7 @@
 * Added endpoint sendPresence
 * New Instance Manager
 * Added auto_create to the chatwoot set to create the inbox automatically or not
+* Added reply, delete and message reaction in chatwoot v3.3.1
 
 ### Fixed
 
