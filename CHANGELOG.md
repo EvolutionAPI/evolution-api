@@ -27,6 +27,7 @@
 * Correction of chatwoot functioning with admin flows
 * Fixed problem that did not generate qrcode with the chatwoot_conversation_pending option enabled
 * Fixed issue where CSAT opened a new ticket when reopen_conversation was disabled
+* Fixed issue sending contact to Chatwoot via iOS
 
 ### Integrations
 

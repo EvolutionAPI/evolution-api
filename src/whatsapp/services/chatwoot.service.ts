@@ -1373,6 +1373,11 @@ export class ChatwootService {
           formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
           numberCount++;
         }
+        if (key.includes('TEL')) {
+          const phoneNumber = contactInfo[key];
+          formattedContact += `\n**number:** ${phoneNumber}`;
+          numberCount++;
+        }
       });
 
       this.logger.verbose('message content: ' + formattedContact);
@@ -1399,6 +1404,11 @@ export class ChatwootService {
           if (key.startsWith('item') && key.includes('TEL')) {
             const phoneNumber = contactInfo[key];
             formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
+            numberCount++;
+          }
+          if (key.includes('TEL')) {
+            const phoneNumber = contactInfo[key];
+            formattedContact += `\n**number:** ${phoneNumber}`;
             numberCount++;
           }
         });
@@ -1458,7 +1468,7 @@ export class ChatwootService {
         this.logger.verbose('get conversation message');
         const bodyMessage = await this.getConversationMessage(body.message);
 
-        if (bodyMessage.includes('Por favor, classifique esta conversa, http')) {
+        if (bodyMessage && bodyMessage.includes('Por favor, classifique esta conversa, http')) {
           this.logger.verbose('conversation is closed');
           return;
         }

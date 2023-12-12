@@ -1795,11 +1795,12 @@ export class WAStartupService {
 
           if ((this.localTypebot.enabled && type === 'notify') || typebotSessionRemoteJid) {
             if (!(this.localTypebot.listening_from_me === false && messageRaw.key.fromMe === true)) {
-              await this.typebotService.sendTypebot(
-                { instanceName: this.instance.name },
-                messageRaw.key.remoteJid,
-                messageRaw,
-              );
+              if (messageRaw.messageType !== 'reactionMessage')
+                await this.typebotService.sendTypebot(
+                  { instanceName: this.instance.name },
+                  messageRaw.key.remoteJid,
+                  messageRaw,
+                );
             }
           }
 
