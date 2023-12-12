@@ -7,6 +7,7 @@
 # 1.6.0 (2023-12-12 17:24)
 
 ### Feature
+
 * Added AWS SQS Integration
 * Added support for new typebot API
 * Added endpoint sendPresence
@@ -24,7 +25,6 @@
 * Fix workaround to manage param data as an array in mongodb
 * Removed await from webhook when sending a message
 * Update typebot.service.ts - element.underline change ~ for *
-* Adjusts in proxy
 * Removed api restart on receiving an error
 * Fixes in mongodb and chatwoot
 * Adjusted return from queries in mongodb
