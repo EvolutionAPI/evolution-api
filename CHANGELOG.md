@@ -26,6 +26,11 @@
 * Added restart instance when update profile picture
 * Correction of chatwoot functioning with admin flows
 
+### Integrations
+
+- Chatwoot: v3.3.1
+- Typebot: v2.16.0
+
 # 1.5.4 (2023-10-09 20:43)
 
 ### Fixed
