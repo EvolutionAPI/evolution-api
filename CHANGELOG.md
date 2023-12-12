@@ -23,6 +23,7 @@
 * Fixes in mongodb and chatwoot
 * Adjusted return from queries in mongodb
 * Added restart instance when update profile picture
+* Correction of chatwoot functioning with admin flows
 
 # 1.5.4 (2023-10-09 20:43)
 
