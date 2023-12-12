@@ -47,7 +47,7 @@ export class ChatwootController {
 
     data.name_inbox = instance.instanceName;
 
-    const result = this.chatwootService.create(instance, data);
+    const result = await this.chatwootService.create(instance, data);
 
     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 

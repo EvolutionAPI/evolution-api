@@ -52,25 +52,26 @@ export class ChatwootService {
 
   private async getProvider(instance: InstanceDto) {
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
-    try {
-      const provider = await this.waMonitor.waInstances[instance.instanceName].findChatwoot();
+    const provider = await this.waMonitor.waInstances[instance.instanceName]?.findChatwoot();
 
-      if (!provider) {
-        this.logger.warn('provider not found');
-        return null;
-      }
-
-      this.logger.verbose('provider found');
-
-      return provider;
-    } catch (error) {
-      this.logger.error('provider not found');
+    if (!provider) {
+      this.logger.warn('provider not found');
       return null;
     }
+
+    this.logger.verbose('provider found');
+
+    return provider;
+    // try {
+    // } catch (error) {
+    //   this.logger.error('provider not found');
+    //   return null;
+    // }
   }
 
   private async clientCw(instance: InstanceDto) {
     this.logger.verbose('get client to instance: ' + instance.instanceName);
+
     const provider = await this.getProvider(instance);
 
     if (!provider) {
@@ -97,17 +98,17 @@ export class ChatwootService {
     return client;
   }
 
-  public create(instance: InstanceDto, data: ChatwootDto) {
+  public async create(instance: InstanceDto, data: ChatwootDto) {
     this.logger.verbose('create chatwoot: ' + instance.instanceName);
 
-    this.waMonitor.waInstances[instance.instanceName].setChatwoot(data);
+    await this.waMonitor.waInstances[instance.instanceName].setChatwoot(data);
 
     this.logger.verbose('chatwoot created');
 
     if (data.auto_create) {
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
-      this.initInstanceChatwoot(
+      await this.initInstanceChatwoot(
         instance,
         instance.instanceName.split('-cwId-')[0],
         `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
@@ -1002,7 +1003,7 @@ export class ChatwootService {
           if (state !== 'open') {
             if (state === 'close') {
               this.logger.verbose('request cleaning up instance: ' + instance.instanceName);
-              await this.waMonitor.cleaningUp(instance.instanceName);
+              // await this.waMonitor.cleaningUp(instance.instanceName);
             }
             this.logger.verbose('connect to whatsapp');
             const number = command.split(':')[1];

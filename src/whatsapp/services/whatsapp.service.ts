@@ -211,6 +211,7 @@ export class WAStartupService {
 
   public async getProfileName() {
     this.logger.verbose('Getting profile name');
+
     let profileName = this.client.user?.name ?? this.client.user?.verifiedName;
     if (!profileName) {
       this.logger.verbose('Profile name not found, trying to get from database');
@@ -3311,7 +3312,16 @@ export class WAStartupService {
 
   public async fetchPrivacySettings() {
     this.logger.verbose('Fetching privacy settings');
-    return await this.client.fetchPrivacySettings();
+    const privacy = await this.client.fetchPrivacySettings();
+
+    return {
+      readreceipts: privacy.readreceipts,
+      profile: privacy.profile,
+      status: privacy.status,
+      online: privacy.online,
+      last: privacy.last,
+      groupadd: privacy.groupadd,
+    };
   }
 
   public async updatePrivacySettings(settings: PrivacySettingDto) {
@@ -3427,7 +3437,7 @@ export class WAStartupService {
       await this.client.updateProfilePicture(this.instance.wuid, pic);
       this.logger.verbose('Profile picture updated');
 
-      await this.reloadConnection();
+      this.reloadConnection();
 
       return { update: 'success' };
     } catch (error) {
