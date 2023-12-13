@@ -15,7 +15,8 @@ async function migrate(instanceName) {
     const collection = database.collection(instanceName);
 
     // Directory where JSON files are stored
-    const directoryPath = `./instances/${instanceName}`;
+    // run this script in the same directory as this script
+    const directoryPath = `../../instances/${instanceName}`;
 
     // Reading the creds JSON file
     const instanceFile = path.join(directoryPath, "creds.json")
@@ -53,5 +54,12 @@ async function migrate(instanceName) {
   }
 }
 
-const instanceName = "my-instance"
-migrate(instanceName).catch(console.dir);
+const directoryPath = '../../instances';
+const allContents = fs.readdirSync(directoryPath)
+const instances = allContents.filter(item => {
+  const itemPath = path.join(directoryPath, item);
+  return fs.statSync(itemPath).isDirectory();
+});
+
+instances.forEach(async instanceName => await migrate(instanceName));
+
