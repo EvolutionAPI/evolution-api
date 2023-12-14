@@ -1005,6 +1005,10 @@ export class WAStartupService {
       }
     }
 
+    console.log('webhookGlobal.GLOBAL?.ENABLED', webhookGlobal.GLOBAL?.ENABLED);
+    console.log('webhookGlobal.EVENTS[we]', webhookGlobal.EVENTS[we]);
+    console.log('we', we);
+
     if (webhookGlobal.GLOBAL?.ENABLED) {
       if (webhookGlobal.EVENTS[we]) {
         this.logger.verbose('Sending data to webhook global');

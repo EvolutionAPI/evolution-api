@@ -14,6 +14,8 @@ COPY ./package.json .
 ENV TZ=America/Sao_Paulo
 ENV DOCKER_ENV=true
 
+ENV SERVER_TYPE=http
+ENV SERVER_PORT=8080
 ENV SERVER_URL=http://localhost:8080
 
 ENV CORS_ORIGIN=*
