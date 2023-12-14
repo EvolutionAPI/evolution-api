@@ -41,7 +41,8 @@ router
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
       version: packageJson.version,
-      documentation: `${req.protocol}://${req.get('host')}/docs`,
+      swagger: `${req.protocol}://${req.get('host')}/docs`,
+      documentation: `https://doc.evolution-api.com`,
       manager: `${req.protocol}://${req.get('host')}/manager`,
     });
   })

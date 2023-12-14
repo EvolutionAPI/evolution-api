@@ -3,6 +3,8 @@
 ### Fixed
 
 * Fixed Lid Messages
+* Fixed sending variables to typebot
+* Fixed sending variables from typebot
 
 # 1.6.0 (2023-12-12 17:24)
 

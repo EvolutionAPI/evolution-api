@@ -1,4 +1,5 @@
 import axios from 'axios';
+import EventEmitter2 from 'eventemitter2';
 
 import { ConfigService, Typebot } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
@@ -9,7 +10,15 @@ import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class TypebotService {
-  constructor(private readonly waMonitor: WAMonitoringService, private readonly configService: ConfigService) {}
+  constructor(
+    private readonly waMonitor: WAMonitoringService,
+    private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {
+    this.eventEmitter.on('typebot:end', async (data) => {
+      await this.clearSessions(data.instance, data.remoteJid);
+    });
+  }
 
   private readonly logger = new Logger(TypebotService.name);
 
@@ -110,6 +119,37 @@ export class TypebotService {
     return { typebot: { ...instance, typebot: typebotData } };
   }
 
+  public async clearSessions(instance: InstanceDto, remoteJid: string) {
+    const findTypebot = await this.find(instance);
+    const sessions = (findTypebot.sessions as Session[]) ?? [];
+
+    const sessionWithRemoteJid = sessions.filter((session) => session.remoteJid === remoteJid);
+
+    if (sessionWithRemoteJid.length > 0) {
+      sessionWithRemoteJid.forEach((session) => {
+        sessions.splice(sessions.indexOf(session), 1);
+      });
+
+      const typebotData = {
+        enabled: findTypebot.enabled,
+        url: findTypebot.url,
+        typebot: findTypebot.typebot,
+        expire: findTypebot.expire,
+        keyword_finish: findTypebot.keyword_finish,
+        delay_message: findTypebot.delay_message,
+        unknown_message: findTypebot.unknown_message,
+        listening_from_me: findTypebot.listening_from_me,
+        sessions,
+      };
+
+      this.create(instance, typebotData);
+
+      return sessions;
+    }
+
+    return sessions;
+  }
+
   public async startTypebot(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
 
@@ -169,20 +209,25 @@ export class TypebotService {
     } else {
       const id = Math.floor(Math.random() * 10000000000).toString();
 
-      const reqData = {
-        startParams: {
-          publicId: data.typebot,
-          prefilledVariables: prefilledVariables,
-        },
-      };
-
       try {
         const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
         let url: string;
+        let reqData: {};
         if (version === 'latest') {
           url = `${data.url}/api/v1/typebots/${data.typebot}/startChat`;
+
+          reqData = {
+            prefilledVariables: prefilledVariables,
+          };
         } else {
           url = `${data.url}/api/v1/sendMessage`;
+
+          reqData = {
+            startParams: {
+              publicId: data.typebot,
+              prefilledVariables: prefilledVariables,
+            },
+          };
         }
         const request = await axios.post(url, reqData);
 
@@ -260,25 +305,35 @@ export class TypebotService {
     if (data.remoteJid === 'status@broadcast') return;
     const id = Math.floor(Math.random() * 10000000000).toString();
 
-    const reqData = {
-      startParams: {
-        publicId: data.typebot,
-        prefilledVariables: {
-          ...data.prefilledVariables,
-          remoteJid: data.remoteJid,
-          pushName: data.pushName || data.prefilledVariables?.pushName || '',
-          instanceName: instance.instanceName,
-        },
-      },
-    };
-
     try {
       const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
       let url: string;
+      let reqData: {};
       if (version === 'latest') {
         url = `${data.url}/api/v1/typebots/${data.typebot}/startChat`;
+
+        reqData = {
+          prefilledVariables: {
+            ...data.prefilledVariables,
+            remoteJid: data.remoteJid,
+            pushName: data.pushName || data.prefilledVariables?.pushName || '',
+            instanceName: instance.instanceName,
+          },
+        };
       } else {
         url = `${data.url}/api/v1/sendMessage`;
+
+        reqData = {
+          startParams: {
+            publicId: data.typebot,
+            prefilledVariables: {
+              ...data.prefilledVariables,
+              remoteJid: data.remoteJid,
+              pushName: data.pushName || data.prefilledVariables?.pushName || '',
+              instanceName: instance.instanceName,
+            },
+          },
+        };
       }
       const request = await axios.post(url, reqData);
 
@@ -318,37 +373,6 @@ export class TypebotService {
     }
   }
 
-  public async clearSessions(instance: InstanceDto, remoteJid: string) {
-    const findTypebot = await this.find(instance);
-    const sessions = (findTypebot.sessions as Session[]) ?? [];
-
-    const sessionWithRemoteJid = sessions.filter((session) => session.remoteJid === remoteJid);
-
-    if (sessionWithRemoteJid.length > 0) {
-      sessionWithRemoteJid.forEach((session) => {
-        sessions.splice(sessions.indexOf(session), 1);
-      });
-
-      const typebotData = {
-        enabled: findTypebot.enabled,
-        url: findTypebot.url,
-        typebot: findTypebot.typebot,
-        expire: findTypebot.expire,
-        keyword_finish: findTypebot.keyword_finish,
-        delay_message: findTypebot.delay_message,
-        unknown_message: findTypebot.unknown_message,
-        listening_from_me: findTypebot.listening_from_me,
-        sessions,
-      };
-
-      this.create(instance, typebotData);
-
-      return sessions;
-    }
-
-    return sessions;
-  }
-
   public async sendWAMessage(
     instance: InstanceDto,
     remoteJid: string,
@@ -356,11 +380,15 @@ export class TypebotService {
     input: any[],
     clientSideActions: any[],
   ) {
-    processMessages(this.waMonitor.waInstances[instance.instanceName], messages, input, clientSideActions).catch(
-      (err) => {
-        console.error('Erro ao processar mensagens:', err);
-      },
-    );
+    processMessages(
+      this.waMonitor.waInstances[instance.instanceName],
+      messages,
+      input,
+      clientSideActions,
+      this.eventEmitter,
+    ).catch((err) => {
+      console.error('Erro ao processar mensagens:', err);
+    });
 
     function findItemAndGetSecondsToWait(array, targetId) {
       if (!array) return null;
@@ -373,7 +401,7 @@ export class TypebotService {
       return null;
     }
 
-    async function processMessages(instance, messages, input, clientSideActions) {
+    async function processMessages(instance, messages, input, clientSideActions, eventEmitter) {
       for (const message of messages) {
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
 
@@ -383,31 +411,50 @@ export class TypebotService {
           let linkPreview = false;
 
           for (const richText of message.content.richText) {
-            for (const element of richText.children) {
-              let text = '';
-              if (element.text) {
-                text = element.text;
+            if (richText.type === 'variable') {
+              for (const child of richText.children) {
+                for (const grandChild of child.children) {
+                  formattedText += grandChild.text;
+                }
               }
+            } else {
+              for (const element of richText.children) {
+                let text = '';
 
-              if (element.bold) {
-                text = `*${text}*`;
+                if (element.type === 'inline-variable') {
+                  for (const child of element.children) {
+                    for (const grandChild of child.children) {
+                      text += grandChild.text;
+                    }
+                  }
+                } else if (element.text) {
+                  text = element.text;
+                }
+
+                // if (element.text) {
+                //   text = element.text;
+                // }
+
+                if (element.bold) {
+                  text = `*${text}*`;
+                }
+
+                if (element.italic) {
+                  text = `_${text}_`;
+                }
+
+                if (element.underline) {
+                  text = `*${text}*`;
+                }
+
+                if (element.url) {
+                  const linkText = element.children[0].text;
+                  text = `[${linkText}](${element.url})`;
+                  linkPreview = true;
+                }
+
+                formattedText += text;
               }
-
-              if (element.italic) {
-                text = `_${text}_`;
-              }
-
-              if (element.underline) {
-                text = `*${text}*`;
-              }
-
-              if (element.url) {
-                const linkText = element.children[0].text;
-                text = `[${linkText}](${element.url})`;
-                linkPreview = true;
-              }
-
-              formattedText += text;
             }
             formattedText += '\n';
           }
@@ -494,6 +541,11 @@ export class TypebotService {
             },
           });
         }
+      } else {
+        eventEmitter.emit('typebot:end', {
+          instance: instance,
+          remoteJid: remoteJid,
+        });
       }
     }
   }
