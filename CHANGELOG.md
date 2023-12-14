@@ -5,6 +5,7 @@
 * Fixed Lid Messages
 * Fixed sending variables to typebot
 * Fixed sending variables from typebot
+* Correction sending s3/minio media to chatwoot and typebot
 
 # 1.6.0 (2023-12-12 17:24)
 

@@ -2689,7 +2689,9 @@ export class WAStartupService {
         mimetype = mediaMessage.mimetype;
       } else {
         if (isURL(mediaMessage.media)) {
-          mimetype = getMIMEType(mediaMessage.media);
+          const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
+
+          mimetype = response.headers['content-type'];
         } else {
           mimetype = getMIMEType(mediaMessage.fileName);
         }

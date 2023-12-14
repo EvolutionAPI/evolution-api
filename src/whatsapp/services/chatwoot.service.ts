@@ -920,7 +920,11 @@ export class ChatwootService {
       const fileName = decodeURIComponent(parts[parts.length - 1]);
       this.logger.verbose('file name: ' + fileName);
 
-      const mimeType = mimeTypes.lookup(fileName).toString();
+      const response = await axios.get(media, {
+        responseType: 'arraybuffer',
+      });
+
+      const mimeType = response.headers['content-type'];
       this.logger.verbose('mime type: ' + mimeType);
 
       let type = 'document';
