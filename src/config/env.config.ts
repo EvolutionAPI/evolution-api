@@ -80,6 +80,8 @@ export type Websocket = {
 
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
+  INSTANCE_CREATE: boolean;
+  INSTANCE_DELETE: boolean;
   QRCODE_UPDATED: boolean;
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
@@ -267,6 +269,8 @@ export class ConfigService {
         },
         EVENTS: {
           APPLICATION_STARTUP: process.env?.WEBHOOK_EVENTS_APPLICATION_STARTUP === 'true',
+          INSTANCE_CREATE: process.env?.WEBHOOK_EVENTS_INSTANCE_CREATE === 'false',
+          INSTANCE_DELETE: process.env?.WEBHOOK_EVENTS_INSTANCE_DELETE === 'false',
           QRCODE_UPDATED: process.env?.WEBHOOK_EVENTS_QRCODE_UPDATED === 'true',
           MESSAGES_SET: process.env?.WEBHOOK_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.WEBHOOK_EVENTS_MESSAGES_UPSERT === 'true',
