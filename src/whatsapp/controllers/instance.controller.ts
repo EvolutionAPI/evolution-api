@@ -19,7 +19,7 @@ import { TypebotService } from '../services/typebot.service';
 import { WebhookService } from '../services/webhook.service';
 import { WebsocketService } from '../services/websocket.service';
 import { WAStartupService } from '../services/whatsapp.service';
-import { wa } from '../types/wa.types';
+import { Events, wa } from '../types/wa.types';
 
 export class InstanceController {
   constructor(
@@ -86,6 +86,10 @@ export class InstanceController {
       this.logger.verbose('creating instance');
       const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
       instance.instanceName = instanceName;
+
+      instance.sendDataWebhook(Events.INSTANCE_CREATE, {
+        instanceName,
+      });
 
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
 
