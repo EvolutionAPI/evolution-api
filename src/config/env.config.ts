@@ -181,7 +181,7 @@ export class ConfigService {
   private envProcess(): Env {
     return {
       SERVER: {
-        TYPE: process.env.SERVER_TYPE as 'http' | 'https',
+        TYPE: (process.env.SERVER_TYPE as 'http' | 'https') || 'http',
         PORT: Number.parseInt(process.env.SERVER_PORT) || 8080,
         URL: process.env.SERVER_URL,
       },
