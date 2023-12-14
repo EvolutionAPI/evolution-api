@@ -634,6 +634,9 @@ export class InstanceController {
 
       this.logger.verbose('deleting instance: ' + instanceName);
 
+      this.waMonitor.waInstances[instanceName].sendDataWebhook(Events.INSTANCE_DELETE, {
+        instanceName,
+      });
       delete this.waMonitor.waInstances[instanceName];
       this.eventEmitter.emit('remove.instance', instanceName, 'inner');
       return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
