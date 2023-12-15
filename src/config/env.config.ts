@@ -130,7 +130,7 @@ export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
 export type QrCode = { LIMIT: number; COLOR: string };
-export type Typebot = { API_VERSION: string };
+export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
 export type Production = boolean;
 
 export interface Env {
@@ -308,6 +308,7 @@ export class ConfigService {
       },
       TYPEBOT: {
         API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
+        KEEP_OPEN: process.env.TYPEBOT_KEEP_OPEN === 'true',
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'apikey',

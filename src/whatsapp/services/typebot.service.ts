@@ -16,6 +16,9 @@ export class TypebotService {
     private readonly eventEmitter: EventEmitter2,
   ) {
     this.eventEmitter.on('typebot:end', async (data) => {
+      const keep_open = this.configService.get<Typebot>('TYPEBOT').KEEP_OPEN;
+      if (keep_open) return;
+
       await this.clearSessions(data.instance, data.remoteJid);
     });
   }

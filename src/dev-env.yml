@@ -148,6 +148,7 @@ QRCODE:
 
 TYPEBOT:
   API_VERSION: 'old' # old | latest
+  KEEP_OPEN: false
 
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,
