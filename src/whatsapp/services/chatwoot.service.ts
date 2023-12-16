@@ -1121,7 +1121,13 @@ export class ChatwootService {
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
-          formatText = this.provider.sign_msg ? `*${senderName}:*\n${messageReceived}` : messageReceived;
+          const formattedDelimiter = this.provider.sign_delimiter
+            ? this.provider.sign_delimiter.replaceAll('\\n', '\n')
+            : '\n';
+          const textToConcat = this.provider.sign_msg ? [`*${senderName}:*`] : [];
+          textToConcat.push(messageReceived);
+
+          formatText = textToConcat.join(formattedDelimiter);
         }
 
         for (const message of body.conversation.messages) {
