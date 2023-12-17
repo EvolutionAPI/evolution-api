@@ -357,10 +357,12 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot url: ${data.url}`);
     this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
     this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
+    this.logger.verbose(`Chatwoot sign delimiter: ${data.sign_delimiter}`);
     this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
     this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
 
-    Object.assign(this.localChatwoot, data);
+    Object.assign(this.localChatwoot, { ...data, sign_delimiter: data.sign_msg ? data.sign_delimiter : null });
+
     this.logger.verbose('Chatwoot set');
   }
 
@@ -378,6 +380,7 @@ export class WAStartupService {
     this.logger.verbose(`Chatwoot url: ${data.url}`);
     this.logger.verbose(`Chatwoot inbox name: ${data.name_inbox}`);
     this.logger.verbose(`Chatwoot sign msg: ${data.sign_msg}`);
+    this.logger.verbose(`Chatwoot sign delimiter: ${data.sign_delimiter}`);
     this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
     this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
 
@@ -388,6 +391,7 @@ export class WAStartupService {
       url: data.url,
       name_inbox: data.name_inbox,
       sign_msg: data.sign_msg,
+      sign_delimiter: data.sign_delimiter || null,
       reopen_conversation: data.reopen_conversation,
       conversation_pending: data.conversation_pending,
     };
