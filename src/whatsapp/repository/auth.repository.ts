@@ -19,6 +19,7 @@ export class AuthRepository extends Repository {
   public async create(data: AuthRaw, instance: string): Promise<IInsert> {
     try {
       this.logger.verbose('creating auth');
+
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('saving auth to db');
         const insert = await this.authModel.replaceOne({ _id: instance }, { ...data }, { upsert: true });

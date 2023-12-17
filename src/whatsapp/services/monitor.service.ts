@@ -112,6 +112,7 @@ export class WAMonitoringService {
           const instanceData = {
             instance: {
               instanceName: key,
+              instanceId: (await this.repository.auth.find(key))?.instanceId,
               owner: value.wuid,
               profileName: (await value.getProfileName()) || 'not loaded',
               profilePictureUrl: value.profilePictureUrl,
@@ -135,6 +136,7 @@ export class WAMonitoringService {
           const instanceData = {
             instance: {
               instanceName: key,
+              instanceId: (await this.repository.auth.find(key))?.instanceId,
               status: value.connectionStatus.state,
             },
           };
