@@ -5,7 +5,6 @@ import { Auth, ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { AUTH_DIR } from '../../config/path.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
-import { InstanceDto } from '../dto/instance.dto';
 import { AuthRaw, IAuthModel } from '../models';
 
 export class AuthRepository extends Repository {
@@ -65,7 +64,7 @@ export class AuthRepository extends Repository {
     }
   }
 
-  public async findInstanceNameById(instanceId: string): Promise<string> {
+  public async findInstanceNameById(instanceId: string): Promise<string | null> {
     try {
       this.logger.verbose('finding auth by instanceId');
       if (this.dbSettings.ENABLED) {
@@ -77,7 +76,7 @@ export class AuthRepository extends Repository {
 
       this.logger.verbose('finding auth in store is not supported');
     } catch (error) {
-      return '';
+      return null;
     }
   }
 }

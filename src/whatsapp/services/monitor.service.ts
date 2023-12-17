@@ -162,6 +162,10 @@ export class WAMonitoringService {
   public async instanceInfoById(instanceId?: string) {
     this.logger.verbose('get instance info');
     const instanceName = await this.repository.auth.findInstanceNameById(instanceId);
+    if (!instanceName) {
+      throw new NotFoundException(`Instance "${instanceId}" not found`);
+    }
+
     if (instanceName && !this.waInstances[instanceName]) {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
