@@ -19,6 +19,7 @@ export class AuthRepository extends Repository {
   public async create(data: AuthRaw, instance: string): Promise<IInsert> {
     try {
       this.logger.verbose('creating auth');
+
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('saving auth to db');
         const insert = await this.authModel.replaceOne({ _id: instance }, { ...data }, { upsert: true });
@@ -60,6 +61,22 @@ export class AuthRepository extends Repository {
       ) as AuthRaw;
     } catch (error) {
       return {};
+    }
+  }
+
+  public async findInstanceNameById(instanceId: string): Promise<string | null> {
+    try {
+      this.logger.verbose('finding auth by instanceId');
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('finding auth in db');
+        const response = await this.authModel.findOne({ instanceId });
+
+        return response._id;
+      }
+
+      this.logger.verbose('finding auth in store is not supported');
+    } catch (error) {
+      return null;
     }
   }
 }

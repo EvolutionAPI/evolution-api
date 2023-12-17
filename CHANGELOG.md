@@ -1,17 +1,16 @@
 # 1.6.1 (develop)
 
-### Feature
-
-* New env `TYPEBOT_KEEP_OPEN` to keep the session open after the end of the flow
-* Add `sign_delimiter` to chatwoot set to change the delimiter of the signature
-
 ### Fixed
 
 * Fixed Lid Messages
 * Fixed sending variables to typebot
 * Fixed sending variables from typebot
 * Correction sending s3/minio media to chatwoot and typebot
-* Fixed message formatting in chatwoot (bold, italic, underline, monospace)
+* Fixed the problem with typebot closing at the end of the flow, now this is optional with the TYPEBOT_KEEP_OPEN variable
+* Fixed chatwoot Bold, Italic and Underline formatting using Regex
+* Added the sign_delimiter property to the Chatwoot configuration, allowing you to set a different delimiter for the signature. Default when not defined \n
+* Include instance Id field in the instance configuration
+
 
 # 1.6.0 (2023-12-12 17:24)
 

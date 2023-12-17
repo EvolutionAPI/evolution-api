@@ -46,7 +46,10 @@ export class AuthService {
 
     this.logger.verbose('JWT token created: ' + token);
 
-    const auth = await this.repository.auth.create({ jwt: token }, instance.instanceName);
+    const auth = await this.repository.auth.create(
+      { jwt: token, instanceId: instance.instanceId },
+      instance.instanceName,
+    );
 
     this.logger.verbose('JWT token saved in database');
 
@@ -66,7 +69,7 @@ export class AuthService {
 
     this.logger.verbose(token ? 'APIKEY defined: ' + apikey : 'APIKEY created: ' + apikey);
 
-    const auth = await this.repository.auth.create({ apikey }, instance.instanceName);
+    const auth = await this.repository.auth.create({ apikey, instanceId: instance.instanceId }, instance.instanceName);
 
     this.logger.verbose('APIKEY saved in database');
 

@@ -1,6 +1,7 @@
 import { delay } from '@whiskeysockets/baileys';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
+import { v4 } from 'uuid';
 
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
@@ -87,8 +88,11 @@ export class InstanceController {
       const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
       instance.instanceName = instanceName;
 
+      const instanceId = v4();
+
       instance.sendDataWebhook(Events.INSTANCE_CREATE, {
         instanceName,
+        instanceId: instanceId,
       });
 
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
@@ -100,6 +104,7 @@ export class InstanceController {
       const hash = await this.authService.generateHash(
         {
           instanceName: instance.instanceName,
+          instanceId: instanceId,
         },
         token,
       );
@@ -367,6 +372,7 @@ export class InstanceController {
         const result = {
           instance: {
             instanceName: instance.instanceName,
+            instanceId: instanceId,
             status: 'created',
           },
           hash,
@@ -459,6 +465,7 @@ export class InstanceController {
       return {
         instance: {
           instanceName: instance.instanceName,
+          instanceId: instanceId,
           status: 'created',
         },
         hash,
@@ -584,11 +591,13 @@ export class InstanceController {
     };
   }
 
-  public async fetchInstances({ instanceName }: InstanceDto) {
+  public async fetchInstances({ instanceName, instanceId }: InstanceDto) {
     if (instanceName) {
       this.logger.verbose('requested fetchInstances from ' + instanceName + ' instance');
       this.logger.verbose('instanceName: ' + instanceName);
       return this.waMonitor.instanceInfo(instanceName);
+    } else if (instanceId) {
+      return this.waMonitor.instanceInfoById(instanceId);
     }
 
     this.logger.verbose('requested fetchInstances (all instances)');
@@ -636,6 +645,7 @@ export class InstanceController {
 
       this.waMonitor.waInstances[instanceName].sendDataWebhook(Events.INSTANCE_DELETE, {
         instanceName,
+        instanceId: (await this.repository.auth.find(instanceName))?.instanceId,
       });
       delete this.waMonitor.waInstances[instanceName];
       this.eventEmitter.emit('remove.instance', instanceName, 'inner');
