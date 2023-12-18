@@ -1383,7 +1383,7 @@ export class WAStartupService {
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
-        browser: ['Chrome (Linux)', '', ''],
+        browser: ['Chrome (Linux)', session.NAME, release()],
         version,
         markOnlineOnConnect: this.localSettings.always_online,
         retryRequestDelayMs: 10,
@@ -1449,7 +1449,7 @@ export class WAStartupService {
       this.instance.authState = await this.defineAuthState();
 
       const { version } = await fetchLatestBaileysVersion();
-      // const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       // const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
       let options;
@@ -1470,7 +1470,7 @@ export class WAStartupService {
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
-        browser: ['Chrome (Linux)', '', ''],
+        browser: ['Chrome (Linux)', session.NAME, release()],
         version,
         markOnlineOnConnect: this.localSettings.always_online,
         retryRequestDelayMs: 10,
