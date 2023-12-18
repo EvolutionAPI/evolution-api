@@ -637,12 +637,12 @@ export class TypebotService {
               let urlTypebot: string;
               let reqData: {};
               if (version === 'latest') {
-                urlTypebot = `${data.url}/api/v1/sessions/${data.sessionId}/continueChat`;
+                urlTypebot = `${url}/api/v1/sessions/${data.sessionId}/continueChat`;
                 reqData = {
                   message: content,
                 };
               } else {
-                urlTypebot = `${data.url}/api/v1/sendMessage`;
+                urlTypebot = `${url}/api/v1/sendMessage`;
                 reqData = {
                   message: content,
                   sessionId: data.sessionId,
@@ -734,12 +734,12 @@ export class TypebotService {
             let urlTypebot: string;
             let reqData: {};
             if (version === 'latest') {
-              urlTypebot = `${data.url}/api/v1/sessions/${data.sessionId}/continueChat`;
+              urlTypebot = `${url}/api/v1/sessions/${data.sessionId}/continueChat`;
               reqData = {
                 message: content,
               };
             } else {
-              urlTypebot = `${data.url}/api/v1/sendMessage`;
+              urlTypebot = `${url}/api/v1/sendMessage`;
               reqData = {
                 message: content,
                 sessionId: data.sessionId,
