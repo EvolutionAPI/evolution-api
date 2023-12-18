@@ -11,6 +11,7 @@
 * Added the sign_delimiter property to the Chatwoot configuration, allowing you to set a different delimiter for the signature. Default when not defined \n
 * Include instance Id field in the instance configuration
 
+
 # 1.6.0 (2023-12-12 17:24)
 
 ### Feature
@@ -43,8 +44,8 @@
 
 ### Integrations
 
-- Chatwoot: v3.3.1
-- Typebot: v2.20.0
+* Chatwoot: v3.3.1
+* Typebot: v2.20.0
 
 # 1.5.4 (2023-10-09 20:43)
 
@@ -123,9 +124,9 @@
 
 ### Integrations
 
-- Chatwoot: v2.18.0 - v3.0.0
-- Typebot: v2.16.0
-- Manager Evolution API
+* Chatwoot: v2.18.0 - v3.0.0
+* Typebot: v2.16.0
+* Manager Evolution API
 
 # 1.4.8 (2023-07-27 10:27)
 
@@ -178,7 +179,7 @@
 
 ### Fixed
 
-* Fixed validation is set settings 
+* Fixed validation is set settings
 * Adjusts in group validations
 * Ajusts in sticker message to chatwoot
 
@@ -213,7 +214,7 @@
 
 ### Integrations
 
-- Chatwoot: v2.18.0 - v3.0.0 (Beta)
+* Chatwoot: v2.18.0 - v3.0.0 (Beta)
 
 # 1.3.2 (2023-07-21 17:19)
 
@@ -229,7 +230,7 @@
 
 ### Integrations
 
-- Chatwoot: v2.18.0
+* Chatwoot: v2.18.0
 
 # 1.3.1 (2023-07-20 07:48)
 
@@ -239,7 +240,7 @@
 
 ### Integrations
 
-- Chatwoot: v2.18.0
+* Chatwoot: v2.18.0
 
 # 1.3.0 (2023-07-19 11:33)
 
@@ -255,7 +256,7 @@
 * Translation set to default (english) in chatwoot
 
 ### Fixed
- 
+
 * Fixed error to send message in large groups
 * Docker files adjusted
 * Fixed in the postman collection the webhookByEvent parameter by webhook_by_events
@@ -276,7 +277,7 @@
 
 ### Integrations
 
-- Chatwoot: v2.18.0
+* Chatwoot: v2.18.0
 
 # 1.2.2 (2023-07-15 09:36)
 
@@ -287,7 +288,7 @@
 
 ### Integrations
 
-- Chatwoot: v2.18.0
+* Chatwoot: v2.18.0
 
 # 1.2.1 (2023-07-14 19:04)
 
