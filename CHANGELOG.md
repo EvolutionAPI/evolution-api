@@ -10,6 +10,7 @@
 * Fixed chatwoot Bold, Italic and Underline formatting using Regex
 * Added the sign_delimiter property to the Chatwoot configuration, allowing you to set a different delimiter for the signature. Default when not defined \n
 * Include instance Id field in the instance configuration
+* Fixed the pairing code
 
 
 # 1.6.0 (2023-12-12 17:24)
