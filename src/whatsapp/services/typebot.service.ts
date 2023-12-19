@@ -412,12 +412,15 @@ export class TypebotService {
           let formattedText = '';
 
           let linkPreview = false;
-
           for (const richText of message.content.richText) {
             if (richText.type === 'variable') {
               for (const child of richText.children) {
                 for (const grandChild of child.children) {
-                  formattedText += grandChild.text;
+                  if (grandChild.text.startsWith('[') && grandChild.text.endsWith(']')) {
+                    formattedText += JSON.parse(grandChild.text).slice(-1)[0];
+                  } else {
+                    formattedText += grandChild.text;
+                  }
                 }
               }
             } else {
