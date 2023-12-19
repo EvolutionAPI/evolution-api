@@ -1021,10 +1021,12 @@ export class ChatwootService {
         body.conversation.meta.sender?.phone_number?.replace('+', '') || body.conversation.meta.sender?.identifier;
       // Chatwoot to Whatsapp
       const messageReceived = body.content
-        .replaceAll(/(?<!\*)\*((?!\s)([^\n*]+?)(?<!\s))\*(?!\*)/g, '_$1_') // Substitui * por _
-        .replaceAll(/\*{2}((?!\s)([^\n*]+?)(?<!\s))\*{2}/g, '*$1*') // Substitui ** por *
-        .replaceAll(/~{2}((?!\s)([^\n*]+?)(?<!\s))~{2}/g, '~$1~') // Substitui ~~ por ~
-        .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```'); // Substitui ` por ```
+        ? body.content
+            .replaceAll(/(?<!\*)\*((?!\s)([^\n*]+?)(?<!\s))\*(?!\*)/g, '_$1_') // Substitui * por _
+            .replaceAll(/\*{2}((?!\s)([^\n*]+?)(?<!\s))\*{2}/g, '*$1*') // Substitui ** por *
+            .replaceAll(/~{2}((?!\s)([^\n*]+?)(?<!\s))~{2}/g, '~$1~') // Substitui ~~ por ~
+            .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
+        : body.content;
 
       const senderName = body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
@@ -1484,10 +1486,13 @@ export class ChatwootService {
         this.logger.verbose('get conversation message');
 
         // Whatsapp to Chatwoot
-        const bodyMessage = await this.getConversationMessage(body.message)
-          .replaceAll(/\*((?!\s)([^\n*]+?)(?<!\s))\*/g, '**$1**')
-          .replaceAll(/_((?!\s)([^\n_]+?)(?<!\s))_/g, '*$1*')
-          .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~');
+        const originalMessage = await this.getConversationMessage(body.message);
+        const bodyMessage = originalMessage
+          ? originalMessage
+              .replaceAll(/\*((?!\s)([^\n*]+?)(?<!\s))\*/g, '**$1**')
+              .replaceAll(/_((?!\s)([^\n_]+?)(?<!\s))_/g, '*$1*')
+              .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~')
+          : originalMessage;
 
         this.logger.verbose('body message: ' + bodyMessage);
 
