@@ -1233,10 +1233,14 @@ export class WAStartupService {
       this.logger.verbose('Connection opened');
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       this.instance.profilePictureUrl = (await this.profilePicture(this.instance.wuid)).profilePictureUrl;
+      const formattedWuid = this.instance.wuid.split('@')[0].padEnd(30, ' ');
+      const formattedName = this.instance.name.split('@')[0].padEnd(30, ' ');
       this.logger.info(
         `
         ┌──────────────────────────────┐
         │    CONNECTED TO WHATSAPP     │
+        │${formattedWuid}│
+        │${formattedName}│
         └──────────────────────────────┘`.replace(/^ +/gm, '  '),
       );
 
