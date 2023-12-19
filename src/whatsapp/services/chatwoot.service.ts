@@ -1204,9 +1204,10 @@ export class ChatwootService {
   }
 
   private updateChatwootMessageId(message: MessageRaw, chatwootMessageId: string, instance: InstanceDto) {
-    if (!chatwootMessageId) {
+    if (!chatwootMessageId || !message?.key?.id) {
       return;
     }
+
     message.chatwootMessageId = chatwootMessageId;
     this.repository.message.update([message], instance.instanceName, true);
   }
