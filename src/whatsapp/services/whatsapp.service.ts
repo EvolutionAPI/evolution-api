@@ -133,6 +133,9 @@ import { waMonitor } from '../whatsapp.module';
 import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
 import { TypebotService } from './typebot.service';
+
+const retryCache = {};
+
 export class WAStartupService {
   constructor(
     private readonly configService: ConfigService,
@@ -2038,12 +2041,27 @@ export class WAStartupService {
         if (events['messages.upsert']) {
           this.logger.verbose('Listening event: messages.upsert');
           const payload = events['messages.upsert'];
+          if (payload.messages.find(a => a?.messageStubType === 2)) {
+            const msg = payload.messages[0];
+            retryCache[msg.key.id] = msg;
+            return;
+          }
           this.messageHandle['messages.upsert'](payload, database, settings);
         }
 
         if (events['messages.update']) {
           this.logger.verbose('Listening event: messages.update');
           const payload = events['messages.update'];
+          payload.forEach(message => {
+            if (retryCache[message.key.id]) {
+              this.client.ev.emit("messages.upsert", {
+                messages: [message],
+                type: "notify"
+              });
+              delete retryCache[message.key.id];
+              return;
+            }
+          })
           this.messageHandle['messages.update'](payload, database, settings);
         }
 
