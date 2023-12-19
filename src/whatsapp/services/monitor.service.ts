@@ -277,12 +277,6 @@ export class WAMonitoringService {
 
   public async cleaningUp(instanceName: string) {
     this.logger.verbose('cleaning up instance: ' + instanceName);
-    if (this.redis.ENABLED) {
-      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
-      this.cache.reference = instanceName;
-      await this.cache.delAll();
-      return;
-    }
 
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       this.logger.verbose('cleaning up instance in database: ' + instanceName);
@@ -291,6 +285,13 @@ export class WAMonitoringService {
       if (collections.length > 0) {
         await this.dbInstance.dropCollection(instanceName);
       }
+      return;
+    }
+
+    if (this.redis.ENABLED) {
+      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
+      this.cache.reference = instanceName;
+      await this.cache.delAll();
       return;
     }
 
@@ -441,8 +442,8 @@ export class WAMonitoringService {
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       this.logger.verbose('logout instance: ' + instanceName);
       try {
-        // this.logger.verbose('request cleaning up instance: ' + instanceName);
-        // this.cleaningUp(instanceName);
+        this.logger.verbose('request cleaning up instance: ' + instanceName);
+        this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - LOGOUT`);
       }
