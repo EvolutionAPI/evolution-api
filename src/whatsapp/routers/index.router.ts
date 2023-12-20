@@ -31,9 +31,12 @@ enum HttpStatus {
 
 const router = Router();
 const authType = configService.get<Auth>('AUTHENTICATION').TYPE;
+const serverConfig = configService.get('SERVER');
 const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard[authType]];
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+
+if (!serverConfig.DISABLE_MANAGER) router.use('/manager', new ViewsRouter().router);
 
 router
   .get('/', (req, res) => {
@@ -41,13 +44,12 @@ router
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
       version: packageJson.version,
-      swagger: `${req.protocol}://${req.get('host')}/docs`,
+      swagger: !serverConfig.DISABLE_DOCS ? `${req.protocol}://${req.get('host')}/docs` : undefined,
+      manager: !serverConfig.DISABLE_MANAGER ? `${req.protocol}://${req.get('host')}/manager` : undefined,
       documentation: `https://doc.evolution-api.com`,
-      manager: `${req.protocol}://${req.get('host')}/manager`,
     });
   })
   .use('/instance', new InstanceRouter(configService, ...guards).router)
-  .use('/manager', new ViewsRouter().router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
