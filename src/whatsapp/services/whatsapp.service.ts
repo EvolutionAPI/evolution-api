@@ -2043,7 +2043,7 @@ export class WAStartupService {
         if (events['messages.upsert']) {
           this.logger.verbose('Listening event: messages.upsert');
           const payload = events['messages.upsert'];
-          if (payload.messages.find(a => a?.messageStubType === 2)) {
+          if (payload.messages.find((a) => a?.messageStubType === 2)) {
             const msg = payload.messages[0];
             retryCache[msg.key.id] = msg;
             return;
@@ -2054,16 +2054,16 @@ export class WAStartupService {
         if (events['messages.update']) {
           this.logger.verbose('Listening event: messages.update');
           const payload = events['messages.update'];
-          payload.forEach(message => {
+          payload.forEach((message) => {
             if (retryCache[message.key.id]) {
-              this.client.ev.emit("messages.upsert", {
+              this.client.ev.emit('messages.upsert', {
                 messages: [message],
-                type: "notify"
+                type: 'notify',
               });
               delete retryCache[message.key.id];
               return;
             }
-          })
+          });
           this.messageHandle['messages.update'](payload, database, settings);
         }
 
