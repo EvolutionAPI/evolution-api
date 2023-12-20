@@ -13,6 +13,7 @@
 * Fixed the pairing code
 * Adjusts in typebot
 * Fix the problem when disconnecting the instance and connecting again using mongodb
+* Options to disable docs and manager
 
 
 # 1.6.0 (2023-12-12 17:24)

@@ -53,7 +53,8 @@ function bootstrap() {
   app.use('/store', express.static(join(ROOT_DIR, 'store')));
 
   app.use('/', router);
-  app.use(swaggerRouter);
+
+  if (!configService.get('SERVER').DISABLE_DOCS) app.use(swaggerRouter);
 
   app.use(
     (err: Error, req: Request, res: Response, next: NextFunction) => {
