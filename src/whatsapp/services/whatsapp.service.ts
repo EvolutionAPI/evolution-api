@@ -265,6 +265,7 @@ export class WAStartupService {
       pairingCode: this.instance.qrcode?.pairingCode,
       code: this.instance.qrcode?.code,
       base64: this.instance.qrcode?.base64,
+      count: this.instance.qrcode?.count,
     };
   }
 
