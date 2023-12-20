@@ -1028,7 +1028,7 @@ export class ChatwootService {
             .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
         : body.content;
 
-      const senderName = body?.sender?.name;
+      const senderName = body?.sender?.available_name || body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       this.logger.verbose('check if is a message deletion');
@@ -1222,9 +1222,10 @@ export class ChatwootService {
   }
 
   private updateChatwootMessageId(message: MessageRaw, chatwootMessageId: string, instance: InstanceDto) {
-    if (!chatwootMessageId) {
+    if (!chatwootMessageId || !message?.key?.id) {
       return;
     }
+
     message.chatwootMessageId = chatwootMessageId;
     this.repository.message.update([message], instance.instanceName, true);
   }
