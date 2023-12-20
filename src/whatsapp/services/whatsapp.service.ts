@@ -1798,7 +1798,11 @@ export class WAStartupService {
             );
 
             if (chatwootSentMessage?.id) {
-              messageRaw.chatwootMessageId = chatwootSentMessage.id;
+              messageRaw.chatwoot = {
+                messageId: chatwootSentMessage.id,
+                inboxId: chatwootSentMessage.inbox_id,
+                conversationId: chatwootSentMessage.conversation_id,
+              };
             }
           }
 
@@ -1941,6 +1945,22 @@ export class WAStartupService {
               this.instance.name,
               database.SAVE_DATA.MESSAGE_UPDATE,
             );
+
+            if (this.localChatwoot.enabled) {
+              this.chatwootService.eventWhatsapp(
+                Events.MESSAGES_DELETE,
+                { instanceName: this.instance.name },
+                {
+                  key: {
+                    remoteJid: key.remoteJid,
+                    fromMe: key.fromMe,
+                    id: key.id,
+                    participant: key.participant,
+                  },
+                },
+              );
+            }
+
             return;
           }
 

@@ -14,6 +14,7 @@ import { InstanceDto } from '../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
 import { MessageRaw } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
@@ -1036,7 +1037,9 @@ export class ChatwootService {
         const message = await this.repository.message.find({
           where: {
             owner: instance.instanceName,
-            chatwootMessageId: body.id,
+            chatwoot: {
+              messageId: body.id,
+            },
           },
           limit: 1,
         });
@@ -1160,7 +1163,11 @@ export class ChatwootService {
                   ...messageSent,
                   owner: instance.instanceName,
                 },
-                body.id,
+                {
+                  messageId: body.id,
+                  inboxId: body.inbox?.id,
+                  conversationId: body.conversation?.id,
+                },
                 instance,
               );
             }
@@ -1187,7 +1194,11 @@ export class ChatwootService {
                 ...messageSent,
                 owner: instance.instanceName,
               },
-              body.id,
+              {
+                messageId: body.id,
+                inboxId: body.inbox?.id,
+                conversationId: body.conversation?.id,
+              },
               instance,
             );
           }
@@ -1221,13 +1232,31 @@ export class ChatwootService {
     }
   }
 
-  private updateChatwootMessageId(message: MessageRaw, chatwootMessageId: string, instance: InstanceDto) {
-    if (!chatwootMessageId || !message?.key?.id) {
+  private updateChatwootMessageId(
+    message: MessageRaw,
+    chatwootMessageIds: MessageRaw['chatwoot'],
+    instance: InstanceDto,
+  ) {
+    if (!chatwootMessageIds.messageId || !message?.key?.id) {
       return;
     }
 
-    message.chatwootMessageId = chatwootMessageId;
+    message.chatwoot = chatwootMessageIds;
     this.repository.message.update([message], instance.instanceName, true);
+  }
+
+  private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageRaw> {
+    const messages = await this.repository.message.find({
+      where: {
+        key: {
+          id: keyId,
+        },
+        owner: instance.instanceName,
+      },
+      limit: 1,
+    });
+
+    return messages.length ? messages[0] : null;
   }
 
   private async getReplyToIds(
@@ -1240,17 +1269,9 @@ export class ChatwootService {
     if (msg) {
       inReplyToExternalId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
       if (inReplyToExternalId) {
-        const message = await this.repository.message.find({
-          where: {
-            key: {
-              id: inReplyToExternalId,
-            },
-            owner: instance.instanceName,
-          },
-          limit: 1,
-        });
-        if (message.length && message[0]?.chatwootMessageId) {
-          inReplyTo = message[0].chatwootMessageId;
+        const message = await this.getMessageByKeyId(instance, inReplyToExternalId);
+        if (message?.chatwoot?.messageId) {
+          inReplyTo = message.chatwoot.messageId;
         }
       }
     }
@@ -1265,7 +1286,9 @@ export class ChatwootService {
     if (msg?.content_attributes?.in_reply_to) {
       const message = await this.repository.message.find({
         where: {
-          chatwootMessageId: msg?.content_attributes?.in_reply_to,
+          chatwoot: {
+            messageId: msg?.content_attributes?.in_reply_to,
+          },
           owner: instance.instanceName,
         },
         limit: 1,
@@ -1754,6 +1777,25 @@ export class ChatwootService {
           this.saveMessageCache();
 
           return send;
+        }
+      }
+
+      if (event === Events.MESSAGES_DELETE) {
+        this.logger.verbose('deleting message from instance: ' + instance.instanceName);
+
+        if (!body?.key?.id) {
+          this.logger.warn('message id not found');
+          return;
+        }
+
+        const message = await this.getMessageByKeyId(instance, body.key.id);
+        if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
+          this.logger.verbose('deleting message in chatwoot. Message id: ' + body.key.id);
+          return await client.messages.delete({
+            accountId: this.provider.account_id,
+            conversationId: message.chatwoot.conversationId,
+            messageId: message.chatwoot.messageId,
+          });
         }
       }
 
