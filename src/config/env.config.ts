@@ -3,7 +3,13 @@ import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { join } from 'path';
 
-export type HttpServer = { TYPE: 'http' | 'https'; PORT: number; URL: string };
+export type HttpServer = {
+  TYPE: 'http' | 'https';
+  PORT: number;
+  URL: string;
+  DISABLE_DOCS: boolean;
+  DISABLE_MANAGER: boolean;
+};
 
 export type HttpMethods = 'POST' | 'GET' | 'PUT' | 'DELETE';
 export type Cors = {
@@ -186,6 +192,8 @@ export class ConfigService {
         TYPE: (process.env.SERVER_TYPE as 'http' | 'https') || 'http',
         PORT: Number.parseInt(process.env.SERVER_PORT) || 8080,
         URL: process.env.SERVER_URL,
+        DISABLE_DOCS: process.env?.SERVER_DISABLE_DOCS === 'true',
+        DISABLE_MANAGER: process.env?.SERVER_DISABLE_MANAGER === 'true',
       },
       CORS: {
         ORIGIN: process.env.CORS_ORIGIN.split(',') || ['*'],
