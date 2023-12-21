@@ -1951,14 +1951,7 @@ export class WAStartupService {
               this.chatwootService.eventWhatsapp(
                 Events.MESSAGES_DELETE,
                 { instanceName: this.instance.name },
-                {
-                  key: {
-                    remoteJid: key.remoteJid,
-                    fromMe: key.fromMe,
-                    id: key.id,
-                    participant: key.participant,
-                  },
-                },
+                { key: key },
               );
             }
 
