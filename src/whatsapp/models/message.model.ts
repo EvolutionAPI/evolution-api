@@ -10,6 +10,12 @@ class Key {
   participant?: string;
 }
 
+class ChatwootMessage {
+  messageId?: number;
+  inboxId?: number;
+  conversationId?: number;
+}
+
 export class MessageRaw {
   _id?: string;
   key?: Key;
@@ -22,7 +28,7 @@ export class MessageRaw {
   source?: 'android' | 'web' | 'ios';
   source_id?: string;
   source_reply_id?: string;
-  chatwootMessageId?: string;
+  chatwoot?: ChatwootMessage;
 }
 
 const messageSchema = new Schema<MessageRaw>({
@@ -40,10 +46,14 @@ const messageSchema = new Schema<MessageRaw>({
   source: { type: String, minlength: 3, enum: ['android', 'web', 'ios'] },
   messageTimestamp: { type: Number, required: true },
   owner: { type: String, required: true, minlength: 1 },
-  chatwootMessageId: { type: String, required: false },
+  chatwoot: {
+    messageId: { type: Number },
+    inboxId: { type: Number },
+    conversationId: { type: Number },
+  },
 });
 
-messageSchema.index({ chatwootMessageId: 1, owner: 1 });
+messageSchema.index({ 'chatwoot.messageId': 1, owner: 1 });
 messageSchema.index({ 'key.id': 1 });
 messageSchema.index({ 'key.id': 1, owner: 1 });
 messageSchema.index({ owner: 1 });
