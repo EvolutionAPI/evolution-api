@@ -14,6 +14,7 @@
 * Adjusts in typebot
 * Fix the problem when disconnecting the instance and connecting again using mongodb
 * Options to disable docs and manager
+* When deleting a message in whatsapp, delete the message in chatwoot too
 
 
 # 1.6.0 (2023-12-12 17:24)
