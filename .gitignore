@@ -39,6 +39,7 @@ docker-compose.yaml
 /test/
 /src/env.yml
 /store
+*.env
 
 /temp/*
 

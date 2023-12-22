@@ -1,6 +1,6 @@
-FROM node:20.7.0-alpine
+FROM node:20.7.0-alpine AS builder
 
-LABEL version="1.6.0" description="Api to control whatsapp features through http requests." 
+LABEL version="1.6.1" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
@@ -11,9 +11,19 @@ WORKDIR /evolution
 
 COPY ./package.json .
 
+RUN npm install
+
+COPY . .
+
+RUN npm run build
+
+FROM node:20.7.0-alpine AS final
+
 ENV TZ=America/Sao_Paulo
 ENV DOCKER_ENV=true
 
+ENV SERVER_TYPE=http
+ENV SERVER_PORT=8080
 ENV SERVER_URL=http://localhost:8080
 
 ENV CORS_ORIGIN=*
@@ -68,6 +78,8 @@ ENV WEBHOOK_GLOBAL_ENABLED=false
 ENV WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
 
 ENV WEBHOOK_EVENTS_APPLICATION_STARTUP=false
+ENV WEBHOOK_EVENTS_INSTANCE_CREATE=false
+ENV WEBHOOK_EVENTS_INSTANCE_DELETE=false
 ENV WEBHOOK_EVENTS_QRCODE_UPDATED=true
 ENV WEBHOOK_EVENTS_MESSAGES_SET=true
 ENV WEBHOOK_EVENTS_MESSAGES_UPSERT=true
@@ -122,10 +134,8 @@ ENV AUTHENTICATION_INSTANCE_CHATWOOT_ACCOUNT_ID=1
 ENV AUTHENTICATION_INSTANCE_CHATWOOT_TOKEN=123456
 ENV AUTHENTICATION_INSTANCE_CHATWOOT_URL=<url>
 
-RUN npm install
+WORKDIR /evolution
 
-COPY . .
-
-RUN npm run build
+COPY --from=builder /evolution .
 
 CMD [ "node", "./dist/src/main.js" ]

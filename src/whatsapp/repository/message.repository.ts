@@ -91,11 +91,13 @@ export class MessageRepository extends Repository {
       this.logger.verbose('finding messages');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('finding messages in db');
-        if (query?.where?.key) {
-          for (const [k, v] of Object.entries(query.where.key)) {
-            query.where['key.' + k] = v;
+        for (const [o, p] of Object.entries(query?.where)) {
+          if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
+            for (const [k, v] of Object.entries(p)) {
+              query.where[`${o}.${k}`] = v;
+            }
+            delete query.where[o];
           }
-          delete query?.where?.key;
         }
 
         return await this.messageModel

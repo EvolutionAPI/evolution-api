@@ -112,6 +112,7 @@ export class WAMonitoringService {
           const instanceData = {
             instance: {
               instanceName: key,
+              instanceId: (await this.repository.auth.find(key))?.instanceId,
               owner: value.wuid,
               profileName: (await value.getProfileName()) || 'not loaded',
               profilePictureUrl: value.profilePictureUrl,
@@ -135,6 +136,89 @@ export class WAMonitoringService {
           const instanceData = {
             instance: {
               instanceName: key,
+              instanceId: (await this.repository.auth.find(key))?.instanceId,
+              status: value.connectionStatus.state,
+            },
+          };
+
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
+
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
+
+            instanceData.instance['chatwoot'] = chatwoot;
+          }
+
+          instances.push(instanceData);
+        }
+      }
+    }
+
+    this.logger.verbose('return instance info: ' + instances.length);
+
+    return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
+  }
+
+  public async instanceInfoById(instanceId?: string) {
+    this.logger.verbose('get instance info');
+    const instanceName = await this.repository.auth.findInstanceNameById(instanceId);
+    if (!instanceName) {
+      throw new NotFoundException(`Instance "${instanceId}" not found`);
+    }
+
+    if (instanceName && !this.waInstances[instanceName]) {
+      throw new NotFoundException(`Instance "${instanceName}" not found`);
+    }
+
+    const instances: any[] = [];
+
+    for await (const [key, value] of Object.entries(this.waInstances)) {
+      if (value) {
+        this.logger.verbose('get instance info: ' + key);
+        let chatwoot: any;
+
+        const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+
+        const findChatwoot = await this.waInstances[key].findChatwoot();
+
+        if (findChatwoot && findChatwoot.enabled) {
+          chatwoot = {
+            ...findChatwoot,
+            webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
+          };
+        }
+
+        if (value.connectionStatus.state === 'open') {
+          this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
+
+          const instanceData = {
+            instance: {
+              instanceName: key,
+              instanceId: (await this.repository.auth.find(key))?.instanceId,
+              owner: value.wuid,
+              profileName: (await value.getProfileName()) || 'not loaded',
+              profilePictureUrl: value.profilePictureUrl,
+              profileStatus: (await value.getProfileStatus()) || '',
+              status: value.connectionStatus.state,
+            },
+          };
+
+          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
+
+            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
+
+            instanceData.instance['chatwoot'] = chatwoot;
+          }
+
+          instances.push(instanceData);
+        } else {
+          this.logger.verbose('instance: ' + key + ' - connectionStatus: ' + value.connectionStatus.state);
+
+          const instanceData = {
+            instance: {
+              instanceName: key,
+              instanceId: (await this.repository.auth.find(key))?.instanceId,
               status: value.connectionStatus.state,
             },
           };
@@ -193,12 +277,6 @@ export class WAMonitoringService {
 
   public async cleaningUp(instanceName: string) {
     this.logger.verbose('cleaning up instance: ' + instanceName);
-    if (this.redis.ENABLED) {
-      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
-      this.cache.reference = instanceName;
-      await this.cache.delAll();
-      return;
-    }
 
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       this.logger.verbose('cleaning up instance in database: ' + instanceName);
@@ -207,6 +285,13 @@ export class WAMonitoringService {
       if (collections.length > 0) {
         await this.dbInstance.dropCollection(instanceName);
       }
+      return;
+    }
+
+    if (this.redis.ENABLED) {
+      this.logger.verbose('cleaning up instance in redis: ' + instanceName);
+      this.cache.reference = instanceName;
+      await this.cache.delAll();
       return;
     }
 
@@ -357,8 +442,8 @@ export class WAMonitoringService {
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       this.logger.verbose('logout instance: ' + instanceName);
       try {
-        // this.logger.verbose('request cleaning up instance: ' + instanceName);
-        // this.cleaningUp(instanceName);
+        this.logger.verbose('request cleaning up instance: ' + instanceName);
+        this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - LOGOUT`);
       }

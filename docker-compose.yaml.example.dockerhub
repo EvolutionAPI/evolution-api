@@ -3,7 +3,7 @@ version: '3.3'
 services:
   api:
     container_name: evolution_api
-    image: davidsongomes/evolution-api:latest
+    image: atendai/evolution-api:latest
     restart: always
     ports:
       - 8080:8080

@@ -14,6 +14,7 @@ import { InstanceDto } from '../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
 import { MessageRaw } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
@@ -920,7 +921,11 @@ export class ChatwootService {
       const fileName = decodeURIComponent(parts[parts.length - 1]);
       this.logger.verbose('file name: ' + fileName);
 
-      const mimeType = mimeTypes.lookup(fileName).toString();
+      const response = await axios.get(media, {
+        responseType: 'arraybuffer',
+      });
+
+      const mimeType = response.headers['content-type'];
       this.logger.verbose('mime type: ' + mimeType);
 
       let type = 'document';
@@ -1015,8 +1020,16 @@ export class ChatwootService {
       this.logger.verbose('check if is group');
       const chatId =
         body.conversation.meta.sender?.phone_number?.replace('+', '') || body.conversation.meta.sender?.identifier;
-      const messageReceived = body.content;
-      const senderName = body?.sender?.name;
+      // Chatwoot to Whatsapp
+      const messageReceived = body.content
+        ? body.content
+            .replaceAll(/(?<!\*)\*((?!\s)([^\n*]+?)(?<!\s))\*(?!\*)/g, '_$1_') // Substitui * por _
+            .replaceAll(/\*{2}((?!\s)([^\n*]+?)(?<!\s))\*{2}/g, '*$1*') // Substitui ** por *
+            .replaceAll(/~{2}((?!\s)([^\n*]+?)(?<!\s))~{2}/g, '~$1~') // Substitui ~~ por ~
+            .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
+        : body.content;
+
+      const senderName = body?.sender?.available_name || body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       this.logger.verbose('check if is a message deletion');
@@ -1024,7 +1037,9 @@ export class ChatwootService {
         const message = await this.repository.message.find({
           where: {
             owner: instance.instanceName,
-            chatwootMessageId: body.id,
+            chatwoot: {
+              messageId: body.id,
+            },
           },
           limit: 1,
         });
@@ -1111,7 +1126,13 @@ export class ChatwootService {
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
-          formatText = this.provider.sign_msg ? `*${senderName}:*\n${messageReceived}` : messageReceived;
+          const formattedDelimiter = this.provider.sign_delimiter
+            ? this.provider.sign_delimiter.replaceAll('\\n', '\n')
+            : '\n';
+          const textToConcat = this.provider.sign_msg ? [`*${senderName}:*`] : [];
+          textToConcat.push(messageReceived);
+
+          formatText = textToConcat.join(formattedDelimiter);
         }
 
         for (const message of body.conversation.messages) {
@@ -1142,7 +1163,11 @@ export class ChatwootService {
                   ...messageSent,
                   owner: instance.instanceName,
                 },
-                body.id,
+                {
+                  messageId: body.id,
+                  inboxId: body.inbox?.id,
+                  conversationId: body.conversation?.id,
+                },
                 instance,
               );
             }
@@ -1169,7 +1194,11 @@ export class ChatwootService {
                 ...messageSent,
                 owner: instance.instanceName,
               },
-              body.id,
+              {
+                messageId: body.id,
+                inboxId: body.inbox?.id,
+                conversationId: body.conversation?.id,
+              },
               instance,
             );
           }
@@ -1203,12 +1232,31 @@ export class ChatwootService {
     }
   }
 
-  private updateChatwootMessageId(message: MessageRaw, chatwootMessageId: string, instance: InstanceDto) {
-    if (!chatwootMessageId) {
+  private updateChatwootMessageId(
+    message: MessageRaw,
+    chatwootMessageIds: MessageRaw['chatwoot'],
+    instance: InstanceDto,
+  ) {
+    if (!chatwootMessageIds.messageId || !message?.key?.id) {
       return;
     }
-    message.chatwootMessageId = chatwootMessageId;
+
+    message.chatwoot = chatwootMessageIds;
     this.repository.message.update([message], instance.instanceName, true);
+  }
+
+  private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageRaw> {
+    const messages = await this.repository.message.find({
+      where: {
+        key: {
+          id: keyId,
+        },
+        owner: instance.instanceName,
+      },
+      limit: 1,
+    });
+
+    return messages.length ? messages[0] : null;
   }
 
   private async getReplyToIds(
@@ -1221,17 +1269,9 @@ export class ChatwootService {
     if (msg) {
       inReplyToExternalId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
       if (inReplyToExternalId) {
-        const message = await this.repository.message.find({
-          where: {
-            key: {
-              id: inReplyToExternalId,
-            },
-            owner: instance.instanceName,
-          },
-          limit: 1,
-        });
-        if (message.length && message[0]?.chatwootMessageId) {
-          inReplyTo = message[0].chatwootMessageId;
+        const message = await this.getMessageByKeyId(instance, inReplyToExternalId);
+        if (message?.chatwoot?.messageId) {
+          inReplyTo = message.chatwoot.messageId;
         }
       }
     }
@@ -1246,7 +1286,9 @@ export class ChatwootService {
     if (msg?.content_attributes?.in_reply_to) {
       const message = await this.repository.message.find({
         where: {
-          chatwootMessageId: msg?.content_attributes?.in_reply_to,
+          chatwoot: {
+            messageId: msg?.content_attributes?.in_reply_to,
+          },
           owner: instance.instanceName,
         },
         limit: 1,
@@ -1466,7 +1508,17 @@ export class ChatwootService {
         }
 
         this.logger.verbose('get conversation message');
-        const bodyMessage = await this.getConversationMessage(body.message);
+
+        // Whatsapp to Chatwoot
+        const originalMessage = await this.getConversationMessage(body.message);
+        const bodyMessage = originalMessage
+          ? originalMessage
+              .replaceAll(/\*((?!\s)([^\n*]+?)(?<!\s))\*/g, '**$1**')
+              .replaceAll(/_((?!\s)([^\n_]+?)(?<!\s))_/g, '*$1*')
+              .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~')
+          : originalMessage;
+
+        this.logger.verbose('body message: ' + bodyMessage);
 
         if (bodyMessage && bodyMessage.includes('Por favor, classifique esta conversa, http')) {
           this.logger.verbose('conversation is closed');
@@ -1725,6 +1777,25 @@ export class ChatwootService {
           this.saveMessageCache();
 
           return send;
+        }
+      }
+
+      if (event === Events.MESSAGES_DELETE) {
+        this.logger.verbose('deleting message from instance: ' + instance.instanceName);
+
+        if (!body?.key?.id) {
+          this.logger.warn('message id not found');
+          return;
+        }
+
+        const message = await this.getMessageByKeyId(instance, body.key.id);
+        if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
+          this.logger.verbose('deleting message in chatwoot. Message id: ' + body.key.id);
+          return await client.messages.delete({
+            accountId: this.provider.account_id,
+            conversationId: message.chatwoot.conversationId,
+            messageId: message.chatwoot.messageId,
+          });
         }
       }
 

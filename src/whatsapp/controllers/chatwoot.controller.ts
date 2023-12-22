@@ -37,6 +37,7 @@ export class ChatwootController {
       if (data.sign_msg !== true && data.sign_msg !== false) {
         throw new BadRequestException('sign_msg is required');
       }
+      if (data.sign_msg === false) data.sign_delimiter = null;
     }
 
     if (!data.enabled) {
@@ -45,6 +46,7 @@ export class ChatwootController {
       data.token = '';
       data.url = '';
       data.sign_msg = false;
+      data.sign_delimiter = null;
       data.reopen_conversation = false;
       data.conversation_pending = false;
       data.auto_create = false;
