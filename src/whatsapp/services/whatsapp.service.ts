@@ -75,6 +75,7 @@ import { getIO } from '../../libs/socket.server';
 import { getSQS, removeQueues as removeQueuesSQS } from '../../libs/sqs.server';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
+import { instanceController } from '../../whatsapp/whatsapp.module';
 import {
   ArchiveChatDto,
   DeleteMessage,
@@ -131,7 +132,6 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
 import { ChamaaiService } from './chamaai.service';
-import { ChatwootService } from './chatwoot.service';
 import { TypebotService } from './typebot.service';
 
 const retryCache = {};
@@ -169,7 +169,7 @@ export class WAStartupService {
 
   private phoneNumber: string;
 
-  private chatwootService = new ChatwootService(waMonitor, this.configService, this.repository);
+  private chatwootService = instanceController.getChatwootService();
 
   private typebotService = new TypebotService(waMonitor, this.configService, this.eventEmitter);
 

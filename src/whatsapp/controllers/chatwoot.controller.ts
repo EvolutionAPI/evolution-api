@@ -7,7 +7,7 @@ import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { ChatwootService } from '../services/chatwoot.service';
-import { waMonitor } from '../whatsapp.module';
+import { instanceController } from '../whatsapp.module';
 
 const logger = new Logger('ChatwootController');
 
@@ -94,7 +94,7 @@ export class ChatwootController {
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
     logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
-    const chatwootService = new ChatwootService(waMonitor, this.configService, this.repository);
+    const chatwootService = instanceController.getChatwootService();
 
     return chatwootService.receiveWebhook(instance, data);
   }
