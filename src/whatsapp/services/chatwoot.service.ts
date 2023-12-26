@@ -1561,8 +1561,15 @@ export class ChatwootService {
             },
           });
 
-          const random = Math.random().toString(36).substring(7);
-          const nameFile = `${random}.${mimeTypes.extension(downloadBase64.mimetype)}`;
+          let prependFilename: string;
+          if (body?.message[body?.messageType]?.fileName) {
+            prependFilename = `${path.parse(body.message[body.messageType].fileName).name}-${Math.floor(
+              Math.random() * (99 - 10 + 1) + 10,
+            )}`;
+          } else {
+            prependFilename = Math.random().toString(36).substring(7);
+          }
+          const nameFile = `${prependFilename}.${mimeTypes.extension(downloadBase64.mimetype)}`;
 
           const fileData = Buffer.from(downloadBase64.base64, 'base64');
 
