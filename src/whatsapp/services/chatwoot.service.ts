@@ -1562,10 +1562,15 @@ export class ChatwootService {
           });
 
           let prependFilename: string;
-          if (body?.message[body?.messageType]?.fileName) {
-            prependFilename = `${path.parse(body.message[body.messageType].fileName).name}-${Math.floor(
-              Math.random() * (99 - 10 + 1) + 10,
-            )}`;
+          if (
+            body?.message[body?.messageType]?.fileName ||
+            body?.message[body?.messageType]?.message?.documentMessage?.fileName
+          ) {
+            prependFilename = path.parse(
+              body?.message[body?.messageType]?.fileName ||
+                body?.message[body?.messageType]?.message?.documentMessage?.fileName,
+            ).name;
+            prependFilename += `-${Math.floor(Math.random() * (99 - 10 + 1) + 10)}`;
           } else {
             prependFilename = Math.random().toString(36).substring(7);
           }
