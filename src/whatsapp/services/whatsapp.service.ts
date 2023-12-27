@@ -1413,22 +1413,19 @@ export class WAStartupService {
         syncFullHistory: false,
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
-        patchMessageBeforeSending: (message) => {
-          const requiresPatch = !!(message.buttonsMessage || message.listMessage || message.templateMessage);
-          if (requiresPatch) {
-            message = {
-              viewOnceMessageV2: {
-                message: {
-                  messageContextInfo: {
-                    deviceListMetadataVersion: 2,
-                    deviceListMetadata: {},
-                  },
-                  ...message,
-                },
-              },
-            };
+        patchMessageBeforeSending(message) {
+          if (message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+            message = JSON.parse(JSON.stringify(message));
+  
+            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
           }
-
+  
+          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+            message = JSON.parse(JSON.stringify(message));
+  
+            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+  
           return message;
         },
       };
@@ -1500,22 +1497,19 @@ export class WAStartupService {
         syncFullHistory: false,
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
-        patchMessageBeforeSending: (message) => {
-          const requiresPatch = !!(message.buttonsMessage || message.listMessage || message.templateMessage);
-          if (requiresPatch) {
-            message = {
-              viewOnceMessageV2: {
-                message: {
-                  messageContextInfo: {
-                    deviceListMetadataVersion: 2,
-                    deviceListMetadata: {},
-                  },
-                  ...message,
-                },
-              },
-            };
+        patchMessageBeforeSending(message) {
+          if (message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+            message = JSON.parse(JSON.stringify(message));
+  
+            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
           }
-
+  
+          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+            message = JSON.parse(JSON.stringify(message));
+  
+            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+  
           return message;
         },
       };
@@ -3012,7 +3006,7 @@ export class WAStartupService {
           buttonText: data.listMessage?.buttonText,
           footerText: data.listMessage?.footerText,
           sections: data.listMessage.sections,
-          listType: 1,
+          listType: 2,
         },
       },
       data?.options,
