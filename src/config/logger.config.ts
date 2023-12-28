@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
-import fs from 'fs';
+import fs, { mkdir } from 'fs';
+import  util  from 'util';
 
 import { configService, Log } from './env.config';
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
@@ -70,6 +71,18 @@ export class Logger {
     this.configService.get<Log>('LOG').LEVEL.forEach((level) => types.push(Type[level]));
 
     const typeValue = typeof value;
+    
+    salvarLog(this.configService.get<Log>('LOG'),
+      '[Evolution API]'+
+      process.pid.toString()+
+      '-'+
+      `${formatDateLog(Date.now())}  `+
+      `${type} `+
+      `[${this.context}]`+
+      `[${typeValue}]`+
+      value
+    );
+
     if (types.includes(type)) {
       if (configService.get<Log>('LOG').COLOR) {
         console.log(
@@ -138,4 +151,35 @@ export class Logger {
   public dark(value: any) {
     this.console(value, Type.DARK);
   }
+}
+
+function salvarLog(env: any, log: string): void {
+  mkdir(env.LOG_PATH, { recursive: true }, (err) => { if (err) throw err; });
+  let file = new Date().toLocaleDateString().replaceAll('/', '');
+  file = env.LOG_PATH + '/' + file + '.txt';
+  try {
+    if (fs.existsSync(file)) {
+      fs.appendFileSync(file, log, "utf8");
+    } else {
+      fs.writeFileSync(file, log);
+    }
+    excluirArquivosAntigos(env.LOG_PATH, 5);
+  } catch (accessError) {
+    console.error('Erro ao salvar o log:', accessError);
+  }
+
+
+}
+
+function excluirArquivosAntigos(path: string, diasLimite: number): void {
+  const data = new Date();
+  data.setDate(data.getDate() - diasLimite);
+  let limite = Number.parseInt(data.toLocaleDateString().replaceAll('/', ''));
+  fs.readdirSync(path).forEach((nomeArquivo) => {
+    let file = Number.parseInt(nomeArquivo.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, ''));
+    if (file < limite) {
+      fs.unlinkSync(path + '/' + nomeArquivo);
+      console.log(`Arquivo ${nomeArquivo} excluído.`);
+    }
+  });
 }

@@ -26,6 +26,8 @@ export type Log = {
   LEVEL: LogLevel[];
   COLOR: boolean;
   BAILEYS: LogBaileys;
+  LOG_PATH: string;
+  LOG_EXPIRATION_DAYS: number;
 };
 
 export type SaveData = {
@@ -265,6 +267,8 @@ export class ConfigService {
         ],
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
+        LOG_PATH: join(__dirname, '../../') + process.env?.LOG_PATH || join(__dirname, '../../')+'log',
+        LOG_EXPIRATION_DAYS: Number.parseInt(process.env?.LOG_EXPIRATION_DAYS),
       },
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
         ? process.env.DEL_INSTANCE === 'true'

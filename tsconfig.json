@@ -16,7 +16,8 @@
     "skipLibCheck": true,
     "strictNullChecks": false,
     "incremental": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "lib": ["ES2021.String"]
   },
   "exclude": ["node_modules", "./test", "./dist", "./prisma"]
 }
