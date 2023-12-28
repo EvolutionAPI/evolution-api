@@ -61,6 +61,7 @@ export type Database = {
   CONNECTION: DBConnection;
   ENABLED: boolean;
   SAVE_DATA: SaveData;
+  CLEANING_DB_INTERVAL: number;
 };
 
 export type Redis = {
@@ -226,6 +227,7 @@ export class ConfigService {
           URI: process.env.DATABASE_CONNECTION_URI || '',
           DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME || 'evolution',
         },
+        CLEANING_DB_INTERVAL:  Number(process.env?.DATABASE_CLEANING_INTERVAL),
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
         SAVE_DATA: {
           INSTANCE: process.env?.DATABASE_SAVE_DATA_INSTANCE === 'true',

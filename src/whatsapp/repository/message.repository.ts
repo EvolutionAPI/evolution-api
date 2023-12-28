@@ -197,4 +197,18 @@ export class MessageRepository extends Repository {
       this.logger.error(error);
     }
   }
+
+  public async delete(query: any) {
+    try {
+      this.logger.verbose('deleting messages');
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('deleting messages in db');
+        return await this.messageModel.deleteMany(query);
+      }
+
+      return { deleted: { chatId: query.where.messageTimestamp } };
+    } catch (error) {
+      return { error: error?.toString() };
+    }
+  }
 }

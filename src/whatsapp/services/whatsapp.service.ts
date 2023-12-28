@@ -145,6 +145,7 @@ export class WAStartupService {
   ) {
     this.logger.verbose('WAStartupService initialized');
     this.cleanStore();
+    this.cleanDB();
     this.instance.qrcode = { count: 0 };
   }
 
@@ -1320,6 +1321,23 @@ export class WAStartupService {
           this.logger.error(error);
         }
       }, (cleanStore?.CLEANING_INTERVAL ?? 3600) * 1000);
+    }
+  }
+
+  private cleanDB() {
+    this.logger.verbose('Cronjob to clean db initialized');
+    const database = this.configService.get<Database>('DATABASE');
+    if (database?.CLEANING_DB_INTERVAL && database.ENABLED) {
+      this.logger.verbose('Cronjob to clean db enabled');
+      let data = new Date()
+      data.setDate(data.getDate() - database.CLEANING_DB_INTERVAL);
+      let timestamp = Math.floor(data.getTime() / 1000) as number | Long.Long;
+      this.repository.message.delete({
+        where: {
+          owner: this.instance.name,
+          messageTimestamp: { $lte: timestamp }
+      }
+      })
     }
   }
 
