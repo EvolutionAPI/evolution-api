@@ -1369,8 +1369,8 @@ export class WAStartupService {
       if (this.localProxy.enabled) {
         this.logger.info('Proxy enabled: ' + this.localProxy.proxy);
 
-        if (this.localProxy.proxy.includes('proxyscrape')) {
-          const response = await axios.get(this.localProxy.proxy);
+        if (this.localProxy.proxy.host.includes('proxyscrape')) {
+          const response = await axios.get(this.localProxy.proxy.host);
           const text = response.data;
           const proxyUrls = text.split('\r\n');
           const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
@@ -1379,8 +1379,15 @@ export class WAStartupService {
             agent: new ProxyAgent(proxyUrl as any),
           };
         } else {
+          let proxyUri =
+            this.localProxy.proxy.protocol + '://' + this.localProxy.proxy.host + ':' + this.localProxy.proxy.port;
+
+          if (this.localProxy.proxy.username && this.localProxy.proxy.password) {
+            proxyUri = `${this.localProxy.proxy.username}:${this.localProxy.proxy.password}@${proxyUri}`;
+          }
+
           options = {
-            agent: new ProxyAgent(this.localProxy.proxy as any),
+            agent: new ProxyAgent(proxyUri as any),
           };
         }
       }
@@ -1903,7 +1910,8 @@ export class WAStartupService {
           this.logger.verbose('group ignored');
           return;
         }
-        if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
+        // if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
+        if (key.remoteJid !== 'status@broadcast') {
           this.logger.verbose('Message update is valid');
 
           let pollUpdates: any;

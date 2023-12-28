@@ -109,9 +109,17 @@ export declare namespace wa {
     sessions?: Session[];
   };
 
+  type Proxy = {
+    host?: string;
+    port?: string;
+    protocol?: string;
+    username?: string;
+    password?: string;
+  };
+
   export type LocalProxy = {
     enabled?: boolean;
-    proxy?: string;
+    proxy?: Proxy;
   };
 
   export type LocalChamaai = {

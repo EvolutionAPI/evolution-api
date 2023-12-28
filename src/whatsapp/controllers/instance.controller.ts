@@ -12,7 +12,6 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
 import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
-import { ProxyService } from '../services/proxy.service';
 import { RabbitmqService } from '../services/rabbitmq.service';
 import { SettingsService } from '../services/settings.service';
 import { SqsService } from '../services/sqs.service';
@@ -34,7 +33,6 @@ export class InstanceController {
     private readonly settingsService: SettingsService,
     private readonly websocketService: WebsocketService,
     private readonly rabbitmqService: RabbitmqService,
-    private readonly proxyService: ProxyService,
     private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
     private readonly cache: RedisCache,
@@ -76,7 +74,6 @@ export class InstanceController {
     typebot_delay_message,
     typebot_unknown_message,
     typebot_listening_from_me,
-    proxy,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -259,22 +256,6 @@ export class InstanceController {
         }
       }
 
-      if (proxy) {
-        this.logger.verbose('creating proxy');
-        try {
-          this.proxyService.create(
-            instance,
-            {
-              enabled: true,
-              proxy,
-            },
-            false,
-          );
-        } catch (error) {
-          this.logger.log(error);
-        }
-      }
-
       let sqsEvents: string[];
 
       if (sqs_enabled) {
@@ -406,7 +387,6 @@ export class InstanceController {
           },
           settings,
           qrcode: getQrcode,
-          proxy,
         };
 
         this.logger.verbose('instance created');
@@ -510,7 +490,6 @@ export class InstanceController {
           name_inbox: instance.instanceName,
           webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         },
-        proxy,
       };
     } catch (error) {
       this.logger.error(error.message[0]);

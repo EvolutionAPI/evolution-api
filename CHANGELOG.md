@@ -1,3 +1,10 @@
+# 1.6.2 (develop)
+
+### Fixed
+
+* Proxy configuration improvements
+* Correction in sending lists
+
 # 1.6.1 (2023-12-22 11:43)
 
 ### Fixed

@@ -27,7 +27,7 @@ export class ProxyService {
 
       return result;
     } catch (error) {
-      return { enabled: false, proxy: '' };
+      return { enabled: false, proxy: null };
     }
   }
 }
