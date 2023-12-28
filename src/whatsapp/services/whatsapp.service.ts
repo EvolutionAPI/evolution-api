@@ -1421,18 +1421,21 @@ export class WAStartupService {
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
         patchMessageBeforeSending(message) {
-          if (message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+          if (
+            message.deviceSentMessage?.message?.listMessage?.listType ===
+            proto.Message.ListMessage.ListType.PRODUCT_LIST
+          ) {
             message = JSON.parse(JSON.stringify(message));
-  
+
             message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
           }
-  
+
           if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
             message = JSON.parse(JSON.stringify(message));
-  
+
             message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
           }
-  
+
           return message;
         },
       };
@@ -1505,18 +1508,21 @@ export class WAStartupService {
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
         patchMessageBeforeSending(message) {
-          if (message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+          if (
+            message.deviceSentMessage?.message?.listMessage?.listType ===
+            proto.Message.ListMessage.ListType.PRODUCT_LIST
+          ) {
             message = JSON.parse(JSON.stringify(message));
-  
+
             message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
           }
-  
+
           if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
             message = JSON.parse(JSON.stringify(message));
-  
+
             message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
           }
-  
+
           return message;
         },
       };
