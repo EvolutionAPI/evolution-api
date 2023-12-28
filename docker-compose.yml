@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  evolution-api:
+      image: evolution-api
+      build: .
+      restart: always
+      volumes:
+        - evolution_instances:/evolution/instances
+        - evolution_store:/evolution/store
+        - ./log:/evolution/dist/log
+      ports:
+        - '5006:8080'
+      command: ['node', './dist/src/main.js']
+      env_file:
+      - ./Docker/.env
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - evolution_mongodb_data:/data/db
+      - evolution_mongodb_configdb:/data/configdb
+    expose:
+      - 27017
+
+volumes:
+  evolution_instances:
+  evolution_store:
+  evolution_mongodb_data:
+  evolution_mongodb_configdb:
