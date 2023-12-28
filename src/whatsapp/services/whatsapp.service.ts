@@ -1748,10 +1748,14 @@ export class WAStartupService {
 
           let messageRaw: MessageRaw;
 
-          if (
-            (this.localWebhook.webhook_base64 === true && received?.message.documentMessage) ||
-            received?.message?.imageMessage
-          ) {
+          const isMedia =
+            received?.message?.imageMessage ||
+            received?.message?.videoMessage ||
+            received?.message?.stickerMessage ||
+            received?.message?.documentMessage ||
+            received?.message?.audioMessage;
+
+          if (this.localWebhook.webhook_base64 === true && isMedia) {
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
               'buffer',

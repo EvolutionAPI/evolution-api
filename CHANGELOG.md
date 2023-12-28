@@ -4,6 +4,7 @@
 
 * Proxy configuration improvements
 * Correction in sending lists
+* Adjust in webhook_base64
 
 # 1.6.1 (2023-12-22 11:43)
 
