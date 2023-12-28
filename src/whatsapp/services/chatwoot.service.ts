@@ -1029,7 +1029,7 @@ export class ChatwootService {
             .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
         : body.content;
 
-      const senderName = body?.sender?.available_name || body?.sender?.name;
+      const senderName = body?.conversation?.messages[0]?.sender?.available_name || body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       this.logger.verbose('check if is a message deletion');
