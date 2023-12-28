@@ -659,10 +659,4 @@ export class InstanceController {
     this.logger.verbose('requested refreshToken');
     return await this.authService.refreshToken(oldToken);
   }
-
-  public getChatwootService() {
-    this.logger.verbose('getting chatwootService object instance');
-
-    return this.chatwootService;
-  }
 }

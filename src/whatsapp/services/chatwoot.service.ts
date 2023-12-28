@@ -17,8 +17,6 @@ import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
-  private messageCache: Record<string, Set<number>>;
-
   private readonly logger = new Logger(ChatwootService.name);
 
   private provider: any;
@@ -27,35 +25,7 @@ export class ChatwootService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
-  ) {
-    // messageCache is used to support Chatwoot version <= 3.3.1.
-    // after this version we can remove use of message cache and use source_id to check webhook needs to be ignored
-    this.messageCache = {};
-  }
-
-  private isMessageInCache(instance: InstanceDto, id: number, remove = true) {
-    this.logger.verbose('check if message is in cache');
-    if (!this.messageCache[instance.instanceName]) {
-      return false;
-    }
-
-    const hasId = this.messageCache[instance.instanceName].has(id);
-
-    if (remove) {
-      this.messageCache[instance.instanceName].delete(id);
-    }
-
-    return hasId;
-  }
-
-  private addMessageToCache(instance: InstanceDto, id: number) {
-    this.logger.verbose('add message to cache');
-
-    if (!this.messageCache[instance.instanceName]) {
-      this.messageCache[instance.instanceName] = new Set();
-    }
-    this.messageCache[instance.instanceName].add(id);
-  }
+  ) {}
 
   private async getProvider(instance: InstanceDto) {
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
@@ -1112,14 +1082,8 @@ export class ChatwootService {
       if (body.message_type === 'outgoing' && body?.conversation?.messages?.length && chatId !== '123456') {
         this.logger.verbose('check if is group');
 
-        // messageCache is used to support Chatwoot version <= 3.3.1.
-        // after this version we can remove use of message cache and use only source_id value check
-        // use of source_id is better for performance
-        if (
-          body?.conversation?.messages[0]?.source_id?.substring(0, 5) === 'WAID:' ||
-          this.isMessageInCache(instance, body.id)
-        ) {
-          this.logger.verbose('message is cached');
+        if (body?.conversation?.messages[0]?.source_id?.substring(0, 5) === 'WAID:') {
+          this.logger.verbose('message sent directly from whatsapp. Webhook ignored.');
           return { message: 'bot' };
         }
 
@@ -1607,8 +1571,6 @@ export class ChatwootService {
               return;
             }
 
-            this.addMessageToCache(instance, send.id);
-
             return send;
           } else {
             this.logger.verbose('message is not group');
@@ -1628,8 +1590,6 @@ export class ChatwootService {
               this.logger.warn('message not sent');
               return;
             }
-
-            this.addMessageToCache(instance, send.id);
 
             return send;
           }
@@ -1655,7 +1615,6 @@ export class ChatwootService {
               this.logger.warn('message not sent');
               return;
             }
-            this.addMessageToCache(instance, send.id);
           }
 
           return;
@@ -1713,8 +1672,6 @@ export class ChatwootService {
             return;
           }
 
-          this.addMessageToCache(instance, send.id);
-
           return send;
         }
 
@@ -1750,8 +1707,6 @@ export class ChatwootService {
             return;
           }
 
-          this.addMessageToCache(instance, send.id);
-
           return send;
         } else {
           this.logger.verbose('message is not group');
@@ -1772,8 +1727,6 @@ export class ChatwootService {
             this.logger.warn('message not sent');
             return;
           }
-
-          this.addMessageToCache(instance, send.id);
 
           return send;
         }
