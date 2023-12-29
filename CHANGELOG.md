@@ -6,6 +6,7 @@
 * Correction in sending lists
 * Adjust in webhook_base64
 * Correction in typebot text formatting
+* Correction in chatwoot text formatting and render list message
 
 # 1.6.1 (2023-12-22 11:43)
 

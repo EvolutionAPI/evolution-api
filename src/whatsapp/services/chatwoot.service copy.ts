@@ -1,13 +1,14 @@
 import ChatwootClient from '@figuro/chatwoot-sdk';
 import axios from 'axios';
 import FormData from 'form-data';
-import { createReadStream, unlinkSync, writeFileSync } from 'fs';
+import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { ROOT_DIR } from '../../config/path.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
@@ -17,6 +18,9 @@ import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
+  private messageCacheFile: string;
+  private messageCache: Set<string>;
+
   private readonly logger = new Logger(ChatwootService.name);
 
   private provider: any;
@@ -25,7 +29,33 @@ export class ChatwootService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
-  ) {}
+  ) {
+    this.messageCache = new Set();
+  }
+
+  private loadMessageCache(): Set<string> {
+    this.logger.verbose('load message cache');
+    try {
+      const cacheData = readFileSync(this.messageCacheFile, 'utf-8');
+      const cacheArray = cacheData.split('\n');
+      return new Set(cacheArray);
+    } catch (error) {
+      return new Set();
+    }
+  }
+
+  private saveMessageCache() {
+    this.logger.verbose('save message cache');
+    const cacheData = Array.from(this.messageCache).join('\n');
+    writeFileSync(this.messageCacheFile, cacheData, 'utf-8');
+    this.logger.verbose('message cache saved');
+  }
+
+  private clearMessageCache() {
+    this.logger.verbose('clear message cache');
+    this.messageCache.clear();
+    this.saveMessageCache();
+  }
 
   private async getProvider(instance: InstanceDto) {
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
@@ -614,7 +644,6 @@ export class ChatwootService {
       filename: string;
     }[],
     messageBody?: any,
-    sourceId?: string,
   ) {
     this.logger.verbose('create message to instance: ' + instance.instanceName);
 
@@ -636,7 +665,6 @@ export class ChatwootService {
         message_type: messageType,
         attachments: attachments,
         private: privateMessage || false,
-        source_id: sourceId,
         content_attributes: {
           ...replyToIds,
         },
@@ -737,7 +765,6 @@ export class ChatwootService {
     content?: string,
     instance?: InstanceDto,
     messageBody?: any,
-    sourceId?: string,
   ) {
     this.logger.verbose('send data to chatwoot');
 
@@ -762,10 +789,6 @@ export class ChatwootService {
           ...replyToIds,
         });
       }
-    }
-
-    if (sourceId) {
-      data.append('source_id', sourceId);
     }
 
     this.logger.verbose('get client to instance: ' + this.provider.instanceName);
@@ -1006,7 +1029,12 @@ export class ChatwootService {
             .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
         : body.content;
 
+      // Alterado por Edison Martins em 17/12/2023
+      // Criação da variável para armazenar o status da conversa
       const senderName = body?.conversation?.messages[0]?.sender?.available_name || body?.sender?.name;
+      const botName = '🤖 Fast';
+      const conversationStatus = body?.conversation?.status;
+
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       this.logger.verbose('check if is a message deletion');
@@ -1082,10 +1110,21 @@ export class ChatwootService {
       if (body.message_type === 'outgoing' && body?.conversation?.messages?.length && chatId !== '123456') {
         this.logger.verbose('check if is group');
 
-        if (body?.conversation?.messages[0]?.source_id?.substring(0, 5) === 'WAID:') {
-          this.logger.verbose('message sent directly from whatsapp. Webhook ignored.');
+        this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+        this.logger.verbose('cache file path: ' + this.messageCacheFile);
+
+        this.messageCache = this.loadMessageCache();
+        this.logger.verbose('cache file loaded');
+        this.logger.verbose(this.messageCache);
+
+        this.logger.verbose('check if message is cached');
+        if (this.messageCache.has(body.id.toString())) {
+          this.logger.verbose('message is cached');
           return { message: 'bot' };
         }
+
+        this.logger.verbose('clear cache');
+        this.clearMessageCache();
 
         this.logger.verbose('Format message to send');
         let formatText: string;
@@ -1095,7 +1134,17 @@ export class ChatwootService {
           const formattedDelimiter = this.provider.sign_delimiter
             ? this.provider.sign_delimiter.replaceAll('\\n', '\n')
             : '\n';
-          const textToConcat = this.provider.sign_msg ? [`*${senderName}:*`] : [];
+          // Alterado por Edison Martins em 17/12/2023
+          // Considerar o nome do bot no lugar do nome do atendente
+          // const textToConcat = this.provider.sign_msg ? [`*${senderName}:*`] : [];
+          let textToConcat: string[] = [];
+
+          if (conversationStatus === 'pending') {
+            textToConcat = this.provider.sign_msg ? [`*${botName}:*`] : [];
+          } else {
+            textToConcat = this.provider.sign_msg ? [`*${senderName}:*`] : [];
+          }
+
           textToConcat.push(messageReceived);
 
           formatText = textToConcat.join(formattedDelimiter);
@@ -1332,6 +1381,8 @@ export class ChatwootService {
       contactsArrayMessage: msg.contactsArrayMessage,
       locationMessage: msg.locationMessage,
       liveLocationMessage: msg.liveLocationMessage,
+      // Alterado por Edison Martins em 29/12/2023
+      // Inclusão do tipo de mensagem de Lista
       listMessage: msg.listMessage,
       listResponseMessage: msg.listResponseMessage,
     };
@@ -1350,9 +1401,10 @@ export class ChatwootService {
     if (typeKey === 'locationMessage' || typeKey === 'liveLocationMessage') {
       const latitude = result.degreesLatitude;
       const longitude = result.degreesLongitude;
-
-      const locationName = result?.name || 'Unknown';
-      const locationAddress = result?.address || 'Unknown';
+      // Alterado por Edison Martins em 29/12/2023
+      // Ajuste no formato da mensagem de Localização
+      const locationName = result?.name || 'Não informado';
+      const locationAddress = result?.address || 'Não informado';
 
       const formattedLocation =
         '*Localização:*\n\n' +
@@ -1389,17 +1441,15 @@ export class ChatwootService {
         }
       });
 
-      let formattedContact = '*Contact:*\n\n' + '_Name:_ ' + contactInfo['FN'];
+      // Alterado por Edison Martins em 29/12/2023
+      // Ajuste no formato da mensagem de Contato
+      let formattedContact = '*Contato:*\n\n' + '_Nome:_ ' + contactInfo['FN'];
 
       let numberCount = 1;
       Object.keys(contactInfo).forEach((key) => {
-        if (key.startsWith('item') && key.includes('TEL')) {
+        if (key.includes('TEL')) {
           const phoneNumber = contactInfo[key];
-          formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
-          numberCount++;
-        } else if (key.includes('TEL')) {
-          const phoneNumber = contactInfo[key];
-          formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
+          formattedContact += '\n_Número (' + numberCount + '):_ ' + phoneNumber;
           numberCount++;
         }
       });
@@ -1420,17 +1470,13 @@ export class ChatwootService {
           }
         });
 
-        let formattedContact = '*Contact:*\n\n' + '_Name:_ ' + contact.displayName;
+        let formattedContact = '*Contato:*\n\n' + '_Nome:_ ' + contact.displayName;
 
         let numberCount = 1;
         Object.keys(contactInfo).forEach((key) => {
-          if (key.startsWith('item') && key.includes('TEL')) {
+          if (key.includes('TEL')) {
             const phoneNumber = contactInfo[key];
-            formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
-            numberCount++;
-          } else if (key.includes('TEL')) {
-            const phoneNumber = contactInfo[key];
-            formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
+            formattedContact += '\n_Número (' + numberCount + '):_ ' + phoneNumber;
             numberCount++;
           }
         });
@@ -1445,55 +1491,57 @@ export class ChatwootService {
       return formattedContactsArray;
     }
 
+    // Alterado por Edison Martins em 29/12/2023
+    // Inclusão do tipo de mensagem de Lista
     if (typeKey === 'listMessage') {
-      const listTitle = result?.title || 'Unknown';
-      const listDescription = result?.description || 'Unknown';
-      const listFooter = result?.footerText || 'Unknown';
+      const listTitle = result?.title || 'Não informado';
+      const listDescription = result?.description || 'Não informado';
+      const listFooter = result?.footerText || 'Não informado';
 
       let formattedList =
-        '*List Menu:*\n\n' +
-        '_Title_: ' +
+        '*Menu em Lista:*\n\n' +
+        '_Título_: ' +
         listTitle +
         '\n' +
-        '_Description_: ' +
+        '_Descrição_: ' +
         listDescription +
         '\n' +
-        '_Footer_: ' +
+        '_Rodapé_: ' +
         listFooter;
 
       if (result.sections && result.sections.length > 0) {
         result.sections.forEach((section, sectionIndex) => {
-          formattedList += '\n\n*Section ' + (sectionIndex + 1) + ':* ' + section.title || 'Unknown\n';
+          formattedList += '\n\n*Seção ' + (sectionIndex + 1) + ':* ' + section.title || 'Não informado\n';
 
           if (section.rows && section.rows.length > 0) {
             section.rows.forEach((row, rowIndex) => {
-              formattedList += '\n*Line ' + (rowIndex + 1) + ':*\n';
-              formattedList += '_▪️ Title:_ ' + (row.title || 'Unknown') + '\n';
-              formattedList += '_▪️ Description:_ ' + (row.description || 'Unknown') + '\n';
-              formattedList += '_▪️ ID:_ ' + (row.rowId || 'Unknown') + '\n';
+              formattedList += '\n*Linha ' + (rowIndex + 1) + ':*\n';
+              formattedList += '_▪️ Título:_ ' + (row.title || 'Não informado') + '\n';
+              formattedList += '_▪️ Descrição:_ ' + (row.description || 'Não informado') + '\n';
+              formattedList += '_▪️ ID:_ ' + (row.rowId || 'Não informado') + '\n';
             });
           } else {
-            formattedList += '\nNo lines found in this section.\n';
+            formattedList += '\nNenhuma linha encontrada nesta seção.\n';
           }
         });
       } else {
-        formattedList += '\nNo sections found.\n';
+        formattedList += '\nNenhuma seção encontrada.\n';
       }
 
       return formattedList;
     }
 
     if (typeKey === 'listResponseMessage') {
-      const responseTitle = result?.title || 'Unknown';
-      const responseDescription = result?.description || 'Unknown';
-      const responseRowId = result?.singleSelectReply?.selectedRowId || 'Unknown';
+      const responseTitle = result?.title || 'Não informado';
+      const responseDescription = result?.description || 'Não informado';
+      const responseRowId = result?.singleSelectReply?.selectedRowId || 'Não informado';
 
       const formattedResponseList =
-        '*List Response:*\n\n' +
-        '_Title_: ' +
+        '*Resposta da Lista:*\n\n' +
+        '_Título_: ' +
         responseTitle +
         '\n' +
-        '_Description_: ' +
+        '_Descrição_: ' +
         responseDescription +
         '\n' +
         '_ID_: ' +
@@ -1638,40 +1686,42 @@ export class ChatwootService {
             }
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(
-              getConversation,
-              fileName,
-              messageType,
-              content,
-              instance,
-              body,
-              'WAID:' + body.key.id,
-            );
+            const send = await this.sendData(getConversation, fileName, messageType, content, instance, body);
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
+
+            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+
+            this.messageCache = this.loadMessageCache();
+
+            this.messageCache.add(send.id.toString());
+
+            this.logger.verbose('save message cache');
+            this.saveMessageCache();
 
             return send;
           } else {
             this.logger.verbose('message is not group');
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(
-              getConversation,
-              fileName,
-              messageType,
-              bodyMessage,
-              instance,
-              body,
-              'WAID:' + body.key.id,
-            );
+            const send = await this.sendData(getConversation, fileName, messageType, bodyMessage, instance, body);
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
+
+            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+
+            this.messageCache = this.loadMessageCache();
+
+            this.messageCache.add(send.id.toString());
+
+            this.logger.verbose('save message cache');
+            this.saveMessageCache();
 
             return send;
           }
@@ -1691,12 +1741,16 @@ export class ChatwootService {
               {
                 message: { extendedTextMessage: { contextInfo: { stanzaId: reactionMessage.key.id } } },
               },
-              'WAID:' + body.key.id,
             );
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
+            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+            this.messageCache = this.loadMessageCache();
+            this.messageCache.add(send.id.toString());
+            this.logger.verbose('save message cache');
+            this.saveMessageCache();
           }
 
           return;
@@ -1746,13 +1800,21 @@ export class ChatwootService {
             `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`,
             instance,
             body,
-            'WAID:' + body.key.id,
           );
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
+
+          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+
+          this.messageCache = this.loadMessageCache();
+
+          this.messageCache.add(send.id.toString());
+
+          this.logger.verbose('save message cache');
+          this.saveMessageCache();
 
           return send;
         }
@@ -1773,42 +1835,42 @@ export class ChatwootService {
           }
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(
-            instance,
-            getConversation,
-            content,
-            messageType,
-            false,
-            [],
-            body,
-            'WAID:' + body.key.id,
-          );
+          const send = await this.createMessage(instance, getConversation, content, messageType, false, [], body);
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
+
+          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+
+          this.messageCache = this.loadMessageCache();
+
+          this.messageCache.add(send.id.toString());
+
+          this.logger.verbose('save message cache');
+          this.saveMessageCache();
 
           return send;
         } else {
           this.logger.verbose('message is not group');
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(
-            instance,
-            getConversation,
-            bodyMessage,
-            messageType,
-            false,
-            [],
-            body,
-            'WAID:' + body.key.id,
-          );
+          const send = await this.createMessage(instance, getConversation, bodyMessage, messageType, false, [], body);
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
+
+          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
+
+          this.messageCache = this.loadMessageCache();
+
+          this.messageCache.add(send.id.toString());
+
+          this.logger.verbose('save message cache');
+          this.saveMessageCache();
 
           return send;
         }

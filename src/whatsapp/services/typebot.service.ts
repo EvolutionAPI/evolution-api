@@ -412,7 +412,7 @@ export class TypebotService {
         text += element.text;
       }
 
-      if (element.type === 'p' || element.type === 'inline-variable') {
+      if (element.type === 'p' || element.type === 'inline-variable' || element.type === 'a') {
         for (const child of element.children) {
           text += applyFormatting(child);
         }
@@ -435,8 +435,7 @@ export class TypebotService {
       let formattedText = `${formats}${text}${formats.split('').reverse().join('')}`;
 
       if (element.url) {
-        const linkText = element.children[0]?.text || '';
-        formattedText = `[${linkText}](${element.url})`;
+        formattedText = element.children[0]?.text ? `[${formattedText}]\n(${element.url})` : `${element.url}`;
       }
 
       return formattedText;
