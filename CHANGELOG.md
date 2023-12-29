@@ -7,6 +7,10 @@
 * Adjust in webhook_base64
 * Correction in typebot text formatting
 * Correction in chatwoot text formatting and render list message
+* Only use a axios request to get file mimetype if necessary
+* When possible use the original file extension
+* When receiving a file from whatsapp, use the original filename in chatwoot if possible
+* Remove message ids cache in chatwoot to use chatwoot's api itself
 
 # 1.6.1 (2023-12-22 11:43)
 
