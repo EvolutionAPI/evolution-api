@@ -893,17 +893,21 @@ export class ChatwootService {
 
     try {
       this.logger.verbose('get media type');
-      const parts = media.split('/');
+      const parsedMedia = path.parse(decodeURIComponent(media));
+      let mimeType = mimeTypes.lookup(parsedMedia?.ext) || '';
+      let fileName = parsedMedia?.name + parsedMedia?.ext;
 
-      const fileName = decodeURIComponent(parts[parts.length - 1]);
-      this.logger.verbose('file name: ' + fileName);
+      if (!mimeType) {
+        const parts = media.split('/');
+        fileName = decodeURIComponent(parts[parts.length - 1]);
+        this.logger.verbose('file name: ' + fileName);
 
-      const response = await axios.get(media, {
-        responseType: 'arraybuffer',
-      });
-
-      const mimeType = response.headers['content-type'];
-      this.logger.verbose('mime type: ' + mimeType);
+        const response = await axios.get(media, {
+          responseType: 'arraybuffer',
+        });
+        mimeType = response.headers['content-type'];
+        this.logger.verbose('mime type: ' + mimeType);
+      }
 
       let type = 'document';
 
@@ -1597,20 +1601,21 @@ export class ChatwootService {
             },
           });
 
-          let prependFilename: string;
-          if (
-            body?.message[body?.messageType]?.fileName ||
-            body?.message[body?.messageType]?.message?.documentMessage?.fileName
-          ) {
-            prependFilename = path.parse(
-              body?.message[body?.messageType]?.fileName ||
-                body?.message[body?.messageType]?.message?.documentMessage?.fileName,
-            ).name;
-            prependFilename += `-${Math.floor(Math.random() * (99 - 10 + 1) + 10)}`;
-          } else {
-            prependFilename = Math.random().toString(36).substring(7);
+          let nameFile: string;
+          const messageBody = body?.message[body?.messageType];
+          const originalFilename = messageBody?.fileName || messageBody?.message?.documentMessage?.fileName;
+          if (originalFilename) {
+            const parsedFile = path.parse(originalFilename);
+            if (parsedFile.name && parsedFile.ext) {
+              nameFile = `${parsedFile.name}-${Math.floor(Math.random() * (99 - 10 + 1) + 10)}${parsedFile.ext}`;
+            }
           }
-          const nameFile = `${prependFilename}.${mimeTypes.extension(downloadBase64.mimetype)}`;
+
+          if (!nameFile) {
+            nameFile = `${Math.random().toString(36).substring(7)}.${
+              mimeTypes.extension(downloadBase64.mimetype) || ''
+            }`;
+          }
 
           const fileData = Buffer.from(downloadBase64.base64, 'base64');
 
