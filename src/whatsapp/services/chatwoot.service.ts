@@ -1,14 +1,13 @@
 import ChatwootClient from '@figuro/chatwoot-sdk';
 import axios from 'axios';
 import FormData from 'form-data';
-import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { ROOT_DIR } from '../../config/path.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
@@ -18,9 +17,6 @@ import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
-  private messageCacheFile: string;
-  private messageCache: Set<string>;
-
   private readonly logger = new Logger(ChatwootService.name);
 
   private provider: any;
@@ -29,33 +25,7 @@ export class ChatwootService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
-  ) {
-    this.messageCache = new Set();
-  }
-
-  private loadMessageCache(): Set<string> {
-    this.logger.verbose('load message cache');
-    try {
-      const cacheData = readFileSync(this.messageCacheFile, 'utf-8');
-      const cacheArray = cacheData.split('\n');
-      return new Set(cacheArray);
-    } catch (error) {
-      return new Set();
-    }
-  }
-
-  private saveMessageCache() {
-    this.logger.verbose('save message cache');
-    const cacheData = Array.from(this.messageCache).join('\n');
-    writeFileSync(this.messageCacheFile, cacheData, 'utf-8');
-    this.logger.verbose('message cache saved');
-  }
-
-  private clearMessageCache() {
-    this.logger.verbose('clear message cache');
-    this.messageCache.clear();
-    this.saveMessageCache();
-  }
+  ) {}
 
   private async getProvider(instance: InstanceDto) {
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
@@ -644,6 +614,7 @@ export class ChatwootService {
       filename: string;
     }[],
     messageBody?: any,
+    sourceId?: string,
   ) {
     this.logger.verbose('create message to instance: ' + instance.instanceName);
 
@@ -665,6 +636,7 @@ export class ChatwootService {
         message_type: messageType,
         attachments: attachments,
         private: privateMessage || false,
+        source_id: sourceId,
         content_attributes: {
           ...replyToIds,
         },
@@ -765,6 +737,7 @@ export class ChatwootService {
     content?: string,
     instance?: InstanceDto,
     messageBody?: any,
+    sourceId?: string,
   ) {
     this.logger.verbose('send data to chatwoot');
 
@@ -789,6 +762,10 @@ export class ChatwootService {
           ...replyToIds,
         });
       }
+    }
+
+    if (sourceId) {
+      data.append('source_id', sourceId);
     }
 
     this.logger.verbose('get client to instance: ' + this.provider.instanceName);
@@ -1105,21 +1082,10 @@ export class ChatwootService {
       if (body.message_type === 'outgoing' && body?.conversation?.messages?.length && chatId !== '123456') {
         this.logger.verbose('check if is group');
 
-        this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-        this.logger.verbose('cache file path: ' + this.messageCacheFile);
-
-        this.messageCache = this.loadMessageCache();
-        this.logger.verbose('cache file loaded');
-        this.logger.verbose(this.messageCache);
-
-        this.logger.verbose('check if message is cached');
-        if (this.messageCache.has(body.id.toString())) {
-          this.logger.verbose('message is cached');
+        if (body?.conversation?.messages[0]?.source_id?.substring(0, 5) === 'WAID:') {
+          this.logger.verbose('message sent directly from whatsapp. Webhook ignored.');
           return { message: 'bot' };
         }
-
-        this.logger.verbose('clear cache');
-        this.clearMessageCache();
 
         this.logger.verbose('Format message to send');
         let formatText: string;
@@ -1590,42 +1556,40 @@ export class ChatwootService {
             }
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversation, fileName, messageType, content, instance, body);
+            const send = await this.sendData(
+              getConversation,
+              fileName,
+              messageType,
+              content,
+              instance,
+              body,
+              'WAID:' + body.key.id,
+            );
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
-
-            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-            this.messageCache = this.loadMessageCache();
-
-            this.messageCache.add(send.id.toString());
-
-            this.logger.verbose('save message cache');
-            this.saveMessageCache();
 
             return send;
           } else {
             this.logger.verbose('message is not group');
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversation, fileName, messageType, bodyMessage, instance, body);
+            const send = await this.sendData(
+              getConversation,
+              fileName,
+              messageType,
+              bodyMessage,
+              instance,
+              body,
+              'WAID:' + body.key.id,
+            );
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
-
-            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-            this.messageCache = this.loadMessageCache();
-
-            this.messageCache.add(send.id.toString());
-
-            this.logger.verbose('save message cache');
-            this.saveMessageCache();
 
             return send;
           }
@@ -1645,16 +1609,12 @@ export class ChatwootService {
               {
                 message: { extendedTextMessage: { contextInfo: { stanzaId: reactionMessage.key.id } } },
               },
+              'WAID:' + body.key.id,
             );
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
-            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-            this.messageCache = this.loadMessageCache();
-            this.messageCache.add(send.id.toString());
-            this.logger.verbose('save message cache');
-            this.saveMessageCache();
           }
 
           return;
@@ -1704,21 +1664,13 @@ export class ChatwootService {
             `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`,
             instance,
             body,
+            'WAID:' + body.key.id,
           );
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
-
-          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-          this.messageCache = this.loadMessageCache();
-
-          this.messageCache.add(send.id.toString());
-
-          this.logger.verbose('save message cache');
-          this.saveMessageCache();
 
           return send;
         }
@@ -1739,42 +1691,42 @@ export class ChatwootService {
           }
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(instance, getConversation, content, messageType, false, [], body);
+          const send = await this.createMessage(
+            instance,
+            getConversation,
+            content,
+            messageType,
+            false,
+            [],
+            body,
+            'WAID:' + body.key.id,
+          );
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
-
-          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-          this.messageCache = this.loadMessageCache();
-
-          this.messageCache.add(send.id.toString());
-
-          this.logger.verbose('save message cache');
-          this.saveMessageCache();
 
           return send;
         } else {
           this.logger.verbose('message is not group');
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(instance, getConversation, bodyMessage, messageType, false, [], body);
+          const send = await this.createMessage(
+            instance,
+            getConversation,
+            bodyMessage,
+            messageType,
+            false,
+            [],
+            body,
+            'WAID:' + body.key.id,
+          );
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
-
-          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-          this.messageCache = this.loadMessageCache();
-
-          this.messageCache.add(send.id.toString());
-
-          this.logger.verbose('save message cache');
-          this.saveMessageCache();
 
           return send;
         }
