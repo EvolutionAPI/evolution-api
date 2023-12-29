@@ -918,7 +918,7 @@ export class ChatwootService {
       this.logger.verbose('get media type');
       const parsedMedia = path.parse(decodeURIComponent(media));
       let mimeType = mimeTypes.lookup(parsedMedia?.ext) || '';
-      let fileName = parsedMedia?.name;
+      let fileName = parsedMedia?.name + parsedMedia?.ext;
 
       if (!mimeType) {
         const parts = media.split('/');
