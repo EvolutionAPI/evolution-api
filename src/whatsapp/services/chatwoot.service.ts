@@ -893,17 +893,21 @@ export class ChatwootService {
 
     try {
       this.logger.verbose('get media type');
-      const parts = media.split('/');
+      const parsedMedia = path.parse(decodeURIComponent(media));
+      let mimeType = mimeTypes.lookup(parsedMedia?.ext) || '';
+      let fileName = parsedMedia?.name + parsedMedia?.ext;
 
-      const fileName = decodeURIComponent(parts[parts.length - 1]);
-      this.logger.verbose('file name: ' + fileName);
+      if (!mimeType) {
+        const parts = media.split('/');
+        fileName = decodeURIComponent(parts[parts.length - 1]);
+        this.logger.verbose('file name: ' + fileName);
 
-      const response = await axios.get(media, {
-        responseType: 'arraybuffer',
-      });
-
-      const mimeType = response.headers['content-type'];
-      this.logger.verbose('mime type: ' + mimeType);
+        const response = await axios.get(media, {
+          responseType: 'arraybuffer',
+        });
+        mimeType = response.headers['content-type'];
+        this.logger.verbose('mime type: ' + mimeType);
+      }
 
       let type = 'document';
 
