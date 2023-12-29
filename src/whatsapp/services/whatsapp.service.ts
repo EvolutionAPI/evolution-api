@@ -779,6 +779,7 @@ export class WAStartupService {
           amqp.assertExchange(exchangeName, 'topic', {
             durable: true,
             autoDelete: false,
+            assert: true,
           });
 
           const queueName = `${this.instanceName}.${event}`;

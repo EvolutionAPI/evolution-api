@@ -27,6 +27,7 @@ export const initAMQP = () => {
         channel.assertExchange(exchangeName, 'topic', {
           durable: true,
           autoDelete: false,
+          assert: true,
         });
 
         amqpChannel = channel;
@@ -43,7 +44,7 @@ export const getAMQP = (): amqp.Channel | null => {
 };
 
 export const initQueues = (instanceName: string, events: string[]) => {
-  if (!events || !events.length) return;
+  if (!instanceName || !events || !events.length) return;
 
   const queues = events.map((event) => {
     return `${event.replace(/_/g, '.').toLowerCase()}`;
@@ -56,6 +57,7 @@ export const initQueues = (instanceName: string, events: string[]) => {
     amqp.assertExchange(exchangeName, 'topic', {
       durable: true,
       autoDelete: false,
+      assert: true,
     });
 
     const queueName = `${instanceName}.${event}`;
@@ -89,6 +91,7 @@ export const removeQueues = (instanceName: string, events: string[]) => {
     amqp.assertExchange(exchangeName, 'topic', {
       durable: true,
       autoDelete: false,
+      assert: true,
     });
 
     const queueName = `${instanceName}.${event}`;
