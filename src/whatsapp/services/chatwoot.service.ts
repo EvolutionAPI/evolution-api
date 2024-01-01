@@ -1021,7 +1021,18 @@ export class ChatwootService {
           limit: 1,
         });
         if (message.length && message[0].key?.id) {
+          this.logger.verbose('deleting message in whatsapp. Message id: ' + message[0].key.id);
           await waInstance?.client.sendMessage(message[0].key.remoteJid, { delete: message[0].key });
+
+          this.logger.verbose('deleting message in repository. Message id: ' + message[0].key.id);
+          this.repository.message.delete({
+            where: {
+              owner: instance.instanceName,
+              chatwoot: {
+                messageId: body.id,
+              },
+            },
+          });
         }
         return { message: 'bot' };
       }
@@ -1742,6 +1753,16 @@ export class ChatwootService {
 
         const message = await this.getMessageByKeyId(instance, body.key.id);
         if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
+          this.logger.verbose('deleting message in repository. Message id: ' + body.key.id);
+          this.repository.message.delete({
+            where: {
+              key: {
+                id: body.key.id,
+              },
+              owner: instance.instanceName,
+            },
+          });
+
           this.logger.verbose('deleting message in chatwoot. Message id: ' + body.key.id);
           return await client.messages.delete({
             accountId: this.provider.account_id,

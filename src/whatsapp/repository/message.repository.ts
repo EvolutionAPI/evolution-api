@@ -1,4 +1,4 @@
-import { opendirSync, readFileSync } from 'fs';
+import { opendirSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 
 import { ConfigService, StoreConf } from '../../config/env.config';
@@ -17,6 +17,19 @@ export class MessageRepository extends Repository {
   }
 
   private readonly logger = new Logger('MessageRepository');
+
+  public buildQuery(query: MessageQuery): MessageQuery {
+    for (const [o, p] of Object.entries(query?.where)) {
+      if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
+        for (const [k, v] of Object.entries(p)) {
+          query.where[`${o}.${k}`] = v;
+        }
+        delete query.where[o];
+      }
+    }
+
+    return query;
+  }
 
   public async insert(data: MessageRaw[], instanceName: string, saveDb = false): Promise<IInsert> {
     this.logger.verbose('inserting messages');
@@ -91,14 +104,7 @@ export class MessageRepository extends Repository {
       this.logger.verbose('finding messages');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('finding messages in db');
-        for (const [o, p] of Object.entries(query?.where)) {
-          if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
-            for (const [k, v] of Object.entries(p)) {
-              query.where[`${o}.${k}`] = v;
-            }
-            delete query.where[o];
-          }
-        }
+        query = this.buildQuery(query);
 
         return await this.messageModel
           .find({ ...query.where })
@@ -195,6 +201,28 @@ export class MessageRepository extends Repository {
       return { insertCount: 0 };
     } catch (error) {
       this.logger.error(error);
+    }
+  }
+
+  public async delete(query: MessageQuery) {
+    try {
+      this.logger.verbose('deleting message');
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('deleting message in db');
+        query = this.buildQuery(query);
+
+        return await this.messageModel.deleteOne({ ...query.where });
+      }
+
+      this.logger.verbose('deleting message in store');
+      rmSync(join(this.storePath, 'messages', query.where.owner, query.where.key.id + '.json'), {
+        force: true,
+        recursive: true,
+      });
+
+      return { deleted: { messageId: query.where.key.id } };
+    } catch (error) {
+      return { error: error?.toString() };
     }
   }
 }
