@@ -2489,10 +2489,13 @@ export class WAStartupService {
         );
       })();
 
+      const contentMsg = messageSent.message[getContentType(messageSent.message)] as any;
+
       const messageRaw: MessageRaw = {
         key: messageSent.key,
         pushName: messageSent.pushName,
         message: { ...messageSent.message },
+        contextInfo: contentMsg?.contextInfo,
         messageType: getContentType(messageSent.message),
         messageTimestamp: messageSent.messageTimestamp as number,
         owner: this.instance.name,
