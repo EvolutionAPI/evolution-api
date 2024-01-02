@@ -1029,6 +1029,8 @@ export class WAStartupService {
 
         const localUrl = this.localWebhook.url;
 
+        console.log(data);
+
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
             local: WAStartupService.name + '.sendDataWebhook-global',
@@ -1756,6 +1758,8 @@ export class WAStartupService {
             received?.message?.documentMessage ||
             received?.message?.audioMessage;
 
+          const contentMsg = received.message[getContentType(received.message)] as any;
+
           if (this.localWebhook.webhook_base64 === true && isMedia) {
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
@@ -1773,6 +1777,7 @@ export class WAStartupService {
                 ...received.message,
                 base64: buffer ? buffer.toString('base64') : undefined,
               },
+              contextInfo: contentMsg?.contextInfo,
               messageType: getContentType(received.message),
               messageTimestamp: received.messageTimestamp as number,
               owner: this.instance.name,
@@ -1783,6 +1788,7 @@ export class WAStartupService {
               key: received.key,
               pushName: received.pushName,
               message: { ...received.message },
+              contextInfo: contentMsg?.contextInfo,
               messageType: getContentType(received.message),
               messageTimestamp: received.messageTimestamp as number,
               owner: this.instance.name,

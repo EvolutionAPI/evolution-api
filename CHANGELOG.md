@@ -11,6 +11,7 @@
 * When possible use the original file extension
 * When receiving a file from whatsapp, use the original filename in chatwoot if possible
 * Remove message ids cache in chatwoot to use chatwoot's api itself
+* Adjusts the quoted message, now has contextInfo in the message Raw
 
 # 1.6.1 (2023-12-22 11:43)
 
