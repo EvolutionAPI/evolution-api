@@ -442,6 +442,7 @@ export class WAMonitoringService {
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       this.logger.verbose('logout instance: ' + instanceName);
       try {
+        this.waInstances[instanceName]?.clearCacheChatwoot();
         this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
       } finally {

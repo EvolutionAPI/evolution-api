@@ -548,6 +548,7 @@ export class InstanceController {
       switch (state) {
         case 'open':
           this.logger.verbose('logging out instance: ' + instanceName);
+          instance.clearCacheChatwoot();
           await instance.reloadConnection();
           await delay(2000);
 
@@ -613,6 +614,7 @@ export class InstanceController {
     }
     try {
       this.waMonitor.waInstances[instanceName]?.removeRabbitmqQueues();
+      this.waMonitor.waInstances[instanceName]?.clearCacheChatwoot();
 
       if (instance.state === 'connecting') {
         this.logger.verbose('logging out instance: ' + instanceName);

@@ -1,4 +1,4 @@
-import ChatwootClient from '@figuro/chatwoot-sdk';
+import ChatwootClient, { conversation, inbox } from '@figuro/chatwoot-sdk';
 import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
@@ -11,15 +11,17 @@ import { Logger } from '../../config/logger.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
-import { MessageRaw } from '../models';
+import { ChatwootRaw, MessageRaw } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events } from '../types/wa.types';
+import { CacheService } from './cache.service';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
   private readonly logger = new Logger(ChatwootService.name);
 
   private provider: any;
+  private cache = new CacheService(ChatwootService.name);
 
   constructor(
     private readonly waMonitor: WAMonitoringService,
@@ -28,6 +30,11 @@ export class ChatwootService {
   ) {}
 
   private async getProvider(instance: InstanceDto) {
+    const cacheKey = `getProvider-${instance.instanceName}`;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey) as ChatwootRaw;
+    }
+
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
     const provider = await this.waMonitor.waInstances[instance.instanceName]?.findChatwoot();
 
@@ -37,6 +44,8 @@ export class ChatwootService {
     }
 
     this.logger.verbose('provider found');
+
+    this.cache.set(cacheKey, provider);
 
     return provider;
     // try {
@@ -60,6 +69,11 @@ export class ChatwootService {
 
     this.provider = provider;
 
+    const cacheKey = `clientCw-${instance.instanceName}`;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey) as ChatwootClient;
+    }
+
     this.logger.verbose('create client to instance: ' + instance.instanceName);
     const client = new ChatwootClient({
       config: {
@@ -72,7 +86,13 @@ export class ChatwootService {
 
     this.logger.verbose('client created');
 
+    this.cache.set(cacheKey, client);
+
     return client;
+  }
+
+  public getCache() {
+    return this.cache;
   }
 
   public async create(instance: InstanceDto, data: ChatwootDto) {
@@ -389,6 +409,26 @@ export class ChatwootService {
         return null;
       }
 
+      const cacheKey = `createConversation-${instance.instanceName}-${body.key.remoteJid}`;
+      if (this.cache.has(cacheKey)) {
+        const conversationId = this.cache.get(cacheKey) as number;
+        let conversationExists: conversation | boolean;
+        try {
+          conversationExists = await client.conversations.get({
+            accountId: this.provider.account_id,
+            conversationId: conversationId,
+          });
+        } catch (error) {
+          conversationExists = false;
+        }
+        if (!conversationExists) {
+          this.cache.delete(cacheKey);
+          return await this.createConversation(instance, body);
+        }
+
+        return conversationId;
+      }
+
       const isGroup = body.key.remoteJid.includes('@g.us');
 
       this.logger.verbose('is group: ' + isGroup);
@@ -539,6 +579,7 @@ export class ChatwootService {
 
         if (conversation) {
           this.logger.verbose('conversation found');
+          this.cache.set(cacheKey, conversation.id);
           return conversation.id;
         }
       }
@@ -564,6 +605,7 @@ export class ChatwootService {
       }
 
       this.logger.verbose('conversation created');
+      this.cache.set(cacheKey, conversation.id);
       return conversation.id;
     } catch (error) {
       this.logger.error(error);
@@ -572,6 +614,11 @@ export class ChatwootService {
 
   public async getInbox(instance: InstanceDto) {
     this.logger.verbose('get inbox to instance: ' + instance.instanceName);
+
+    const cacheKey = `getInbox-${instance.instanceName}`;
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey) as inbox;
+    }
 
     const client = await this.clientCw(instance);
 
@@ -599,6 +646,7 @@ export class ChatwootService {
     }
 
     this.logger.verbose('return inbox');
+    this.cache.set(cacheKey, findByName);
     return findByName;
   }
 
