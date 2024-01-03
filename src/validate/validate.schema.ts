@@ -592,6 +592,26 @@ export const profileStatusSchema: JSONSchema7 = {
   ...isNotEmpty('status'),
 };
 
+export const updateMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { type: 'string' },
+    text: { type: 'string' },
+    key: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        remoteJid: { type: 'string' },
+        fromMe: { type: 'boolean', enum: [true, false] },
+      },
+      required: ['id', 'fromMe', 'remoteJid'],
+      ...isNotEmpty('id', 'remoteJid'),
+    },
+  },
+  ...isNotEmpty('number', 'text', 'key'),
+};
+
 export const profilePictureSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

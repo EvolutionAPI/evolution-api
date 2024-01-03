@@ -1,5 +1,9 @@
 # 1.6.2 (develop)
 
+### Feature
+
+* Added update message endpoint
+
 ### Fixed
 
 * Proxy configuration improvements

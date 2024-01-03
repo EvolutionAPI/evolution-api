@@ -85,6 +85,7 @@ import {
   PrivacySettingDto,
   ReadMessageDto,
   SendPresenceDto,
+  UpdateMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import {
@@ -3526,6 +3527,21 @@ export class WAStartupService {
       return { update: 'success' };
     } catch (error) {
       throw new InternalServerErrorException('Error removing profile picture', error.toString());
+    }
+  }
+
+  public async updateMessage(data: UpdateMessageDto) {
+    try {
+      const jid = this.createJid(data.number);
+
+      this.logger.verbose('Updating message');
+      return await this.client.sendMessage(jid, {
+        text: data.text,
+        edit: data.key,
+      });
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
     }
   }
 

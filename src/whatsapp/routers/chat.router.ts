@@ -14,6 +14,7 @@ import {
   profileSchema,
   profileStatusSchema,
   readMessageSchema,
+  updateMessageSchema,
   whatsappNumberSchema,
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
@@ -28,6 +29,7 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   SendPresenceDto,
+  UpdateMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
@@ -362,6 +364,23 @@ export class ChatRouter extends RouterBroker {
           schema: profilePictureSchema,
           ClassRef: ProfilePictureDto,
           execute: (instance) => chatController.removeProfilePicture(instance),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
+      .put(this.routerPath('updateMessage'), ...guards, async (req, res) => {
+        logger.verbose('request received in updateMessage');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+
+        const response = await this.dataValidate<UpdateMessageDto>({
+          request: req,
+          schema: updateMessageSchema,
+          ClassRef: UpdateMessageDto,
+          execute: (instance, data) => chatController.updateMessage(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);

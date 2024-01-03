@@ -10,6 +10,7 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   SendPresenceDto,
+  UpdateMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
@@ -116,5 +117,10 @@ export class ChatController {
   public async removeProfilePicture({ instanceName }: InstanceDto) {
     logger.verbose('requested removeProfilePicture from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].removeProfilePicture();
+  }
+
+  public async updateMessage({ instanceName }: InstanceDto, data: UpdateMessageDto) {
+    logger.verbose('requested updateMessage from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].updateMessage(data);
   }
 }
