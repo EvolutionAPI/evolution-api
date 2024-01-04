@@ -174,10 +174,11 @@ function salvarLog(env: any, log: string): void {
 function excluirArquivosAntigos(path: string, diasLimite: number): void {
   const data = new Date();
   data.setDate(data.getDate() - diasLimite);
-  let limite = Number.parseInt(data.toLocaleDateString().replaceAll('/', ''));
   fs.readdirSync(path).forEach((nomeArquivo) => {
-    let file = Number.parseInt(nomeArquivo.replace(/^.*[\\\/]/, '').replace(/\.[^/.]+$/, ''));
-    if (file < limite) {
+    let Timerfile = new Date(parseInt(nomeArquivo.substring(8, 4)), 
+    parseInt(nomeArquivo.substring(4, 2)), parseInt(nomeArquivo.substring(2, 0)))
+  
+    if (Timerfile.getTime() < data.getTime()) {
       fs.unlinkSync(path + '/' + nomeArquivo);
       console.log(`Arquivo ${nomeArquivo} excluído.`);
     }

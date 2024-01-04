@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "ts-node --files --transpile-only ./src/main.ts",
     "start:prod": "bash start.sh",
-    "dev:server": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./src/main.ts",
+    "dev": "ts-node-dev --inspect --transpile-only --ignore-watch node_modules ./src/main.ts",
     "test": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src"
   },
@@ -46,7 +46,7 @@
     "@figuro/chatwoot-sdk": "^1.1.16",
     "@hapi/boom": "^10.0.1",
     "@sentry/node": "^7.59.2",
-    "@whiskeysockets/baileys": "github:PurpShell/Baileys#combined",
+    "@whiskeysockets/baileys": "^6.5.0",
     "amqplib": "^0.10.3",
     "aws-sdk": "^2.1499.0",
     "axios": "^1.3.5",
