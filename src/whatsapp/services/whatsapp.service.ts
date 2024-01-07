@@ -1030,8 +1030,6 @@ export class WAStartupService {
 
         const localUrl = this.localWebhook.url;
 
-        console.log(data);
-
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
             local: WAStartupService.name + '.sendDataWebhook-global',
