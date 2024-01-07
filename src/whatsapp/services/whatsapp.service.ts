@@ -368,6 +368,8 @@ export class WAStartupService {
 
     Object.assign(this.localChatwoot, { ...data, sign_delimiter: data.sign_msg ? data.sign_delimiter : null });
 
+    this.clearCacheChatwoot();
+
     this.logger.verbose('Chatwoot set');
   }
 
@@ -400,6 +402,14 @@ export class WAStartupService {
       reopen_conversation: data.reopen_conversation,
       conversation_pending: data.conversation_pending,
     };
+  }
+
+  public clearCacheChatwoot() {
+    this.logger.verbose('Removing cache from chatwoot');
+
+    if (this.localChatwoot.enabled) {
+      this.chatwootService.getCache().deleteAll();
+    }
   }
 
   private async loadSettings() {
