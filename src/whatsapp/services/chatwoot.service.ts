@@ -1037,6 +1037,17 @@ export class ChatwootService {
         return null;
       }
 
+      // invalidate the conversation cache if reopen_conversation is false and the conversation was resolved
+      if (
+        this.provider.reopen_conversation === false &&
+        body.event === 'conversation_status_changed' &&
+        body.status === 'resolved' &&
+        body.meta?.sender?.identifier
+      ) {
+        const keyToDelete = `createConversation-${instance.instanceName}-${body.meta.sender.identifier}`;
+        this.cache.delete(keyToDelete);
+      }
+
       this.logger.verbose('check if is bot');
       if (
         !body?.conversation ||
