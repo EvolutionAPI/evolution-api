@@ -2875,7 +2875,8 @@ export class WAStartupService {
     this.logger.verbose('Processing audio');
     let tempAudioPath: string;
     let outputAudio: string;
-
+		
+		number = number.replace(/\D/g, "");
     const hash = `${number}-${new Date().getTime()}`;
     this.logger.verbose('Hash to audio name: ' + hash);
 
