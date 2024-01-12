@@ -333,13 +333,13 @@ export class ConfigService {
       CACHE: {
         REDIS: {
           ENABLED: process.env?.CACHE_REDIS_ENABLED === 'true',
-          URI: process.env.CACHE_REDIS_URI || '',
-          PREFIX_KEY: process.env.CACHE_REDIS_PREFIX_KEY || 'evolution-cache',
-          TTL: Number.parseInt(process.env.CACHE_REDIS_TTL) || 604800,
+          URI: process.env?.CACHE_REDIS_URI || '',
+          PREFIX_KEY: process.env?.CACHE_REDIS_PREFIX_KEY || 'evolution-cache',
+          TTL: Number.parseInt(process.env?.CACHE_REDIS_TTL) || 604800,
         },
         LOCAL: {
           ENABLED: process.env?.CACHE_LOCAL_ENABLED === 'true',
-          TTL: Number.parseInt(process.env.CACHE_REDIS_TTL) || 86400,
+          TTL: Number.parseInt(process.env?.CACHE_REDIS_TTL) || 86400,
         },
       },
       AUTHENTICATION: {
