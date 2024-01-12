@@ -132,11 +132,22 @@ export type GlobalWebhook = {
   ENABLED: boolean;
   WEBHOOK_BY_EVENTS: boolean;
 };
+export type CacheConfRedis = {
+  ENABLED: boolean;
+  URI: string;
+  PREFIX_KEY: string;
+  TTL: number;
+};
+export type CacheConfLocal = {
+  ENABLED: boolean;
+  TTL: number;
+};
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
 export type QrCode = { LIMIT: number; COLOR: string };
 export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
+export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
 export type Production = boolean;
 
 export interface Env {
@@ -156,6 +167,7 @@ export interface Env {
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
   QRCODE: QrCode;
   TYPEBOT: Typebot;
+  CACHE: CacheConf;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
 }
@@ -317,6 +329,18 @@ export class ConfigService {
       TYPEBOT: {
         API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
         KEEP_OPEN: process.env.TYPEBOT_KEEP_OPEN === 'true',
+      },
+      CACHE: {
+        REDIS: {
+          ENABLED: process.env?.CACHE_REDIS_ENABLED === 'true',
+          URI: process.env.CACHE_REDIS_URI || '',
+          PREFIX_KEY: process.env.CACHE_REDIS_PREFIX_KEY || 'evolution-cache',
+          TTL: Number.parseInt(process.env.CACHE_REDIS_TTL) || 604800,
+        },
+        LOCAL: {
+          ENABLED: process.env?.CACHE_LOCAL_ENABLED === 'true',
+          TTL: Number.parseInt(process.env.CACHE_REDIS_TTL) || 86400,
+        },
       },
       AUTHENTICATION: {
         TYPE: process.env.AUTHENTICATION_TYPE as 'apikey',

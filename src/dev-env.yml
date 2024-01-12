@@ -153,6 +153,17 @@ TYPEBOT:
   API_VERSION: 'old' # old | latest
   KEEP_OPEN: false
 
+# Cache to optimize application performance
+CACHE:
+  REDIS:
+    ENABLED: false
+    URI: "redis://localhost:6379"
+    PREFIX_KEY: "evolution-cache"
+    TTL: 604800
+  LOCAL:
+    ENABLED: false
+    TTL: 86400
+
 # Defines an authentication type for the api
 # We recommend using the apikey because it will allow you to use a custom token,
 # if you use jwt, a random token will be generated and may be expired and you will have to generate a new token

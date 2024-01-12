@@ -26,6 +26,7 @@ import {
   WebsocketModel,
 } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { CacheService } from './cache.service';
 import { WAStartupService } from './whatsapp.service';
 
 export class WAMonitoringService {
@@ -34,6 +35,7 @@ export class WAMonitoringService {
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
     private readonly cache: RedisCache,
+    private readonly chatwootCache: CacheService,
   ) {
     this.logger.verbose('instance created');
 
@@ -359,7 +361,13 @@ export class WAMonitoringService {
   }
 
   private async setInstance(name: string) {
-    const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
+    const instance = new WAStartupService(
+      this.configService,
+      this.eventEmitter,
+      this.repository,
+      this.cache,
+      this.chatwootCache,
+    );
     instance.instanceName = name;
     this.logger.verbose('Instance loaded: ' + name);
     await instance.connectToWhatsapp();
