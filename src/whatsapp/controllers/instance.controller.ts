@@ -10,6 +10,7 @@ import { RedisCache } from '../../libs/redis.client';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
+import { CacheService } from '../services/cache.service';
 import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { RabbitmqService } from '../services/rabbitmq.service';
@@ -36,6 +37,7 @@ export class InstanceController {
     private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
     private readonly cache: RedisCache,
+    private readonly chatwootCache: CacheService,
   ) {}
 
   private readonly logger = new Logger(InstanceController.name);
@@ -82,7 +84,13 @@ export class InstanceController {
       await this.authService.checkDuplicateToken(token);
 
       this.logger.verbose('creating instance');
-      const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
+      const instance = new WAStartupService(
+        this.configService,
+        this.eventEmitter,
+        this.repository,
+        this.cache,
+        this.chatwootCache,
+      );
       instance.instanceName = instanceName;
 
       const instanceId = v4();
