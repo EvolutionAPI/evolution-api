@@ -1,4 +1,5 @@
-import ChatwootClient, { conversation, inbox } from '@figuro/chatwoot-sdk';
+import ChatwootClient, { ChatwootAPIConfig, contact, conversation, inbox } from '@figuro/chatwoot-sdk';
+import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
@@ -71,17 +72,21 @@ export class ChatwootService {
 
     this.logger.verbose('create client to instance: ' + instance.instanceName);
     const client = new ChatwootClient({
-      config: {
-        basePath: provider.url,
-        with_credentials: true,
-        credentials: 'include',
-        token: provider.token,
-      },
+      config: this.getClientCwConfig(),
     });
 
     this.logger.verbose('client created');
 
     return client;
+  }
+
+  public getClientCwConfig(): ChatwootAPIConfig {
+    return {
+      basePath: this.provider.url,
+      with_credentials: true,
+      credentials: 'include',
+      token: this.provider.token,
+    };
   }
 
   public getCache() {
@@ -1200,6 +1205,9 @@ export class ChatwootService {
                   messageId: body.id,
                   inboxId: body.inbox?.id,
                   conversationId: body.conversation?.id,
+                  contactInbox: {
+                    sourceId: body.conversation?.contact_inbox?.source_id,
+                  },
                 },
                 instance,
               );
@@ -1231,6 +1239,9 @@ export class ChatwootService {
                 messageId: body.id,
                 inboxId: body.inbox?.id,
                 conversationId: body.conversation?.id,
+                contactInbox: {
+                  sourceId: body.conversation?.contact_inbox?.source_id,
+                },
               },
               instance,
             );
@@ -1911,6 +1922,44 @@ export class ChatwootService {
         }
       }
 
+      if (event === 'messages.read') {
+        this.logger.verbose('read message from instance: ' + instance.instanceName);
+
+        if (!body?.key?.id || !body?.key?.remoteJid) {
+          this.logger.warn('message id not found');
+          return;
+        }
+
+        const message = await this.getMessageByKeyId(instance, body.key.id);
+        const { conversationId, contactInbox } = message?.chatwoot || {};
+        if (conversationId) {
+          let sourceId = contactInbox?.sourceId;
+          const inbox = (await this.getInbox(instance)) as inbox & {
+            inbox_identifier?: string;
+          };
+
+          if (!sourceId && inbox) {
+            const contact = (await this.findContact(
+              instance,
+              this.getNumberFromRemoteJid(body.key.remoteJid),
+            )) as contact;
+            const contactInbox = contact?.contact_inboxes?.find((contactInbox) => contactInbox?.inbox?.id === inbox.id);
+            sourceId = contactInbox?.source_id;
+          }
+
+          if (sourceId && inbox?.inbox_identifier) {
+            const url =
+              `/public/api/v1/inboxes/${inbox.inbox_identifier}/contacts/${sourceId}` +
+              `/conversations/${conversationId}/update_last_seen`;
+            chatwootRequest(this.getClientCwConfig(), {
+              method: 'POST',
+              url: url,
+            });
+          }
+        }
+        return;
+      }
+
       if (event === 'status.instance') {
         this.logger.verbose('event status.instance');
         const data = body;
@@ -1980,5 +2029,9 @@ export class ChatwootService {
     } catch (error) {
       this.logger.error(error);
     }
+  }
+
+  public getNumberFromRemoteJid(remoteJid: string) {
+    return remoteJid.replace(/:\d+/, '').split('@')[0];
   }
 }
