@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
-import { opendirSync, readdirSync, rmSync } from 'fs';
+import { opendirSync, readdirSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { Db } from 'mongodb';
 import { join } from 'path';
 
@@ -27,6 +27,7 @@ import {
 } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { WAStartupService } from './whatsapp.service';
+import { WAStartupClass } from '../whatsapp.module';
 
 export class WAMonitoringService {
   constructor(
@@ -359,13 +360,21 @@ export class WAMonitoringService {
   }
 
   private async setInstance(name: string) {
-    const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
+    const path = join(INSTANCE_DIR, name);
+    let values: any;
+    if(this.db.ENABLED )
+      values = await this.dbInstance.collection(name).findOne({ _id: 'integration' })
+    else
+    values = JSON.parse(readFileSync(path + '/integration.json', 'utf8'));
+    const instance = new WAStartupClass[values.integration]
+      (this.configService, this.eventEmitter, this.repository, this.cache);
     instance.instanceName = name;
+    instance.instanceNumber = values.number;
+    instance.instanceToken = values.token;
+    this.waInstances[name] = instance;
     this.logger.verbose('Instance loaded: ' + name);
     await instance.connectToWhatsapp();
     this.logger.verbose('connectToWhatsapp: ' + name);
-
-    this.waInstances[name] = instance;
   }
 
   private async loadInstancesFromRedis() {
@@ -473,4 +482,27 @@ export class WAMonitoringService {
       }
     });
   }
+
+  public async saveInstance(data: any) {
+    this.logger.verbose('Save instance');
+
+    try {
+      let msgParsed = JSON.parse(JSON.stringify(data));
+      if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+        await this.repository.dbServer.connect();
+        await this.dbInstance.collection(data.instanceName).replaceOne({ _id: 'integration' }, msgParsed,
+          {
+            upsert: true,
+          });
+      } else {
+        const path = join(INSTANCE_DIR, data.instanceName)
+        if (!existsSync(path))
+          mkdirSync(path, { recursive: true });
+        writeFileSync(path + '/integration.json', JSON.stringify(msgParsed));
+      }
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
 }

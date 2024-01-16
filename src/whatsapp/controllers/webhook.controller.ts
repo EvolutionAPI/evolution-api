@@ -5,11 +5,19 @@ import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { WebhookDto } from '../dto/webhook.dto';
 import { WebhookService } from '../services/webhook.service';
+import { ConfigService } from '../../config/env.config';
+import { RedisCache } from '../../libs/redis.client';
+import EventEmitter2 from 'eventemitter2';
+import { RepositoryBroker } from '../repository/repository.manager';
+import { WAMonitoringService } from '../services/monitor.service';
 
 const logger = new Logger('WebhookController');
 
 export class WebhookController {
-  constructor(private readonly webhookService: WebhookService) {}
+  constructor(
+    private readonly webhookService: WebhookService,
+    private readonly waMonitor: WAMonitoringService,
+    ) {}
 
   public async createWebhook(instance: InstanceDto, data: WebhookDto) {
     logger.verbose('requested createWebhook from ' + instance.instanceName + ' instance');
@@ -60,5 +68,10 @@ export class WebhookController {
   public async findWebhook(instance: InstanceDto) {
     logger.verbose('requested findWebhook from ' + instance.instanceName + ' instance');
     return this.webhookService.find(instance);
+  }
+
+  public async receiveWebhook(instance: InstanceDto, data: any) {
+    logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].connectToWhatsapp(data);
   }
 }

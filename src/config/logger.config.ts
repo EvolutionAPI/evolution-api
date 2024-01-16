@@ -155,7 +155,7 @@ export class Logger {
 
 function salvarLog(env: any, log: string): void {
   mkdir(env.LOG_PATH, { recursive: true }, (err) => { if (err) throw err; });
-  let file = new Date().toLocaleDateString().replaceAll('/', '');
+  let file = new Date().toLocaleDateString('pt-BR').replaceAll('/', '');
   file = env.LOG_PATH + '/' + file + '.txt';
   try {
     if (fs.existsSync(file)) {
@@ -176,9 +176,9 @@ function excluirArquivosAntigos(path: string, diasLimite: number): void {
   data.setDate(data.getDate() - diasLimite);
   fs.readdirSync(path).forEach((nomeArquivo) => {
     let Timerfile = new Date(parseInt(nomeArquivo.substring(8, 4)), 
-    parseInt(nomeArquivo.substring(4, 2)), parseInt(nomeArquivo.substring(2, 0)))
+    1-parseInt(nomeArquivo.substring(4, 2)), parseInt(nomeArquivo.substring(2, 0)))
   
-    if (Timerfile.getTime() < data.getTime()) {
+    if ((Timerfile.getTime() > 0) && (Timerfile.getTime() < data.getTime())) {
       fs.unlinkSync(path + '/' + nomeArquivo);
       console.log(`Arquivo ${nomeArquivo} excluído.`);
     }

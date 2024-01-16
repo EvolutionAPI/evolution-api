@@ -5,10 +5,10 @@ const isNotEmpty = (...propertyNames: string[]): JSONSchema7 => {
   const properties = {};
   propertyNames.forEach(
     (property) =>
-      (properties[property] = {
-        minLength: 1,
-        description: `The "${property}" cannot be empty`,
-      }),
+    (properties[property] = {
+      minLength: 1,
+      description: `The "${property}" cannot be empty`,
+    }),
   );
   return {
     if: {
@@ -389,6 +389,25 @@ export const listMessageSchema: JSONSchema7 = {
   required: ['number', 'listMessage'],
 };
 
+export const templateMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    options: { ...optionsSchema },
+    templateMessage: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        language: { type: 'string' },
+      },
+      required: ['name', 'language'],
+      ...isNotEmpty('name', 'language'),
+    },
+  },
+  required: ['templateMessage', 'number'],
+};
+
 export const contactMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
@@ -598,6 +617,28 @@ export const profilePictureSchema: JSONSchema7 = {
   properties: {
     number: { type: 'string' },
     picture: { type: 'string' },
+  },
+};
+
+
+export const profileBusinessSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { type: 'string' },
+    about: { type: 'string' },
+    address: { type: 'string' },
+    description: { type: 'string' },
+    vertical: { type: 'string' },
+    email: { type: 'string' },
+    profile_picture_handle: { type: 'string' },
+    websites: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'string',
+      },
+    },
   },
 };
 

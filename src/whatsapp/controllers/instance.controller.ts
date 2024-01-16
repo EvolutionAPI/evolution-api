@@ -3,7 +3,7 @@ import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
-import { ConfigService, HttpServer } from '../../config/env.config';
+import { ConfigService, HttpServer, WABussiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 import { RedisCache } from '../../libs/redis.client';
@@ -19,8 +19,8 @@ import { SqsService } from '../services/sqs.service';
 import { TypebotService } from '../services/typebot.service';
 import { WebhookService } from '../services/webhook.service';
 import { WebsocketService } from '../services/websocket.service';
-import { WAStartupService } from '../services/whatsapp.service';
-import { Events, wa } from '../types/wa.types';
+import { Events, wa, Integration } from '../types/wa.types';
+import { WAStartupClass } from '../whatsapp.module';
 
 export class InstanceController {
   constructor(
@@ -50,6 +50,7 @@ export class InstanceController {
     events,
     qrcode,
     number,
+    integration,
     token,
     chatwoot_account_id,
     chatwoot_token,
@@ -85,9 +86,10 @@ export class InstanceController {
       await this.authService.checkDuplicateToken(token);
 
       this.logger.verbose('creating instance');
-      const instance = new WAStartupService(this.configService, this.eventEmitter, this.repository, this.cache);
+      const instance = new WAStartupClass[integration](this.configService, this.eventEmitter, this.repository, this.cache);
       instance.instanceName = instanceName;
-
+      instance.instanceNumber = number;
+      instance.instanceToken = token;
       const instanceId = v4();
 
       instance.sendDataWebhook(Events.INSTANCE_CREATE, {
@@ -359,20 +361,30 @@ export class InstanceController {
 
       this.settingsService.create(instance, settings);
 
+      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+      let webhook_url = '', acess_token = '';
+      if(integration === Integration.WHATSAPP_BUSINESS)
+      {
+        webhook_url = `${urlServer}/webhook/whatsapp/${encodeURIComponent(instance.instanceName)}`;
+        acess_token = this.configService.get<WABussiness>('WABUSSINESS').ACESS_TOKEN;
+      }
+
       if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
         let getQrcode: wa.QrCode;
 
+
+      await this.waMonitor.saveInstance({integration, instanceName, token, number});
         if (qrcode) {
           this.logger.verbose('creating qrcode');
           await instance.connectToWhatsapp(number);
           await delay(5000);
           getQrcode = instance.qrCode;
         }
-
         const result = {
           instance: {
             instanceName: instance.instanceName,
             instanceId: instanceId,
+            integration: integration,
             status: 'created',
           },
           hash,
@@ -405,6 +417,7 @@ export class InstanceController {
             listening_from_me: typebot_listening_from_me,
           },
           settings,
+          webhook_url: webhook_url,
           qrcode: getQrcode,
           proxy,
         };
@@ -421,6 +434,10 @@ export class InstanceController {
 
       if (!chatwoot_token) {
         throw new BadRequestException('token is required');
+      }
+
+      if (!integration) {
+        throw new BadRequestException('integration is required');
       }
 
       if (!chatwoot_url) {
@@ -442,8 +459,6 @@ export class InstanceController {
       if (chatwoot_conversation_pending !== true && chatwoot_conversation_pending !== false) {
         throw new BadRequestException('conversation_pending is required');
       }
-
-      const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       try {
         this.chatwootService.create(instance, {
@@ -617,7 +632,7 @@ export class InstanceController {
       await this.waMonitor.waInstances[instanceName]?.client?.logout('Log out instance: ' + instanceName);
 
       this.logger.verbose('close connection instance: ' + instanceName);
-      this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
+      this.waMonitor.waInstances[instanceName]?.closeClient();
 
       return { status: 'SUCCESS', error: false, response: { message: 'Instance logged out' } };
     } catch (error) {

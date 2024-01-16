@@ -134,6 +134,15 @@ export class SendListDto extends Metadata {
   listMessage: ListMessage;
 }
 
+export class TemplateMessage {
+  name: string;
+  language: string;
+}
+
+export class SendTemplateDto extends Metadata {
+  templateMessage: TemplateMessage;
+}
+
 export class ContactMessage {
   fullName: string;
   wuid: string;

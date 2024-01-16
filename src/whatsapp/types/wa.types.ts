@@ -45,6 +45,9 @@ export declare namespace wa {
     wuid?: string;
     profileName?: string;
     profilePictureUrl?: string;
+    integration?: string;
+    number?: string;
+    token?: string;
   };
 
   export type LocalWebHook = {
@@ -139,3 +142,9 @@ export const MessageSubtype = [
   'viewOnceMessage',
   'viewOnceMessageV2',
 ];
+
+export enum Integration {
+  WHATSAPP_BUSINESS='WHATSAPP-BUSINESS',
+  WHATSAPP_BAILEYS='WHATSAPP-BAILEYS',
+  WABussinessService = 'WABussinessService', 
+}

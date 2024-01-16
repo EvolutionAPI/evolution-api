@@ -15,6 +15,7 @@ import {
   profileStatusSchema,
   readMessageSchema,
   whatsappNumberSchema,
+  profileBusinessSchema,
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import {
@@ -29,6 +30,7 @@ import {
   ReadMessageDto,
   SendPresenceDto,
   WhatsAppNumberDto,
+  NumberBusiness,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { ContactQuery } from '../repository/contact.repository';
@@ -213,6 +215,23 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
+      .post(this.routerPath('setWhatsappBusinessProfile'), ...guards, async (req, res) => {
+        logger.verbose('request received in findStatusMessage');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+
+        const response = await this.dataValidate<NumberBusiness>({
+          request: req,
+          schema: messageUpSchema,
+          ClassRef: NumberBusiness,
+          execute: (instance, data) => chatController.setWhatsappBusinessProfile(instance, data),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
       .get(this.routerPath('findChats'), ...guards, async (req, res) => {
         logger.verbose('request received in findChats');
         logger.verbose('request body: ');
@@ -291,7 +310,7 @@ export class ChatRouter extends RouterBroker {
 
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
-          schema: profilePictureSchema,
+          schema: profileBusinessSchema,
           ClassRef: ProfilePictureDto,
           execute: (instance, data) => chatController.fetchBusinessProfile(instance, data),
         });

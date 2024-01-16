@@ -120,6 +120,7 @@ export type EventsWebhook = {
 
 export type ApiKey = { KEY: string };
 export type Jwt = { EXPIRIN_IN: number; SECRET: string };
+export type WABussiness = { ACESS_TOKEN: string, URL: string, VERSION: string, LANGUAGE: string };
 
 export type Auth = {
   API_KEY: ApiKey;
@@ -161,6 +162,7 @@ export interface Env {
   TYPEBOT: Typebot;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
+  WABUSSINESS: WABussiness;
 }
 
 export type Key = keyof Env;
@@ -337,6 +339,12 @@ export class ConfigService {
           SECRET: process.env.AUTHENTICATION_JWT_SECRET || 'L=0YWt]b2w[WF>#>:&E`',
         },
       },
+      WABUSSINESS: {
+        ACESS_TOKEN: process.env.ACESS_TOKEN, 
+        URL: process.env.URL, 
+        VERSION: process.env.VERSION,
+        LANGUAGE: process.env.LANGUAGE
+      }, 
     };
   }
 }

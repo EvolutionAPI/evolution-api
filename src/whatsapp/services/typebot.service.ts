@@ -6,7 +6,7 @@ import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { Session, TypebotDto } from '../dto/typebot.dto';
 import { MessageRaw } from '../models';
-import { Events } from '../types/wa.types';
+import { Events, Integration } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class TypebotService {
@@ -405,6 +405,7 @@ export class TypebotService {
     }
 
     async function processMessages(instance, messages, input, clientSideActions, eventEmitter) {
+      let qtdMessages = 0, buttonText = '';
       for (const message of messages) {
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
 
@@ -463,20 +464,24 @@ export class TypebotService {
           }
 
           formattedText = formattedText.replace(/\n$/, '');
-
-          await instance.textMessage({
-            number: remoteJid.split('@')[0],
-            options: {
-              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
-              presence: 'composing',
-              linkPreview: linkPreview,
-            },
-            textMessage: {
-              text: formattedText,
-            },
-          });
+          qtdMessages++;
+          if (instance?.constructor.name == Integration.WABussinessService &&
+            input?.type === 'choice input' && messages.length == qtdMessages) {
+            buttonText = formattedText;
+          } else {
+            await instance.textMessage({
+              number: remoteJid.split('@')[0],
+              options: {
+                delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
+                presence: 'composing',
+                linkPreview: linkPreview,
+              },
+              textMessage: {
+                text: formattedText,
+              },
+            });
+          }
         }
-
         if (message.type === 'image') {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
@@ -522,27 +527,49 @@ export class TypebotService {
 
       if (input) {
         if (input.type === 'choice input') {
-          let formattedText = '';
-
           const items = input.items;
+          if (instance?.constructor.name == Integration.WABussinessService) {
+            let buttons = [];
+            for (const item of items) {
+              buttons.push({
+                buttonId: item.id,
+                buttonText: item.content,
+              });
+            }
+            await instance.buttonMessage({
+              number: remoteJid.split('@')[0],
+              options: {
+                delay: 1200,
+                presence: 'composing',
+                linkPreview: false,
+              },
+              buttonMessage: {
+                title: buttonText,
+                buttons,
+              },
+            });
 
-          for (const item of items) {
-            formattedText += `▶️ ${item.content}\n`;
+          } else {
+            let formattedText = '';
+
+            for (const item of items) {
+              formattedText += `▶️ ${item.content}\n`;
+            }
+
+            formattedText = formattedText.replace(/\n$/, '');
+
+            await instance.textMessage({
+              number: remoteJid.split('@')[0],
+              options: {
+                delay: 1200,
+                presence: 'composing',
+                linkPreview: false,
+              },
+              textMessage: {
+                text: formattedText,
+              },
+            });
           }
-
-          formattedText = formattedText.replace(/\n$/, '');
-
-          await instance.textMessage({
-            number: remoteJid.split('@')[0],
-            options: {
-              delay: 1200,
-              presence: 'composing',
-              linkPreview: false,
-            },
-            textMessage: {
-              text: formattedText,
-            },
-          });
         }
       } else {
         eventEmitter.emit('typebot:end', {

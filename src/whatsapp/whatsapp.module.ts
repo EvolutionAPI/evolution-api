@@ -58,6 +58,11 @@ import { SqsService } from './services/sqs.service';
 import { TypebotService } from './services/typebot.service';
 import { WebhookService } from './services/webhook.service';
 import { WebsocketService } from './services/websocket.service';
+import { WABaileysService } from './services/whatsapp.baileys.service';
+import { WAStartupService } from './services/whatsapp.service';
+import { WABussinessService } from './services/whatsapp.business.service';
+import { ConfigService, } from '../config/env.config';
+import EventEmitter2 from 'eventemitter2';
 
 const logger = new Logger('WA MODULE');
 
@@ -107,7 +112,7 @@ export const typebotController = new TypebotController(typebotService);
 
 const webhookService = new WebhookService(waMonitor);
 
-export const webhookController = new WebhookController(webhookService);
+export const webhookController = new WebhookController(webhookService, waMonitor);
 
 const websocketService = new WebsocketService(waMonitor);
 
@@ -156,5 +161,18 @@ export const instanceController = new InstanceController(
 export const sendMessageController = new SendMessageController(waMonitor);
 export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
+
+
+export const WAStartupClass: {
+  [key: string]: new (
+    configService: ConfigService,
+    eventEmitter: EventEmitter2,
+    repository: RepositoryBroker,
+    cache: RedisCache,
+  ) => WAStartupService
+} = {
+    'WHATSAPP-BUSINESS': WABussinessService,
+    'WHATSAPP-BAILEYS': WABaileysService,
+  };
 
 logger.info('Module - ON');

@@ -6,12 +6,12 @@ import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
-import { ConfigService, HttpServer } from '../../config/env.config';
+import { ConfigService, HttpServer, WABussiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
-import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../dto/sendMessage.dto';
+import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto, SendTemplateDto } from '../dto/sendMessage.dto';
 import { MessageRaw } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events } from '../types/wa.types';
@@ -457,7 +457,7 @@ export class ChatwootService {
           if (!findParticipant.name || findParticipant.name === chatId) {
             await this.updateContact(instance, findParticipant.id, {
               name: body.pushName,
-              avatar_url: picture_url.profilePictureUrl || null,
+              avatar_url: picture_url?.profilePictureUrl || null,
             });
           }
         } else {
@@ -467,7 +467,7 @@ export class ChatwootService {
             filterInbox.id,
             false,
             body.pushName,
-            picture_url.profilePictureUrl || null,
+            picture_url?.profilePictureUrl || null,
             body.key.participant,
           );
         }
@@ -483,7 +483,7 @@ export class ChatwootService {
       if (body.key.fromMe) {
         if (findContact) {
           contact = await this.updateContact(instance, findContact.id, {
-            avatar_url: picture_url.profilePictureUrl || null,
+            avatar_url: picture_url?.profilePictureUrl || null,
           });
         } else {
           const jid = isGroup ? null : body.key.remoteJid;
@@ -493,7 +493,7 @@ export class ChatwootService {
             filterInbox.id,
             isGroup,
             nameContact,
-            picture_url.profilePictureUrl || null,
+            picture_url?.profilePictureUrl || null,
             jid,
           );
         }
@@ -502,11 +502,11 @@ export class ChatwootService {
           if (!findContact.name || findContact.name === chatId) {
             contact = await this.updateContact(instance, findContact.id, {
               name: nameContact,
-              avatar_url: picture_url.profilePictureUrl || null,
+              avatar_url: picture_url?.profilePictureUrl || null,
             });
           } else {
             contact = await this.updateContact(instance, findContact.id, {
-              avatar_url: picture_url.profilePictureUrl || null,
+              avatar_url: picture_url?.profilePictureUrl || null,
             });
           }
           if (!contact) {
@@ -520,7 +520,7 @@ export class ChatwootService {
             filterInbox.id,
             isGroup,
             nameContact,
-            picture_url.profilePictureUrl || null,
+            picture_url?.profilePictureUrl || null,
             jid,
           );
         }
@@ -785,9 +785,9 @@ export class ChatwootService {
       const replyToIds = await this.getReplyToIds(messageBody, instance);
 
       if (replyToIds.in_reply_to || replyToIds.in_reply_to_external_id) {
-        data.append('content_attributes', {
-          ...replyToIds,
-        });
+        data.append('content_attributes',
+          JSON.stringify(replyToIds),
+        );
       }
     }
 
@@ -1023,10 +1023,10 @@ export class ChatwootService {
       // Chatwoot to Whatsapp
       const messageReceived = body.content
         ? body.content
-            .replaceAll(/(?<!\*)\*((?!\s)([^\n*]+?)(?<!\s))\*(?!\*)/g, '_$1_') // Substitui * por _
-            .replaceAll(/\*{2}((?!\s)([^\n*]+?)(?<!\s))\*{2}/g, '*$1*') // Substitui ** por *
-            .replaceAll(/~{2}((?!\s)([^\n*]+?)(?<!\s))~{2}/g, '~$1~') // Substitui ~~ por ~
-            .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
+          .replaceAll(/(?<!\*)\*((?!\s)([^\n*]+?)(?<!\s))\*(?!\*)/g, '_$1_') // Substitui * por _
+          .replaceAll(/\*{2}((?!\s)([^\n*]+?)(?<!\s))\*{2}/g, '*$1*') // Substitui ** por *
+          .replaceAll(/~{2}((?!\s)([^\n*]+?)(?<!\s))~{2}/g, '~$1~') // Substitui ~~ por ~
+          .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
         : body.content;
 
       const senderName = body?.sender?.available_name || body?.sender?.name;
@@ -1044,7 +1044,7 @@ export class ChatwootService {
           limit: 1,
         });
         if (message.length && message[0].key?.id) {
-          await waInstance?.client.sendMessage(message[0].key.remoteJid, { delete: message[0].key });
+          await waInstance?.client?.sendMessage(message[0].key.remoteJid, { delete: message[0].key });
         }
         return { message: 'bot' };
       }
@@ -1123,6 +1123,36 @@ export class ChatwootService {
 
         this.logger.verbose('Format message to send');
         let formatText: string;
+        const regex = /^▶️.*◀️$/;
+        if (regex.test(messageReceived)) {
+          const data: SendTemplateDto = {
+            number: chatId,
+            templateMessage: {
+              name: messageReceived.replace(/[^\x20-\x7E]/g, ''),
+              language: this.configService.get<WABussiness>('WABUSSINESS').LANGUAGE,
+            },
+            options: {
+              delay: 1200,
+              presence: 'composing',
+              quoted: await this.getQuotedMessage(body, instance),
+            },
+          };
+
+          const messageSent = await waInstance?.templateMessage(data, true);
+          this.updateChatwootMessageId(
+            {
+              ...messageSent,
+              owner: instance.instanceName,
+            },
+            {
+              messageId: body.id,
+              inboxId: body.inbox?.id,
+              conversationId: body.conversation?.id,
+            },
+            instance,
+          );
+          return
+        }
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
@@ -1137,7 +1167,7 @@ export class ChatwootService {
 
         for (const message of body.conversation.messages) {
           this.logger.verbose('check if message is media');
-          if (message.attachments && message.attachments.length > 0) {
+          if (message?.attachments && message?.attachments.length > 0) {
             this.logger.verbose('message is media');
             for (const attachment of message.attachments) {
               this.logger.verbose('send media to whatsapp');
@@ -1513,9 +1543,9 @@ export class ChatwootService {
         const originalMessage = await this.getConversationMessage(body.message);
         const bodyMessage = originalMessage
           ? originalMessage
-              .replaceAll(/\*((?!\s)([^\n*]+?)(?<!\s))\*/g, '**$1**')
-              .replaceAll(/_((?!\s)([^\n_]+?)(?<!\s))_/g, '*$1*')
-              .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~')
+            .replaceAll(/\*((?!\s)([^\n*]+?)(?<!\s))\*/g, '**$1**')
+            .replaceAll(/_((?!\s)([^\n_]+?)(?<!\s))_/g, '*$1*')
+            .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~')
           : originalMessage;
 
         this.logger.verbose('body message: ' + bodyMessage);
