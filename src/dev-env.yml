@@ -32,6 +32,8 @@ SSL_CONF:
 
 # Determine the logs to be displayed
 LOG:
+  LOG_PATH: log
+  LOG_EXPIRATION_DAYS: 5
   LEVEL:
     - ERROR
     - WARN
@@ -95,6 +97,12 @@ SQS:
 
 WEBSOCKET:
   ENABLED: false
+
+WABUSSINESS:
+  ACESS_TOKEN: tokentoken
+  URL: https://graph.facebook.com
+  VERSION: v18.0
+  LANGUAGE: en_US
 
 # Global Webhook Settings
 # Each instance's Webhook URL and events will be requested at the time it is created
