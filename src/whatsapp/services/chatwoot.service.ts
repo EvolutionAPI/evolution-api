@@ -1985,6 +1985,7 @@ export class ChatwootService {
             const msgConnection = `🚀 Connection successfully established!`;
             this.logger.verbose('send message to chatwoot');
             await this.createBotMessage(instance, msgConnection, 'incoming');
+            this.waMonitor.waInstances[instance.instanceName].qrCode.count = 0;
           }
         }
       }
