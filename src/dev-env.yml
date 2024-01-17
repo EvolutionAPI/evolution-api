@@ -67,6 +67,7 @@ CLEAN_STORE:
 
 # Permanent data storage
 DATABASE:
+  CLEANING_DB_INTERVAL: 5
   ENABLED: false
   CONNECTION:
     URI: "mongodb://root:root@localhost:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true"
