@@ -2434,6 +2434,21 @@ export class WAStartupService {
           );
         }
 
+        if (!message['audio'] && sender != 'status@broadcast') {
+          this.logger.verbose('Sending message');
+          return await this.client.sendMessage(
+            sender,
+            {
+              forward: {
+                key: { remoteJid: this.instance.wuid, fromMe: true },
+                message,
+              },
+              mentions,
+            },
+            option as unknown as MiscMessageGenerationOptions,
+          );
+        }
+
         if (sender === 'status@broadcast') {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
