@@ -1,26 +1,24 @@
-import ChatwootClient from '@figuro/chatwoot-sdk';
+import ChatwootClient, { ChatwootAPIConfig, contact, conversation, inbox } from '@figuro/chatwoot-sdk';
+import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import axios from 'axios';
 import FormData from 'form-data';
-import { createReadStream, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
 import { ConfigService, HttpServer, WABussiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { ROOT_DIR } from '../../config/path.config';
+import { ICache } from '../abstract/abstract.cache';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto, SendTemplateDto } from '../dto/sendMessage.dto';
-import { MessageRaw } from '../models';
+import { ChatwootRaw, MessageRaw } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
 
 export class ChatwootService {
-  private messageCacheFile: string;
-  private messageCache: Set<string>;
-
   private readonly logger = new Logger(ChatwootService.name);
 
   private provider: any;
@@ -29,35 +27,15 @@ export class ChatwootService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
-  ) {
-    this.messageCache = new Set();
-  }
-
-  private loadMessageCache(): Set<string> {
-    this.logger.verbose('load message cache');
-    try {
-      const cacheData = readFileSync(this.messageCacheFile, 'utf-8');
-      const cacheArray = cacheData.split('\n');
-      return new Set(cacheArray);
-    } catch (error) {
-      return new Set();
-    }
-  }
-
-  private saveMessageCache() {
-    this.logger.verbose('save message cache');
-    const cacheData = Array.from(this.messageCache).join('\n');
-    writeFileSync(this.messageCacheFile, cacheData, 'utf-8');
-    this.logger.verbose('message cache saved');
-  }
-
-  private clearMessageCache() {
-    this.logger.verbose('clear message cache');
-    this.messageCache.clear();
-    this.saveMessageCache();
-  }
+    private readonly cache: ICache,
+  ) {}
 
   private async getProvider(instance: InstanceDto) {
+    const cacheKey = `${instance.instanceName}:getProvider`;
+    if (await this.cache.has(cacheKey)) {
+      return (await this.cache.get(cacheKey)) as ChatwootRaw;
+    }
+
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
     const provider = await this.waMonitor.waInstances[instance.instanceName]?.findChatwoot();
 
@@ -67,6 +45,8 @@ export class ChatwootService {
     }
 
     this.logger.verbose('provider found');
+
+    this.cache.set(cacheKey, provider);
 
     return provider;
     // try {
@@ -92,17 +72,25 @@ export class ChatwootService {
 
     this.logger.verbose('create client to instance: ' + instance.instanceName);
     const client = new ChatwootClient({
-      config: {
-        basePath: provider.url,
-        with_credentials: true,
-        credentials: 'include',
-        token: provider.token,
-      },
+      config: this.getClientCwConfig(),
     });
 
     this.logger.verbose('client created');
 
     return client;
+  }
+
+  public getClientCwConfig(): ChatwootAPIConfig {
+    return {
+      basePath: this.provider.url,
+      with_credentials: true,
+      credentials: 'include',
+      token: this.provider.token,
+    };
+  }
+
+  public getCache() {
+    return this.cache;
   }
 
   public async create(instance: InstanceDto, data: ChatwootDto) {
@@ -419,6 +407,26 @@ export class ChatwootService {
         return null;
       }
 
+      const cacheKey = `${instance.instanceName}:createConversation-${body.key.remoteJid}`;
+      if (await this.cache.has(cacheKey)) {
+        const conversationId = (await this.cache.get(cacheKey)) as number;
+        let conversationExists: conversation | boolean;
+        try {
+          conversationExists = await client.conversations.get({
+            accountId: this.provider.account_id,
+            conversationId: conversationId,
+          });
+        } catch (error) {
+          conversationExists = false;
+        }
+        if (!conversationExists) {
+          this.cache.delete(cacheKey);
+          return await this.createConversation(instance, body);
+        }
+
+        return conversationId;
+      }
+
       const isGroup = body.key.remoteJid.includes('@g.us');
 
       this.logger.verbose('is group: ' + isGroup);
@@ -569,6 +577,7 @@ export class ChatwootService {
 
         if (conversation) {
           this.logger.verbose('conversation found');
+          this.cache.set(cacheKey, conversation.id);
           return conversation.id;
         }
       }
@@ -594,6 +603,7 @@ export class ChatwootService {
       }
 
       this.logger.verbose('conversation created');
+      this.cache.set(cacheKey, conversation.id);
       return conversation.id;
     } catch (error) {
       this.logger.error(error);
@@ -602,6 +612,11 @@ export class ChatwootService {
 
   public async getInbox(instance: InstanceDto) {
     this.logger.verbose('get inbox to instance: ' + instance.instanceName);
+
+    const cacheKey = `${instance.instanceName}:getInbox`;
+    if (await this.cache.has(cacheKey)) {
+      return (await this.cache.get(cacheKey)) as inbox;
+    }
 
     const client = await this.clientCw(instance);
 
@@ -629,6 +644,7 @@ export class ChatwootService {
     }
 
     this.logger.verbose('return inbox');
+    this.cache.set(cacheKey, findByName);
     return findByName;
   }
 
@@ -644,6 +660,7 @@ export class ChatwootService {
       filename: string;
     }[],
     messageBody?: any,
+    sourceId?: string,
   ) {
     this.logger.verbose('create message to instance: ' + instance.instanceName);
 
@@ -665,6 +682,7 @@ export class ChatwootService {
         message_type: messageType,
         attachments: attachments,
         private: privateMessage || false,
+        source_id: sourceId,
         content_attributes: {
           ...replyToIds,
         },
@@ -765,6 +783,7 @@ export class ChatwootService {
     content?: string,
     instance?: InstanceDto,
     messageBody?: any,
+    sourceId?: string,
   ) {
     this.logger.verbose('send data to chatwoot');
 
@@ -789,6 +808,10 @@ export class ChatwootService {
           JSON.stringify(replyToIds),
         );
       }
+    }
+
+    if (sourceId) {
+      data.append('source_id', sourceId);
     }
 
     this.logger.verbose('get client to instance: ' + this.provider.instanceName);
@@ -916,17 +939,21 @@ export class ChatwootService {
 
     try {
       this.logger.verbose('get media type');
-      const parts = media.split('/');
+      const parsedMedia = path.parse(decodeURIComponent(media));
+      let mimeType = mimeTypes.lookup(parsedMedia?.ext) || '';
+      let fileName = parsedMedia?.name + parsedMedia?.ext;
 
-      const fileName = decodeURIComponent(parts[parts.length - 1]);
-      this.logger.verbose('file name: ' + fileName);
+      if (!mimeType) {
+        const parts = media.split('/');
+        fileName = decodeURIComponent(parts[parts.length - 1]);
+        this.logger.verbose('file name: ' + fileName);
 
-      const response = await axios.get(media, {
-        responseType: 'arraybuffer',
-      });
-
-      const mimeType = response.headers['content-type'];
-      this.logger.verbose('mime type: ' + mimeType);
+        const response = await axios.get(media, {
+          responseType: 'arraybuffer',
+        });
+        mimeType = response.headers['content-type'];
+        this.logger.verbose('mime type: ' + mimeType);
+      }
 
       let type = 'document';
 
@@ -1008,6 +1035,17 @@ export class ChatwootService {
         return null;
       }
 
+      // invalidate the conversation cache if reopen_conversation is false and the conversation was resolved
+      if (
+        this.provider.reopen_conversation === false &&
+        body.event === 'conversation_status_changed' &&
+        body.status === 'resolved' &&
+        body.meta?.sender?.identifier
+      ) {
+        const keyToDelete = `${instance.instanceName}:createConversation-${body.meta.sender.identifier}`;
+        this.cache.delete(keyToDelete);
+      }
+
       this.logger.verbose('check if is bot');
       if (
         !body?.conversation ||
@@ -1029,7 +1067,7 @@ export class ChatwootService {
           .replaceAll(/(?<!`)`((?!\s)([^`*]+?)(?<!\s))`(?!`)/g, '```$1```') // Substitui ` por ```
         : body.content;
 
-      const senderName = body?.sender?.available_name || body?.sender?.name;
+      const senderName = body?.conversation?.messages[0]?.sender?.available_name || body?.sender?.name;
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       this.logger.verbose('check if is a message deletion');
@@ -1044,7 +1082,18 @@ export class ChatwootService {
           limit: 1,
         });
         if (message.length && message[0].key?.id) {
+          this.logger.verbose('deleting message in whatsapp. Message id: ' + message[0].key.id);
           await waInstance?.client?.sendMessage(message[0].key.remoteJid, { delete: message[0].key });
+
+          this.logger.verbose('deleting message in repository. Message id: ' + message[0].key.id);
+          this.repository.message.delete({
+            where: {
+              owner: instance.instanceName,
+              chatwoot: {
+                messageId: body.id,
+              },
+            },
+          });
         }
         return { message: 'bot' };
       }
@@ -1105,21 +1154,10 @@ export class ChatwootService {
       if (body.message_type === 'outgoing' && body?.conversation?.messages?.length && chatId !== '123456') {
         this.logger.verbose('check if is group');
 
-        this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-        this.logger.verbose('cache file path: ' + this.messageCacheFile);
-
-        this.messageCache = this.loadMessageCache();
-        this.logger.verbose('cache file loaded');
-        this.logger.verbose(this.messageCache);
-
-        this.logger.verbose('check if message is cached');
-        if (this.messageCache.has(body.id.toString())) {
-          this.logger.verbose('message is cached');
+        if (body?.conversation?.messages[0]?.source_id?.substring(0, 5) === 'WAID:') {
+          this.logger.verbose('message sent directly from whatsapp. Webhook ignored.');
           return { message: 'bot' };
         }
-
-        this.logger.verbose('clear cache');
-        this.clearMessageCache();
 
         this.logger.verbose('Format message to send');
         let formatText: string;
@@ -1197,6 +1235,9 @@ export class ChatwootService {
                   messageId: body.id,
                   inboxId: body.inbox?.id,
                   conversationId: body.conversation?.id,
+                  contactInbox: {
+                    sourceId: body.conversation?.contact_inbox?.source_id,
+                  },
                 },
                 instance,
               );
@@ -1228,6 +1269,9 @@ export class ChatwootService {
                 messageId: body.id,
                 inboxId: body.inbox?.id,
                 conversationId: body.conversation?.id,
+                contactInbox: {
+                  sourceId: body.conversation?.contact_inbox?.source_id,
+                },
               },
               instance,
             );
@@ -1396,6 +1440,8 @@ export class ChatwootService {
       contactsArrayMessage: msg.contactsArrayMessage,
       locationMessage: msg.locationMessage,
       liveLocationMessage: msg.liveLocationMessage,
+      listMessage: msg.listMessage,
+      listResponseMessage: msg.listResponseMessage,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -1413,11 +1459,27 @@ export class ChatwootService {
       const latitude = result.degreesLatitude;
       const longitude = result.degreesLongitude;
 
-      const formattedLocation = `**Location:**
-        **latitude:** ${latitude}
-        **longitude:** ${longitude}
-        https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}
-        `;
+      const locationName = result?.name || 'Unknown';
+      const locationAddress = result?.address || 'Unknown';
+
+      const formattedLocation =
+        '*Localização:*\n\n' +
+        '_Latitude:_ ' +
+        latitude +
+        '\n' +
+        '_Longitude:_ ' +
+        longitude +
+        '\n' +
+        '_Nome:_ ' +
+        locationName +
+        '\n' +
+        '_Endereço:_ ' +
+        locationAddress +
+        '\n' +
+        '_Url:_ https://www.google.com/maps/search/?api=1&query=' +
+        latitude +
+        ',' +
+        longitude;
 
       this.logger.verbose('message content: ' + formattedLocation);
 
@@ -1435,19 +1497,17 @@ export class ChatwootService {
         }
       });
 
-      let formattedContact = `**Contact:**
-        **name:** ${contactInfo['FN']}`;
+      let formattedContact = '*Contact:*\n\n' + '_Name:_ ' + contactInfo['FN'];
 
       let numberCount = 1;
       Object.keys(contactInfo).forEach((key) => {
         if (key.startsWith('item') && key.includes('TEL')) {
           const phoneNumber = contactInfo[key];
-          formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
+          formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
           numberCount++;
-        }
-        if (key.includes('TEL')) {
+        } else if (key.includes('TEL')) {
           const phoneNumber = contactInfo[key];
-          formattedContact += `\n**number:** ${phoneNumber}`;
+          formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
           numberCount++;
         }
       });
@@ -1468,19 +1528,17 @@ export class ChatwootService {
           }
         });
 
-        let formattedContact = `**Contact:**
-            **name:** ${contact.displayName}`;
+        let formattedContact = '*Contact:*\n\n' + '_Name:_ ' + contact.displayName;
 
         let numberCount = 1;
         Object.keys(contactInfo).forEach((key) => {
           if (key.startsWith('item') && key.includes('TEL')) {
             const phoneNumber = contactInfo[key];
-            formattedContact += `\n**number ${numberCount}:** ${phoneNumber}`;
+            formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
             numberCount++;
-          }
-          if (key.includes('TEL')) {
+          } else if (key.includes('TEL')) {
             const phoneNumber = contactInfo[key];
-            formattedContact += `\n**number:** ${phoneNumber}`;
+            formattedContact += '\n_Number (' + numberCount + '):_ ' + phoneNumber;
             numberCount++;
           }
         });
@@ -1493,6 +1551,62 @@ export class ChatwootService {
       this.logger.verbose('formatted contacts: ' + formattedContactsArray);
 
       return formattedContactsArray;
+    }
+
+    if (typeKey === 'listMessage') {
+      const listTitle = result?.title || 'Unknown';
+      const listDescription = result?.description || 'Unknown';
+      const listFooter = result?.footerText || 'Unknown';
+
+      let formattedList =
+        '*List Menu:*\n\n' +
+        '_Title_: ' +
+        listTitle +
+        '\n' +
+        '_Description_: ' +
+        listDescription +
+        '\n' +
+        '_Footer_: ' +
+        listFooter;
+
+      if (result.sections && result.sections.length > 0) {
+        result.sections.forEach((section, sectionIndex) => {
+          formattedList += '\n\n*Section ' + (sectionIndex + 1) + ':* ' + section.title || 'Unknown\n';
+
+          if (section.rows && section.rows.length > 0) {
+            section.rows.forEach((row, rowIndex) => {
+              formattedList += '\n*Line ' + (rowIndex + 1) + ':*\n';
+              formattedList += '_▪️ Title:_ ' + (row.title || 'Unknown') + '\n';
+              formattedList += '_▪️ Description:_ ' + (row.description || 'Unknown') + '\n';
+              formattedList += '_▪️ ID:_ ' + (row.rowId || 'Unknown') + '\n';
+            });
+          } else {
+            formattedList += '\nNo lines found in this section.\n';
+          }
+        });
+      } else {
+        formattedList += '\nNo sections found.\n';
+      }
+
+      return formattedList;
+    }
+
+    if (typeKey === 'listResponseMessage') {
+      const responseTitle = result?.title || 'Unknown';
+      const responseDescription = result?.description || 'Unknown';
+      const responseRowId = result?.singleSelectReply?.selectedRowId || 'Unknown';
+
+      const formattedResponseList =
+        '*List Response:*\n\n' +
+        '_Title_: ' +
+        responseTitle +
+        '\n' +
+        '_Description_: ' +
+        responseDescription +
+        '\n' +
+        '_ID_: ' +
+        responseRowId;
+      return formattedResponseList;
     }
 
     this.logger.verbose('message content: ' + result);
@@ -1591,8 +1705,21 @@ export class ChatwootService {
             },
           });
 
-          const random = Math.random().toString(36).substring(7);
-          const nameFile = `${random}.${mimeTypes.extension(downloadBase64.mimetype)}`;
+          let nameFile: string;
+          const messageBody = body?.message[body?.messageType];
+          const originalFilename = messageBody?.fileName || messageBody?.message?.documentMessage?.fileName;
+          if (originalFilename) {
+            const parsedFile = path.parse(originalFilename);
+            if (parsedFile.name && parsedFile.ext) {
+              nameFile = `${parsedFile.name}-${Math.floor(Math.random() * (99 - 10 + 1) + 10)}${parsedFile.ext}`;
+            }
+          }
+
+          if (!nameFile) {
+            nameFile = `${Math.random().toString(36).substring(7)}.${
+              mimeTypes.extension(downloadBase64.mimetype) || ''
+            }`;
+          }
 
           const fileData = Buffer.from(downloadBase64.base64, 'base64');
 
@@ -1620,42 +1747,40 @@ export class ChatwootService {
             }
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversation, fileName, messageType, content, instance, body);
+            const send = await this.sendData(
+              getConversation,
+              fileName,
+              messageType,
+              content,
+              instance,
+              body,
+              'WAID:' + body.key.id,
+            );
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
-
-            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-            this.messageCache = this.loadMessageCache();
-
-            this.messageCache.add(send.id.toString());
-
-            this.logger.verbose('save message cache');
-            this.saveMessageCache();
 
             return send;
           } else {
             this.logger.verbose('message is not group');
 
             this.logger.verbose('send data to chatwoot');
-            const send = await this.sendData(getConversation, fileName, messageType, bodyMessage, instance, body);
+            const send = await this.sendData(
+              getConversation,
+              fileName,
+              messageType,
+              bodyMessage,
+              instance,
+              body,
+              'WAID:' + body.key.id,
+            );
 
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
-
-            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-            this.messageCache = this.loadMessageCache();
-
-            this.messageCache.add(send.id.toString());
-
-            this.logger.verbose('save message cache');
-            this.saveMessageCache();
 
             return send;
           }
@@ -1675,16 +1800,12 @@ export class ChatwootService {
               {
                 message: { extendedTextMessage: { contextInfo: { stanzaId: reactionMessage.key.id } } },
               },
+              'WAID:' + body.key.id,
             );
             if (!send) {
               this.logger.warn('message not sent');
               return;
             }
-            this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-            this.messageCache = this.loadMessageCache();
-            this.messageCache.add(send.id.toString());
-            this.logger.verbose('save message cache');
-            this.saveMessageCache();
           }
 
           return;
@@ -1734,21 +1855,13 @@ export class ChatwootService {
             `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`,
             instance,
             body,
+            'WAID:' + body.key.id,
           );
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
-
-          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-          this.messageCache = this.loadMessageCache();
-
-          this.messageCache.add(send.id.toString());
-
-          this.logger.verbose('save message cache');
-          this.saveMessageCache();
 
           return send;
         }
@@ -1769,42 +1882,42 @@ export class ChatwootService {
           }
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(instance, getConversation, content, messageType, false, [], body);
+          const send = await this.createMessage(
+            instance,
+            getConversation,
+            content,
+            messageType,
+            false,
+            [],
+            body,
+            'WAID:' + body.key.id,
+          );
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
-
-          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-          this.messageCache = this.loadMessageCache();
-
-          this.messageCache.add(send.id.toString());
-
-          this.logger.verbose('save message cache');
-          this.saveMessageCache();
 
           return send;
         } else {
           this.logger.verbose('message is not group');
 
           this.logger.verbose('send data to chatwoot');
-          const send = await this.createMessage(instance, getConversation, bodyMessage, messageType, false, [], body);
+          const send = await this.createMessage(
+            instance,
+            getConversation,
+            bodyMessage,
+            messageType,
+            false,
+            [],
+            body,
+            'WAID:' + body.key.id,
+          );
 
           if (!send) {
             this.logger.warn('message not sent');
             return;
           }
-
-          this.messageCacheFile = path.join(ROOT_DIR, 'store', 'chatwoot', `${instance.instanceName}_cache.txt`);
-
-          this.messageCache = this.loadMessageCache();
-
-          this.messageCache.add(send.id.toString());
-
-          this.logger.verbose('save message cache');
-          this.saveMessageCache();
 
           return send;
         }
@@ -1820,6 +1933,16 @@ export class ChatwootService {
 
         const message = await this.getMessageByKeyId(instance, body.key.id);
         if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
+          this.logger.verbose('deleting message in repository. Message id: ' + body.key.id);
+          this.repository.message.delete({
+            where: {
+              key: {
+                id: body.key.id,
+              },
+              owner: instance.instanceName,
+            },
+          });
+
           this.logger.verbose('deleting message in chatwoot. Message id: ' + body.key.id);
           return await client.messages.delete({
             accountId: this.provider.account_id,
@@ -1827,6 +1950,44 @@ export class ChatwootService {
             messageId: message.chatwoot.messageId,
           });
         }
+      }
+
+      if (event === 'messages.read') {
+        this.logger.verbose('read message from instance: ' + instance.instanceName);
+
+        if (!body?.key?.id || !body?.key?.remoteJid) {
+          this.logger.warn('message id not found');
+          return;
+        }
+
+        const message = await this.getMessageByKeyId(instance, body.key.id);
+        const { conversationId, contactInbox } = message?.chatwoot || {};
+        if (conversationId) {
+          let sourceId = contactInbox?.sourceId;
+          const inbox = (await this.getInbox(instance)) as inbox & {
+            inbox_identifier?: string;
+          };
+
+          if (!sourceId && inbox) {
+            const contact = (await this.findContact(
+              instance,
+              this.getNumberFromRemoteJid(body.key.remoteJid),
+            )) as contact;
+            const contactInbox = contact?.contact_inboxes?.find((contactInbox) => contactInbox?.inbox?.id === inbox.id);
+            sourceId = contactInbox?.source_id;
+          }
+
+          if (sourceId && inbox?.inbox_identifier) {
+            const url =
+              `/public/api/v1/inboxes/${inbox.inbox_identifier}/contacts/${sourceId}` +
+              `/conversations/${conversationId}/update_last_seen`;
+            chatwootRequest(this.getClientCwConfig(), {
+              method: 'POST',
+              url: url,
+            });
+          }
+        }
+        return;
       }
 
       if (event === 'status.instance') {
@@ -1854,6 +2015,7 @@ export class ChatwootService {
             const msgConnection = `🚀 Connection successfully established!`;
             this.logger.verbose('send message to chatwoot');
             await this.createBotMessage(instance, msgConnection, 'incoming');
+            this.waMonitor.waInstances[instance.instanceName].qrCode.count = 0;
           }
         }
       }
@@ -1898,5 +2060,9 @@ export class ChatwootService {
     } catch (error) {
       this.logger.error(error);
     }
+  }
+
+  public getNumberFromRemoteJid(remoteJid: string) {
+    return remoteJid.replace(/:\d+/, '').split('@')[0];
   }
 }

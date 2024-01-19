@@ -10,9 +10,9 @@ import { RedisCache } from '../../libs/redis.client';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
+import { CacheService } from '../services/cache.service';
 import { ChatwootService } from '../services/chatwoot.service';
 import { WAMonitoringService } from '../services/monitor.service';
-import { ProxyService } from '../services/proxy.service';
 import { RabbitmqService } from '../services/rabbitmq.service';
 import { SettingsService } from '../services/settings.service';
 import { SqsService } from '../services/sqs.service';
@@ -34,10 +34,10 @@ export class InstanceController {
     private readonly settingsService: SettingsService,
     private readonly websocketService: WebsocketService,
     private readonly rabbitmqService: RabbitmqService,
-    private readonly proxyService: ProxyService,
     private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
     private readonly cache: RedisCache,
+    private readonly chatwootCache: CacheService,
   ) {}
 
   private readonly logger = new Logger(InstanceController.name);
@@ -77,7 +77,6 @@ export class InstanceController {
     typebot_delay_message,
     typebot_unknown_message,
     typebot_listening_from_me,
-    proxy,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -86,7 +85,15 @@ export class InstanceController {
       await this.authService.checkDuplicateToken(token);
 
       this.logger.verbose('creating instance');
-      const instance = new WAStartupClass[integration](this.configService, this.eventEmitter, this.repository, this.cache);
+
+      const instance = new WAStartupService(
+        this.configService,
+        this.eventEmitter,
+        this.repository,
+        this.cache,
+        this.chatwootCache,
+      );
+      
       instance.instanceName = instanceName;
       instance.instanceNumber = number;
       instance.instanceToken = token;
@@ -261,22 +268,6 @@ export class InstanceController {
         }
       }
 
-      if (proxy) {
-        this.logger.verbose('creating proxy');
-        try {
-          this.proxyService.create(
-            instance,
-            {
-              enabled: true,
-              proxy,
-            },
-            false,
-          );
-        } catch (error) {
-          this.logger.log(error);
-        }
-      }
-
       let sqsEvents: string[];
 
       if (sqs_enabled) {
@@ -419,7 +410,6 @@ export class InstanceController {
           settings,
           webhook_url: webhook_url,
           qrcode: getQrcode,
-          proxy,
         };
 
         this.logger.verbose('instance created');
@@ -525,7 +515,6 @@ export class InstanceController {
           name_inbox: instance.instanceName,
           webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         },
-        proxy,
       };
     } catch (error) {
       this.logger.error(error.message[0]);
@@ -584,6 +573,7 @@ export class InstanceController {
       switch (state) {
         case 'open':
           this.logger.verbose('logging out instance: ' + instanceName);
+          instance.clearCacheChatwoot();
           await instance.reloadConnection();
           await delay(2000);
 
@@ -649,6 +639,7 @@ export class InstanceController {
     }
     try {
       this.waMonitor.waInstances[instanceName]?.removeRabbitmqQueues();
+      this.waMonitor.waInstances[instanceName]?.clearCacheChatwoot();
 
       if (instance.state === 'connecting') {
         this.logger.verbose('logging out instance: ' + instanceName);
@@ -658,10 +649,15 @@ export class InstanceController {
 
       this.logger.verbose('deleting instance: ' + instanceName);
 
-      this.waMonitor.waInstances[instanceName].sendDataWebhook(Events.INSTANCE_DELETE, {
-        instanceName,
-        instanceId: (await this.repository.auth.find(instanceName))?.instanceId,
-      });
+      try {
+        this.waMonitor.waInstances[instanceName].sendDataWebhook(Events.INSTANCE_DELETE, {
+          instanceName,
+          instanceId: (await this.repository.auth.find(instanceName))?.instanceId,
+        });
+      } catch (error) {
+        this.logger.error(error);
+      }
+
       delete this.waMonitor.waInstances[instanceName];
       this.eventEmitter.emit('remove.instance', instanceName, 'inner');
       return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };

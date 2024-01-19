@@ -3,9 +3,11 @@ import { isURL } from 'class-validator';
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
+import { CacheEngine } from '../../libs/cacheengine';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { CacheService } from '../services/cache.service';
 import { ChatwootService } from '../services/chatwoot.service';
 import { waMonitor } from '../whatsapp.module';
 
@@ -94,7 +96,9 @@ export class ChatwootController {
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
     logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
-    const chatwootService = new ChatwootService(waMonitor, this.configService, this.repository);
+
+    const chatwootCache = new CacheService(new CacheEngine(this.configService, ChatwootService.name).getEngine());
+    const chatwootService = new ChatwootService(waMonitor, this.configService, this.repository, chatwootCache);
 
     return chatwootService.receiveWebhook(instance, data);
   }

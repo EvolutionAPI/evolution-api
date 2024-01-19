@@ -26,6 +26,7 @@ import {
   WebsocketModel,
 } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { CacheService } from './cache.service';
 import { WAStartupService } from './whatsapp.service';
 import { WAStartupClass } from '../whatsapp.module';
 
@@ -35,6 +36,7 @@ export class WAMonitoringService {
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
     private readonly cache: RedisCache,
+    private readonly chatwootCache: CacheService,
   ) {
     this.logger.verbose('instance created');
 
@@ -360,14 +362,13 @@ export class WAMonitoringService {
   }
 
   private async setInstance(name: string) {
-    const path = join(INSTANCE_DIR, name);
-    let values: any;
-    if(this.db.ENABLED )
-      values = await this.dbInstance.collection(name).findOne({ _id: 'integration' })
-    else
-    values = JSON.parse(readFileSync(path + '/integration.json', 'utf8'));
-    const instance = new WAStartupClass[values.integration]
-      (this.configService, this.eventEmitter, this.repository, this.cache);
+    const instance = new WAStartupService(
+      this.configService,
+      this.eventEmitter,
+      this.repository,
+      this.cache,
+      this.chatwootCache,
+    );
     instance.instanceName = name;
     instance.instanceNumber = values.number;
     instance.instanceToken = values.token;
@@ -451,6 +452,7 @@ export class WAMonitoringService {
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       this.logger.verbose('logout instance: ' + instanceName);
       try {
+        this.waInstances[instanceName]?.clearCacheChatwoot();
         this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
       } finally {

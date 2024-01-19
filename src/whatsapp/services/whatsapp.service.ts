@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { execSync } from 'child_process';
-import { isURL } from 'class-validator';
+import { isURL } from 'class-validator
 import EventEmitter2 from 'eventemitter2';
 import Long from 'long';
 import { join } from 'path';
@@ -18,6 +18,42 @@ import {
   Websocket,
   Redis,
 } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
+import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
+import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
+import { getAMQP, removeQueues } from '../../libs/amqp.server';
+import { dbserver } from '../../libs/db.connect';
+import { RedisCache } from '../../libs/redis.client';
+import { getIO } from '../../libs/socket.server';
+import { getSQS, removeQueues as removeQueuesSQS } from '../../libs/sqs.server';
+import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
+import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
+import {
+  ArchiveChatDto,
+  DeleteMessage,
+  getBase64FromMediaMessageDto,
+  LastMessage,
+  NumberBusiness,
+  OnWhatsAppDto,
+  PrivacySettingDto,
+  ReadMessageDto,
+  SendPresenceDto,
+  UpdateMessageDto,
+  WhatsAppNumberDto,
+} from '../dto/chat.dto';
+import {
+  CreateGroupDto,
+  GetParticipant,
+  GroupDescriptionDto,
+  GroupInvite,
+  GroupJid,
+  GroupPictureDto,
+  GroupSendInvite,
+  GroupSubjectDto,
+  GroupToggleEphemeralDto,
+  GroupUpdateParticipantDto,
+  GroupUpdateSettingDto,
+} from '../dto/group.dto';
 import {
   ContactMessage,
   MediaMessage,
@@ -65,6 +101,7 @@ import { WebsocketRaw } from '../models/websocket.model';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, wa } from '../types/wa.types';
 import { waMonitor } from '../whatsapp.module';
+import { CacheService } from './cache.service';
 import { ChamaaiService } from './chamaai.service';
 import { ChatwootService } from './chatwoot.service';
 import { TypebotService } from './typebot.service';
@@ -75,10 +112,11 @@ import { MessageUpQuery } from '../repository/messageUp.repository';
 
 export class WAStartupService {
   constructor(
-    protected readonly configService: ConfigService,
-    protected readonly eventEmitter: EventEmitter2,
-    protected readonly repository: RepositoryBroker,
-    protected readonly cache: RedisCache,
+    private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
+    private readonly repository: RepositoryBroker,
+    private readonly cache: RedisCache,
+    private readonly chatwootCache: CacheService,
   ) {
     this.logger.verbose('WAStartupService initialized');
     this.cleanStore();
@@ -159,8 +197,15 @@ export class WAStartupService {
   public async leaveGroup(id: GroupJid): Promise<any> {}
   public async sendInvite(id: GroupSendInvite): Promise<any> {}
   public async closeClient(): Promise<any> {}
+  
+  private readonly msgRetryCounterCache: CacheStore = new NodeCache();
+  private readonly userDevicesCache: CacheStore = new NodeCache();
+  private endSession = false;
+  private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
+  private phoneNumber: string;
 
+  private chatwootService = new ChatwootService(waMonitor, this.configService, this.repository, this.chatwootCache);
 
   public set instanceName(name: string) {
 
@@ -321,6 +366,8 @@ export class WAStartupService {
 
     Object.assign(this.localChatwoot, { ...data, sign_delimiter: data.sign_msg ? data.sign_delimiter : null });
 
+    this.clearCacheChatwoot();
+
     this.logger.verbose('Chatwoot set');
   }
 
@@ -353,6 +400,14 @@ export class WAStartupService {
       reopen_conversation: data.reopen_conversation,
       conversation_pending: data.conversation_pending,
     };
+  }
+  
+  public clearCacheChatwoot() {
+    this.logger.verbose('Removing cache from chatwoot');
+
+    if (this.localChatwoot.enabled) {
+      this.chatwootService.getCache()?.deleteAll(this.instanceName);
+    }
   }
 
   protected async loadSettings() {
@@ -727,6 +782,7 @@ export class WAStartupService {
           amqp.assertExchange(exchangeName, 'topic', {
             durable: true,
             autoDelete: false,
+            assert: true,
           });
 
           const queueName = `${this.instanceName}.${event}`;
@@ -1102,12 +1158,2443 @@ export class WAStartupService {
       this.loadSqs();
       this.loadTypebot();
       this.loadChamaai();
-      
-      return 
+
+      this.instance.authState = await this.defineAuthState();
+
+      const { version } = await fetchLatestBaileysVersion();
+      this.logger.verbose('Baileys version: ' + version);
+      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      this.logger.verbose('Browser: ' + JSON.stringify(browser));
+
+      let options;
+
+      if (this.localProxy.enabled) {
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy);
+
+        if (this.localProxy.proxy.host.includes('proxyscrape')) {
+          const response = await axios.get(this.localProxy.proxy.host);
+          const text = response.data;
+          const proxyUrls = text.split('\r\n');
+          const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
+          const proxyUrl = 'http://' + proxyUrls[rand];
+          options = {
+            agent: new ProxyAgent(proxyUrl as any),
+          };
+        } else {
+          let proxyUri =
+            this.localProxy.proxy.protocol + '://' + this.localProxy.proxy.host + ':' + this.localProxy.proxy.port;
+
+          if (this.localProxy.proxy.username && this.localProxy.proxy.password) {
+            proxyUri = `${this.localProxy.proxy.username}:${this.localProxy.proxy.password}@${proxyUri}`;
+          }
+
+          options = {
+            agent: new ProxyAgent(proxyUri as any),
+          };
+        }
+      }
+
+      const socketConfig: UserFacingSocketConfig = {
+        ...options,
+        auth: {
+          creds: this.instance.authState.state.creds,
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
+        },
+        logger: P({ level: this.logBaileys }),
+        printQRInTerminal: false,
+        browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
+        version,
+        markOnlineOnConnect: this.localSettings.always_online,
+        retryRequestDelayMs: 10,
+        connectTimeoutMs: 60_000,
+        qrTimeout: 40_000,
+        defaultQueryTimeoutMs: undefined,
+        emitOwnEvents: false,
+        shouldIgnoreJid: (jid) => {
+          const isGroupJid = this.localSettings.groups_ignore && isJidGroup(jid);
+          const isBroadcast = !this.localSettings.read_status && isJidBroadcast(jid);
+
+          return isGroupJid || isBroadcast;
+        },
+        msgRetryCounterCache: this.msgRetryCounterCache,
+        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+        generateHighQualityLinkPreview: true,
+        syncFullHistory: false,
+        userDevicesCache: this.userDevicesCache,
+        transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
+        patchMessageBeforeSending(message) {
+          if (
+            message.deviceSentMessage?.message?.listMessage?.listType ===
+            proto.Message.ListMessage.ListType.PRODUCT_LIST
+          ) {
+            message = JSON.parse(JSON.stringify(message));
+
+            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+
+          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+            message = JSON.parse(JSON.stringify(message));
+
+            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+
+          return message;
+        },
+      };
+
+      this.endSession = false;
+
+      this.logger.verbose('Creating socket');
+
+      this.client = makeWASocket(socketConfig);
+
+      this.logger.verbose('Socket created');
+
+      this.eventHandler();
+
+      this.logger.verbose('Socket event handler initialized');
+
+      this.phoneNumber = number;
+
+      return this.client;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
     }
   }
 
+  public async reloadConnection(): Promise<WASocket> {
+    try {
+      this.instance.authState = await this.defineAuthState();
+
+      const { version } = await fetchLatestBaileysVersion();
+      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+
+      let options;
+
+      if (this.localProxy.enabled) {
+        this.logger.verbose('Proxy enabled');
+        options = {
+          agent: new ProxyAgent(this.localProxy.proxy as any),
+          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
+        };
+      }
+
+      const socketConfig: UserFacingSocketConfig = {
+        ...options,
+        auth: {
+          creds: this.instance.authState.state.creds,
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
+        },
+        logger: P({ level: this.logBaileys }),
+        printQRInTerminal: false,
+        browser: this.phoneNumber ? ['Chrome (Linux)', session.NAME, release()] : browser,
+        version,
+        markOnlineOnConnect: this.localSettings.always_online,
+        retryRequestDelayMs: 10,
+        connectTimeoutMs: 60_000,
+        qrTimeout: 40_000,
+        defaultQueryTimeoutMs: undefined,
+        emitOwnEvents: false,
+        shouldIgnoreJid: (jid) => {
+          const isGroupJid = this.localSettings.groups_ignore && isJidGroup(jid);
+          const isBroadcast = !this.localSettings.read_status && isJidBroadcast(jid);
+
+          return isGroupJid || isBroadcast;
+        },
+        msgRetryCounterCache: this.msgRetryCounterCache,
+        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+        generateHighQualityLinkPreview: true,
+        syncFullHistory: false,
+        userDevicesCache: this.userDevicesCache,
+        transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
+        patchMessageBeforeSending(message) {
+          if (
+            message.deviceSentMessage?.message?.listMessage?.listType ===
+            proto.Message.ListMessage.ListType.PRODUCT_LIST
+          ) {
+            message = JSON.parse(JSON.stringify(message));
+
+            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+
+          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+            message = JSON.parse(JSON.stringify(message));
+
+            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+
+          return message;
+        },
+      };
+
+      this.client = makeWASocket(socketConfig);
+
+      return this.client;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(error?.toString());
+    }
+  }
+
+  private readonly chatHandle = {
+    'chats.upsert': async (chats: Chat[], database: Database) => {
+      this.logger.verbose('Event received: chats.upsert');
+
+      this.logger.verbose('Finding chats in database');
+      const chatsRepository = await this.repository.chat.find({
+        where: { owner: this.instance.name },
+      });
+
+      this.logger.verbose('Verifying if chats exists in database to insert');
+      const chatsRaw: ChatRaw[] = [];
+      for await (const chat of chats) {
+        if (chatsRepository.find((cr) => cr.id === chat.id)) {
+          continue;
+        }
+
+        chatsRaw.push({ id: chat.id, owner: this.instance.wuid });
+      }
+
+      this.logger.verbose('Sending data to webhook in event CHATS_UPSERT');
+      this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
+
+      this.logger.verbose('Inserting chats in database');
+      this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
+    },
+
+    'chats.update': async (
+      chats: Partial<
+        proto.IConversation & {
+          lastMessageRecvTimestamp?: number;
+        } & {
+          conditional: (bufferedData: BufferedEventData) => boolean;
+        }
+      >[],
+    ) => {
+      this.logger.verbose('Event received: chats.update');
+      const chatsRaw: ChatRaw[] = chats.map((chat) => {
+        return { id: chat.id, owner: this.instance.wuid };
+      });
+
+      this.logger.verbose('Sending data to webhook in event CHATS_UPDATE');
+      this.sendDataWebhook(Events.CHATS_UPDATE, chatsRaw);
+    },
+
+    'chats.delete': async (chats: string[]) => {
+      this.logger.verbose('Event received: chats.delete');
+
+      this.logger.verbose('Deleting chats in database');
+      chats.forEach(
+        async (chat) =>
+          await this.repository.chat.delete({
+            where: { owner: this.instance.name, id: chat },
+          }),
+      );
+
+      this.logger.verbose('Sending data to webhook in event CHATS_DELETE');
+      this.sendDataWebhook(Events.CHATS_DELETE, [...chats]);
+    },
+  };
+
+  private readonly contactHandle = {
+    'contacts.upsert': async (contacts: Contact[], database: Database) => {
+      this.logger.verbose('Event received: contacts.upsert');
+
+      this.logger.verbose('Finding contacts in database');
+      const contactsRepository = await this.repository.contact.find({
+        where: { owner: this.instance.name },
+      });
+
+      this.logger.verbose('Verifying if contacts exists in database to insert');
+      const contactsRaw: ContactRaw[] = [];
+      for await (const contact of contacts) {
+        if (contactsRepository.find((cr) => cr.id === contact.id)) {
+          continue;
+        }
+
+        contactsRaw.push({
+          id: contact.id,
+          pushName: contact?.name || contact?.verifiedName,
+          profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
+          owner: this.instance.name,
+        });
+      }
+
+      this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
+      this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
+
+      this.logger.verbose('Inserting contacts in database');
+      this.repository.contact.insert(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+    },
+
+    'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
+      this.logger.verbose('Event received: contacts.update');
+
+      this.logger.verbose('Verifying if contacts exists in database to update');
+      const contactsRaw: ContactRaw[] = [];
+      for await (const contact of contacts) {
+        contactsRaw.push({
+          id: contact.id,
+          pushName: contact?.name ?? contact?.verifiedName,
+          profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
+          owner: this.instance.name,
+        });
+      }
+
+      this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
+      this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
+
+      this.logger.verbose('Updating contacts in database');
+      this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+    },
+  };
+
+  private readonly messageHandle = {
+    'messaging-history.set': async (
+      {
+        messages,
+        chats,
+        isLatest,
+      }: {
+        chats: Chat[];
+        contacts: Contact[];
+        messages: proto.IWebMessageInfo[];
+        isLatest: boolean;
+      },
+      database: Database,
+    ) => {
+      this.logger.verbose('Event received: messaging-history.set');
+      if (isLatest) {
+        this.logger.verbose('isLatest defined as true');
+        const chatsRaw: ChatRaw[] = chats.map((chat) => {
+          return {
+            id: chat.id,
+            owner: this.instance.name,
+            lastMsgTimestamp: chat.lastMessageRecvTimestamp,
+          };
+        });
+
+        this.logger.verbose('Sending data to webhook in event CHATS_SET');
+        this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
+
+        this.logger.verbose('Inserting chats in database');
+        this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
+      }
+
+      const messagesRaw: MessageRaw[] = [];
+      const messagesRepository = await this.repository.message.find({
+        where: { owner: this.instance.name },
+      });
+      for await (const [, m] of Object.entries(messages)) {
+        if (!m.message) {
+          continue;
+        }
+        if (messagesRepository.find((mr) => mr.owner === this.instance.name && mr.key.id === m.key.id)) {
+          continue;
+        }
+
+        if (Long.isLong(m?.messageTimestamp)) {
+          m.messageTimestamp = m.messageTimestamp?.toNumber();
+        }
+
+        messagesRaw.push({
+          key: m.key,
+          pushName: m.pushName,
+          participant: m.participant,
+          message: { ...m.message },
+          messageType: getContentType(m.message),
+          messageTimestamp: m.messageTimestamp as number,
+          owner: this.instance.name,
+        });
+      }
+
+      this.logger.verbose('Sending data to webhook in event MESSAGES_SET');
+      this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
+
+      messages = undefined;
+    },
+
+    'messages.upsert': async (
+      {
+        messages,
+        type,
+      }: {
+        messages: proto.IWebMessageInfo[];
+        type: MessageUpsertType;
+      },
+      database: Database,
+      settings: SettingsRaw,
+    ) => {
+      try {
+        this.logger.verbose('Event received: messages.upsert');
+        for (const received of messages) {
+          if (
+            (type !== 'notify' && type !== 'append') ||
+            received.message?.protocolMessage ||
+            received.message?.pollUpdateMessage
+          ) {
+            this.logger.verbose('message rejected');
+            return;
+          }
+
+          if (Long.isLong(received.messageTimestamp)) {
+            received.messageTimestamp = received.messageTimestamp?.toNumber();
+          }
+
+          if (settings?.groups_ignore && received.key.remoteJid.includes('@g.us')) {
+            this.logger.verbose('group ignored');
+            return;
+          }
+
+          let messageRaw: MessageRaw;
+
+          const isMedia =
+            received?.message?.imageMessage ||
+            received?.message?.videoMessage ||
+            received?.message?.stickerMessage ||
+            received?.message?.documentMessage ||
+            received?.message?.audioMessage;
+
+          const contentMsg = received.message[getContentType(received.message)] as any;
+
+          if (this.localWebhook.webhook_base64 === true && isMedia) {
+            const buffer = await downloadMediaMessage(
+              { key: received.key, message: received?.message },
+              'buffer',
+              {},
+              {
+                logger: P({ level: 'error' }) as any,
+                reuploadRequest: this.client.updateMediaMessage,
+              },
+            );
+            messageRaw = {
+              key: received.key,
+              pushName: received.pushName,
+              message: {
+                ...received.message,
+                base64: buffer ? buffer.toString('base64') : undefined,
+              },
+              contextInfo: contentMsg?.contextInfo,
+              messageType: getContentType(received.message),
+              messageTimestamp: received.messageTimestamp as number,
+              owner: this.instance.name,
+              source: getDevice(received.key.id),
+            };
+          } else {
+            messageRaw = {
+              key: received.key,
+              pushName: received.pushName,
+              message: { ...received.message },
+              contextInfo: contentMsg?.contextInfo,
+              messageType: getContentType(received.message),
+              messageTimestamp: received.messageTimestamp as number,
+              owner: this.instance.name,
+              source: getDevice(received.key.id),
+            };
+          }
+
+          if (this.localSettings.read_messages && received.key.id !== 'status@broadcast') {
+            await this.client.readMessages([received.key]);
+          }
+
+          if (this.localSettings.read_status && received.key.id === 'status@broadcast') {
+            await this.client.readMessages([received.key]);
+          }
+
+          this.logger.log(messageRaw);
+
+          this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
+          this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
+
+          if (this.localChatwoot.enabled && !received.key.id.includes('@broadcast')) {
+            const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
+              Events.MESSAGES_UPSERT,
+              { instanceName: this.instance.name },
+              messageRaw,
+            );
+
+            if (chatwootSentMessage?.id) {
+              messageRaw.chatwoot = {
+                messageId: chatwootSentMessage.id,
+                inboxId: chatwootSentMessage.inbox_id,
+                conversationId: chatwootSentMessage.conversation_id,
+              };
+            }
+          }
+
+          const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
+            (session) => session.remoteJid === received.key.remoteJid,
+          );
+
+          if ((this.localTypebot.enabled && type === 'notify') || typebotSessionRemoteJid) {
+            if (!(this.localTypebot.listening_from_me === false && messageRaw.key.fromMe === true)) {
+              if (messageRaw.messageType !== 'reactionMessage')
+                await this.typebotService.sendTypebot(
+                  { instanceName: this.instance.name },
+                  messageRaw.key.remoteJid,
+                  messageRaw,
+                );
+            }
+          }
+
+          if (this.localChamaai.enabled && messageRaw.key.fromMe === false && type === 'notify') {
+            await this.chamaaiService.sendChamaai(
+              { instanceName: this.instance.name },
+              messageRaw.key.remoteJid,
+              messageRaw,
+            );
+          }
+
+          this.logger.verbose('Inserting message in database');
+          await this.repository.message.insert([messageRaw], this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
+
+          this.logger.verbose('Verifying contact from message');
+          const contact = await this.repository.contact.find({
+            where: { owner: this.instance.name, id: received.key.remoteJid },
+          });
+
+          const contactRaw: ContactRaw = {
+            id: received.key.remoteJid,
+            pushName: received.pushName,
+            profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
+            owner: this.instance.name,
+          };
+
+          if (contactRaw.id === 'status@broadcast') {
+            this.logger.verbose('Contact is status@broadcast');
+            return;
+          }
+
+          if (contact?.length) {
+            this.logger.verbose('Contact found in database');
+            const contactRaw: ContactRaw = {
+              id: received.key.remoteJid,
+              pushName: contact[0].pushName,
+              profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
+              owner: this.instance.name,
+            };
+
+            this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
+            this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
+
+            if (this.localChatwoot.enabled) {
+              await this.chatwootService.eventWhatsapp(
+                Events.CONTACTS_UPDATE,
+                { instanceName: this.instance.name },
+                contactRaw,
+              );
+            }
+
+            this.logger.verbose('Updating contact in database');
+            await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+            return;
+          }
+
+          this.logger.verbose('Contact not found in database');
+
+          this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
+          this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
+
+          this.logger.verbose('Inserting contact in database');
+          this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+        }
+      } catch (error) {
+        this.logger.error(error);
+      }
+    },
+
+    'messages.update': async (args: WAMessageUpdate[], database: Database, settings: SettingsRaw) => {
+      this.logger.verbose('Event received: messages.update');
+      const status: Record<number, wa.StatusMessage> = {
+        0: 'ERROR',
+        1: 'PENDING',
+        2: 'SERVER_ACK',
+        3: 'DELIVERY_ACK',
+        4: 'READ',
+        5: 'PLAYED',
+      };
+      for await (const { key, update } of args) {
+        if (settings?.groups_ignore && key.remoteJid.includes('@g.us')) {
+          this.logger.verbose('group ignored');
+          return;
+        }
+
+        if (status[update.status] === 'READ' && key.fromMe) {
+          if (this.localChatwoot.enabled) {
+            this.chatwootService.eventWhatsapp('messages.read', { instanceName: this.instance.name }, { key: key });
+          }
+        }
+
+        // if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
+        if (key.remoteJid !== 'status@broadcast') {
+          this.logger.verbose('Message update is valid');
+
+          let pollUpdates: any;
+          if (update.pollUpdates) {
+            this.logger.verbose('Poll update found');
+
+            this.logger.verbose('Getting poll message');
+            const pollCreation = await this.getMessage(key);
+            this.logger.verbose(pollCreation);
+
+            if (pollCreation) {
+              this.logger.verbose('Getting aggregate votes in poll message');
+              pollUpdates = getAggregateVotesInPollMessage({
+                message: pollCreation as proto.IMessage,
+                pollUpdates: update.pollUpdates,
+              });
+            }
+          }
+
+          if (status[update.status] === 'READ' && !key.fromMe) return;
+
+          if (update.message === null && update.status === undefined) {
+            this.logger.verbose('Message deleted');
+
+            this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
+            this.sendDataWebhook(Events.MESSAGES_DELETE, key);
+
+            const message: MessageUpdateRaw = {
+              ...key,
+              status: 'DELETED',
+              datetime: Date.now(),
+              owner: this.instance.name,
+            };
+
+            this.logger.verbose(message);
+
+            this.logger.verbose('Inserting message in database');
+            await this.repository.messageUpdate.insert(
+              [message],
+              this.instance.name,
+              database.SAVE_DATA.MESSAGE_UPDATE,
+            );
+
+            if (this.localChatwoot.enabled) {
+              this.chatwootService.eventWhatsapp(
+                Events.MESSAGES_DELETE,
+                { instanceName: this.instance.name },
+                { key: key },
+              );
+            }
+
+            return;
+          }
+
+          const message: MessageUpdateRaw = {
+            ...key,
+            status: status[update.status],
+            datetime: Date.now(),
+            owner: this.instance.name,
+            pollUpdates,
+          };
+
+          this.logger.verbose(message);
+
+          this.logger.verbose('Sending data to webhook in event MESSAGES_UPDATE');
+          this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
+
+          this.logger.verbose('Inserting message in database');
+          this.repository.messageUpdate.insert([message], this.instance.name, database.SAVE_DATA.MESSAGE_UPDATE);
+        }
+      }
+    },
+  };
+
+  private readonly groupHandler = {
+    'groups.upsert': (groupMetadata: GroupMetadata[]) => {
+      this.logger.verbose('Event received: groups.upsert');
+
+      this.logger.verbose('Sending data to webhook in event GROUPS_UPSERT');
+      this.sendDataWebhook(Events.GROUPS_UPSERT, groupMetadata);
+    },
+
+    'groups.update': (groupMetadataUpdate: Partial<GroupMetadata>[]) => {
+      this.logger.verbose('Event received: groups.update');
+
+      this.logger.verbose('Sending data to webhook in event GROUPS_UPDATE');
+      this.sendDataWebhook(Events.GROUPS_UPDATE, groupMetadataUpdate);
+    },
+
+    'group-participants.update': (participantsUpdate: {
+      id: string;
+      participants: string[];
+      action: ParticipantAction;
+    }) => {
+      this.logger.verbose('Event received: group-participants.update');
+
+      this.logger.verbose('Sending data to webhook in event GROUP_PARTICIPANTS_UPDATE');
+      this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
+    },
+  };
+
+  private eventHandler() {
+    this.logger.verbose('Initializing event handler');
+    this.client.ev.process(async (events) => {
+      if (!this.endSession) {
+        const database = this.configService.get<Database>('DATABASE');
+        const settings = await this.findSettings();
+
+        if (events.call) {
+          this.logger.verbose('Listening event: call');
+          const call = events.call[0];
+
+          if (settings?.reject_call && call.status == 'offer') {
+            this.logger.verbose('Rejecting call');
+            this.client.rejectCall(call.id, call.from);
+          }
+
+          if (settings?.msg_call?.trim().length > 0 && call.status == 'offer') {
+            this.logger.verbose('Sending message in call');
+            const msg = await this.client.sendMessage(call.from, {
+              text: settings.msg_call,
+            });
+
+            this.logger.verbose('Sending data to event messages.upsert');
+            this.client.ev.emit('messages.upsert', {
+              messages: [msg],
+              type: 'notify',
+            });
+          }
+
+          this.logger.verbose('Sending data to webhook in event CALL');
+          this.sendDataWebhook(Events.CALL, call);
+        }
+
+        if (events['connection.update']) {
+          this.logger.verbose('Listening event: connection.update');
+          this.connectionUpdate(events['connection.update']);
+        }
+
+        if (events['creds.update']) {
+          this.logger.verbose('Listening event: creds.update');
+          this.instance.authState.saveCreds();
+        }
+
+        if (events['messaging-history.set']) {
+          this.logger.verbose('Listening event: messaging-history.set');
+          const payload = events['messaging-history.set'];
+          this.messageHandle['messaging-history.set'](payload, database);
+        }
+
+        if (events['messages.upsert']) {
+          this.logger.verbose('Listening event: messages.upsert');
+          const payload = events['messages.upsert'];
+          if (payload.messages.find((a) => a?.messageStubType === 2)) {
+            const msg = payload.messages[0];
+            retryCache[msg.key.id] = msg;
+            return;
+          }
+          this.messageHandle['messages.upsert'](payload, database, settings);
+        }
+
+        if (events['messages.update']) {
+          this.logger.verbose('Listening event: messages.update');
+          const payload = events['messages.update'];
+          payload.forEach((message) => {
+            if (retryCache[message.key.id]) {
+              this.client.ev.emit('messages.upsert', {
+                messages: [message],
+                type: 'notify',
+              });
+              delete retryCache[message.key.id];
+              return;
+            }
+          });
+          this.messageHandle['messages.update'](payload, database, settings);
+        }
+
+        if (events['presence.update']) {
+          this.logger.verbose('Listening event: presence.update');
+          const payload = events['presence.update'];
+
+          if (settings.groups_ignore && payload.id.includes('@g.us')) {
+            this.logger.verbose('group ignored');
+            return;
+          }
+          this.sendDataWebhook(Events.PRESENCE_UPDATE, payload);
+        }
+
+        if (!settings?.groups_ignore) {
+          if (events['groups.upsert']) {
+            this.logger.verbose('Listening event: groups.upsert');
+            const payload = events['groups.upsert'];
+            this.groupHandler['groups.upsert'](payload);
+          }
+
+          if (events['groups.update']) {
+            this.logger.verbose('Listening event: groups.update');
+            const payload = events['groups.update'];
+            this.groupHandler['groups.update'](payload);
+          }
+
+          if (events['group-participants.update']) {
+            this.logger.verbose('Listening event: group-participants.update');
+            const payload = events['group-participants.update'];
+            this.groupHandler['group-participants.update'](payload);
+          }
+        }
+
+        if (events['chats.upsert']) {
+          this.logger.verbose('Listening event: chats.upsert');
+          const payload = events['chats.upsert'];
+          this.chatHandle['chats.upsert'](payload, database);
+        }
+
+        if (events['chats.update']) {
+          this.logger.verbose('Listening event: chats.update');
+          const payload = events['chats.update'];
+          this.chatHandle['chats.update'](payload);
+        }
+
+        if (events['chats.delete']) {
+          this.logger.verbose('Listening event: chats.delete');
+          const payload = events['chats.delete'];
+          this.chatHandle['chats.delete'](payload);
+        }
+
+        if (events['contacts.upsert']) {
+          this.logger.verbose('Listening event: contacts.upsert');
+          const payload = events['contacts.upsert'];
+          this.contactHandle['contacts.upsert'](payload, database);
+        }
+
+        if (events['contacts.update']) {
+          this.logger.verbose('Listening event: contacts.update');
+          const payload = events['contacts.update'];
+          this.contactHandle['contacts.update'](payload, database);
+        }
+      }
+    });
+  }
+
+  // Check if the number is MX or AR
+  private formatMXOrARNumber(jid: string): string {
+    const countryCode = jid.substring(0, 2);
+
+    if (Number(countryCode) === 52 || Number(countryCode) === 54) {
+      if (jid.length === 13) {
+        const number = countryCode + jid.substring(3);
+        return number;
+      }
+
+      return jid;
+    }
+    return jid;
+  }
+
+  // Check if the number is br
+  private formatBRNumber(jid: string) {
+    const regexp = new RegExp(/^(\d{2})(\d{2})\d{1}(\d{8})$/);
+    if (regexp.test(jid)) {
+      const match = regexp.exec(jid);
+      if (match && match[1] === '55') {
+        const joker = Number.parseInt(match[3][0]);
+        const ddd = Number.parseInt(match[2]);
+        if (joker < 7 || ddd < 31) {
+          return match[0];
+        }
+        return match[1] + match[2] + match[3];
+      }
+      return jid;
+    } else {
+      return jid;
+    }
+  }
+
+  private createJid(number: string): string {
+    this.logger.verbose('Creating jid with number: ' + number);
+
+    if (number.includes('@g.us') || number.includes('@s.whatsapp.net') || number.includes('@lid')) {
+      this.logger.verbose('Number already contains @g.us or @s.whatsapp.net or @lid');
+      return number;
+    }
+
+    if (number.includes('@broadcast')) {
+      this.logger.verbose('Number already contains @broadcast');
+      return number;
+    }
+
+    number = number
+      ?.replace(/\s/g, '')
+      .replace(/\+/g, '')
+      .replace(/\(/g, '')
+      .replace(/\)/g, '')
+      .split(':')[0]
+      .split('@')[0];
+
+    if (number.includes('-') && number.length >= 24) {
+      this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
+      number = number.replace(/[^\d-]/g, '');
+      return `${number}@g.us`;
+    }
+
+    number = number.replace(/\D/g, '');
+
+    if (number.length >= 18) {
+      this.logger.verbose('Jid created is group: ' + `${number}@g.us`);
+      number = number.replace(/[^\d-]/g, '');
+      return `${number}@g.us`;
+    }
+
+    this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
+    return `${number}@s.whatsapp.net`;
+  }
+
+  public async profilePicture(number: string) {
+    const jid = this.createJid(number);
+
+    this.logger.verbose('Getting profile picture with jid: ' + jid);
+    try {
+      this.logger.verbose('Getting profile picture url');
+      return {
+        wuid: jid,
+        profilePictureUrl: await this.client.profilePictureUrl(jid, 'image'),
+      };
+    } catch (error) {
+      this.logger.verbose('Profile picture not found');
+      return {
+        wuid: jid,
+        profilePictureUrl: null,
+      };
+    }
+  }
+
+  public async getStatus(number: string) {
+    const jid = this.createJid(number);
+
+    this.logger.verbose('Getting profile status with jid:' + jid);
+    try {
+      this.logger.verbose('Getting status');
+      return {
+        wuid: jid,
+        status: (await this.client.fetchStatus(jid))?.status,
+      };
+    } catch (error) {
+      this.logger.verbose('Status not found');
+      return {
+        wuid: jid,
+        status: null,
+      };
+    }
+  }
+
+  public async fetchProfile(instanceName: string, number?: string) {
+    const jid = number ? this.createJid(number) : this.client?.user?.id;
+
+    this.logger.verbose('Getting profile with jid: ' + jid);
+    try {
+      this.logger.verbose('Getting profile info');
+
+      if (number) {
+        const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
+        const picture = await this.profilePicture(info?.jid);
+        const status = await this.getStatus(info?.jid);
+        const business = await this.fetchBusinessProfile(info?.jid);
+
+        return {
+          wuid: info?.jid || jid,
+          name: info?.name,
+          numberExists: info?.exists,
+          picture: picture?.profilePictureUrl,
+          status: status?.status,
+          isBusiness: business.isBusiness,
+          email: business?.email,
+          description: business?.description,
+          website: business?.website?.shift(),
+        };
+      } else {
+        const info = await waMonitor.instanceInfo(instanceName);
+        const business = await this.fetchBusinessProfile(jid);
+
+        return {
+          wuid: jid,
+          name: info?.instance?.profileName,
+          numberExists: true,
+          picture: info?.instance?.profilePictureUrl,
+          status: info?.instance?.profileStatus,
+          isBusiness: business.isBusiness,
+          email: business?.email,
+          description: business?.description,
+          website: business?.website?.shift(),
+        };
+      }
+    } catch (error) {
+      this.logger.verbose('Profile not found');
+      return {
+        wuid: jid,
+        name: null,
+        picture: null,
+        status: null,
+        os: null,
+        isBusiness: false,
+      };
+    }
+  }
+
+  private async sendMessageWithTyping<T = proto.IMessage>(
+    number: string,
+    message: T,
+    options?: Options,
+    isChatwoot = false,
+  ) {
+    this.logger.verbose('Sending message with typing');
+
+    this.logger.verbose(`Check if number "${number}" is WhatsApp`);
+    const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
+
+    this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
+    if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+      throw new BadRequestException(isWA);
+    }
+
+    const sender = isWA.jid;
+
+    try {
+      if (options?.delay) {
+        this.logger.verbose('Delaying message');
+
+        await this.client.presenceSubscribe(sender);
+        this.logger.verbose('Subscribing to presence');
+
+        await this.client.sendPresenceUpdate(options?.presence ?? 'composing', sender);
+        this.logger.verbose('Sending presence update: ' + options?.presence ?? 'composing');
+
+        await delay(options.delay);
+        this.logger.verbose('Set delay: ' + options.delay);
+
+        await this.client.sendPresenceUpdate('paused', sender);
+        this.logger.verbose('Sending presence update: paused');
+      }
+
+      const linkPreview = options?.linkPreview != false ? undefined : false;
+
+      let quoted: WAMessage;
+
+      if (options?.quoted) {
+        const m = options?.quoted;
+
+        const msg = m?.message ? m : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
+
+        if (!msg) {
+          throw 'Message not found';
+        }
+
+        quoted = msg;
+        this.logger.verbose('Quoted message');
+      }
+
+      let mentions: string[];
+      if (isJidGroup(sender)) {
+        try {
+          const group = await this.findGroup({ groupJid: sender }, 'inner');
+
+          if (!group) {
+            throw new NotFoundException('Group not found');
+          }
+
+          if (options?.mentions) {
+            this.logger.verbose('Mentions defined');
+
+            if (options.mentions?.everyOne) {
+              this.logger.verbose('Mentions everyone');
+
+              this.logger.verbose('Getting group metadata');
+              mentions = group.participants.map((participant) => participant.id);
+              this.logger.verbose('Getting group metadata for mentions');
+            } else if (options.mentions?.mentioned?.length) {
+              this.logger.verbose('Mentions manually defined');
+              mentions = options.mentions.mentioned.map((mention) => {
+                const jid = this.createJid(mention);
+                if (isJidGroup(jid)) {
+                  return null;
+                }
+                return jid;
+              });
+            }
+          }
+        } catch (error) {
+          throw new NotFoundException('Group not found');
+        }
+      }
+
+      const messageSent = await (async () => {
+        const option = {
+          quoted,
+        };
+
+        if (
+          !message['audio'] &&
+          !message['poll'] &&
+          !message['sticker'] &&
+          !message['conversation'] &&
+          sender !== 'status@broadcast'
+        ) {
+          if (message['reactionMessage']) {
+            this.logger.verbose('Sending reaction');
+            return await this.client.sendMessage(
+              sender,
+              {
+                react: {
+                  text: message['reactionMessage']['text'],
+                  key: message['reactionMessage']['key'],
+                },
+              } as unknown as AnyMessageContent,
+              option as unknown as MiscMessageGenerationOptions,
+            );
+          }
+        }
+        if (message['conversation']) {
+          this.logger.verbose('Sending message');
+          return await this.client.sendMessage(
+            sender,
+            {
+              text: message['conversation'],
+              mentions,
+              linkPreview: linkPreview,
+            } as unknown as AnyMessageContent,
+            option as unknown as MiscMessageGenerationOptions,
+          );
+        }
+
+        if (!message['audio'] && sender != 'status@broadcast') {
+          this.logger.verbose('Sending message');
+          return await this.client.sendMessage(
+            sender,
+            {
+              forward: {
+                key: { remoteJid: this.instance.wuid, fromMe: true },
+                message,
+              },
+              mentions,
+            },
+            option as unknown as MiscMessageGenerationOptions,
+          );
+        }
+
+        if (sender === 'status@broadcast') {
+          this.logger.verbose('Sending message');
+          return await this.client.sendMessage(
+            sender,
+            message['status'].content as unknown as AnyMessageContent,
+            {
+              backgroundColor: message['status'].option.backgroundColor,
+              font: message['status'].option.font,
+              statusJidList: message['status'].option.statusJidList,
+            } as unknown as MiscMessageGenerationOptions,
+          );
+        }
+
+        this.logger.verbose('Sending message');
+        return await this.client.sendMessage(
+          sender,
+          message as unknown as AnyMessageContent,
+          option as unknown as MiscMessageGenerationOptions,
+        );
+      })();
+
+      const contentMsg = messageSent.message[getContentType(messageSent.message)] as any;
+
+      const messageRaw: MessageRaw = {
+        key: messageSent.key,
+        pushName: messageSent.pushName,
+        message: { ...messageSent.message },
+        contextInfo: contentMsg?.contextInfo,
+        messageType: getContentType(messageSent.message),
+        messageTimestamp: messageSent.messageTimestamp as number,
+        owner: this.instance.name,
+        source: getDevice(messageSent.key.id),
+      };
+
+      this.logger.log(messageRaw);
+
+      this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
+      this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
+
+      if (this.localChatwoot.enabled && !isChatwoot) {
+        this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
+      }
+
+      this.logger.verbose('Inserting message in database');
+      await this.repository.message.insert(
+        [messageRaw],
+        this.instance.name,
+        this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE,
+      );
+
+      return messageSent;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  // Instance Controller
+  public get connectionStatus() {
+    this.logger.verbose('Getting connection status');
+    return this.stateConnection;
+  }
+
+  public async sendPresence(data: SendPresenceDto) {
+    try {
+      const { number } = data;
+
+      this.logger.verbose(`Check if number "${number}" is WhatsApp`);
+      const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
+
+      this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
+      if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+        throw new BadRequestException(isWA);
+      }
+
+      const sender = isWA.jid;
+
+      this.logger.verbose('Sending presence');
+      await this.client.presenceSubscribe(sender);
+      this.logger.verbose('Subscribing to presence');
+
+      await this.client.sendPresenceUpdate(data.options?.presence ?? 'composing', sender);
+      this.logger.verbose('Sending presence update: ' + data.options?.presence ?? 'composing');
+
+      await delay(data.options.delay);
+      this.logger.verbose('Set delay: ' + data.options.delay);
+
+      await this.client.sendPresenceUpdate('paused', sender);
+      this.logger.verbose('Sending presence update: paused');
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  // Send Message Controller
+  public async textMessage(data: SendTextDto, isChatwoot = false) {
+    this.logger.verbose('Sending text message');
+    return await this.sendMessageWithTyping(
+      data.number,
+      {
+        conversation: data.textMessage.text,
+      },
+      data?.options,
+      isChatwoot,
+    );
+  }
+
+  public async pollMessage(data: SendPollDto) {
+    this.logger.verbose('Sending poll message');
+    return await this.sendMessageWithTyping(
+      data.number,
+      {
+        poll: {
+          name: data.pollMessage.name,
+          selectableCount: data.pollMessage.selectableCount,
+          values: data.pollMessage.values,
+        },
+      },
+      data?.options,
+    );
+  }
+
+  private async formatStatusMessage(status: StatusMessage) {
+    this.logger.verbose('Formatting status message');
+
+    if (!status.type) {
+      throw new BadRequestException('Type is required');
+    }
+
+    if (!status.content) {
+      throw new BadRequestException('Content is required');
+    }
+
+    if (status.allContacts) {
+      this.logger.verbose('All contacts defined as true');
+
+      this.logger.verbose('Getting contacts from database');
+      const contacts = await this.repository.contact.find({
+        where: { owner: this.instance.name },
+      });
+
+      if (!contacts.length) {
+        throw new BadRequestException('Contacts not found');
+      }
+
+      this.logger.verbose('Getting contacts with push name');
+      status.statusJidList = contacts.filter((contact) => contact.pushName).map((contact) => contact.id);
+
+      this.logger.verbose(status.statusJidList);
+    }
+
+    if (!status.statusJidList?.length && !status.allContacts) {
+      throw new BadRequestException('StatusJidList is required');
+    }
+
+    if (status.type === 'text') {
+      this.logger.verbose('Type defined as text');
+
+      if (!status.backgroundColor) {
+        throw new BadRequestException('Background color is required');
+      }
+
+      if (!status.font) {
+        throw new BadRequestException('Font is required');
+      }
+
+      return {
+        content: {
+          text: status.content,
+        },
+        option: {
+          backgroundColor: status.backgroundColor,
+          font: status.font,
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'image') {
+      this.logger.verbose('Type defined as image');
+
+      return {
+        content: {
+          image: {
+            url: status.content,
+          },
+          caption: status.caption,
+        },
+        option: {
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'video') {
+      this.logger.verbose('Type defined as video');
+
+      return {
+        content: {
+          video: {
+            url: status.content,
+          },
+          caption: status.caption,
+        },
+        option: {
+          statusJidList: status.statusJidList,
+        },
+      };
+    }
+    if (status.type === 'audio') {
+      this.logger.verbose('Type defined as audio');
+
+      this.logger.verbose('Processing audio');
+      const convert = await this.processAudio(status.content, 'status@broadcast');
+      if (typeof convert === 'string') {
+        this.logger.verbose('Audio processed');
+        const audio = fs.readFileSync(convert).toString('base64');
+
+        const result = {
+          content: {
+            audio: Buffer.from(audio, 'base64'),
+            ptt: true,
+            mimetype: 'audio/mp4',
+          },
+          option: {
+            statusJidList: status.statusJidList,
+          },
+        };
+
+        fs.unlinkSync(convert);
+
+        return result;
+      } else {
+        throw new InternalServerErrorException(convert);
+      }
+    }
+
+    throw new BadRequestException('Type not found');
+  }
+
+  public async statusMessage(data: SendStatusDto) {
+    this.logger.verbose('Sending status message');
+    const status = await this.formatStatusMessage(data.statusMessage);
+
+    return await this.sendMessageWithTyping('status@broadcast', {
+      status,
+    });
+  }
+
+  private async prepareMediaMessage(mediaMessage: MediaMessage) {
+    try {
+      this.logger.verbose('Preparing media message');
+      const prepareMedia = await prepareWAMessageMedia(
+        {
+          [mediaMessage.mediatype]: isURL(mediaMessage.media)
+            ? { url: mediaMessage.media }
+            : Buffer.from(mediaMessage.media, 'base64'),
+        } as any,
+        { upload: this.client.waUploadToServer },
+      );
+
+      const mediaType = mediaMessage.mediatype + 'Message';
+      this.logger.verbose('Media type: ' + mediaType);
+
+      if (mediaMessage.mediatype === 'document' && !mediaMessage.fileName) {
+        this.logger.verbose('If media type is document and file name is not defined then');
+        const regex = new RegExp(/.*\/(.+?)\./);
+        const arrayMatch = regex.exec(mediaMessage.media);
+        mediaMessage.fileName = arrayMatch[1];
+        this.logger.verbose('File name: ' + mediaMessage.fileName);
+      }
+
+      if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
+        mediaMessage.fileName = 'image.png';
+      }
+
+      if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
+        mediaMessage.fileName = 'video.mp4';
+      }
+
+      let mimetype: string;
+
+      if (mediaMessage.mimetype) {
+        mimetype = mediaMessage.mimetype;
+      } else {
+        if (isURL(mediaMessage.media)) {
+          const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
+
+          mimetype = response.headers['content-type'];
+        } else {
+          mimetype = getMIMEType(mediaMessage.fileName);
+        }
+      }
+
+      this.logger.verbose('Mimetype: ' + mimetype);
+
+      prepareMedia[mediaType].caption = mediaMessage?.caption;
+      prepareMedia[mediaType].mimetype = mimetype;
+      prepareMedia[mediaType].fileName = mediaMessage.fileName;
+
+      if (mediaMessage.mediatype === 'video') {
+        this.logger.verbose('Is media type video then set gif playback as false');
+        prepareMedia[mediaType].jpegThumbnail = Uint8Array.from(
+          readFileSync(join(process.cwd(), 'public', 'images', 'video-cover.png')),
+        );
+        prepareMedia[mediaType].gifPlayback = false;
+      }
+
+      this.logger.verbose('Generating wa message from content');
+      return generateWAMessageFromContent(
+        '',
+        { [mediaType]: { ...prepareMedia[mediaType] } },
+        { userJid: this.instance.wuid },
+      );
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(error?.toString() || error);
+    }
+  }
+
+  private async convertToWebP(image: string, number: string) {
+    try {
+      this.logger.verbose('Converting image to WebP to sticker');
+
+      let imagePath: string;
+      const hash = `${number}-${new Date().getTime()}`;
+      this.logger.verbose('Hash to image name: ' + hash);
+
+      const outputPath = `${join(this.storePath, 'temp', `${hash}.webp`)}`;
+      this.logger.verbose('Output path: ' + outputPath);
+
+      if (isBase64(image)) {
+        this.logger.verbose('Image is base64');
+
+        const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+        imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
+        this.logger.verbose('Image path: ' + imagePath);
+
+        await sharp(imageBuffer).toFile(imagePath);
+        this.logger.verbose('Image created');
+      } else {
+        this.logger.verbose('Image is url');
+
+        const timestamp = new Date().getTime();
+        const url = `${image}?timestamp=${timestamp}`;
+        this.logger.verbose('including timestamp in url: ' + url);
+
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        this.logger.verbose('Getting image from url');
+
+        const imageBuffer = Buffer.from(response.data, 'binary');
+        imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
+        this.logger.verbose('Image path: ' + imagePath);
+
+        await sharp(imageBuffer).toFile(imagePath);
+        this.logger.verbose('Image created');
+      }
+
+      await sharp(imagePath).webp().toFile(outputPath);
+      this.logger.verbose('Image converted to WebP');
+
+      fs.unlinkSync(imagePath);
+      this.logger.verbose('Temp image deleted');
+
+      return outputPath;
+    } catch (error) {
+      console.error('Erro ao converter a imagem para WebP:', error);
+    }
+  }
+
+  public async mediaSticker(data: SendStickerDto) {
+    this.logger.verbose('Sending media sticker');
+    const convert = await this.convertToWebP(data.stickerMessage.image, data.number);
+    const result = await this.sendMessageWithTyping(
+      data.number,
+      {
+        sticker: { url: convert },
+      },
+      data?.options,
+    );
+
+    fs.unlinkSync(convert);
+    this.logger.verbose('Converted image deleted');
+
+    return result;
+  }
+
+  public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
+    this.logger.verbose('Sending media message');
+    const generate = await this.prepareMediaMessage(data.mediaMessage);
+
+    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
+  }
+
+  public async processAudio(audio: string, number: string) {
+    this.logger.verbose('Processing audio');
+    let tempAudioPath: string;
+    let outputAudio: string;
+
+    number = number.replace(/\D/g, '');
+    const hash = `${number}-${new Date().getTime()}`;
+    this.logger.verbose('Hash to audio name: ' + hash);
+
+    if (isURL(audio)) {
+      this.logger.verbose('Audio is url');
+
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
+      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+      this.logger.verbose('Output audio path: ' + outputAudio);
+      this.logger.verbose('Temp audio path: ' + tempAudioPath);
+
+      const timestamp = new Date().getTime();
+      const url = `${audio}?timestamp=${timestamp}`;
+
+      this.logger.verbose('Including timestamp in url: ' + url);
+
+      const response = await axios.get(url, { responseType: 'arraybuffer' });
+      this.logger.verbose('Getting audio from url');
+
+      fs.writeFileSync(tempAudioPath, response.data);
+    } else {
+      this.logger.verbose('Audio is base64');
+
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
+      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+      this.logger.verbose('Output audio path: ' + outputAudio);
+      this.logger.verbose('Temp audio path: ' + tempAudioPath);
+
+      const audioBuffer = Buffer.from(audio, 'base64');
+      fs.writeFileSync(tempAudioPath, audioBuffer);
+      this.logger.verbose('Temp audio created');
+    }
+
+    this.logger.verbose('Converting audio to mp4');
+    return new Promise((resolve, reject) => {
+      exec(`${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`, (error) => {
+        fs.unlinkSync(tempAudioPath);
+        this.logger.verbose('Temp audio deleted');
+
+        if (error) reject(error);
+
+        this.logger.verbose('Audio converted to mp4');
+        resolve(outputAudio);
+      });
+    });
+  }
+
+  public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
+    this.logger.verbose('Sending audio whatsapp');
+
+    if (!data.options?.encoding && data.options?.encoding !== false) {
+      data.options.encoding = true;
+    }
+
+    if (data.options?.encoding) {
+      const convert = await this.processAudio(data.audioMessage.audio, data.number);
+      if (typeof convert === 'string') {
+        const audio = fs.readFileSync(convert).toString('base64');
+        const result = this.sendMessageWithTyping<AnyMessageContent>(
+          data.number,
+          {
+            audio: Buffer.from(audio, 'base64'),
+            ptt: true,
+            mimetype: 'audio/mp4',
+          },
+          { presence: 'recording', delay: data?.options?.delay },
+          isChatwoot,
+        );
+
+        fs.unlinkSync(convert);
+        this.logger.verbose('Converted audio deleted');
+
+        return result;
+      } else {
+        throw new InternalServerErrorException(convert);
+      }
+    }
+
+    return await this.sendMessageWithTyping<AnyMessageContent>(
+      data.number,
+      {
+        audio: isURL(data.audioMessage.audio)
+          ? { url: data.audioMessage.audio }
+          : Buffer.from(data.audioMessage.audio, 'base64'),
+        ptt: true,
+        mimetype: 'audio/ogg; codecs=opus',
+      },
+      { presence: 'recording', delay: data?.options?.delay },
+      isChatwoot,
+    );
+  }
+
+  public async buttonMessage(data: SendButtonDto) {
+    this.logger.verbose('Sending button message');
+    const embeddedMedia: any = {};
+    let mediatype = 'TEXT';
+
+    if (data.buttonMessage?.mediaMessage) {
+      mediatype = data.buttonMessage.mediaMessage?.mediatype.toUpperCase() ?? 'TEXT';
+      embeddedMedia.mediaKey = mediatype.toLowerCase() + 'Message';
+      const generate = await this.prepareMediaMessage(data.buttonMessage.mediaMessage);
+      embeddedMedia.message = generate.message[embeddedMedia.mediaKey];
+      embeddedMedia.contentText = `*${data.buttonMessage.title}*\n\n${data.buttonMessage.description}`;
+    }
+
+    const btnItems = {
+      text: data.buttonMessage.buttons.map((btn) => btn.buttonText),
+      ids: data.buttonMessage.buttons.map((btn) => btn.buttonId),
+    };
+
+    if (!arrayUnique(btnItems.text) || !arrayUnique(btnItems.ids)) {
+      throw new BadRequestException('Button texts cannot be repeated', 'Button IDs cannot be repeated.');
+    }
+
+    return await this.sendMessageWithTyping(
+      data.number,
+      {
+        buttonsMessage: {
+          text: !embeddedMedia?.mediaKey ? data.buttonMessage.title : undefined,
+          contentText: embeddedMedia?.contentText ?? data.buttonMessage.description,
+          footerText: data.buttonMessage?.footerText,
+          buttons: data.buttonMessage.buttons.map((button) => {
+            return {
+              buttonText: {
+                displayText: button.buttonText,
+              },
+              buttonId: button.buttonId,
+              type: 1,
+            };
+          }),
+          headerType: proto.Message.ButtonsMessage.HeaderType[mediatype],
+          [embeddedMedia?.mediaKey]: embeddedMedia?.message,
+        },
+      },
+      data?.options,
+    );
+  }
+
+  public async locationMessage(data: SendLocationDto) {
+    this.logger.verbose('Sending location message');
+    return await this.sendMessageWithTyping(
+      data.number,
+      {
+        locationMessage: {
+          degreesLatitude: data.locationMessage.latitude,
+          degreesLongitude: data.locationMessage.longitude,
+          name: data.locationMessage?.name,
+          address: data.locationMessage?.address,
+        },
+      },
+      data?.options,
+    );
+  }
+
+  public async listMessage(data: SendListDto) {
+    this.logger.verbose('Sending list message');
+    return await this.sendMessageWithTyping(
+      data.number,
+      {
+        listMessage: {
+          title: data.listMessage.title,
+          description: data.listMessage.description,
+          buttonText: data.listMessage?.buttonText,
+          footerText: data.listMessage?.footerText,
+          sections: data.listMessage.sections,
+          listType: 2,
+        },
+      },
+      data?.options,
+    );
+  }
+
+  public async contactMessage(data: SendContactDto) {
+    this.logger.verbose('Sending contact message');
+    const message: proto.IMessage = {};
+
+    const vcard = (contact: ContactMessage) => {
+      this.logger.verbose('Creating vcard');
+      let result = 'BEGIN:VCARD\n' + 'VERSION:3.0\n' + `N:${contact.fullName}\n` + `FN:${contact.fullName}\n`;
+
+      if (contact.organization) {
+        this.logger.verbose('Organization defined');
+        result += `ORG:${contact.organization};\n`;
+      }
+
+      if (contact.email) {
+        this.logger.verbose('Email defined');
+        result += `EMAIL:${contact.email}\n`;
+      }
+
+      if (contact.url) {
+        this.logger.verbose('Url defined');
+        result += `URL:${contact.url}\n`;
+      }
+
+      if (!contact.wuid) {
+        this.logger.verbose('Wuid defined');
+        contact.wuid = this.createJid(contact.phoneNumber);
+      }
+
+      result += `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` + 'item1.X-ABLabel:Celular\n' + 'END:VCARD';
+
+      this.logger.verbose('Vcard created');
+      return result;
+    };
+
+    if (data.contactMessage.length === 1) {
+      message.contactMessage = {
+        displayName: data.contactMessage[0].fullName,
+        vcard: vcard(data.contactMessage[0]),
+      };
+    } else {
+      message.contactsArrayMessage = {
+        displayName: `${data.contactMessage.length} contacts`,
+        contacts: data.contactMessage.map((contact) => {
+          return {
+            displayName: contact.fullName,
+            vcard: vcard(contact),
+          };
+        }),
+      };
+    }
+
+    return await this.sendMessageWithTyping(data.number, { ...message }, data?.options);
+  }
+
+  public async reactionMessage(data: SendReactionDto) {
+    this.logger.verbose('Sending reaction message');
+    return await this.sendMessageWithTyping(data.reactionMessage.key.remoteJid, {
+      reactionMessage: {
+        key: data.reactionMessage.key,
+        text: data.reactionMessage.reaction,
+      },
+    });
+  }
+
+  // Chat Controller
+  public async whatsappNumber(data: WhatsAppNumberDto) {
+    this.logger.verbose('Getting whatsapp number');
+
+    const onWhatsapp: OnWhatsAppDto[] = [];
+    for await (const number of data.numbers) {
+      let jid = this.createJid(number);
+
+      if (isJidGroup(jid)) {
+        const group = await this.findGroup({ groupJid: jid }, 'inner');
+
+        if (!group) throw new BadRequestException('Group not found');
+
+        onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, group?.subject));
+      } else if (jid === 'status@broadcast') {
+        onWhatsapp.push(new OnWhatsAppDto(jid, false));
+      } else {
+        jid = !jid.startsWith('+') ? `+${jid}` : jid;
+        const verify = await this.client.onWhatsApp(jid);
+
+        const result = verify[0];
+
+        if (!result) {
+          onWhatsapp.push(new OnWhatsAppDto(jid, false));
+        } else {
+          onWhatsapp.push(new OnWhatsAppDto(result.jid, result.exists));
+        }
+      }
+    }
+
+    return onWhatsapp;
+  }
+
+  public async markMessageAsRead(data: ReadMessageDto) {
+    this.logger.verbose('Marking message as read');
+
+    try {
+      const keys: proto.IMessageKey[] = [];
+      data.read_messages.forEach((read) => {
+        if (isJidGroup(read.remoteJid) || isJidUser(read.remoteJid)) {
+          keys.push({
+            remoteJid: read.remoteJid,
+            fromMe: read.fromMe,
+            id: read.id,
+          });
+        }
+      });
+      await this.client.readMessages(keys);
+      return { message: 'Read messages', read: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Read messages fail', error.toString());
+    }
+  }
+
+  public async getLastMessage(number: string) {
+    const messages = await this.fetchMessages({
+      where: {
+        key: {
+          remoteJid: number,
+        },
+        owner: this.instance.name,
+      },
+    });
+
+    let lastMessage = messages.pop();
+
+    for (const message of messages) {
+      if (message.messageTimestamp >= lastMessage.messageTimestamp) {
+        lastMessage = message;
+      }
+    }
+
+    return lastMessage as unknown as LastMessage;
+  }
+
+  public async archiveChat(data: ArchiveChatDto) {
+    this.logger.verbose('Archiving chat');
+    try {
+      let last_message = data.lastMessage;
+      let number = data.chat;
+
+      if (!last_message && number) {
+        last_message = await this.getLastMessage(number);
+      } else {
+        last_message = data.lastMessage;
+        last_message.messageTimestamp = last_message?.messageTimestamp ?? Date.now();
+        number = last_message?.key?.remoteJid;
+      }
+
+      if (!last_message || Object.keys(last_message).length === 0) {
+        throw new NotFoundException('Last message not found');
+      }
+
+      await this.client.chatModify(
+        {
+          archive: data.archive,
+          lastMessages: [last_message],
+        },
+        this.createJid(number),
+      );
+
+      return {
+        chatId: number,
+        archived: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        archived: false,
+        message: ['An error occurred while archiving the chat. Open a calling.', error.toString()],
+      });
+    }
+  }
+
+  public async deleteMessage(del: DeleteMessage) {
+    this.logger.verbose('Deleting message');
+    try {
+      return await this.client.sendMessage(del.remoteJid, { delete: del });
+    } catch (error) {
+      throw new InternalServerErrorException('Error while deleting message for everyone', error?.toString());
+    }
+  }
+
+  public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto) {
+    this.logger.verbose('Getting base64 from media message');
+    try {
+      const m = data?.message;
+      const convertToMp4 = data?.convertToMp4 ?? false;
+
+      const msg = m?.message ? m : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
+
+      if (!msg) {
+        throw 'Message not found';
+      }
+
+      for (const subtype of MessageSubtype) {
+        if (msg.message[subtype]) {
+          msg.message = msg.message[subtype].message;
+        }
+      }
+
+      let mediaMessage: any;
+      let mediaType: string;
+
+      for (const type of TypeMediaMessage) {
+        mediaMessage = msg.message[type];
+        if (mediaMessage) {
+          mediaType = type;
+          break;
+        }
+      }
+
+      if (!mediaMessage) {
+        throw 'The message is not of the media type';
+      }
+
+      if (typeof mediaMessage['mediaKey'] === 'object') {
+        msg.message = JSON.parse(JSON.stringify(msg.message));
+      }
+
+      this.logger.verbose('Downloading media message');
+      const buffer = await downloadMediaMessage(
+        { key: msg?.key, message: msg?.message },
+        'buffer',
+        {},
+        {
+          logger: P({ level: 'error' }) as any,
+          reuploadRequest: this.client.updateMediaMessage,
+        },
+      );
+      const typeMessage = getContentType(msg.message);
+
+      if (convertToMp4 && typeMessage === 'audioMessage') {
+        this.logger.verbose('Converting audio to mp4');
+        const number = msg.key.remoteJid.split('@')[0];
+        const convert = await this.processAudio(buffer.toString('base64'), number);
+
+        if (typeof convert === 'string') {
+          const audio = fs.readFileSync(convert).toString('base64');
+          this.logger.verbose('Audio converted to mp4');
+
+          const result = {
+            mediaType,
+            fileName: mediaMessage['fileName'],
+            caption: mediaMessage['caption'],
+            size: {
+              fileLength: mediaMessage['fileLength'],
+              height: mediaMessage['height'],
+              width: mediaMessage['width'],
+            },
+            mimetype: 'audio/mp4',
+            base64: Buffer.from(audio, 'base64').toString('base64'),
+          };
+
+          fs.unlinkSync(convert);
+          this.logger.verbose('Converted audio deleted');
+
+          this.logger.verbose('Media message downloaded');
+          return result;
+        }
+      }
+
+      this.logger.verbose('Media message downloaded');
+      return {
+        mediaType,
+        fileName: mediaMessage['fileName'],
+        caption: mediaMessage['caption'],
+        size: {
+          fileLength: mediaMessage['fileLength'],
+          height: mediaMessage['height'],
+          width: mediaMessage['width'],
+        },
+        mimetype: mediaMessage['mimetype'],
+        base64: buffer.toString('base64'),
+      };
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  public async fetchContacts(query: ContactQuery) {
+    this.logger.verbose('Fetching contacts');
+    if (query?.where) {
+      query.where.owner = this.instance.name;
+      if (query.where?.id) {
+        query.where.id = this.createJid(query.where.id);
+      }
+    } else {
+      query = {
+        where: {
+          owner: this.instance.name,
+        },
+      };
+    }
+    return await this.repository.contact.find(query);
+  }
+
+  public async fetchMessages(query: MessageQuery) {
+    this.logger.verbose('Fetching messages');
+    if (query?.where) {
+      if (query.where?.key?.remoteJid) {
+        query.where.key.remoteJid = this.createJid(query.where.key.remoteJid);
+      }
+      query.where.owner = this.instance.name;
+    } else {
+      query = {
+        where: {
+          owner: this.instance.name,
+        },
+        limit: query?.limit,
+      };
+    }
+    return await this.repository.message.find(query);
+  }
+
+  public async fetchStatusMessage(query: MessageUpQuery) {
+    this.logger.verbose('Fetching status messages');
+    if (query?.where) {
+      if (query.where?.remoteJid) {
+        query.where.remoteJid = this.createJid(query.where.remoteJid);
+      }
+      query.where.owner = this.instance.name;
+    } else {
+      query = {
+        where: {
+          owner: this.instance.name,
+        },
+        limit: query?.limit,
+      };
+    }
+    return await this.repository.messageUpdate.find(query);
+  }
+
+  public async fetchChats() {
+    this.logger.verbose('Fetching chats');
+    return await this.repository.chat.find({ where: { owner: this.instance.name } });
+  }
+
+  public async fetchPrivacySettings() {
+    this.logger.verbose('Fetching privacy settings');
+    const privacy = await this.client.fetchPrivacySettings();
+
+    return {
+      readreceipts: privacy.readreceipts,
+      profile: privacy.profile,
+      status: privacy.status,
+      online: privacy.online,
+      last: privacy.last,
+      groupadd: privacy.groupadd,
+    };
+  }
+
+  public async updatePrivacySettings(settings: PrivacySettingDto) {
+    this.logger.verbose('Updating privacy settings');
+    try {
+      await this.client.updateReadReceiptsPrivacy(settings.privacySettings.readreceipts);
+      this.logger.verbose('Read receipts privacy updated');
+
+      await this.client.updateProfilePicturePrivacy(settings.privacySettings.profile);
+      this.logger.verbose('Profile picture privacy updated');
+
+      await this.client.updateStatusPrivacy(settings.privacySettings.status);
+      this.logger.verbose('Status privacy updated');
+
+      await this.client.updateOnlinePrivacy(settings.privacySettings.online);
+      this.logger.verbose('Online privacy updated');
+
+      await this.client.updateLastSeenPrivacy(settings.privacySettings.last);
+      this.logger.verbose('Last seen privacy updated');
+
+      await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
+      this.logger.verbose('Groups add privacy updated');
+
+      this.reloadConnection();
+
+      return {
+        update: 'success',
+        data: {
+          readreceipts: settings.privacySettings.readreceipts,
+          profile: settings.privacySettings.profile,
+          status: settings.privacySettings.status,
+          online: settings.privacySettings.online,
+          last: settings.privacySettings.last,
+          groupadd: settings.privacySettings.groupadd,
+        },
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Error updating privacy settings', error.toString());
+    }
+  }
+
+  public async fetchBusinessProfile(number: string): Promise<NumberBusiness> {
+    this.logger.verbose('Fetching business profile');
+    try {
+      const jid = number ? this.createJid(number) : this.instance.wuid;
+
+      const profile = await this.client.getBusinessProfile(jid);
+      this.logger.verbose('Trying to get business profile');
+
+      if (!profile) {
+        const info = await this.whatsappNumber({ numbers: [jid] });
+
+        return {
+          isBusiness: false,
+          message: 'Not is business profile',
+          ...info?.shift(),
+        };
+      }
+
+      this.logger.verbose('Business profile fetched');
+      return {
+        isBusiness: true,
+        ...profile,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Error updating profile name', error.toString());
+    }
+  }
+
+  public async updateProfileName(name: string) {
+    this.logger.verbose('Updating profile name to ' + name);
+    try {
+      await this.client.updateProfileName(name);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error updating profile name', error.toString());
+    }
+  }
+
+  public async updateProfileStatus(status: string) {
+    this.logger.verbose('Updating profile status to: ' + status);
+    try {
+      await this.client.updateProfileStatus(status);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error updating profile status', error.toString());
+    }
+  }
+
+  public async updateProfilePicture(picture: string) {
+    this.logger.verbose('Updating profile picture');
+    try {
+      let pic: WAMediaUpload;
+      if (isURL(picture)) {
+        this.logger.verbose('Picture is url');
+
+        const timestamp = new Date().getTime();
+        const url = `${picture}?timestamp=${timestamp}`;
+        this.logger.verbose('Including timestamp in url: ' + url);
+
+        pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
+        this.logger.verbose('Getting picture from url');
+      } else if (isBase64(picture)) {
+        this.logger.verbose('Picture is base64');
+        pic = Buffer.from(picture, 'base64');
+        this.logger.verbose('Getting picture from base64');
+      } else {
+        throw new BadRequestException('"profilePicture" must be a url or a base64');
+      }
+
+      await this.client.updateProfilePicture(this.instance.wuid, pic);
+      this.logger.verbose('Profile picture updated');
+
+      this.reloadConnection();
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error updating profile picture', error.toString());
+    }
+  }
+
+  public async removeProfilePicture() {
+    this.logger.verbose('Removing profile picture');
+    try {
+      await this.client.removeProfilePicture(this.instance.wuid);
+
+      this.reloadConnection();
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error removing profile picture', error.toString());
+    }
+  }
+
+  public async updateMessage(data: UpdateMessageDto) {
+    try {
+      const jid = this.createJid(data.number);
+
+      this.logger.verbose('Updating message');
+      return await this.client.sendMessage(jid, {
+        text: data.text,
+        edit: data.key,
+      });
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  // Group
+  public async createGroup(create: CreateGroupDto) {
+    this.logger.verbose('Creating group: ' + create.subject);
+    try {
+      const participants = (await this.whatsappNumber({ numbers: create.participants }))
+        .filter((participant) => participant.exists)
+        .map((participant) => participant.jid);
+      const { id } = await this.client.groupCreate(create.subject, participants);
+      this.logger.verbose('Group created: ' + id);
+
+      if (create?.description) {
+        this.logger.verbose('Updating group description: ' + create.description);
+        await this.client.groupUpdateDescription(id, create.description);
+      }
+
+      if (create?.promoteParticipants) {
+        this.logger.verbose('Prometing group participants: ' + participants);
+        await this.updateGParticipant({
+          groupJid: id,
+          action: 'promote',
+          participants: participants,
+        });
+      }
+
+      this.logger.verbose('Getting group metadata');
+      const group = await this.client.groupMetadata(id);
+
+      return group;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException('Error creating group', error.toString());
+    }
+  }
+
+  public async updateGroupPicture(picture: GroupPictureDto) {
+    this.logger.verbose('Updating group picture');
+    try {
+      let pic: WAMediaUpload;
+      if (isURL(picture.image)) {
+        this.logger.verbose('Picture is url');
+
+        const timestamp = new Date().getTime();
+        const url = `${picture.image}?timestamp=${timestamp}`;
+        this.logger.verbose('Including timestamp in url: ' + url);
+
+        pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
+        this.logger.verbose('Getting picture from url');
+      } else if (isBase64(picture.image)) {
+        this.logger.verbose('Picture is base64');
+        pic = Buffer.from(picture.image, 'base64');
+        this.logger.verbose('Getting picture from base64');
+      } else {
+        throw new BadRequestException('"profilePicture" must be a url or a base64');
+      }
+      await this.client.updateProfilePicture(picture.groupJid, pic);
+      this.logger.verbose('Group picture updated');
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error update group picture', error.toString());
+    }
+  }
+
+  public async updateGroupSubject(data: GroupSubjectDto) {
+    this.logger.verbose('Updating group subject to: ' + data.subject);
+    try {
+      await this.client.groupUpdateSubject(data.groupJid, data.subject);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error updating group subject', error.toString());
+    }
+  }
+
+  public async updateGroupDescription(data: GroupDescriptionDto) {
+    this.logger.verbose('Updating group description to: ' + data.description);
+    try {
+      await this.client.groupUpdateDescription(data.groupJid, data.description);
+
+      return { update: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error updating group description', error.toString());
+    }
+  }
+
+  public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
+    this.logger.verbose('Fetching group');
+    try {
+      return await this.client.groupMetadata(id.groupJid);
+    } catch (error) {
+      if (reply === 'inner') {
+        return;
+      }
+      throw new NotFoundException('Error fetching group', error.toString());
+    }
+  }
+
+  public async fetchAllGroups(getParticipants: GetParticipant) {
+    this.logger.verbose('Fetching all groups');
+    try {
+      const fetch = Object.values(await this.client.groupFetchAllParticipating());
+
+      const groups = fetch.map((group) => {
+        const result = {
+          id: group.id,
+          subject: group.subject,
+          subjectOwner: group.subjectOwner,
+          subjectTime: group.subjectTime,
+          size: group.participants.length,
+          creation: group.creation,
+          owner: group.owner,
+          desc: group.desc,
+          descId: group.descId,
+          restrict: group.restrict,
+          announce: group.announce,
+        };
+
+        if (getParticipants.getParticipants == 'true') {
+          result['participants'] = group.participants;
+        }
+
+        return result;
+      });
+
+      return groups;
+    } catch (error) {
+      throw new NotFoundException('Error fetching group', error.toString());
+    }
+  }
+
+  public async inviteCode(id: GroupJid) {
+    this.logger.verbose('Fetching invite code for group: ' + id.groupJid);
+    try {
+      const code = await this.client.groupInviteCode(id.groupJid);
+      return { inviteUrl: `https://chat.whatsapp.com/${code}`, inviteCode: code };
+    } catch (error) {
+      throw new NotFoundException('No invite code', error.toString());
+    }
+  }
+
+  public async inviteInfo(id: GroupInvite) {
+    this.logger.verbose('Fetching invite info for code: ' + id.inviteCode);
+    try {
+      return await this.client.groupGetInviteInfo(id.inviteCode);
+    } catch (error) {
+      throw new NotFoundException('No invite info', id.inviteCode);
+    }
+  }
+
+  public async sendInvite(id: GroupSendInvite) {
+    this.logger.verbose('Sending invite for group: ' + id.groupJid);
+    try {
+      const inviteCode = await this.inviteCode({ groupJid: id.groupJid });
+      this.logger.verbose('Getting invite code: ' + inviteCode.inviteCode);
+
+      const inviteUrl = inviteCode.inviteUrl;
+      this.logger.verbose('Invite url: ' + inviteUrl);
+
+      const numbers = id.numbers.map((number) => this.createJid(number));
+      const description = id.description ?? '';
+
+      const msg = `${description}\n\n${inviteUrl}`;
+
+      const message = {
+        conversation: msg,
+      };
+
+      for await (const number of numbers) {
+        await this.sendMessageWithTyping(number, message);
+      }
+
+      this.logger.verbose('Invite sent for numbers: ' + numbers.join(', '));
+
+      return { send: true, inviteUrl };
+    } catch (error) {
+      throw new NotFoundException('No send invite');
+    }
+  }
+
+  public async revokeInviteCode(id: GroupJid) {
+    this.logger.verbose('Revoking invite code for group: ' + id.groupJid);
+    try {
+      const inviteCode = await this.client.groupRevokeInvite(id.groupJid);
+      return { revoked: true, inviteCode };
+    } catch (error) {
+      throw new NotFoundException('Revoke error', error.toString());
+    }
+  }
+
+  public async findParticipants(id: GroupJid) {
+    this.logger.verbose('Fetching participants for group: ' + id.groupJid);
+    try {
+      const participants = (await this.client.groupMetadata(id.groupJid)).participants;
+      return { participants };
+    } catch (error) {
+      throw new NotFoundException('No participants', error.toString());
+    }
+  }
+
+  public async updateGParticipant(update: GroupUpdateParticipantDto) {
+    this.logger.verbose('Updating participants');
+    try {
+      const participants = update.participants.map((p) => this.createJid(p));
+      const updateParticipants = await this.client.groupParticipantsUpdate(
+        update.groupJid,
+        participants,
+        update.action,
+      );
+      return { updateParticipants: updateParticipants };
+    } catch (error) {
+      throw new BadRequestException('Error updating participants', error.toString());
+    }
+  }
+
+  public async updateGSetting(update: GroupUpdateSettingDto) {
+    this.logger.verbose('Updating setting for group: ' + update.groupJid);
+    try {
+      const updateSetting = await this.client.groupSettingUpdate(update.groupJid, update.action);
+      return { updateSetting: updateSetting };
+    } catch (error) {
+      throw new BadRequestException('Error updating setting', error.toString());
+    }
+  }
+
+  public async toggleEphemeral(update: GroupToggleEphemeralDto) {
+    this.logger.verbose('Toggling ephemeral for group: ' + update.groupJid);
+    try {
+      await this.client.groupToggleEphemeral(update.groupJid, update.expiration);
+      return { success: true };
+    } catch (error) {
+      throw new BadRequestException('Error updating setting', error.toString());
+    }
+  }
+
+  public async leaveGroup(id: GroupJid) {
+    this.logger.verbose('Leaving group: ' + id.groupJid);
+    try {
+      await this.client.groupLeave(id.groupJid);
+      return { groupJid: id.groupJid, leave: true };
+    } catch (error) {
+      throw new BadRequestException('Unable to leave the group', error.toString());
+    }
+  }
 }

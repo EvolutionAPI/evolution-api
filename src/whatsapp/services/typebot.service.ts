@@ -389,6 +389,7 @@ export class TypebotService {
       input,
       clientSideActions,
       this.eventEmitter,
+      applyFormatting,
     ).catch((err) => {
       console.error('Erro ao processar mensagens:', err);
     });
@@ -403,85 +404,71 @@ export class TypebotService {
       }
       return null;
     }
+  
+    function applyFormatting(element) {
+      let text = '';
 
-    async function processMessages(instance, messages, input, clientSideActions, eventEmitter) {
-      let qtdMessages = 0, buttonText = '';
+      if (element.text) {
+        text += element.text;
+      }
+
+      if (element.type === 'p' || element.type === 'inline-variable' || element.type === 'a') {
+        for (const child of element.children) {
+          text += applyFormatting(child);
+        }
+      }
+
+      let formats = '';
+
+      if (element.bold) {
+        formats += '*';
+      }
+
+      if (element.italic) {
+        formats += '_';
+      }
+
+      if (element.underline) {
+        formats += '~';
+      }
+
+      let formattedText = `${formats}${text}${formats.split('').reverse().join('')}`;
+
+      if (element.url) {
+        formattedText = element.children[0]?.text ? `[${formattedText}]\n(${element.url})` : `${element.url}`;
+      }
+
+      return formattedText;
+    }
+
+    async function processMessages(instance, messages, input, clientSideActions, eventEmitter, applyFormatting) {
       for (const message of messages) {
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
 
         if (message.type === 'text') {
           let formattedText = '';
 
-          let linkPreview = false;
-
           for (const richText of message.content.richText) {
-            if (richText.type === 'variable') {
-              for (const child of richText.children) {
-                for (const grandChild of child.children) {
-                  formattedText += grandChild.text;
-                }
-              }
-            } else {
-              for (const element of richText.children) {
-                let text = '';
-
-                if (element.type === 'inline-variable') {
-                  for (const child of element.children) {
-                    for (const grandChild of child.children) {
-                      text += grandChild.text;
-                    }
-                  }
-                } else if (element.text) {
-                  text = element.text;
-                }
-
-                // if (element.text) {
-                //   text = element.text;
-                // }
-
-                if (element.bold) {
-                  text = `*${text}*`;
-                }
-
-                if (element.italic) {
-                  text = `_${text}_`;
-                }
-
-                if (element.underline) {
-                  text = `*${text}*`;
-                }
-
-                if (element.url) {
-                  const linkText = element.children[0].text;
-                  text = `[${linkText}](${element.url})`;
-                  linkPreview = true;
-                }
-
-                formattedText += text;
-              }
+            for (const element of richText.children) {
+              formattedText += applyFormatting(element);
             }
             formattedText += '\n';
           }
 
-          formattedText = formattedText.replace(/\n$/, '');
-          qtdMessages++;
-          if (instance?.constructor.name == Integration.WABussinessService &&
-            input?.type === 'choice input' && messages.length == qtdMessages) {
-            buttonText = formattedText;
-          } else {
-            await instance.textMessage({
-              number: remoteJid.split('@')[0],
-              options: {
-                delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
-                presence: 'composing',
-                linkPreview: linkPreview,
-              },
-              textMessage: {
-                text: formattedText,
-              },
-            });
-          }
+          formattedText = formattedText.replace(/\*\*/g, '').replace(/__/, '').replace(/~~/, '').replace(/\n$/, '');
+
+          await instance.textMessage({
+            number: remoteJid.split('@')[0],
+            options: {
+              delay: wait ? wait * 1000 : instance.localTypebot.delay_message || 1000,
+              presence: 'composing',
+            },
+            textMessage: {
+              text: formattedText,
+            },
+          });
         }
+        
         if (message.type === 'image') {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
@@ -570,6 +557,19 @@ export class TypebotService {
               },
             });
           }
+
+          formattedText = formattedText.replace(/\n$/, '');
+
+          await instance.textMessage({
+            number: remoteJid.split('@')[0],
+            options: {
+              delay: 1200,
+              presence: 'composing',
+            },
+            textMessage: {
+              text: formattedText,
+            },
+          });
         }
       } else {
         eventEmitter.emit('typebot:end', {

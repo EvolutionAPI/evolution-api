@@ -1,3 +1,22 @@
+# 1.6.2 (develop)
+
+### Feature
+
+* Added update message endpoint
+
+### Fixed
+
+* Proxy configuration improvements
+* Correction in sending lists
+* Adjust in webhook_base64
+* Correction in typebot text formatting
+* Correction in chatwoot text formatting and render list message
+* Only use a axios request to get file mimetype if necessary
+* When possible use the original file extension
+* When receiving a file from whatsapp, use the original filename in chatwoot if possible
+* Remove message ids cache in chatwoot to use chatwoot's api itself
+* Adjusts the quoted message, now has contextInfo in the message Raw
+
 # 1.6.1 (2023-12-22 11:43)
 
 ### Fixed
