@@ -2457,21 +2457,6 @@ export class WAStartupService {
               option as unknown as MiscMessageGenerationOptions,
             );
           }
-
-          if (!message['audio']) {
-            this.logger.verbose('Sending message');
-            return await this.client.sendMessage(
-              sender,
-              {
-                forward: {
-                  key: { remoteJid: this.instance.wuid, fromMe: true },
-                  message,
-                },
-                mentions,
-              },
-              option as unknown as MiscMessageGenerationOptions,
-            );
-          }
         }
         if (message['conversation']) {
           this.logger.verbose('Sending message');
@@ -2482,6 +2467,21 @@ export class WAStartupService {
               mentions,
               linkPreview: linkPreview,
             } as unknown as AnyMessageContent,
+            option as unknown as MiscMessageGenerationOptions,
+          );
+        }
+
+        if (!message['audio'] && sender != 'status@broadcast') {
+          this.logger.verbose('Sending message');
+          return await this.client.sendMessage(
+            sender,
+            {
+              forward: {
+                key: { remoteJid: this.instance.wuid, fromMe: true },
+                message,
+              },
+              mentions,
+            },
             option as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -3138,6 +3138,8 @@ export class WAStartupService {
         if (!group) throw new BadRequestException('Group not found');
 
         onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, group?.subject));
+      } else if (jid === 'status@broadcast') {
+        onWhatsapp.push(new OnWhatsAppDto(jid, false));
       } else {
         jid = !jid.startsWith('+') ? `+${jid}` : jid;
         const verify = await this.client.onWhatsApp(jid);
