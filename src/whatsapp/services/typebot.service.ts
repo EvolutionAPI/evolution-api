@@ -412,7 +412,7 @@ export class TypebotService {
         text += element.text;
       }
 
-      if (element.type === 'p' || element.type === 'inline-variable' || element.type === 'a') {
+      if (element.children && (element.type === 'p' || element.type === 'a' || element.type === 'inline-variable' || element.type === 'variable')) {
         for (const child of element.children) {
           text += applyFormatting(child);
         }
