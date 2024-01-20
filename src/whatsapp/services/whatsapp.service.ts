@@ -3137,9 +3137,9 @@ export class WAStartupService {
 
         if (!group) throw new BadRequestException('Group not found');
 
-        onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, group?.subject));
+        onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, number, group?.subject));
       } else if (jid === 'status@broadcast') {
-        onWhatsapp.push(new OnWhatsAppDto(jid, false));
+        onWhatsapp.push(new OnWhatsAppDto(jid, false, number));
       } else {
         jid = !jid.startsWith('+') ? `+${jid}` : jid;
         const verify = await this.client.onWhatsApp(jid);
@@ -3147,9 +3147,9 @@ export class WAStartupService {
         const result = verify[0];
 
         if (!result) {
-          onWhatsapp.push(new OnWhatsAppDto(jid, false));
+          onWhatsapp.push(new OnWhatsAppDto(jid, false, number));
         } else {
-          onWhatsapp.push(new OnWhatsAppDto(result.jid, result.exists));
+          onWhatsapp.push(new OnWhatsAppDto(result.jid, result.exists, number));
         }
       }
     }
