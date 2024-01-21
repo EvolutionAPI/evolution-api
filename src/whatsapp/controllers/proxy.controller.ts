@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, NotFoundException } from '../../exceptions';
+import { makeProxyAgent } from '../../utils/makeProxyAgent';
 import { InstanceDto } from '../dto/instance.dto';
 import { ProxyDto } from '../dto/proxy.dto';
 import { WAMonitoringService } from '../services/monitor.service';
@@ -27,8 +27,7 @@ export class ProxyController {
 
     if (data.proxy) {
       logger.verbose('proxy enabled');
-      const { host, port, protocol, username, password } = data.proxy;
-      const testProxy = await this.testProxy(host, port, protocol, username, password);
+      const testProxy = await this.testProxy(data.proxy);
       if (!testProxy) {
         throw new BadRequestException('Invalid proxy');
       }
@@ -47,18 +46,12 @@ export class ProxyController {
     return this.proxyService.find(instance);
   }
 
-  private async testProxy(host: string, port: string, protocol: string, username?: string, password?: string) {
+  private async testProxy(proxy: ProxyDto['proxy']) {
     logger.verbose('requested testProxy');
     try {
-      let proxyUrl = `${protocol}://${host}:${port}`;
-
-      if (username && password) {
-        proxyUrl = `${protocol}://${username}:${password}@${host}:${port}`;
-      }
-
       const serverIp = await axios.get('https://icanhazip.com/');
       const response = await axios.get('https://icanhazip.com/', {
-        httpsAgent: new HttpsProxyAgent(proxyUrl),
+        httpsAgent: makeProxyAgent(proxy),
       });
 
       logger.verbose('testProxy response: ' + response.data);

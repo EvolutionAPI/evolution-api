@@ -45,7 +45,6 @@ import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
-import { ProxyAgent } from 'proxy-agent';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
@@ -73,6 +72,7 @@ import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import { getIO } from '../../libs/socket.server';
 import { getSQS, removeQueues as removeQueuesSQS } from '../../libs/sqs.server';
+import { makeProxyAgent } from '../../utils/makeProxyAgent';
 import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import {
@@ -1391,21 +1391,14 @@ export class WAStartupService {
             const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
             const proxyUrl = 'http://' + proxyUrls[rand];
             options = {
-              agent: new ProxyAgent(proxyUrl as any),
+              agent: makeProxyAgent(proxyUrl),
             };
           } catch (error) {
             this.localProxy.enabled = false;
           }
         } else {
-          let proxyUri =
-            this.localProxy.proxy.protocol + '://' + this.localProxy.proxy.host + ':' + this.localProxy.proxy.port;
-
-          if (this.localProxy.proxy.username && this.localProxy.proxy.password) {
-            proxyUri = `${this.localProxy.proxy.username}:${this.localProxy.proxy.password}@${proxyUri}`;
-          }
-
           options = {
-            agent: new ProxyAgent(proxyUri as any),
+            agent: makeProxyAgent(this.localProxy.proxy),
           };
         }
       }
@@ -1492,8 +1485,8 @@ export class WAStartupService {
       if (this.localProxy.enabled) {
         this.logger.verbose('Proxy enabled');
         options = {
-          agent: new ProxyAgent(this.localProxy.proxy as any),
-          fetchAgent: new ProxyAgent(this.localProxy.proxy as any),
+          agent: makeProxyAgent(this.localProxy.proxy),
+          fetchAgent: makeProxyAgent(this.localProxy.proxy),
         };
       }
 
