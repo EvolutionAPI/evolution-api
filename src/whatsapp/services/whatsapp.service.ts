@@ -89,6 +89,7 @@ import {
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import {
+  AcceptGroupInvite,
   CreateGroupDto,
   GetParticipant,
   GroupDescriptionDto,
@@ -3741,6 +3742,16 @@ export class WAStartupService {
       return { send: true, inviteUrl };
     } catch (error) {
       throw new NotFoundException('No send invite');
+    }
+  }
+
+  public async acceptInviteCode(id: AcceptGroupInvite) {
+    this.logger.verbose('Joining the group by invitation code: ' + id.inviteCode);
+    try {
+      const groupJid = await this.client.groupAcceptInvite(id.inviteCode);
+      return { accepted: true, groupJid: groupJid };
+    } catch (error) {
+      throw new NotFoundException('Accept invite error', error.toString());
     }
   }
 

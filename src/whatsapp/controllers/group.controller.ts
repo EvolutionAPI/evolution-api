@@ -1,5 +1,6 @@
 import { Logger } from '../../config/logger.config';
 import {
+  AcceptGroupInvite,
   CreateGroupDto,
   GetParticipant,
   GroupDescriptionDto,
@@ -63,6 +64,11 @@ export class GroupController {
   public async sendInvite(instance: InstanceDto, data: GroupSendInvite) {
     logger.verbose('requested sendInvite from ' + instance.instanceName + ' instance');
     return await this.waMonitor.waInstances[instance.instanceName].sendInvite(data);
+  }
+
+  public async acceptInviteCode(instance: InstanceDto, inviteCode: AcceptGroupInvite) {
+    logger.verbose('requested acceptInviteCode from ' + instance.instanceName + ' instance');
+    return await this.waMonitor.waInstances[instance.instanceName].acceptInviteCode(inviteCode);
   }
 
   public async revokeInviteCode(instance: InstanceDto, groupJid: GroupJid) {
