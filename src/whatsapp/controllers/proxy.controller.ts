@@ -55,9 +55,9 @@ export class ProxyController {
       if (username && password) {
         proxyUrl = `${protocol}://${username}:${password}@${host}:${port}`;
       }
-      const serverIp = await axios.get('http://meuip.com/api/meuip.php');
 
-      const response = await axios.get('http://meuip.com/api/meuip.php', {
+      const serverIp = await axios.get('https://icanhazip.com/');
+      const response = await axios.get('https://icanhazip.com/', {
         httpsAgent: new HttpsProxyAgent(proxyUrl),
       });
 
