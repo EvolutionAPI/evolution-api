@@ -2469,7 +2469,7 @@ export class WAStartupService {
           );
         }
 
-        if (!message['audio'] && sender != 'status@broadcast') {
+        if (!message['audio'] && !message['poll'] && sender != 'status@broadcast') {
           this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
