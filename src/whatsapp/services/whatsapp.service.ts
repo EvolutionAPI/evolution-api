@@ -3173,10 +3173,15 @@ export class WAStartupService {
       ...jids.users.map(({ jid }) => (!jid.startsWith('+') ? `+${jid}` : jid)),
     );
     const users: OnWhatsAppDto[] = jids.users.map((user) => {
-      const MAX_SIMILARITY_THRESHOLD = 0.0358;
-      const numberVerified = verify.find(
-        (v) => levenshtein.get(user.jid, v.jid) / Math.max(user.jid.length, v.jid.length) <= MAX_SIMILARITY_THRESHOLD,
-      );
+      const MAX_SIMILARITY_THRESHOLD = 0.01;
+      const isBrWithDigit = user.jid.startsWith('55') && user.jid.slice(4, 5) === '9' && user.jid.length === 28;
+      const jid = isBrWithDigit ? user.jid.slice(0, 4) + user.jid.slice(5) : user.jid;
+
+      const numberVerified = verify.find((v) => {
+        const mainJidSimilarity = levenshtein.get(user.jid, v.jid) / Math.max(user.jid.length, v.jid.length);
+        const jidSimilarity = levenshtein.get(jid, v.jid) / Math.max(jid.length, v.jid.length);
+        return mainJidSimilarity <= MAX_SIMILARITY_THRESHOLD || jidSimilarity <= MAX_SIMILARITY_THRESHOLD;
+      });
       return {
         exists: !!numberVerified?.exists,
         jid: numberVerified?.jid || user.jid,
