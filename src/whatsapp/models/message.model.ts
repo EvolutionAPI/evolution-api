@@ -26,7 +26,7 @@ export class MessageRaw {
   messageType?: string;
   messageTimestamp?: number | Long.Long;
   owner: string;
-  source?: 'android' | 'web' | 'ios' | 'ios' | 'unknown' | 'desktop';
+  source?: 'android' | 'web' | 'ios' | 'unknown' | 'desktop';
   source_id?: string;
   source_reply_id?: string;
   chatwoot?: ChatwootMessage;
