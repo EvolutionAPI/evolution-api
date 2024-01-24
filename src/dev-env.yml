@@ -153,6 +153,10 @@ TYPEBOT:
   API_VERSION: 'old' # old | latest
   KEEP_OPEN: false
 
+# If you leave this option as false, when deleting the message for everyone on WhatsApp, it will not be deleted on Chatwoot.
+CHATWOOT:
+  MESSAGE_DELETE: true # false | true 
+ 
 # Cache to optimize application performance
 CACHE:
   REDIS:

@@ -147,6 +147,7 @@ export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
 export type QrCode = { LIMIT: number; COLOR: string };
 export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
+export type ChatWoot = {  MESSAGE_DELETE: boolean };
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
 export type Production = boolean;
 
@@ -167,6 +168,7 @@ export interface Env {
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
   QRCODE: QrCode;
   TYPEBOT: Typebot;
+  CHATWOOT: ChatWoot;
   CACHE: CacheConf;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
@@ -329,6 +331,9 @@ export class ConfigService {
       TYPEBOT: {
         API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
         KEEP_OPEN: process.env.TYPEBOT_KEEP_OPEN === 'true',
+      },
+      CHATWOOT: {
+        MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'false',
       },
       CACHE: {
         REDIS: {

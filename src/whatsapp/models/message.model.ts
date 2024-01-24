@@ -26,7 +26,7 @@ export class MessageRaw {
   messageType?: string;
   messageTimestamp?: number | Long.Long;
   owner: string;
-  source?: 'android' | 'web' | 'ios';
+  source?: 'android' | 'web' | 'ios' | 'ios' | 'unknown' | 'desktop';
   source_id?: string;
   source_reply_id?: string;
   chatwoot?: ChatwootMessage;
@@ -45,7 +45,7 @@ const messageSchema = new Schema<MessageRaw>({
   participant: { type: String },
   messageType: { type: String },
   message: { type: Object },
-  source: { type: String, minlength: 3, enum: ['android', 'web', 'ios'] },
+  source: { type: String, minlength: 3, enum: ['android', 'web', 'ios','unknown','desktop' ] },
   messageTimestamp: { type: Number, required: true },
   owner: { type: String, required: true, minlength: 1 },
   chatwoot: {
