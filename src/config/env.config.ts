@@ -127,6 +127,8 @@ export type Auth = {
 
 export type DelInstance = number | boolean;
 
+export type Language = string | 'en';
+
 export type GlobalWebhook = {
   URL: string;
   ENABLED: boolean;
@@ -163,6 +165,7 @@ export interface Env {
   WEBSOCKET: Websocket;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
+  LANGUAGE: Language;
   WEBHOOK: Webhook;
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
   QRCODE: QrCode;

@@ -9,6 +9,7 @@ import path from 'path';
 
 import { ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import i18next from '../../utils/i18n';
 import { ICache } from '../abstract/abstract.cache';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
@@ -1994,7 +1995,8 @@ export class ChatwootService {
         this.logger.verbose('event qrcode.updated');
         if (body.statusCode === 500) {
           this.logger.verbose('qrcode error');
-          const erroQRcode = `🚨 QRCode generation limit reached, to generate a new QRCode, send the 'init' message again.`;
+
+          const erroQRcode = `🚨 ${i18next.t('qrlimitreached')}`;
 
           this.logger.verbose('send message to chatwoot');
           return await this.createBotMessage(instance, erroQRcode, 'incoming');
@@ -2010,9 +2012,9 @@ export class ChatwootService {
           writeFileSync(fileName, fileData, 'utf8');
 
           this.logger.verbose('send qrcode to chatwoot');
-          await this.createBotQr(instance, 'QRCode successfully generated!', 'incoming', fileName);
+          await this.createBotQr(instance, i18next.t('qrgeneratedsuccesfully'), 'incoming', fileName);
 
-          let msgQrCode = `⚡️ QRCode successfully generated!\n\nScan this QR code within the next 40 seconds.`;
+          let msgQrCode = `⚡️${i18next.t('qrgeneratedsuccesfully')}\n\n${i18next.t('scanqr')}`;
 
           if (body?.qrcode?.pairingCode) {
             msgQrCode =

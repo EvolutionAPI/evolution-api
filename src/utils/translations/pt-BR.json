@@ -1,0 +1,5 @@
+{
+  "qrgeneratedsuccesfully": "QRCode gerado com sucesso!",
+  "scanqr": "Escanei o QRCode com o Whatsapp nos próximos 40 segundos.",
+  "qrlimitreached": "Limite de geração de QRCode atingido! Para gerar um novo QRCode, envie o texto 'init' nesta conversa."
+}
