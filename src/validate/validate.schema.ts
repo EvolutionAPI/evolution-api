@@ -771,6 +771,16 @@ export const groupInviteSchema: JSONSchema7 = {
   ...isNotEmpty('inviteCode'),
 };
 
+export const AcceptGroupInviteSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    inviteCode: { type: 'string', pattern: '^[a-zA-Z0-9]{22}$' },
+  },
+  required: ['inviteCode'],
+  ...isNotEmpty('inviteCode'),
+};
+
 export const updateParticipantsSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
