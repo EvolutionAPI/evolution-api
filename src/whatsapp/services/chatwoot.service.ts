@@ -380,8 +380,9 @@ export class ChatwootService {
     }
 
     let query: any;
+    const isGroup = phoneNumber.includes('@g.us');
 
-    if (!phoneNumber.includes('@g.us')) {
+    if (!isGroup) {
       this.logger.verbose('format phone number');
       query = `+${phoneNumber}`;
     } else {
@@ -390,12 +391,21 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find contact in chatwoot');
-    const contact: any = await client.contacts.search({
+    let contact: any = await client.contacts.search({
       accountId: this.provider.account_id,
       q: query,
     });
 
-    if (!contact) {
+    if (!contact && !isGroup && query.startsWith('+55') && query.length > 13) {
+      this.logger.verbose('trying without the 9th digit');
+      query = query.slice(0, 3) + query.slice(4);
+      contact = await client.contacts.search({
+        accountId: this.provider.account_id,
+        q: query,
+      });
+    }
+
+    if(!contact) {
       this.logger.warn('contact not found');
       return null;
     }
