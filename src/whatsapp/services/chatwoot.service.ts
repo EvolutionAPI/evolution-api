@@ -398,7 +398,7 @@ export class ChatwootService {
 
     if (!contact && !isGroup && query.startsWith('+55') && query.length > 13) {
       this.logger.verbose('trying without the 9th digit');
-      query = query.slice(0, 3) + query.slice(4);
+      query = query.slice(0, 5) + query.slice(6);
       contact = await client.contacts.search({
         accountId: this.provider.account_id,
         q: query,
