@@ -45,7 +45,7 @@ const messageSchema = new Schema<MessageRaw>({
   participant: { type: String },
   messageType: { type: String },
   message: { type: Object },
-  source: { type: String, minlength: 3, enum: ['android', 'web', 'ios','unknown','desktop' ] },
+  source: { type: String, minlength: 3, enum: ['android', 'web', 'ios', 'unknown', 'desktop'] },
   messageTimestamp: { type: Number, required: true },
   owner: { type: String, required: true, minlength: 1 },
   chatwoot: {

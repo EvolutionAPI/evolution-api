@@ -149,7 +149,7 @@ export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
 export type QrCode = { LIMIT: number; COLOR: string };
 export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
-export type ChatWoot = {  MESSAGE_DELETE: boolean };
+export type ChatWoot = { MESSAGE_DELETE: boolean };
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
 export type Production = boolean;
 

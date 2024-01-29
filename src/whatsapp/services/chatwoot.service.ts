@@ -7,7 +7,7 @@ import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
-import { ConfigService, HttpServer, ChatWoot} from '../../config/env.config';
+import { ChatWoot, ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import i18next from '../../utils/i18n';
 import { ICache } from '../abstract/abstract.cache';
@@ -1895,37 +1895,36 @@ export class ChatwootService {
       }
 
       if (event === Events.MESSAGES_DELETE) {
-		  
-		const chatwootDelete =  this.configService.get<ChatWoot>('CHATWOOT').MESSAGE_DELETE
-		if (chatwootDelete ===  true) {		  
-			this.logger.verbose('deleting message from instance: ' + instance.instanceName);
+        const chatwootDelete = this.configService.get<ChatWoot>('CHATWOOT').MESSAGE_DELETE;
+        if (chatwootDelete === true) {
+          this.logger.verbose('deleting message from instance: ' + instance.instanceName);
 
-			if (!body?.key?.id) {
-			  this.logger.warn('message id not found');
-			  return;
-			}
+          if (!body?.key?.id) {
+            this.logger.warn('message id not found');
+            return;
+          }
 
-			const message = await this.getMessageByKeyId(instance, body.key.id);
-			if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
-			  this.logger.verbose('deleting message in repository. Message id: ' + body.key.id);
-			  this.repository.message.delete({
-				where: {
-				  key: {
-					id: body.key.id,
-				  },
-				  owner: instance.instanceName,
-				},
-			  });
+          const message = await this.getMessageByKeyId(instance, body.key.id);
+          if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
+            this.logger.verbose('deleting message in repository. Message id: ' + body.key.id);
+            this.repository.message.delete({
+              where: {
+                key: {
+                  id: body.key.id,
+                },
+                owner: instance.instanceName,
+              },
+            });
 
-			  this.logger.verbose('deleting message in chatwoot. Message id: ' + body.key.id);
-			  return await client.messages.delete({
-				accountId: this.provider.account_id,
-				conversationId: message.chatwoot.conversationId,
-				messageId: message.chatwoot.messageId,
-			  });
-			}
-		}
-	  }
+            this.logger.verbose('deleting message in chatwoot. Message id: ' + body.key.id);
+            return await client.messages.delete({
+              accountId: this.provider.account_id,
+              conversationId: message.chatwoot.conversationId,
+              messageId: message.chatwoot.messageId,
+            });
+          }
+        }
+      }
 
       if (event === 'messages.read') {
         this.logger.verbose('read message from instance: ' + instance.instanceName);
