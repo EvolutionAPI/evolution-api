@@ -274,7 +274,7 @@ export class TypebotService {
     const types = {
       conversation: msg.conversation,
       extendedTextMessage: msg.extendedTextMessage?.text,
-      responseRowId: msg.listResponseMessage.singleSelectReply?.selectedRowId,
+      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
     };
 
     this.logger.verbose('type message: ' + types);
@@ -413,7 +413,13 @@ export class TypebotService {
         text += element.text;
       }
 
-      if (element.children && (element.type === 'p' || element.type === 'a' || element.type === 'inline-variable' || element.type === 'variable')) {
+      if (
+        element.children &&
+        (element.type === 'p' ||
+          element.type === 'a' ||
+          element.type === 'inline-variable' ||
+          element.type === 'variable')
+      ) {
         for (const child of element.children) {
           text += applyFormatting(child);
         }

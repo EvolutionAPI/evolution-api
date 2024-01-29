@@ -1,0 +1,5 @@
+{
+  "qrgeneratedsuccesfully": "QRCode successfully generated!",
+  "scanqr": "Scan this QR code within the next 40 seconds.",
+  "qrlimitreached": "QRCode generation limit reached, to generate a new QRCode, send the 'init' message again."
+}
