@@ -38,6 +38,7 @@ import axios from 'axios';
 import { exec, execSync } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
+import levenshtein from 'fast-levenshtein';
 import fs, { existsSync, readFileSync } from 'fs';
 import Long from 'long';
 import NodeCache from 'node-cache';
@@ -3126,31 +3127,68 @@ export class WAStartupService {
   public async whatsappNumber(data: WhatsAppNumberDto) {
     this.logger.verbose('Getting whatsapp number');
 
-    const onWhatsapp: OnWhatsAppDto[] = [];
-    for await (const number of data.numbers) {
-      let jid = this.createJid(number);
+    const jids: {
+      groups: { number: string; jid: string }[];
+      broadcast: { number: string; jid: string }[];
+      users: { number: string; jid: string }[];
+    } = {
+      groups: [],
+      broadcast: [],
+      users: [],
+    };
+
+    data.numbers.forEach((number) => {
+      const jid = this.createJid(number);
 
       if (isJidGroup(jid)) {
+        jids.groups.push({ number, jid });
+      } else if (jid === 'status@broadcast') {
+        jids.broadcast.push({ number, jid });
+      } else {
+        jids.users.push({ number, jid });
+      }
+    });
+
+    const onWhatsapp: OnWhatsAppDto[] = [];
+
+    // BROADCAST
+    onWhatsapp.push(...jids.broadcast.map(({ jid, number }) => new OnWhatsAppDto(jid, false, number)));
+
+    // GROUPS
+    const groups = await Promise.all(
+      jids.groups.map(async ({ jid, number }) => {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
 
-        if (!group) throw new BadRequestException('Group not found');
-
-        onWhatsapp.push(new OnWhatsAppDto(group.id, !!group?.id, number, group?.subject));
-      } else if (jid === 'status@broadcast') {
-        onWhatsapp.push(new OnWhatsAppDto(jid, false, number));
-      } else {
-        jid = !jid.startsWith('+') ? `+${jid}` : jid;
-        const verify = await this.client.onWhatsApp(jid);
-
-        const result = verify[0];
-
-        if (!result) {
-          onWhatsapp.push(new OnWhatsAppDto(jid, false, number));
-        } else {
-          onWhatsapp.push(new OnWhatsAppDto(result.jid, result.exists, number));
+        if (!group) {
+          new OnWhatsAppDto(jid, false, number);
         }
-      }
-    }
+
+        return new OnWhatsAppDto(group.id, !!group?.id, number, group?.subject);
+      }),
+    );
+    onWhatsapp.push(...groups);
+
+    // USERS
+    const verify = await this.client.onWhatsApp(
+      ...jids.users.map(({ jid }) => (!jid.startsWith('+') ? `+${jid}` : jid)),
+    );
+    const users: OnWhatsAppDto[] = jids.users.map((user) => {
+      const MAX_SIMILARITY_THRESHOLD = 0.01;
+      const isBrWithDigit = user.jid.startsWith('55') && user.jid.slice(4, 5) === '9' && user.jid.length === 28;
+      const jid = isBrWithDigit ? user.jid.slice(0, 4) + user.jid.slice(5) : user.jid;
+
+      const numberVerified = verify.find((v) => {
+        const mainJidSimilarity = levenshtein.get(user.jid, v.jid) / Math.max(user.jid.length, v.jid.length);
+        const jidSimilarity = levenshtein.get(jid, v.jid) / Math.max(jid.length, v.jid.length);
+        return mainJidSimilarity <= MAX_SIMILARITY_THRESHOLD || jidSimilarity <= MAX_SIMILARITY_THRESHOLD;
+      });
+      return {
+        exists: !!numberVerified?.exists,
+        jid: numberVerified?.jid || user.jid,
+        number: user.number,
+      };
+    });
+    onWhatsapp.push(...users);
 
     return onWhatsapp;
   }
