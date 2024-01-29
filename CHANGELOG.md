@@ -3,6 +3,10 @@
 ### Feature
 
 * Added update message endpoint
+* Add translate capabilities to QRMessages in CW
+* Join in Group by Invite Code
+* Read messages from whatsapp in chatwoot
+* Add support to use use redis in cacheservice
 
 ### Fixed
 
@@ -16,6 +20,17 @@
 * When receiving a file from whatsapp, use the original filename in chatwoot if possible
 * Remove message ids cache in chatwoot to use chatwoot's api itself
 * Adjusts the quoted message, now has contextInfo in the message Raw
+* Collecting responses with text or numbers in Typebot
+* Added sendList endpoint to swagger documentation
+* Implemented a function to synchronize message deletions on WhatsApp, automatically reflecting in Chatwoot.
+* Improvement on numbers validation
+* Fix polls in message sending
+* Sending status message
+* Message 'connection successfully' spamming
+* Invalidate the conversation cache if reopen_conversation is false and the conversation was resolved
+* Fix looping when deleting a message in chatwoot
+* When receiving a file from whatsapp, use the original filename in chatwoot if possible
+* Correction in the sendList Function
 
 # 1.6.1 (2023-12-22 11:43)
 
