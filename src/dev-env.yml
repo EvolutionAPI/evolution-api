@@ -153,10 +153,16 @@ TYPEBOT:
   API_VERSION: 'old' # old | latest
   KEEP_OPEN: false
 
-# If you leave this option as false, when deleting the message for everyone on WhatsApp, it will not be deleted on Chatwoot.
 CHATWOOT:
+  # If you leave this option as false, when deleting the message for everyone on WhatsApp, it will not be deleted on Chatwoot.
   MESSAGE_DELETE: true # false | true 
- 
+  IMPORT:
+    # This db connection is used to import messages from whatsapp to chatwoot database
+    DATABASE:
+      CONNECTION:
+        URI: "postgres://user:password@hostname:port/dbname"
+    PLACEHOLDER_MEDIA_MESSAGE: true
+
 # Cache to optimize application performance
 CACHE:
   REDIS:

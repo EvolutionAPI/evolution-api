@@ -2076,6 +2076,9 @@ paths:
                 read_status:
                   type: boolean
                   description: "Indicates whether to mark status messages as read."
+                sync_full_history:
+                  type: boolean
+                  description: "Indicates whether to request a full history messages sync on connect."
       parameters:
         - name: instanceName
           in: path
@@ -2141,6 +2144,15 @@ paths:
                 conversation_pending:
                   type: boolean
                   description: "Indicates whether to mark conversations as pending."
+                import_contacts:
+                  type: boolean
+                  description: "Indicates whether to import contacts from phone to Chatwoot when connecting."
+                import_messages:
+                  type: boolean
+                  description: "Indicates whether to import messages from phone to Chatwoot when connecting."
+                days_limit_import_messages:
+                  type: number
+                  description: "Indicates number of days to limit messages imported to Chatwoot."
       parameters:
         - name: instanceName
           in: path

@@ -4,9 +4,10 @@ import { join } from 'path';
 import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
-import { IMessageModel, MessageRaw } from '../models';
+import { IMessageModel, MessageRaw, MessageRawSelect } from '../models';
 
 export class MessageQuery {
+  select?: MessageRawSelect;
   where: MessageRaw;
   limit?: number;
 }
@@ -25,6 +26,15 @@ export class MessageRepository extends Repository {
           query.where[`${o}.${k}`] = v;
         }
         delete query.where[o];
+      }
+    }
+
+    for (const [o, p] of Object.entries(query?.select)) {
+      if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
+        for (const [k, v] of Object.entries(p)) {
+          query.select[`${o}.${k}`] = v;
+        }
+        delete query.select[o];
       }
     }
 

@@ -57,12 +57,16 @@ export class InstanceController {
     chatwoot_sign_msg,
     chatwoot_reopen_conversation,
     chatwoot_conversation_pending,
+    chatwoot_import_contacts,
+    chatwoot_import_messages,
+    chatwoot_days_limit_import_messages,
     reject_call,
     msg_call,
     groups_ignore,
     always_online,
     read_messages,
     read_status,
+    sync_full_history,
     websocket_enabled,
     websocket_events,
     rabbitmq_enabled,
@@ -342,6 +346,7 @@ export class InstanceController {
         always_online: always_online || false,
         read_messages: read_messages || false,
         read_status: read_status || false,
+        sync_full_history: sync_full_history ?? false,
       };
 
       this.logger.verbose('settings: ' + JSON.stringify(settings));
@@ -444,6 +449,9 @@ export class InstanceController {
           number,
           reopen_conversation: chatwoot_reopen_conversation || false,
           conversation_pending: chatwoot_conversation_pending || false,
+          import_contacts: chatwoot_import_contacts ?? true,
+          import_messages: chatwoot_import_messages ?? true,
+          days_limit_import_messages: chatwoot_days_limit_import_messages ?? 60,
           auto_create: true,
         });
       } catch (error) {
@@ -494,6 +502,9 @@ export class InstanceController {
           sign_msg: chatwoot_sign_msg || false,
           reopen_conversation: chatwoot_reopen_conversation || false,
           conversation_pending: chatwoot_conversation_pending || false,
+          import_contacts: chatwoot_import_contacts ?? true,
+          import_messages: chatwoot_import_messages ?? true,
+          days_limit_import_messages: chatwoot_days_limit_import_messages || 60,
           number,
           name_inbox: instance.instanceName,
           webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,

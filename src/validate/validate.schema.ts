@@ -923,6 +923,9 @@ export const chatwootSchema: JSONSchema7 = {
     reopen_conversation: { type: 'boolean', enum: [true, false] },
     conversation_pending: { type: 'boolean', enum: [true, false] },
     auto_create: { type: 'boolean', enum: [true, false] },
+    import_contacts: { type: 'boolean', enum: [true, false] },
+    import_messages: { type: 'boolean', enum: [true, false] },
+    days_limit_import_messages: { type: 'number' },
   },
   required: ['enabled', 'account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'],
   ...isNotEmpty('account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'),
@@ -938,9 +941,10 @@ export const settingsSchema: JSONSchema7 = {
     always_online: { type: 'boolean', enum: [true, false] },
     read_messages: { type: 'boolean', enum: [true, false] },
     read_status: { type: 'boolean', enum: [true, false] },
+    sync_full_history: { type: 'boolean', enum: [true, false] },
   },
-  required: ['reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'],
-  ...isNotEmpty('reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status'),
+  required: ['reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status', 'sync_full_history'],
+  ...isNotEmpty('reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status', 'sync_full_history'),
 };
 
 export const websocketSchema: JSONSchema7 = {

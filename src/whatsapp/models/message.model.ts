@@ -33,6 +33,13 @@ export class MessageRaw {
   contextInfo?: any;
 }
 
+type MessageRawBoolean<T> = {
+  [P in keyof T]?: 0 | 1;
+};
+export type MessageRawSelect = Omit<MessageRawBoolean<MessageRaw>, 'key'> & {
+  key?: MessageRawBoolean<Key>;
+};
+
 const messageSchema = new Schema<MessageRaw>({
   _id: { type: String, _id: true },
   key: {
