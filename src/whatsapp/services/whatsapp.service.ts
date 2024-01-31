@@ -3130,7 +3130,7 @@ export class WAStartupService {
     const jids: {
       groups: { number: string; jid: string }[];
       broadcast: { number: string; jid: string }[];
-      users: { number: string; jid: string; contact?: string; name?: string }[];
+      users: { number: string; jid: string; name?: string }[];
     } = {
       groups: [],
       broadcast: [],
@@ -3145,7 +3145,7 @@ export class WAStartupService {
       } else if (jid === 'status@broadcast') {
         jids.broadcast.push({ number, jid });
       } else {
-        jids.users.push({ number, jid, contact: jid });
+        jids.users.push({ number, jid });
       }
     });
 
@@ -3181,7 +3181,7 @@ export class WAStartupService {
         const query: ContactQuery = {
           where: {
             owner: this.instance.name,
-            id: user.contact,
+            id: user.jid.startsWith('+') ? user.jid.substring(1) : user.jid;,
           },
         };
         const contacts: ContactRaw[] = await this.repository.contact.find(query);
