@@ -3188,7 +3188,6 @@ export class WAStartupService {
         let firstContactFound;
         if (contacts.length > 0) {
           firstContactFound = contacts[0].pushName;
-          console.log(contacts[0]);
         }
 
         const numberVerified = verify.find((v) => {
