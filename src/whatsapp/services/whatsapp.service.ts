@@ -3181,7 +3181,7 @@ export class WAStartupService {
         const query: ContactQuery = {
           where: {
             owner: this.instance.name,
-            id: user.jid.startsWith('+') ? user.jid.substring(1) : user.jid;,
+            id: user.jid.startsWith('+') ? user.jid.substring(1) : user.jid,
           },
         };
         const contacts: ContactRaw[] = await this.repository.contact.find(query);
