@@ -382,19 +382,27 @@ export class ChatwootService {
     this.logger.verbose('find contact in chatwoot');
     let contact: any;
 
-    if(isGroup) {
+    if (isGroup) {
       contact = await client.contacts.search({
         accountId: this.provider.account_id,
         q: query,
       });
     } else {
-      contact = await client.contacts.filter({
-        accountId: this.provider.account_id,
-        payload: this.getFilterPayload(query),
+      // contact = await client.contacts.filter({
+      //   accountId: this.provider.account_id,
+      //   payload: this.getFilterPayload(query),
+      // });
+      // hotfix for: https://github.com/EvolutionAPI/evolution-api/pull/382. waiting fix: https://github.com/figurolatam/chatwoot-sdk/pull/7
+      contact = await chatwootRequest(this.getClientCwConfig(), {
+        method: 'POST',
+        url: `/api/v1/accounts/${this.provider.account_id}/contacts/filter`,
+        body: {
+          payload: this.getFilterPayload(query),
+        },
       });
     }
 
-    if(!contact) {
+    if (!contact) {
       this.logger.warn('contact not found');
       return null;
     }
@@ -444,16 +452,16 @@ export class ChatwootService {
 
   private getFilterPayload(query: string) {
     const payload = [];
-    const values = this.getNumbers(query)
+    const values = this.getNumbers(query);
 
     const fields = this.getSearchableFields();
     fields.forEach((key, index) => {
       const queryOperator = fields.length - 1 === index ? null : 'OR';
       payload.push({
-        "attribute_key": key,
-        "filter_operator": "contains",
-        "values": values,
-        "query_operator": queryOperator
+        attribute_key: key,
+        filter_operator: 'contains',
+        values: values,
+        query_operator: queryOperator,
       });
     });
 
