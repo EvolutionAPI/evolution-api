@@ -455,19 +455,22 @@ export class ChatwootService {
     const values = this.getNumbers(query);
 
     const fields = this.getSearchableFields();
-    fields.forEach((key, index) => {
-      const queryOperator = fields.length - 1 === index ? null : 'OR';
-      payload.push({
-        attribute_key: key,
-        filter_operator: 'contains',
-        values: values,
-        query_operator: queryOperator,
+
+    fields.forEach((field, index1) => {
+      values.forEach((number, index2) => {
+        const queryOperator = fields.length - 1 === index1 && values.length - 1 === index2 ? null : 'OR';
+        payload.push({
+          attribute_key: field,
+          filter_operator: 'contains',
+          values: [number],
+          query_operator: queryOperator,
+        });
       });
     });
 
+    this.logger.verbose('Payload: ' + JSON.stringify(payload));
     return payload;
   }
-
   public async createConversation(instance: InstanceDto, body: any) {
     this.logger.verbose('create conversation to instance: ' + instance.instanceName);
     try {
