@@ -369,8 +369,9 @@ export class ChatwootService {
     }
 
     let query: any;
+    const isGroup = phoneNumber.includes('@g.us');
 
-    if (!phoneNumber.includes('@g.us')) {
+    if (!isGroup) {
       this.logger.verbose('format phone number');
       query = `+${phoneNumber}`;
     } else {
@@ -379,23 +380,84 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find contact in chatwoot');
-    const contact: any = await client.contacts.search({
-      accountId: this.provider.account_id,
-      q: query,
-    });
+    let contact: any;
 
-    if (!contact) {
+    if(isGroup) {
+      contact = await client.contacts.search({
+        accountId: this.provider.account_id,
+        q: query,
+      });
+    } else {
+      contact = await client.contacts.filter({
+        accountId: this.provider.account_id,
+        payload: this.getFilterPayload(query),
+      });
+    }
+
+    if(!contact) {
       this.logger.warn('contact not found');
       return null;
     }
 
-    if (!phoneNumber.includes('@g.us')) {
+    if (!isGroup) {
       this.logger.verbose('return contact');
-      return contact.payload.find((contact) => contact.phone_number === query);
+      return this.findContactInContactList(contact.payload, query);
     } else {
       this.logger.verbose('return group');
       return contact.payload.find((contact) => contact.identifier === query);
     }
+  }
+
+  private findContactInContactList(contacts: any[], query: string) {
+    const phoneNumbers = this.getNumbers(query);
+    const searchableFields = this.getSearchableFields();
+
+    for (const contact of contacts) {
+      for (const field of searchableFields) {
+        if (contact[field] && phoneNumbers.includes(contact[field])) {
+          return contact;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private getNumbers(query: string) {
+    const numbers = [];
+    numbers.push(query);
+
+    if (query.startsWith('+55') && query.length === 14) {
+      const withoutNine = query.slice(0, 5) + query.slice(6);
+      numbers.push(withoutNine);
+    } else if (query.startsWith('+55') && query.length === 13) {
+      const withNine = query.slice(0, 5) + '9' + query.slice(5);
+      numbers.push(withNine);
+    }
+
+    return numbers;
+  }
+
+  private getSearchableFields() {
+    return ['identifier', 'phone_number', 'name', 'email'];
+  }
+
+  private getFilterPayload(query: string) {
+    const payload = [];
+    const values = this.getNumbers(query)
+
+    const fields = this.getSearchableFields();
+    fields.forEach((key, index) => {
+      const queryOperator = fields.length - 1 === index ? null : 'OR';
+      payload.push({
+        "attribute_key": key,
+        "filter_operator": "contains",
+        "values": values,
+        "query_operator": queryOperator
+      });
+    });
+
+    return payload;
   }
 
   public async createConversation(instance: InstanceDto, body: any) {
