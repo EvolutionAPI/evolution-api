@@ -3130,7 +3130,7 @@ export class WAStartupService {
     const jids: {
       groups: { number: string; jid: string }[];
       broadcast: { number: string; jid: string }[];
-      users: { number: string; jid: string }[];
+      users: { number: string; jid: string; name?: string }[];
     } = {
       groups: [],
       broadcast: [],
@@ -3172,22 +3172,38 @@ export class WAStartupService {
     const verify = await this.client.onWhatsApp(
       ...jids.users.map(({ jid }) => (!jid.startsWith('+') ? `+${jid}` : jid)),
     );
-    const users: OnWhatsAppDto[] = jids.users.map((user) => {
-      const MAX_SIMILARITY_THRESHOLD = 0.01;
-      const isBrWithDigit = user.jid.startsWith('55') && user.jid.slice(4, 5) === '9' && user.jid.length === 28;
-      const jid = isBrWithDigit ? user.jid.slice(0, 4) + user.jid.slice(5) : user.jid;
+    const users: OnWhatsAppDto[] = await Promise.all(
+      jids.users.map(async (user) => {
+        const MAX_SIMILARITY_THRESHOLD = 0.01;
+        const isBrWithDigit = user.jid.startsWith('55') && user.jid.slice(4, 5) === '9' && user.jid.length === 28;
+        const jid = isBrWithDigit ? user.jid.slice(0, 4) + user.jid.slice(5) : user.jid;
 
-      const numberVerified = verify.find((v) => {
-        const mainJidSimilarity = levenshtein.get(user.jid, v.jid) / Math.max(user.jid.length, v.jid.length);
-        const jidSimilarity = levenshtein.get(jid, v.jid) / Math.max(jid.length, v.jid.length);
-        return mainJidSimilarity <= MAX_SIMILARITY_THRESHOLD || jidSimilarity <= MAX_SIMILARITY_THRESHOLD;
-      });
-      return {
-        exists: !!numberVerified?.exists,
-        jid: numberVerified?.jid || user.jid,
-        number: user.number,
-      };
-    });
+        const query: ContactQuery = {
+          where: {
+            owner: this.instance.name,
+            id: user.jid.startsWith('+') ? user.jid.substring(1) : user.jid,
+          },
+        };
+        const contacts: ContactRaw[] = await this.repository.contact.find(query);
+        let firstContactFound;
+        if (contacts.length > 0) {
+          firstContactFound = contacts[0].pushName;
+        }
+
+        const numberVerified = verify.find((v) => {
+          const mainJidSimilarity = levenshtein.get(user.jid, v.jid) / Math.max(user.jid.length, v.jid.length);
+          const jidSimilarity = levenshtein.get(jid, v.jid) / Math.max(jid.length, v.jid.length);
+          return mainJidSimilarity <= MAX_SIMILARITY_THRESHOLD || jidSimilarity <= MAX_SIMILARITY_THRESHOLD;
+        });
+        return {
+          exists: !!numberVerified?.exists,
+          jid: numberVerified?.jid || user.jid,
+          name: firstContactFound,
+          number: user.number,
+        };
+      }),
+    );
+
     onWhatsapp.push(...users);
 
     return onWhatsapp;
