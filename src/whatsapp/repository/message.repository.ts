@@ -20,7 +20,7 @@ export class MessageRepository extends Repository {
   private readonly logger = new Logger('MessageRepository');
 
   public buildQuery(query: MessageQuery): MessageQuery {
-    for (const [o, p] of Object.entries(query?.where)) {
+    for (const [o, p] of Object.entries(query?.where || {})) {
       if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
         for (const [k, v] of Object.entries(p)) {
           query.where[`${o}.${k}`] = v;
@@ -29,7 +29,7 @@ export class MessageRepository extends Repository {
       }
     }
 
-    for (const [o, p] of Object.entries(query?.select)) {
+    for (const [o, p] of Object.entries(query?.select || {})) {
       if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
         for (const [k, v] of Object.entries(p)) {
           query.select[`${o}.${k}`] = v;
@@ -159,6 +159,7 @@ export class MessageRepository extends Repository {
         })
         .splice(0, query?.limit ?? messages.length);
     } catch (error) {
+      this.logger.error(`error on message find: ${error.toString()}`);
       return [];
     }
   }
