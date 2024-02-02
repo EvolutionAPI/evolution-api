@@ -1697,7 +1697,7 @@ export class ChatwootService {
           conversationId: getConversation,
           data: {
             content: `🚨 ${i18next.t('numbernotinwhatsapp')}`,
-            message_type: 'incoming',
+            message_type: 'outgoing',
             private: true,
           },
         });
