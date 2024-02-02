@@ -124,7 +124,7 @@ export const websocketController = new WebsocketController(websocketService);
 
 const proxyService = new ProxyService(waMonitor);
 
-export const proxyController = new ProxyController(proxyService);
+export const proxyController = new ProxyController(proxyService, waMonitor);
 
 const chamaaiService = new ChamaaiService(waMonitor, configService);
 

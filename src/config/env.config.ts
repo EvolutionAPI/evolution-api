@@ -131,6 +131,8 @@ export type Auth = {
 
 export type DelInstance = number | boolean;
 
+export type Language = string | 'en';
+
 export type GlobalWebhook = {
   URL: string;
   ENABLED: boolean;
@@ -151,6 +153,7 @@ export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
 export type QrCode = { LIMIT: number; COLOR: string };
 export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
+export type ChatWoot = { MESSAGE_DELETE: boolean };
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
 export type Production = boolean;
 
@@ -167,10 +170,12 @@ export interface Env {
   WEBSOCKET: Websocket;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
+  LANGUAGE: Language;
   WEBHOOK: Webhook;
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
   QRCODE: QrCode;
   TYPEBOT: Typebot;
+  CHATWOOT: ChatWoot;
   CACHE: CacheConf;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
@@ -289,6 +294,7 @@ export class ConfigService {
       DEL_INSTANCE: isBooleanString(process.env?.DEL_INSTANCE)
         ? process.env.DEL_INSTANCE === 'true'
         : Number.parseInt(process.env.DEL_INSTANCE) || false,
+      LANGUAGE: process.env?.LANGUAGE || 'en',
       WEBHOOK: {
         GLOBAL: {
           URL: process.env?.WEBHOOK_GLOBAL_URL || '',
@@ -337,6 +343,9 @@ export class ConfigService {
       TYPEBOT: {
         API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
         KEEP_OPEN: process.env.TYPEBOT_KEEP_OPEN === 'true',
+      },
+      CHATWOOT: {
+        MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'false',
       },
       CACHE: {
         REDIS: {

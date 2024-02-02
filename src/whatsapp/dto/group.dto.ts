@@ -32,6 +32,10 @@ export class GroupInvite {
   inviteCode: string;
 }
 
+export class AcceptGroupInvite {
+  inviteCode: string;
+}
+
 export class GroupSendInvite {
   groupJid: string;
   description: string;

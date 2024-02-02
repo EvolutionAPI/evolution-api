@@ -2,6 +2,7 @@ import { RequestHandler, Router } from 'express';
 
 import { Logger } from '../../config/logger.config';
 import {
+  AcceptGroupInviteSchema,
   createGroupSchema,
   getParticipantsSchema,
   groupInviteSchema,
@@ -16,6 +17,7 @@ import {
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import {
+  AcceptGroupInvite,
   CreateGroupDto,
   GetParticipant,
   GroupDescriptionDto,
@@ -178,6 +180,22 @@ export class GroupRouter extends RouterBroker {
           schema: groupInviteSchema,
           ClassRef: GroupInvite,
           execute: (instance, data) => groupController.inviteInfo(instance, data),
+        });
+
+        res.status(HttpStatus.OK).json(response);
+      })
+      .get(this.routerPath('acceptInviteCode'), ...guards, async (req, res) => {
+        logger.verbose('request received in acceptInviteCode');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.inviteCodeValidate<AcceptGroupInvite>({
+          request: req,
+          schema: AcceptGroupInviteSchema,
+          ClassRef: AcceptGroupInvite,
+          execute: (instance, data) => groupController.acceptInviteCode(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);

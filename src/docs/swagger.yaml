@@ -940,7 +940,72 @@ paths:
           description: Successful response
           content:
             application/json: {}
-
+  /message/sendList/{instanceName}:
+    post:
+      tags:
+        - Send Message Controller
+      summary: Send a list to a specified instance.
+      description: This endpoint allows users to send a list to a chat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                options:
+                  type: object
+                  properties:
+                    delay:
+                      type: integer
+                    presence:
+                      type: string
+                listMessage:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    footerText:
+                      type: string
+                      nullable: true
+                    buttonText:
+                      type: string
+                    sections:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                          rows:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                title:
+                                  type: string
+                                description:
+                                  type: string
+                                rowId:
+                                  type: string
+      parameters:
+        - name: instanceName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the instance to which the poll should be sent.
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+            
   /chat/whatsappNumbers/{instanceName}:
     post:
       tags:
