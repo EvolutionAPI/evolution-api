@@ -447,27 +447,29 @@ export class ChatwootService {
   }
 
   private getSearchableFields() {
-    return ['identifier', 'phone_number', 'name', 'email'];
+    return ['phone_number'];
   }
 
   private getFilterPayload(query: string) {
-    const payload = [];
-    const values = this.getNumbers(query);
+    const filterPayload = [];
 
-    const fields = this.getSearchableFields();
-    fields.forEach((key, index) => {
-      const queryOperator = fields.length - 1 === index ? null : 'OR';
-      payload.push({
-        attribute_key: key,
-        filter_operator: 'contains',
-        values: values,
-        query_operator: queryOperator,
+    const numbers = this.getNumbers(query);
+    const fieldsToSearch = this.getSearchableFields();
+
+    fieldsToSearch.forEach((field, index1) => {
+      numbers.forEach((number, index2) => {
+        const queryOperator = fieldsToSearch.length - 1 === index1 && numbers.length - 1 === index2 ? null : 'OR';
+        filterPayload.push({
+          attribute_key: field,
+          filter_operator: 'equal_to',
+          values: [number.replace('+', '')],
+          query_operator: queryOperator,
+        });
       });
     });
 
-    return payload;
+    return filterPayload;
   }
-
   public async createConversation(instance: InstanceDto, body: any) {
     this.logger.verbose('create conversation to instance: ' + instance.instanceName);
     try {
