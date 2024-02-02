@@ -1686,6 +1686,27 @@ export class ChatwootService {
         return null;
       }
 
+      if (event === 'contact.is_not_in_wpp') {
+        const getConversation = await this.createConversation(instance, body);
+
+        if (!getConversation) {
+          this.logger.warn('conversation not found');
+          return;
+        }
+
+        client.messages.create({
+          accountId: this.provider.account_id,
+          conversationId: getConversation,
+          data: {
+            content: `🚨 ${i18next.t('numbernotinwhatsapp')}`,
+            message_type: 'outgoing',
+            private: true,
+          },
+        });
+
+        return;
+      }
+
       if (event === 'messages.upsert' || event === 'send.message') {
         this.logger.verbose('event messages.upsert');
 

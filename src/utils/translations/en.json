@@ -1,5 +1,6 @@
 {
   "qrgeneratedsuccesfully": "QRCode successfully generated!",
   "scanqr": "Scan this QR code within the next 40 seconds.",
-  "qrlimitreached": "QRCode generation limit reached, to generate a new QRCode, send the 'init' message again."
+  "qrlimitreached": "QRCode generation limit reached, to generate a new QRCode, send the 'init' message again.",
+  "numbernotinwhatsapp": "The message was not sent as the contact is not a valid Whatsapp number."
 }
