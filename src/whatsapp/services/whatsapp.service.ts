@@ -2357,7 +2357,15 @@ export class WAStartupService {
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
     this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
+
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+      if (this.localChatwoot.enabled) {
+        const body = {
+          key: { remoteJid: isWA.jid },
+        };
+
+        this.chatwootService.eventWhatsapp('contact.is_not_in_wpp', { instanceName: this.instance.name }, body);
+      }
       throw new BadRequestException(isWA);
     }
 
