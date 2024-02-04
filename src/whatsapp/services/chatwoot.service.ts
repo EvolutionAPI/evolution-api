@@ -402,14 +402,14 @@ export class ChatwootService {
       });
     }
 
-    if (!contact) {
+    if (!contact && contact?.payload?.length === 0) {
       this.logger.warn('contact not found');
       return null;
     }
 
     if (!isGroup) {
       this.logger.verbose('return contact');
-      return this.findContactInContactList(contact.payload, query);
+      return contact.payload.length > 1 ? this.findContactInContactList(contact.payload, query) : contact.payload[0];
     } else {
       this.logger.verbose('return group');
       return contact.payload.find((contact) => contact.identifier === query);
@@ -447,7 +447,7 @@ export class ChatwootService {
   }
 
   private getSearchableFields() {
-    return ['phone_number'];
+    return ['phone_number', 'identifier'];
   }
 
   private getFilterPayload(query: string) {
@@ -461,7 +461,7 @@ export class ChatwootService {
         const queryOperator = fieldsToSearch.length - 1 === index1 && numbers.length - 1 === index2 ? null : 'OR';
         filterPayload.push({
           attribute_key: field,
-          filter_operator: 'equal_to',
+          filter_operator: field == 'phone_number' ? 'equal_to' : 'contains',
           values: [number.replace('+', '')],
           query_operator: queryOperator,
         });
@@ -470,6 +470,7 @@ export class ChatwootService {
 
     return filterPayload;
   }
+
   public async createConversation(instance: InstanceDto, body: any) {
     this.logger.verbose('create conversation to instance: ' + instance.instanceName);
     try {
