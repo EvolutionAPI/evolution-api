@@ -338,7 +338,7 @@ export class InstanceController {
       const settings: wa.LocalSettings = {
         reject_call: reject_call || false,
         msg_call: msg_call || '',
-        groups_ignore: groups_ignore || true,
+        groups_ignore: groups_ignore || false,
         always_online: always_online || false,
         read_messages: read_messages || false,
         read_status: read_status || false,
