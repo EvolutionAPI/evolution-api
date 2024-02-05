@@ -10,6 +10,11 @@ export class ContactRaw {
   owner: string;
 }
 
+type ContactRawBoolean<T> = {
+  [P in keyof T]?: 0 | 1;
+};
+export type ContactRawSelect = ContactRawBoolean<ContactRaw>;
+
 const contactSchema = new Schema<ContactRaw>({
   _id: { type: String, _id: true },
   pushName: { type: String, minlength: 1 },

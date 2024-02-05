@@ -76,6 +76,7 @@
     "node-mime-types": "^1.1.0",
     "node-windows": "^1.0.0-beta.8",
     "parse-bmfont-xml": "^1.1.4",
+    "pg": "^8.11.3",
     "pino": "^8.11.0",
     "qrcode": "^1.5.1",
     "qrcode-terminal": "^0.12.0",

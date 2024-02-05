@@ -51,6 +51,9 @@ export class ChatwootController {
       data.sign_delimiter = null;
       data.reopen_conversation = false;
       data.conversation_pending = false;
+      data.import_contacts = false;
+      data.import_messages = false;
+      data.days_limit_import_messages = 0;
       data.auto_create = false;
     }
 

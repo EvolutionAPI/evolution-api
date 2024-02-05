@@ -10,6 +10,7 @@ export class SettingsRaw {
   always_online?: boolean;
   read_messages?: boolean;
   read_status?: boolean;
+  sync_full_history?: boolean;
 }
 
 const settingsSchema = new Schema<SettingsRaw>({
@@ -20,6 +21,7 @@ const settingsSchema = new Schema<SettingsRaw>({
   always_online: { type: Boolean, required: true },
   read_messages: { type: Boolean, required: true },
   read_status: { type: Boolean, required: true },
+  sync_full_history: { type: Boolean, required: true },
 });
 
 export const SettingsModel = dbserver?.model(SettingsRaw.name, settingsSchema, 'settings');

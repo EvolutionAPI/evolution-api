@@ -4,9 +4,10 @@ import { join } from 'path';
 import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ChatRaw, IChatModel } from '../models';
+import { ChatRaw, ChatRawSelect, IChatModel } from '../models';
 
 export class ChatQuery {
+  select?: ChatRawSelect;
   where: ChatRaw;
 }
 
@@ -69,7 +70,7 @@ export class ChatRepository extends Repository {
       this.logger.verbose('finding chats');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('finding chats in db');
-        return await this.chatModel.find({ owner: query.where.owner });
+        return await this.chatModel.find({ owner: query.where.owner }).select(query.select ?? {});
       }
 
       this.logger.verbose('finding chats in store');

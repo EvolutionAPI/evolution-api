@@ -1,4 +1,4 @@
-import ChatwootClient, { ChatwootAPIConfig, contact, conversation, inbox } from '@figuro/chatwoot-sdk';
+import ChatwootClient, { ChatwootAPIConfig, contact, conversation, generic_id, inbox } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import axios from 'axios';
 import FormData from 'form-data';
@@ -6,15 +6,15 @@ import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
 import mimeTypes from 'mime-types';
 import path from 'path';
-
 import { ConfigService, HttpServer, WABussiness, ChatWoot, ConfigService, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { chatwootImport } from '../../utils/chatwoot-import-helper';
 import i18next from '../../utils/i18n';
 import { ICache } from '../abstract/abstract.cache';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { InstanceDto } from '../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto, SendTemplateDto } from '../dto/sendMessage.dto';
-import { ChatwootRaw, MessageRaw } from '../models';
+import { ChatwootRaw, ContactRaw, MessageRaw } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events } from '../types/wa.types';
 import { WAMonitoringService } from './monitor.service';
@@ -402,14 +402,14 @@ export class ChatwootService {
       });
     }
 
-    if (!contact) {
+    if (!contact && contact?.payload?.length === 0) {
       this.logger.warn('contact not found');
       return null;
     }
 
     if (!isGroup) {
       this.logger.verbose('return contact');
-      return this.findContactInContactList(contact.payload, query);
+      return contact.payload.length > 1 ? this.findContactInContactList(contact.payload, query) : contact.payload[0];
     } else {
       this.logger.verbose('return group');
       return contact.payload.find((contact) => contact.identifier === query);
@@ -447,7 +447,7 @@ export class ChatwootService {
   }
 
   private getSearchableFields() {
-    return ['phone_number'];
+    return ['phone_number', 'identifier'];
   }
 
   private getFilterPayload(query: string) {
@@ -461,7 +461,7 @@ export class ChatwootService {
         const queryOperator = fieldsToSearch.length - 1 === index1 && numbers.length - 1 === index2 ? null : 'OR';
         filterPayload.push({
           attribute_key: field,
-          filter_operator: 'equal_to',
+          filter_operator: field == 'phone_number' ? 'equal_to' : 'contains',
           values: [number.replace('+', '')],
           query_operator: queryOperator,
         });
@@ -470,6 +470,7 @@ export class ChatwootService {
 
     return filterPayload;
   }
+
   public async createConversation(instance: InstanceDto, body: any) {
     this.logger.verbose('create conversation to instance: ' + instance.instanceName);
     try {
@@ -772,6 +773,43 @@ export class ChatwootService {
     return message;
   }
 
+  public async getOpenConversationByContact(
+    instance: InstanceDto,
+    inbox: inbox,
+    contact: generic_id & contact,
+  ): Promise<conversation> {
+    this.logger.verbose('find conversation in chatwoot');
+
+    const client = await this.clientCw(instance);
+
+    if (!client) {
+      this.logger.warn('client not found');
+      return null;
+    }
+
+    const payload = [
+      ['inbox_id', inbox.id.toString()],
+      ['contact_id', contact.id.toString()],
+      ['status', 'open'],
+    ];
+
+    return (
+      (
+        (await client.conversations.filter({
+          accountId: this.provider.account_id,
+          payload: payload.map((item, i, payload) => {
+            return {
+              attribute_key: item[0],
+              filter_operator: 'equal_to',
+              values: [item[1]],
+              query_operator: i < payload.length - 1 ? 'AND' : null,
+            };
+          }),
+        })) as { payload: conversation[] }
+      ).payload[0] || undefined
+    );
+  }
+
   public async createBotMessage(
     instance: InstanceDto,
     content: string,
@@ -807,21 +845,7 @@ export class ChatwootService {
       return null;
     }
 
-    this.logger.verbose('find conversation in chatwoot');
-    const findConversation = await client.conversations.list({
-      accountId: this.provider.account_id,
-      inboxId: filterInbox.id,
-    });
-
-    if (!findConversation) {
-      this.logger.warn('conversation not found');
-      return null;
-    }
-
-    this.logger.verbose('find conversation by contact id');
-    const conversation = findConversation.data.payload.find(
-      (conversation) => conversation?.meta?.sender?.id === contact.id && conversation.status === 'open',
-    );
+    const conversation = await this.getOpenConversationByContact(instance, filterInbox, contact);
 
     if (!conversation) {
       this.logger.warn('conversation not found');
@@ -944,21 +968,7 @@ export class ChatwootService {
       return null;
     }
 
-    this.logger.verbose('find conversation in chatwoot');
-    const findConversation = await client.conversations.list({
-      accountId: this.provider.account_id,
-      inboxId: filterInbox.id,
-    });
-
-    if (!findConversation) {
-      this.logger.warn('conversation not found');
-      return null;
-    }
-
-    this.logger.verbose('find conversation by contact id');
-    const conversation = findConversation.data.payload.find(
-      (conversation) => conversation?.meta?.sender?.id === contact.id && conversation.status === 'open',
-    );
+    const conversation = await this.getOpenConversationByContact(instance, filterInbox, contact);
 
     if (!conversation) {
       this.logger.warn('conversation not found');
@@ -1687,7 +1697,7 @@ export class ChatwootService {
     return result;
   }
 
-  private getConversationMessage(msg: any) {
+  public getConversationMessage(msg: any) {
     this.logger.verbose('get conversation message');
 
     const types = this.getTypeMessage(msg);
@@ -2018,7 +2028,7 @@ export class ChatwootService {
       }
 
       if (event === Events.MESSAGES_DELETE) {
-        const chatwootDelete = this.configService.get<ChatWoot>('CHATWOOT').MESSAGE_DELETE;
+        const chatwootDelete = this.configService.get<Chatwoot>('CHATWOOT').MESSAGE_DELETE;
         if (chatwootDelete === true) {
           this.logger.verbose('deleting message from instance: ' + instance.instanceName);
 
@@ -2113,6 +2123,7 @@ export class ChatwootService {
             this.logger.verbose('send message to chatwoot');
             await this.createBotMessage(instance, msgConnection, 'incoming');
             this.waMonitor.waInstances[instance.instanceName].qrCode.count = 0;
+            chatwootImport.clearAll(instance);
           }
         }
       }
@@ -2162,5 +2173,114 @@ export class ChatwootService {
 
   public getNumberFromRemoteJid(remoteJid: string) {
     return remoteJid.replace(/:\d+/, '').split('@')[0];
+  }
+
+  public startImportHistoryMessages(instance: InstanceDto) {
+    if (!this.isImportHistoryAvailable()) {
+      return;
+    }
+
+    this.createBotMessage(instance, `💬 Starting to import messages. Please wait...`, 'incoming');
+  }
+
+  public isImportHistoryAvailable() {
+    const uri = this.configService.get<Chatwoot>('CHATWOOT').IMPORT.DATABASE.CONNECTION.URI;
+
+    return uri && uri !== 'postgres://user:password@hostname:port/dbname';
+  }
+
+  /* We can't proccess messages exactly in batch because Chatwoot use message id to order
+     messages in frontend and we are receiving the messages mixed between the batches.
+     Because this, we need to put all batches together and order after */
+  public addHistoryMessages(instance: InstanceDto, messagesRaw: MessageRaw[]) {
+    if (!this.isImportHistoryAvailable()) {
+      return;
+    }
+
+    chatwootImport.addHistoryMessages(instance, messagesRaw);
+  }
+
+  public addHistoryContacts(instance: InstanceDto, contactsRaw: ContactRaw[]) {
+    if (!this.isImportHistoryAvailable()) {
+      return;
+    }
+
+    return chatwootImport.addHistoryContacts(instance, contactsRaw);
+  }
+
+  public async importHistoryMessages(instance: InstanceDto) {
+    if (!this.isImportHistoryAvailable()) {
+      return;
+    }
+
+    this.createBotMessage(instance, '💬 Importing messages. More one moment...', 'incoming');
+
+    const totalMessagesImported = await chatwootImport.importHistoryMessages(
+      instance,
+      this,
+      await this.getInbox(instance),
+      this.provider,
+    );
+    this.updateContactAvatarInRecentConversations(instance);
+
+    const msg = Number.isInteger(totalMessagesImported)
+      ? `${totalMessagesImported} messages imported. Refresh page to see the new messages`
+      : `Something went wrong in importing messages`;
+
+    this.createBotMessage(instance, `💬 ${msg}`, 'incoming');
+
+    return totalMessagesImported;
+  }
+
+  public async updateContactAvatarInRecentConversations(instance: InstanceDto, limitContacts = 100) {
+    try {
+      if (!this.isImportHistoryAvailable()) {
+        return;
+      }
+
+      const client = await this.clientCw(instance);
+      if (!client) {
+        this.logger.warn('client not found');
+        return null;
+      }
+
+      const inbox = await this.getInbox(instance);
+      if (!inbox) {
+        this.logger.warn('inbox not found');
+        return null;
+      }
+
+      const recentContacts = await chatwootImport.getContactsOrderByRecentConversations(
+        inbox,
+        this.provider,
+        limitContacts,
+      );
+
+      const contactsWithProfilePicture = (
+        await this.repository.contact.find({
+          where: {
+            owner: instance.instanceName,
+            id: {
+              $in: recentContacts.map((contact) => contact.identifier),
+            },
+            profilePictureUrl: { $ne: null },
+          },
+        } as any)
+      ).reduce((acc: Map<string, ContactRaw>, contact: ContactRaw) => acc.set(contact.id, contact), new Map());
+
+      recentContacts.forEach(async (contact) => {
+        if (contactsWithProfilePicture.has(contact.identifier)) {
+          client.contacts.update({
+            accountId: this.provider.account_id,
+            id: contact.id,
+            data: {
+              avatar_url: contactsWithProfilePicture.get(contact.identifier).profilePictureUrl || null,
+            },
+          });
+        }
+      });
+    } catch (error) {
+      this.logger.error(`Error on update avatar in recent conversations: ${error.toString()}`);
+    }
   }
 }
