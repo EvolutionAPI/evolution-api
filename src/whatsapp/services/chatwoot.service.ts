@@ -2102,7 +2102,7 @@ export class ChatwootService {
           this.logger.verbose('qrcode success');
           const fileData = Buffer.from(body?.qrcode.base64.replace('data:image/png;base64,', ''), 'base64');
 
-          const fileName = `${path.join(waInstance?.storePath, 'temp', `${`${instance}.png`}`)}`;
+          const fileName = `${path.join(waInstance?.storePath, 'temp', `${instance.instanceName}.png`)}`;
 
           this.logger.verbose('temp file name: ' + fileName);
 
