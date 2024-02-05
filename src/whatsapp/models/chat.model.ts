@@ -9,6 +9,11 @@ export class ChatRaw {
   lastMsgTimestamp?: number;
 }
 
+type ChatRawBoolean<T> = {
+  [P in keyof T]?: 0 | 1;
+};
+export type ChatRawSelect = ChatRawBoolean<ChatRaw>;
+
 const chatSchema = new Schema<ChatRaw>({
   _id: { type: String, _id: true },
   id: { type: String, required: true, minlength: 1 },

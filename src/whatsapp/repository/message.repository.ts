@@ -4,9 +4,10 @@ import { join } from 'path';
 import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
-import { IMessageModel, MessageRaw } from '../models';
+import { IMessageModel, MessageRaw, MessageRawSelect } from '../models';
 
 export class MessageQuery {
+  select?: MessageRawSelect;
   where: MessageRaw;
   limit?: number;
 }
@@ -19,12 +20,21 @@ export class MessageRepository extends Repository {
   private readonly logger = new Logger('MessageRepository');
 
   public buildQuery(query: MessageQuery): MessageQuery {
-    for (const [o, p] of Object.entries(query?.where)) {
+    for (const [o, p] of Object.entries(query?.where || {})) {
       if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
         for (const [k, v] of Object.entries(p)) {
           query.where[`${o}.${k}`] = v;
         }
         delete query.where[o];
+      }
+    }
+
+    for (const [o, p] of Object.entries(query?.select || {})) {
+      if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
+        for (const [k, v] of Object.entries(p)) {
+          query.select[`${o}.${k}`] = v;
+        }
+        delete query.select[o];
       }
     }
 
@@ -149,6 +159,7 @@ export class MessageRepository extends Repository {
         })
         .splice(0, query?.limit ?? messages.length);
     } catch (error) {
+      this.logger.error(`error on message find: ${error.toString()}`);
       return [];
     }
   }

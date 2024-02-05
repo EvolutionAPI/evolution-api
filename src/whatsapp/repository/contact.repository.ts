@@ -4,9 +4,10 @@ import { join } from 'path';
 import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ContactRaw, IContactModel } from '../models';
+import { ContactRaw, ContactRawSelect, IContactModel } from '../models';
 
 export class ContactQuery {
+  select?: ContactRawSelect;
   where: ContactRaw;
 }
 
@@ -129,7 +130,7 @@ export class ContactRepository extends Repository {
       this.logger.verbose('finding contacts');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('finding contacts in db');
-        return await this.contactModel.find({ ...query.where });
+        return await this.contactModel.find({ ...query.where }).select(query.select ?? {});
       }
 
       this.logger.verbose('finding contacts in store');

@@ -65,6 +65,9 @@ export declare namespace wa {
     number?: string;
     reopen_conversation?: boolean;
     conversation_pending?: boolean;
+    import_contacts?: boolean;
+    import_messages?: boolean;
+    days_limit_import_messages?: number;
   };
 
   export type LocalSettings = {
@@ -74,6 +77,7 @@ export declare namespace wa {
     always_online?: boolean;
     read_messages?: boolean;
     read_status?: boolean;
+    sync_full_history?: boolean;
   };
 
   export type LocalWebsocket = {
