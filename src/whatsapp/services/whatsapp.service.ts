@@ -1657,7 +1657,7 @@ export class WAStartupService {
         );
 
         this.logger.verbose('Verifying if contacts exists in database to insert');
-        const contactsRaw: ContactRaw[] = [];
+        let contactsRaw: ContactRaw[] = [];
 
         for (const contact of contacts) {
           if (contactsRepository.has(contact.id)) {
@@ -1667,7 +1667,7 @@ export class WAStartupService {
           contactsRaw.push({
             id: contact.id,
             pushName: contact?.name || contact?.verifiedName || contact.id.split('@')[0],
-            profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
+            profilePictureUrl: null,
             owner: this.instance.name,
           });
         }
@@ -1682,6 +1682,23 @@ export class WAStartupService {
           this.chatwootService.addHistoryContacts({ instanceName: this.instance.name }, contactsRaw);
           chatwootImport.importHistoryContacts({ instanceName: this.instance.name }, this.localChatwoot);
         }
+
+        // Update profile pictures
+        contactsRaw = [];
+        for await (const contact of contacts) {
+          contactsRaw.push({
+            id: contact.id,
+            pushName: contact?.name || contact?.verifiedName || contact.id.split('@')[0],
+            profilePictureUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
+            owner: this.instance.name,
+          });
+        }
+
+        this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
+        this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
+
+        this.logger.verbose('Updating contacts in database');
+        this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
       } catch (error) {
         this.logger.error(error);
       }
