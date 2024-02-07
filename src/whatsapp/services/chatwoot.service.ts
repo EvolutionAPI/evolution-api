@@ -51,11 +51,6 @@ export class ChatwootService {
     this.cache.set(cacheKey, provider);
 
     return provider;
-    // try {
-    // } catch (error) {
-    //   this.logger.error('provider not found');
-    //   return null;
-    // }
   }
 
   private async clientCw(instance: InstanceDto) {
@@ -389,10 +384,6 @@ export class ChatwootService {
         q: query,
       });
     } else {
-      // contact = await client.contacts.filter({
-      //   accountId: this.provider.account_id,
-      //   payload: this.getFilterPayload(query),
-      // });
       // hotfix for: https://github.com/EvolutionAPI/evolution-api/pull/382. waiting fix: https://github.com/figurolatam/chatwoot-sdk/pull/7
       contact = await chatwootRequest(this.getClientCwConfig(), {
         method: 'POST',
@@ -1194,7 +1185,6 @@ export class ChatwootService {
           if (state !== 'open') {
             if (state === 'close') {
               this.logger.verbose('request cleaning up instance: ' + instance.instanceName);
-              // await this.waMonitor.cleaningUp(instance.instanceName);
             }
             this.logger.verbose('connect to whatsapp');
             const number = command.split(':')[1];
