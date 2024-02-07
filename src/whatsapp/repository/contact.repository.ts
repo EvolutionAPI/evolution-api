@@ -11,6 +11,11 @@ export class ContactQuery {
   where: ContactRaw;
 }
 
+export class ContactQueryMany {
+  owner: ContactRaw['owner'];
+  ids: ContactRaw['id'][];
+}
+
 export class ContactRepository extends Repository {
   constructor(private readonly contactModel: IContactModel, private readonly configService: ConfigService) {
     super(configService);
@@ -155,6 +160,56 @@ export class ContactRepository extends Repository {
             contacts.push(
               JSON.parse(
                 readFileSync(join(this.storePath, 'contacts', query.where.owner, dirent.name), {
+                  encoding: 'utf-8',
+                }),
+              ),
+            );
+          }
+        }
+      }
+
+      this.logger.verbose('contacts found in store: ' + contacts.length + ' contacts');
+      return contacts;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  public async findManyById(query: ContactQueryMany): Promise<ContactRaw[]> {
+    try {
+      this.logger.verbose('finding contacts');
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('finding contacts in db');
+        return await this.contactModel.find({
+          owner: query.owner,
+          id: { $in: query.ids },
+        });
+      }
+
+      this.logger.verbose('finding contacts in store');
+      const contacts: ContactRaw[] = [];
+      if (query.ids.length > 0) {
+        this.logger.verbose('finding contacts in store by id');
+        query.ids.forEach((id) => {
+          contacts.push(
+            JSON.parse(
+              readFileSync(join(this.storePath, 'contacts', query.owner, id + '.json'), {
+                encoding: 'utf-8',
+              }),
+            ),
+          );
+        });
+      } else {
+        this.logger.verbose('finding contacts in store by owner');
+
+        const openDir = opendirSync(join(this.storePath, 'contacts', query.owner), {
+          encoding: 'utf-8',
+        });
+        for await (const dirent of openDir) {
+          if (dirent.isFile()) {
+            contacts.push(
+              JSON.parse(
+                readFileSync(join(this.storePath, 'contacts', query.owner, dirent.name), {
                   encoding: 'utf-8',
                 }),
               ),

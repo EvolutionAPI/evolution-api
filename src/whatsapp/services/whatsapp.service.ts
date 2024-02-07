@@ -3312,6 +3312,10 @@ export class WAStartupService {
     onWhatsapp.push(...groups);
 
     // USERS
+    const contacts: ContactRaw[] = await this.repository.contact.findManyById({
+      owner: this.instance.name,
+      ids: jids.users.map(({ jid }) => (jid.startsWith('+') ? jid.substring(1) : jid)),
+    });
     const verify = await this.client.onWhatsApp(
       ...jids.users.map(({ jid }) => (!jid.startsWith('+') ? `+${jid}` : jid)),
     );
@@ -3321,18 +3325,6 @@ export class WAStartupService {
         const isBrWithDigit = user.jid.startsWith('55') && user.jid.slice(4, 5) === '9' && user.jid.length === 28;
         const jid = isBrWithDigit ? user.jid.slice(0, 4) + user.jid.slice(5) : user.jid;
 
-        const query: ContactQuery = {
-          where: {
-            owner: this.instance.name,
-            id: user.jid.startsWith('+') ? user.jid.substring(1) : user.jid,
-          },
-        };
-        const contacts: ContactRaw[] = await this.repository.contact.find(query);
-        let firstContactFound;
-        if (contacts.length > 0) {
-          firstContactFound = contacts[0].pushName;
-        }
-
         const numberVerified = verify.find((v) => {
           const mainJidSimilarity = levenshtein.get(user.jid, v.jid) / Math.max(user.jid.length, v.jid.length);
           const jidSimilarity = levenshtein.get(jid, v.jid) / Math.max(jid.length, v.jid.length);
@@ -3341,7 +3333,7 @@ export class WAStartupService {
         return {
           exists: !!numberVerified?.exists,
           jid: numberVerified?.jid || user.jid,
-          name: firstContactFound,
+          name: contacts.find((c) => c.id === jid)?.pushName,
           number: user.number,
         };
       }),
