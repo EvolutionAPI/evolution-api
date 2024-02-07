@@ -2,22 +2,19 @@ import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
 import { opendirSync, readdirSync, rmSync } from 'fs';
 import { Db } from 'mongodb';
+import { Collection } from 'mongoose';
 import { join } from 'path';
 
 import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
-import { dbserver } from '../../libs/db.connect';
 import { RedisCache } from '../../libs/redis.client';
 import {
   AuthModel,
   ChamaaiModel,
-  // ChatModel,
   ChatwootModel,
-  // ContactModel,
-  // MessageModel,
-  // MessageUpModel,
+  ContactModel,
   ProxyModel,
   RabbitmqModel,
   SettingsModel,
@@ -41,7 +38,6 @@ export class WAMonitoringService {
 
     this.removeInstance();
     this.noConnection();
-    // this.delInstanceFiles();
 
     Object.assign(this.db, configService.get<Database>('DATABASE'));
     Object.assign(this.redis, configService.get<Redis>('REDIS'));
@@ -55,8 +51,6 @@ export class WAMonitoringService {
   private readonly redis: Partial<Redis> = {};
 
   private dbInstance: Db;
-
-  private dbStore = dbserver;
 
   private readonly logger = new Logger(WAMonitoringService.name);
   public readonly waInstances: Record<string, WAStartupService> = {};
@@ -326,11 +320,6 @@ export class WAMonitoringService {
 
     this.logger.verbose('cleaning store database instance: ' + instanceName);
 
-    // await ChatModel.deleteMany({ owner: instanceName });
-    // await ContactModel.deleteMany({ owner: instanceName });
-    // await MessageUpModel.deleteMany({ owner: instanceName });
-    // await MessageModel.deleteMany({ owner: instanceName });
-
     await AuthModel.deleteMany({ _id: instanceName });
     await WebhookModel.deleteMany({ _id: instanceName });
     await ChatwootModel.deleteMany({ _id: instanceName });
@@ -340,6 +329,7 @@ export class WAMonitoringService {
     await TypebotModel.deleteMany({ _id: instanceName });
     await WebsocketModel.deleteMany({ _id: instanceName });
     await SettingsModel.deleteMany({ _id: instanceName });
+    await ContactModel.deleteMany({ owner: instanceName });
 
     return;
   }
@@ -393,7 +383,7 @@ export class WAMonitoringService {
     this.logger.verbose('Database enabled');
     await this.repository.dbServer.connect();
     const collections: any[] = await this.dbInstance.collections();
-
+    await this.deleteTempInstances(collections);
     if (collections.length > 0) {
       this.logger.verbose('Reading collections and setting instances');
       await Promise.all(collections.map((coll) => this.setInstance(coll.namespace.replace(/^[\w-]+\./, ''))));
@@ -481,5 +471,23 @@ export class WAMonitoringService {
         this.logger.warn(`Instance "${instanceName}" - NOT CONNECTION`);
       }
     });
+  }
+
+  private async deleteTempInstances(collections: Collection<Document>[]) {
+    this.logger.verbose('Cleaning up temp instances');
+    const auths = await this.repository.auth.list();
+    if (auths.length === 0) {
+      this.logger.verbose('No temp instances found');
+      return;
+    }
+    let tempInstances = 0;
+    auths.forEach((auth) => {
+      if (collections.find((coll) => coll.namespace.replace(/^[\w-]+\./, '') === auth._id)) {
+        return;
+      }
+      tempInstances++;
+      this.eventEmitter.emit('remove.instance', auth._id, 'inner');
+    });
+    this.logger.verbose('Temp instances removed: ' + tempInstances);
   }
 }
