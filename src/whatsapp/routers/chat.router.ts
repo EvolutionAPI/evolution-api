@@ -60,7 +60,7 @@ export class ChatRouter extends RouterBroker {
           execute: (instance, data) => chatController.whatsappNumber(instance, data),
         });
 
-        return res.status(HttpStatus.CREATED).json(response);
+        return res.status(HttpStatus.OK).json(response);
       })
       .put(this.routerPath('markMessageAsRead'), ...guards, async (req, res) => {
         logger.verbose('request received in markMessageAsRead');
