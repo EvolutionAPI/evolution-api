@@ -2375,20 +2375,20 @@ export class WAStartupService {
           this.logger.verbose('Listening event: contacts.update');
           const payload = events['contacts.update'];
           this.contactHandle['contacts.update'](payload, database);
+        }
 
-          if (events[Events.LABELS_ASSOCIATION]) {
-            this.logger.verbose('Listening event: labels.association');
-            const payload = events[Events.LABELS_ASSOCIATION];
-            this.labelHandle[Events.LABELS_ASSOCIATION](payload, database);
-            return;
-          }
+        if (events[Events.LABELS_ASSOCIATION]) {
+          this.logger.verbose('Listening event: labels.association');
+          const payload = events[Events.LABELS_ASSOCIATION];
+          this.labelHandle[Events.LABELS_ASSOCIATION](payload, database);
+          return;
+        }
 
-          if (events[Events.LABELS_EDIT]) {
-            this.logger.verbose('Listening event: labels.edit');
-            const payload = events[Events.LABELS_EDIT];
-            this.labelHandle[Events.LABELS_EDIT](payload, database);
-            return;
-          }
+        if (events[Events.LABELS_EDIT]) {
+          this.logger.verbose('Listening event: labels.edit');
+          const payload = events[Events.LABELS_EDIT];
+          this.labelHandle[Events.LABELS_EDIT](payload, database);
+          return;
         }
       }
     });

@@ -2138,10 +2138,11 @@ paths:
                     type: string
                   remove:
                     type: boolean
+                  add:
+                    type: boolean
                 required:
                   - numberJid
                   - labelId
-                  - remove
 
   /settings/set/{instanceName}:
     post:
