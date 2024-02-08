@@ -34,6 +34,8 @@ import makeWASocket, {
   WAMessageUpdate,
   WASocket,
 } from '@whiskeysockets/baileys';
+import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
+import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
 import axios from 'axios';
 import { exec, execSync } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
@@ -105,6 +107,7 @@ import {
   GroupUpdateSettingDto,
 } from '../dto/group.dto';
 import { InstanceDto } from '../dto/instance.dto';
+import { HandleLabelDto, LabelDto } from '../dto/label.dto';
 import {
   ContactMessage,
   MediaMessage,
@@ -2164,6 +2167,79 @@ export class WAStartupService {
     },
   };
 
+  private readonly labelHandle = {
+    [Events.LABELS_EDIT]: async (label: Label, database: Database) => {
+      this.logger.verbose('Event received: labels.edit');
+      this.logger.verbose('Finding labels in database');
+      const labelsRepository = await this.repository.labels.find({
+        where: { owner: this.instance.name },
+      });
+
+      const savedLabel = labelsRepository.find((l) => l.id === label.id);
+      if (label.deleted && savedLabel) {
+        this.logger.verbose('Sending data to webhook in event LABELS_EDIT');
+        await this.repository.labels.delete({
+          where: { owner: this.instance.name, id: label.id },
+        });
+        this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
+        return;
+      }
+
+      const labelName = label.name.replace(/[^\x20-\x7E]/g, '');
+      if (!savedLabel || savedLabel.color !== label.color || savedLabel.name !== labelName) {
+        this.logger.verbose('Sending data to webhook in event LABELS_EDIT');
+        await this.repository.labels.insert(
+          {
+            color: label.color,
+            name: labelName,
+            owner: this.instance.name,
+            id: label.id,
+            predefinedId: label.predefinedId,
+          },
+          this.instance.name,
+          database.SAVE_DATA.LABELS,
+        );
+        this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
+      }
+    },
+
+    [Events.LABELS_ASSOCIATION]: async (
+      data: { association: LabelAssociation; type: 'remove' | 'add' },
+      database: Database,
+    ) => {
+      this.logger.verbose('Sending data to webhook in event LABELS_ASSOCIATION');
+
+      // Atualiza labels no contato
+      const contact = await this.repository.contact.find({
+        where: {
+          owner: this.instance.name,
+          id: data.association.chatId,
+        },
+      });
+      if (contact.length > 0) {
+        let labels = [...contact[0].labels];
+        if (data.type === 'remove') {
+          labels = labels.filter((label) => label !== data.association.labelId);
+        } else if (data.type === 'add') {
+          labels = [...labels, data.association.labelId];
+        }
+        await this.repository.contact.update(
+          [{ ...contact[0], labels }],
+          this.instance.name,
+          database.SAVE_DATA.CONTACTS,
+        );
+      }
+
+      // Envia dados para o webhook
+      this.sendDataWebhook(Events.LABELS_ASSOCIATION, {
+        instance: this.instance.name,
+        type: data.type,
+        jid: data.association.chatId,
+        labelId: data.association.labelId,
+      });
+    },
+  };
+
   private eventHandler() {
     this.logger.verbose('Initializing event handler');
     this.client.ev.process(async (events) => {
@@ -2299,6 +2375,20 @@ export class WAStartupService {
           this.logger.verbose('Listening event: contacts.update');
           const payload = events['contacts.update'];
           this.contactHandle['contacts.update'](payload, database);
+        }
+
+        if (events[Events.LABELS_ASSOCIATION]) {
+          this.logger.verbose('Listening event: labels.association');
+          const payload = events[Events.LABELS_ASSOCIATION];
+          this.labelHandle[Events.LABELS_ASSOCIATION](payload, database);
+          return;
+        }
+
+        if (events[Events.LABELS_EDIT]) {
+          this.logger.verbose('Listening event: labels.edit');
+          const payload = events[Events.LABELS_EDIT];
+          this.labelHandle[Events.LABELS_EDIT](payload, database);
+          return;
         }
       }
     });
@@ -4020,6 +4110,49 @@ export class WAStartupService {
       return { groupJid: id.groupJid, leave: true };
     } catch (error) {
       throw new BadRequestException('Unable to leave the group', error.toString());
+    }
+  }
+
+  public async fetchLabels(): Promise<LabelDto[]> {
+    this.logger.verbose('Fetching labels');
+    const labels = await this.repository.labels.find({
+      where: {
+        owner: this.instance.name,
+      },
+    });
+
+    return labels.map((label) => ({
+      color: label.color,
+      name: label.name,
+      id: label.id,
+      predefinedId: label.predefinedId,
+    }));
+  }
+
+  public async handleLabel(data: HandleLabelDto) {
+    this.logger.verbose('Adding label');
+    const whatsappContact = await this.whatsappNumber({ numbers: [data.number] });
+    if (whatsappContact.length === 0) {
+      throw new NotFoundException('Number not found');
+    }
+    const contact = whatsappContact[0];
+    if (!contact.exists) {
+      throw new NotFoundException('Number is not on WhatsApp');
+    }
+
+    try {
+      if (data.action === 'add') {
+        await this.client.addChatLabel(contact.jid, data.labelId);
+
+        return { numberJid: contact.jid, labelId: data.labelId, add: true };
+      }
+      if (data.action === 'remove') {
+        await this.client.removeChatLabel(contact.jid, data.labelId);
+
+        return { numberJid: contact.jid, labelId: data.labelId, remove: true };
+      }
+    } catch (error) {
+      throw new BadRequestException(`Unable to ${data.action} label to chat`, error.toString());
     }
   }
 }
