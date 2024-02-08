@@ -2209,32 +2209,34 @@ export class WAStartupService {
     ) => {
       this.logger.verbose('Sending data to webhook in event LABELS_ASSOCIATION');
 
-      // Atualiza labels no contato
-      const contact = await this.repository.contact.find({
-        where: {
-          owner: this.instance.name,
-          id: data.association.chatId,
-        },
-      });
-      if (contact.length > 0) {
-        let labels = [...contact[0].labels];
-        if (data.type === 'remove') {
-          labels = labels.filter((label) => label !== data.association.labelId);
-        } else if (data.type === 'add') {
-          labels = [...labels, data.association.labelId];
+      // Atualiza labels nos chats
+      if (database.SAVE_DATA.CHATS) {
+        const chats = await this.repository.chat.find({
+          where: {
+            owner: this.instance.name,
+          },
+        });
+        const chat = chats.find((c) => c.id === data.association.chatId);
+        if (chat) {
+          let labels = [...chat.labels];
+          if (data.type === 'remove') {
+            labels = labels.filter((label) => label !== data.association.labelId);
+          } else if (data.type === 'add') {
+            labels = [...labels, data.association.labelId];
+          }
+          await this.repository.chat.update(
+            [{ id: chat.id, owner: this.instance.name, labels }],
+            this.instance.name,
+            database.SAVE_DATA.CHATS,
+          );
         }
-        await this.repository.contact.update(
-          [{ ...contact[0], labels }],
-          this.instance.name,
-          database.SAVE_DATA.CONTACTS,
-        );
       }
 
       // Envia dados para o webhook
       this.sendDataWebhook(Events.LABELS_ASSOCIATION, {
         instance: this.instance.name,
         type: data.type,
-        jid: data.association.chatId,
+        chatId: data.association.chatId,
         labelId: data.association.labelId,
       });
     },
@@ -2244,6 +2246,7 @@ export class WAStartupService {
     this.logger.verbose('Initializing event handler');
     this.client.ev.process(async (events) => {
       if (!this.endSession) {
+        this.logger.verbose(`Event received: ${Object.keys(events).join(', ')}`);
         const database = this.configService.get<Database>('DATABASE');
         const settings = await this.findSettings();
 

@@ -8,7 +8,6 @@ export class ContactRaw {
   id?: string;
   profilePictureUrl?: string;
   owner: string;
-  labels?: string[];
 }
 
 type ContactRawBoolean<T> = {
@@ -22,7 +21,6 @@ const contactSchema = new Schema<ContactRaw>({
   id: { type: String, required: true, minlength: 1 },
   profilePictureUrl: { type: String, minlength: 1 },
   owner: { type: String, required: true, minlength: 1 },
-  labels: { type: [String], default: [] },
 });
 
 export const ContactModel = dbserver?.model(ContactRaw.name, contactSchema, 'contacts');
