@@ -2186,8 +2186,34 @@ export class WAStartupService {
       }
     },
 
-    [Events.LABELS_ASSOCIATION]: async (data: { association: LabelAssociation; type: 'remove' | 'add' }) => {
+    [Events.LABELS_ASSOCIATION]: async (
+      data: { association: LabelAssociation; type: 'remove' | 'add' },
+      database: Database,
+    ) => {
       this.logger.verbose('Sending data to webhook in event LABELS_ASSOCIATION');
+
+      // Atualiza labels no contato
+      const contact = await this.repository.contact.find({
+        where: {
+          owner: this.instance.name,
+          id: data.association.chatId,
+        },
+      });
+      if (contact.length > 0) {
+        let labels = [...contact[0].labels];
+        if (data.type === 'remove') {
+          labels = labels.filter((label) => label !== data.association.labelId);
+        } else if (data.type === 'add') {
+          labels = [...labels, data.association.labelId];
+        }
+        await this.repository.contact.update(
+          [{ ...contact[0], labels }],
+          this.instance.name,
+          database.SAVE_DATA.CONTACTS,
+        );
+      }
+
+      // Envia dados para o webhook
       this.sendDataWebhook(Events.LABELS_ASSOCIATION, {
         instance: this.instance.name,
         type: data.type,
@@ -2333,18 +2359,19 @@ export class WAStartupService {
           const payload = events['contacts.update'];
           this.contactHandle['contacts.update'](payload, database);
 
-        if (events[Events.LABELS_ASSOCIATION]) {
-          this.logger.verbose('Listening event: labels.association');
-          const payload = events[Events.LABELS_ASSOCIATION];
-          this.labelHandle[Events.LABELS_ASSOCIATION](payload);
-          return;
-        }
+          if (events[Events.LABELS_ASSOCIATION]) {
+            this.logger.verbose('Listening event: labels.association');
+            const payload = events[Events.LABELS_ASSOCIATION];
+            this.labelHandle[Events.LABELS_ASSOCIATION](payload, database);
+            return;
+          }
 
-        if (events[Events.LABELS_EDIT]) {
-          this.logger.verbose('Listening event: labels.edit');
-          const payload = events[Events.LABELS_EDIT];
-          this.labelHandle[Events.LABELS_EDIT](payload, database);
-          return;
+          if (events[Events.LABELS_EDIT]) {
+            this.logger.verbose('Listening event: labels.edit');
+            const payload = events[Events.LABELS_EDIT];
+            this.labelHandle[Events.LABELS_EDIT](payload, database);
+            return;
+          }
         }
       }
     });
