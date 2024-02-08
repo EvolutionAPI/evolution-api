@@ -15,6 +15,7 @@ import {
   ChamaaiModel,
   // ChatModel,
   ChatwootModel,
+  LabelModel,
   // ContactModel,
   // MessageModel,
   // MessageUpModel,
@@ -320,6 +321,7 @@ export class WAMonitoringService {
       execSync(`rm -rf ${join(STORE_DIR, 'typebot', instanceName + '*')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'websocket', instanceName + '*')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'settings', instanceName + '*')}`);
+      execSync(`rm -rf ${join(STORE_DIR, 'labels', instanceName + '*')}`);
 
       return;
     }
@@ -340,6 +342,7 @@ export class WAMonitoringService {
     await TypebotModel.deleteMany({ _id: instanceName });
     await WebsocketModel.deleteMany({ _id: instanceName });
     await SettingsModel.deleteMany({ _id: instanceName });
+    await LabelModel.deleteMany({ owner: instanceName });
 
     return;
   }

@@ -46,6 +46,8 @@ export class WebhookController {
         'GROUP_UPDATE',
         'GROUP_PARTICIPANTS_UPDATE',
         'CONNECTION_UPDATE',
+        'LABELS_EDIT',
+        'LABELS_ASSOCIATION',
         'CALL',
         'NEW_JWT_TOKEN',
         'TYPEBOT_START',

@@ -7,6 +7,7 @@
 * Join in Group by Invite Code
 * Read messages from whatsapp in chatwoot
 * Add support to use use redis in cacheservice
+* Add support for labels
 
 ### Fixed
 
