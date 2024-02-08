@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { opendirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import { Auth, ConfigService } from '../../config/env.config';
@@ -61,6 +61,37 @@ export class AuthRepository extends Repository {
       ) as AuthRaw;
     } catch (error) {
       return {};
+    }
+  }
+
+  public async list(): Promise<AuthRaw[]> {
+    try {
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('listing auth in db');
+        return await this.authModel.find();
+      }
+
+      this.logger.verbose('listing auth in store');
+
+      const auths: AuthRaw[] = [];
+      const openDir = opendirSync(join(AUTH_DIR, this.auth.TYPE), {
+        encoding: 'utf-8',
+      });
+      for await (const dirent of openDir) {
+        if (dirent.isFile()) {
+          auths.push(
+            JSON.parse(
+              readFileSync(join(AUTH_DIR, this.auth.TYPE, dirent.name), {
+                encoding: 'utf-8',
+              }),
+            ),
+          );
+        }
+      }
+
+      return auths;
+    } catch (error) {
+      return [];
     }
   }
 

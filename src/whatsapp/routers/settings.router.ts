@@ -5,7 +5,6 @@ import { instanceNameSchema, settingsSchema } from '../../validate/validate.sche
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto } from '../dto/instance.dto';
 import { SettingsDto } from '../dto/settings.dto';
-// import { SettingsService } from '../services/settings.service';
 import { settingsController } from '../whatsapp.module';
 import { HttpStatus } from './index.router';
 

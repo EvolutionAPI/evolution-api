@@ -1,7 +1,4 @@
-// import { isURL } from 'class-validator';
-
 import { Logger } from '../../config/logger.config';
-// import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import { SettingsDto } from '../dto/settings.dto';
 import { SettingsService } from '../services/settings.service';
