@@ -4,8 +4,6 @@ import path from 'path';
 
 import { ConfigService, Language } from '../config/env.config';
 
-// export class i18n {
-//   constructor(private readonly configService: ConfigService) {
 const languages = ['en', 'pt-BR'];
 const translationsPath = path.join(__dirname, 'translations');
 const configService: ConfigService = new ConfigService();
@@ -31,6 +29,4 @@ i18next.init({
     escapeValue: false,
   },
 });
-//   }
-// }
 export default i18next;
