@@ -28,6 +28,10 @@ export enum Events {
   TYPEBOT_START = 'typebot.start',
   TYPEBOT_CHANGE_STATUS = 'typebot.change-status',
   CHAMA_AI_ACTION = 'chama-ai.action',
+  LABELS_EDIT = 'labels.edit',
+  LABELS_ASSOCIATION = 'labels.association',
+  CREDS_UPDATE = 'creds.update',
+  MESSAGING_HISTORY_SET = 'messaging-history.set',
 }
 
 export declare namespace wa {

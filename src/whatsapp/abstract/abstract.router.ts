@@ -21,7 +21,6 @@ const logger = new Logger('Validate');
 export abstract class RouterBroker {
   constructor() {}
   public routerPath(path: string, param = true) {
-    // const route = param ? '/:instanceName/' + path : '/' + path;
     let route = '/' + path;
     param ? (route += '/:instanceName') : null;
 
@@ -56,10 +55,6 @@ export abstract class RouterBroker {
           message = stack.replace('instance.', '');
         }
         return message;
-        // return {
-        //   property: property.replace('instance.', ''),
-        //   message,
-        // };
       });
       logger.error(message);
       throw new BadRequestException(message);

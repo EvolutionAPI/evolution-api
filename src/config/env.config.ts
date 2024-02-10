@@ -36,6 +36,7 @@ export type SaveData = {
   MESSAGE_UPDATE: boolean;
   CONTACTS: boolean;
   CHATS: boolean;
+  LABELS: boolean;
 };
 
 export type StoreConf = {
@@ -43,6 +44,7 @@ export type StoreConf = {
   MESSAGE_UP: boolean;
   CONTACTS: boolean;
   CHATS: boolean;
+  LABELS: boolean;
 };
 
 export type CleanStoreConf = {
@@ -106,6 +108,8 @@ export type EventsWebhook = {
   CHATS_DELETE: boolean;
   CHATS_UPSERT: boolean;
   CONNECTION_UPDATE: boolean;
+  LABELS_EDIT: boolean;
+  LABELS_ASSOCIATION: boolean;
   GROUPS_UPSERT: boolean;
   GROUP_UPDATE: boolean;
   GROUP_PARTICIPANTS_UPDATE: boolean;
@@ -242,6 +246,7 @@ export class ConfigService {
         MESSAGE_UP: process.env?.STORE_MESSAGE_UP === 'true',
         CONTACTS: process.env?.STORE_CONTACTS === 'true',
         CHATS: process.env?.STORE_CHATS === 'true',
+        LABELS: process.env?.STORE_LABELS === 'true',
       },
       CLEAN_STORE: {
         CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_TERMINAL)
@@ -265,6 +270,7 @@ export class ConfigService {
           MESSAGE_UPDATE: process.env?.DATABASE_SAVE_MESSAGE_UPDATE === 'true',
           CONTACTS: process.env?.DATABASE_SAVE_DATA_CONTACTS === 'true',
           CHATS: process.env?.DATABASE_SAVE_DATA_CHATS === 'true',
+          LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
         },
       },
       REDIS: {
@@ -331,6 +337,8 @@ export class ConfigService {
           CHATS_UPSERT: process.env?.WEBHOOK_EVENTS_CHATS_UPSERT === 'true',
           CHATS_DELETE: process.env?.WEBHOOK_EVENTS_CHATS_DELETE === 'true',
           CONNECTION_UPDATE: process.env?.WEBHOOK_EVENTS_CONNECTION_UPDATE === 'true',
+          LABELS_EDIT: process.env?.WEBHOOK_EVENTS_LABELS_EDIT === 'true',
+          LABELS_ASSOCIATION: process.env?.WEBHOOK_EVENTS_LABELS_ASSOCIATION === 'true',
           GROUPS_UPSERT: process.env?.WEBHOOK_EVENTS_GROUPS_UPSERT === 'true',
           GROUP_UPDATE: process.env?.WEBHOOK_EVENTS_GROUPS_UPDATE === 'true',
           GROUP_PARTICIPANTS_UPDATE: process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',

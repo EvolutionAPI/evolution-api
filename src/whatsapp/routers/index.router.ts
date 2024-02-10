@@ -9,6 +9,7 @@ import { ChatRouter } from './chat.router';
 import { ChatwootRouter } from './chatwoot.router';
 import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
+import { LabelRouter } from './label.router';
 import { ProxyRouter } from './proxy.router';
 import { RabbitmqRouter } from './rabbitmq.router';
 import { MessageRouter } from './sendMessage.router';
@@ -61,6 +62,7 @@ router
   .use('/sqs', new SqsRouter(...guards).router)
   .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
-  .use('/chamaai', new ChamaaiRouter(...guards).router);
+  .use('/chamaai', new ChamaaiRouter(...guards).router)
+  .use('/label', new LabelRouter(...guards).router);
 
 export { HttpStatus, router };
