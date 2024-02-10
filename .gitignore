@@ -4,6 +4,8 @@
 
 /Docker/.env
 
+.vscode
+
 # Logs
 logs/**.json
 *.log
