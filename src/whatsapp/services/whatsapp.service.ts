@@ -1734,6 +1734,7 @@ export class WAStartupService {
       {
         messages,
         chats,
+        contacts,
       }: {
         chats: Chat[];
         contacts: Contact[];
@@ -1846,6 +1847,17 @@ export class WAStartupService {
           );
         }
 
+        await this.contactHandle['contacts.upsert'](
+          contacts
+            .filter((c) => !!c.notify ?? !!c.name)
+            .map((c) => ({
+              id: c.id,
+              name: c.name ?? c.notify,
+            })),
+          database,
+        );
+
+        contacts = undefined;
         messages = undefined;
         chats = undefined;
       } catch (error) {
