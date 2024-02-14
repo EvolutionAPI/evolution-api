@@ -26,11 +26,11 @@ export class ProxyController {
     }
 
     if (data.proxy) {
-      logger.verbose('proxy enabled');
       const testProxy = await this.testProxy(data.proxy);
       if (!testProxy) {
         throw new BadRequestException('Invalid proxy');
       }
+      logger.verbose('proxy enabled');
     }
 
     return this.proxyService.create(instance, data);
@@ -54,8 +54,8 @@ export class ProxyController {
         httpsAgent: makeProxyAgent(proxy),
       });
 
-      logger.verbose('testProxy response: ' + response.data);
-      return response.data !== serverIp.data;
+      logger.verbose('[testProxy] from IP: ' + response?.data + ' To IP: ' + serverIp?.data);
+      return response?.data !== serverIp?.data;
     } catch (error) {
       let errorMessage = error;
       if (axios.isAxiosError(error) && error.response.data) {
