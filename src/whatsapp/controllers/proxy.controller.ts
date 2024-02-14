@@ -57,11 +57,12 @@ export class ProxyController {
       logger.verbose('[testProxy] from IP: ' + response?.data + ' To IP: ' + serverIp?.data);
       return response?.data !== serverIp?.data;
     } catch (error) {
-      let errorMessage = error;
-      if (axios.isAxiosError(error) && error.response.data) {
-        errorMessage = error.response.data;
+      if (axios.isAxiosError(error) && error.response?.data) {
+        logger.error('testProxy error: ' + error.response.data);
+      } else {
+        logger.error('testProxy error: ');
+        logger.verbose(error);
       }
-      logger.error('testProxy error: ' + errorMessage);
       return false;
     }
   }
