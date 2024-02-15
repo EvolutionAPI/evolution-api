@@ -2507,6 +2507,10 @@ export class WAStartupService {
       return `${number}@g.us`;
     }
 
+    number = this.formatMXOrARNumber(number);
+
+    number = this.formatBRNumber(number);
+
     this.logger.verbose('Jid created is whatsapp: ' + `${number}@s.whatsapp.net`);
     return `${number}@s.whatsapp.net`;
   }
