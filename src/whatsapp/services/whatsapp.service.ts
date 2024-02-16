@@ -4081,7 +4081,19 @@ export class WAStartupService {
     this.logger.verbose('Fetching participants for group: ' + id.groupJid);
     try {
       const participants = (await this.client.groupMetadata(id.groupJid)).participants;
-      return { participants };
+      const contacts = await this.repository.contact.findManyById({
+        owner: this.instance.name,
+        ids: participants.map((p) => p.id),
+      });
+      const parsedParticipants = participants.map((participant) => {
+        const contact = contacts.find((c) => c.id === participant.id);
+        return {
+          ...participant,
+          name: participant.name ?? contact?.pushName,
+          imgUrl: participant.imgUrl ?? contact?.profilePictureUrl,
+        };
+      });
+      return { participants: parsedParticipants };
     } catch (error) {
       throw new NotFoundException('No participants', error.toString());
     }
