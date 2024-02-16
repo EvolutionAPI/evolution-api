@@ -613,6 +613,7 @@ export class TypebotService {
             if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
               const newSessions = await this.clearSessions(instance, remoteJid);
 
+              console.log('keyword_finish', newSessions);
               const typebotData = {
                 enabled: findTypebot.enabled,
                 url: url,
@@ -707,7 +708,7 @@ export class TypebotService {
           }
 
           if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
-            sessions.splice(sessions.indexOf(session), 1);
+            const newSessions = await this.clearSessions(instance, remoteJid);
 
             const typebotData = {
               enabled: findTypebot.enabled,
@@ -718,7 +719,7 @@ export class TypebotService {
               delay_message: delay_message,
               unknown_message: unknown_message,
               listening_from_me: listening_from_me,
-              sessions,
+              sessions: newSessions,
             };
 
             this.create(instance, typebotData);
@@ -799,7 +800,7 @@ export class TypebotService {
       }
 
       if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
-        sessions.splice(sessions.indexOf(session), 1);
+        const newSessions = await this.clearSessions(instance, remoteJid);
 
         const typebotData = {
           enabled: findTypebot.enabled,
@@ -810,7 +811,7 @@ export class TypebotService {
           delay_message: delay_message,
           unknown_message: unknown_message,
           listening_from_me: listening_from_me,
-          sessions,
+          sessions: newSessions,
         };
 
         this.create(instance, typebotData);

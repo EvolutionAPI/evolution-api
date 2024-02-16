@@ -2556,6 +2556,12 @@ export class WAStartupService {
   public async fetchProfile(instanceName: string, number?: string) {
     const jid = number ? this.createJid(number) : this.client?.user?.id;
 
+    const onWhatsapp = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
+
+    if (!onWhatsapp.exists) {
+      throw new BadRequestException(onWhatsapp);
+    }
+
     this.logger.verbose('Getting profile with jid: ' + jid);
     try {
       this.logger.verbose('Getting profile info');
@@ -3966,7 +3972,25 @@ export class WAStartupService {
   public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
     this.logger.verbose('Fetching group');
     try {
-      return await this.client.groupMetadata(id.groupJid);
+      const group = await this.client.groupMetadata(id.groupJid);
+
+      const picture = await this.profilePicture(group.id);
+
+      return {
+        id: group.id,
+        subject: group.subject,
+        subjectOwner: group.subjectOwner,
+        subjectTime: group.subjectTime,
+        pictureUrl: picture.profilePictureUrl,
+        size: group.participants.length,
+        creation: group.creation,
+        owner: group.owner,
+        desc: group.desc,
+        descId: group.descId,
+        restrict: group.restrict,
+        announce: group.announce,
+        participants: group.participants,
+      };
     } catch (error) {
       if (reply === 'inner') {
         return;
@@ -3979,13 +4003,16 @@ export class WAStartupService {
     this.logger.verbose('Fetching all groups');
     try {
       const fetch = Object.values(await this.client.groupFetchAllParticipating());
+      let groups = [];
+      for (const group of fetch) {
+        const picture = await this.profilePicture(group.id);
 
-      const groups = fetch.map((group) => {
         const result = {
           id: group.id,
           subject: group.subject,
           subjectOwner: group.subjectOwner,
           subjectTime: group.subjectTime,
+          pictureUrl: picture.profilePictureUrl,
           size: group.participants.length,
           creation: group.creation,
           owner: group.owner,
@@ -3999,8 +4026,8 @@ export class WAStartupService {
           result['participants'] = group.participants;
         }
 
-        return result;
-      });
+        groups = [...groups, result];
+      }
 
       return groups;
     } catch (error) {
