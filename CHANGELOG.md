@@ -1,4 +1,4 @@
-# 1.6.2 (develop)
+# 1.7.0 (develop)
 
 ### Feature
 
@@ -9,6 +9,7 @@
 * Add support to use use redis in cacheservice
 * Add support for labels
 * Command to clearcache from chatwoot inbox
+* Whatsapp Cloud API Oficial
 
 ### Fixed
 
