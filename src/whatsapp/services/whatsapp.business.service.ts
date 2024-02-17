@@ -1033,116 +1033,116 @@ export class BusinessStartupService extends WAStartupService {
     }
   }
 
-  // methods not implemented yet
+  // methods not available on WhatsApp Business API
   public async mediaSticker() {
-    console.log('mediaSticker');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async audioWhatsapp() {
-    console.log('audioWhatsapp');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async pollMessage() {
-    console.log('pollMessage');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async statusMessage() {
-    console.log('statusMessage');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async reloadConnection() {
-    console.log('Reloading connection');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async whatsappNumber() {
-    console.log('whatsappNumber');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async markMessageAsRead() {
-    console.log('markMessageAsRead');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async archiveChat() {
-    console.log('archiveChat');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async deleteMessage() {
-    console.log('deleteMessage');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async fetchProfile() {
-    console.log('fetchProfile');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async sendPresence() {
-    console.log('sendPresence');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async fetchPrivacySettings() {
-    console.log('fetchPrivacySettings');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updatePrivacySettings() {
-    console.log('updatePrivacySettings');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async fetchBusinessProfile() {
-    console.log('fetchBusinessProfile');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateProfileName() {
-    console.log('updateProfileName');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateProfileStatus() {
-    console.log('updateProfileStatus');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateProfilePicture() {
-    console.log('updateProfilePicture');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async removeProfilePicture() {
-    console.log('removeProfilePicture');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateMessage() {
-    console.log('updateMessage');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async createGroup() {
-    console.log('createGroup');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateGroupPicture() {
-    console.log('updateGroupPicture');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateGroupSubject() {
-    console.log('updateGroupSubject');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateGroupDescription() {
-    console.log('updateGroupDescription');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async findGroup() {
-    console.log('findGroup');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async fetchAllGroups() {
-    console.log('fetchAllGroups');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async inviteCode() {
-    console.log('inviteCode');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async inviteInfo() {
-    console.log('inviteInfo');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async sendInvite() {
-    console.log('sendInvite');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async acceptInviteCode() {
-    console.log('acceptInviteCode');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async revokeInviteCode() {
-    console.log('revokeInviteCode');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async findParticipants() {
-    console.log('findParticipants');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateGParticipant() {
-    console.log('updateGParticipant');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async updateGSetting() {
-    console.log('updateGSetting');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async toggleEphemeral() {
-    console.log('toggleEphemeral');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async leaveGroup() {
-    console.log('leaveGroup');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async fetchLabels() {
-    console.log('fetchLabels');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async handleLabel() {
-    console.log('handleLabel');
+    throw new BadRequestException('Method not available on WhatsApp Business API');
   }
 }
