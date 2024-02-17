@@ -3,7 +3,7 @@ import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
-import { ConfigService, HttpServer } from '../../config/env.config';
+import { ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 import { RedisCache } from '../../libs/redis.client';
@@ -12,6 +12,7 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
 import { CacheService } from '../services/cache.service';
 import { ChatwootService } from '../services/chatwoot.service';
+import { IntegrationService } from '../services/integration.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { RabbitmqService } from '../services/rabbitmq.service';
 import { SettingsService } from '../services/settings.service';
@@ -19,8 +20,9 @@ import { SqsService } from '../services/sqs.service';
 import { TypebotService } from '../services/typebot.service';
 import { WebhookService } from '../services/webhook.service';
 import { WebsocketService } from '../services/websocket.service';
-import { WAStartupService } from '../services/whatsapp.service';
-import { Events, wa } from '../types/wa.types';
+import { BaileysStartupService } from '../services/whatsapp.baileys.service';
+import { BusinessStartupService } from '../services/whatsapp.business.service';
+import { Events, Integration, wa } from '../types/wa.types';
 
 export class InstanceController {
   constructor(
@@ -36,6 +38,7 @@ export class InstanceController {
     private readonly rabbitmqService: RabbitmqService,
     private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
+    private readonly integrationService: IntegrationService,
     private readonly cache: RedisCache,
     private readonly chatwootCache: CacheService,
   ) {}
@@ -50,6 +53,7 @@ export class InstanceController {
     events,
     qrcode,
     number,
+    integration,
     token,
     chatwoot_account_id,
     chatwoot_token,
@@ -87,14 +91,31 @@ export class InstanceController {
       this.logger.verbose('checking duplicate token');
       await this.authService.checkDuplicateToken(token);
 
+      if (!token && integration !== Integration.WHATSAPP_BUSINESS) {
+        throw new BadRequestException('token is required');
+      }
+
       this.logger.verbose('creating instance');
-      const instance = new WAStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.repository,
-        this.cache,
-        this.chatwootCache,
-      );
+      let instance: BaileysStartupService | BusinessStartupService;
+      if (integration === Integration.WHATSAPP_BUSINESS) {
+        instance = new BusinessStartupService(
+          this.configService,
+          this.eventEmitter,
+          this.repository,
+          this.cache,
+          this.chatwootCache,
+        );
+        await this.waMonitor.saveInstance({ integration, instanceName, token, number });
+      } else {
+        instance = new BaileysStartupService(
+          this.configService,
+          this.eventEmitter,
+          this.repository,
+          this.cache,
+          this.chatwootCache,
+        );
+      }
+
       instance.instanceName = instanceName;
 
       const instanceId = v4();
@@ -361,6 +382,23 @@ export class InstanceController {
 
       this.settingsService.create(instance, settings);
 
+      let webhook_wa_business = null,
+        access_token_wa_business = '';
+
+      if (integration === Integration.WHATSAPP_BUSINESS) {
+        if (!number) {
+          throw new BadRequestException('number is required');
+        }
+        const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+        webhook_wa_business = `${urlServer}/webhook/whatsapp/${encodeURIComponent(instance.instanceName)}`;
+        access_token_wa_business = this.configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK;
+      }
+
+      this.integrationService.create(instance, {
+        integration,
+        number,
+        token,
+      });
       if (!chatwoot_account_id || !chatwoot_token || !chatwoot_url) {
         let getQrcode: wa.QrCode;
 
@@ -375,6 +413,9 @@ export class InstanceController {
           instance: {
             instanceName: instance.instanceName,
             instanceId: instanceId,
+            integration: integration,
+            webhook_wa_business,
+            access_token_wa_business,
             status: 'created',
           },
           hash,
@@ -470,6 +511,9 @@ export class InstanceController {
         instance: {
           instanceName: instance.instanceName,
           instanceId: instanceId,
+          integration: integration,
+          webhook_wa_business,
+          access_token_wa_business,
           status: 'created',
         },
         hash,

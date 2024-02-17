@@ -24,6 +24,7 @@ import {
   ChatModel,
   ChatwootModel,
   ContactModel,
+  IntegrationModel,
   MessageModel,
   MessageUpModel,
   ProxyModel,
@@ -40,6 +41,7 @@ import { ChamaaiRepository } from './repository/chamaai.repository';
 import { ChatRepository } from './repository/chat.repository';
 import { ChatwootRepository } from './repository/chatwoot.repository';
 import { ContactRepository } from './repository/contact.repository';
+import { IntegrationRepository } from './repository/integration.repository';
 import { LabelRepository } from './repository/label.repository';
 import { MessageRepository } from './repository/message.repository';
 import { MessageUpRepository } from './repository/messageUp.repository';
@@ -55,6 +57,7 @@ import { AuthService } from './services/auth.service';
 import { CacheService } from './services/cache.service';
 import { ChamaaiService } from './services/chamaai.service';
 import { ChatwootService } from './services/chatwoot.service';
+import { IntegrationService } from './services/integration.service';
 import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { RabbitmqService } from './services/rabbitmq.service';
@@ -77,6 +80,7 @@ const proxyRepository = new ProxyRepository(ProxyModel, configService);
 const chamaaiRepository = new ChamaaiRepository(ChamaaiModel, configService);
 const rabbitmqRepository = new RabbitmqRepository(RabbitmqModel, configService);
 const sqsRepository = new SqsRepository(SqsModel, configService);
+const integrationRepository = new IntegrationRepository(IntegrationModel, configService);
 const chatwootRepository = new ChatwootRepository(ChatwootModel, configService);
 const settingsRepository = new SettingsRepository(SettingsModel, configService);
 const authRepository = new AuthRepository(AuthModel, configService);
@@ -96,6 +100,7 @@ export const repository = new RepositoryBroker(
   typebotRepository,
   proxyRepository,
   chamaaiRepository,
+  integrationRepository,
   authRepository,
   labelRepository,
   configService,
@@ -138,6 +143,8 @@ const sqsService = new SqsService(waMonitor);
 
 export const sqsController = new SqsController(sqsService);
 
+const integrationService = new IntegrationService(waMonitor);
+
 const chatwootService = new ChatwootService(waMonitor, configService, repository, chatwootCache);
 
 export const chatwootController = new ChatwootController(chatwootService, configService, repository);
@@ -159,6 +166,7 @@ export const instanceController = new InstanceController(
   rabbitmqService,
   sqsService,
   typebotService,
+  integrationService,
   cache,
   chatwootCache,
 );

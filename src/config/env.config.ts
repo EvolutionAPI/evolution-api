@@ -86,6 +86,13 @@ export type Websocket = {
   ENABLED: boolean;
 };
 
+export type WaBusiness = {
+  TOKEN_WEBHOOK: string;
+  URL: string;
+  VERSION: string;
+  LANGUAGE: string;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   INSTANCE_CREATE: boolean;
@@ -179,6 +186,7 @@ export interface Env {
   RABBITMQ: Rabbitmq;
   SQS: Sqs;
   WEBSOCKET: Websocket;
+  WA_BUSINESS: WaBusiness;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
   LANGUAGE: Language;
@@ -285,6 +293,12 @@ export class ConfigService {
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
+      },
+      WA_BUSINESS: {
+        TOKEN_WEBHOOK: process.env.WA_BUSINESS_TOKEN_WEBHOOK || '',
+        URL: process.env.WA_BUSINESS_URL || '',
+        VERSION: process.env.WA_BUSINESS_VERSION || '',
+        LANGUAGE: process.env.WA_BUSINESS_LANGUAGE || 'en',
       },
       LOG: {
         LEVEL: (process.env?.LOG_LEVEL.split(',') as LogLevel[]) || [

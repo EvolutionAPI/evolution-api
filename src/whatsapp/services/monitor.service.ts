@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
-import { opendirSync, readdirSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, opendirSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import { Db } from 'mongodb';
 import { Collection } from 'mongoose';
 import { join } from 'path';
@@ -24,8 +24,10 @@ import {
   WebsocketModel,
 } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
+import { Integration } from '../types/wa.types';
 import { CacheService } from './cache.service';
-import { WAStartupService } from './whatsapp.service';
+import { BaileysStartupService } from './whatsapp.baileys.service';
+import { BusinessStartupService } from './whatsapp.business.service';
 
 export class WAMonitoringService {
   constructor(
@@ -54,7 +56,7 @@ export class WAMonitoringService {
   private dbInstance: Db;
 
   private readonly logger = new Logger(WAMonitoringService.name);
-  public readonly waInstances: Record<string, WAStartupService> = {};
+  public readonly waInstances: Record<string, BaileysStartupService | BusinessStartupService> = {};
 
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
@@ -64,9 +66,11 @@ export class WAMonitoringService {
       setTimeout(async () => {
         if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
           if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
-            await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
-            this.waInstances[instance]?.client?.ws?.close();
-            this.waInstances[instance]?.client?.end(undefined);
+            if ((await this.waInstances[instance].findIntegration()).integration === Integration.WHATSAPP_BAILEYS) {
+              await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
+              this.waInstances[instance]?.client?.ws?.close();
+              this.waInstances[instance]?.client?.end(undefined);
+            }
             this.waInstances[instance]?.removeRabbitmqQueues();
             delete this.waInstances[instance];
           } else {
@@ -353,14 +357,47 @@ export class WAMonitoringService {
     }
   }
 
+  public async saveInstance(data: any) {
+    this.logger.verbose('Save instance');
+
+    try {
+      const msgParsed = JSON.parse(JSON.stringify(data));
+      if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+        await this.repository.dbServer.connect();
+        await this.dbInstance.collection(data.instanceName).replaceOne({ _id: 'integration' }, msgParsed, {
+          upsert: true,
+        });
+      } else {
+        const path = join(INSTANCE_DIR, data.instanceName);
+        if (!existsSync(path)) mkdirSync(path, { recursive: true });
+        writeFileSync(path + '/integration.json', JSON.stringify(msgParsed));
+      }
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   private async setInstance(name: string) {
-    const instance = new WAStartupService(
-      this.configService,
-      this.eventEmitter,
-      this.repository,
-      this.cache,
-      this.chatwootCache,
-    );
+    const integration = await this.repository.integration.find(name);
+
+    let instance: BaileysStartupService | BusinessStartupService;
+    if (integration.integration === Integration.WHATSAPP_BUSINESS) {
+      instance = new BusinessStartupService(
+        this.configService,
+        this.eventEmitter,
+        this.repository,
+        this.cache,
+        this.chatwootCache,
+      );
+    } else {
+      instance = new BaileysStartupService(
+        this.configService,
+        this.eventEmitter,
+        this.repository,
+        this.cache,
+        this.chatwootCache,
+      );
+    }
     instance.instanceName = name;
     this.logger.verbose('Instance loaded: ' + name);
     await instance.connectToWhatsapp();

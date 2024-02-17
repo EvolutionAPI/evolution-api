@@ -12,6 +12,7 @@ import {
   reactionMessageSchema,
   statusMessageSchema,
   stickerMessageSchema,
+  templateMessageSchema,
   textMessageSchema,
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
@@ -26,6 +27,7 @@ import {
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
+  SendTemplateDto,
   SendTextDto,
 } from '../dto/sendMessage.dto';
 import { sendMessageController } from '../whatsapp.module';
@@ -81,6 +83,22 @@ export class MessageRouter extends RouterBroker {
           schema: audioMessageSchema,
           ClassRef: SendMediaDto,
           execute: (instance, data) => sendMessageController.sendWhatsAppAudio(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('sendTemplate'), ...guards, async (req, res) => {
+        logger.verbose('request received in sendTemplate');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<SendTemplateDto>({
+          request: req,
+          schema: templateMessageSchema,
+          ClassRef: SendTemplateDto,
+          execute: (instance, data) => sendMessageController.sendTemplate(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

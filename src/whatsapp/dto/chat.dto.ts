@@ -31,8 +31,12 @@ export class NumberBusiness {
   message?: string;
   description?: string;
   email?: string;
+  websites?: string[];
   website?: string[];
   address?: string;
+  about?: string;
+  vertical?: string;
+  profilehandle?: string;
 }
 
 export class ProfileNameDto {

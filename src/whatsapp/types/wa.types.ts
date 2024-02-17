@@ -138,6 +138,12 @@ export declare namespace wa {
     answerByAudio?: boolean;
   };
 
+  export type LocalIntegration = {
+    integration?: string;
+    number?: string;
+    token?: string;
+  };
+
   export type StateConnection = {
     instance?: string;
     state?: WAConnectionState | 'refused';
@@ -155,3 +161,8 @@ export const MessageSubtype = [
   'viewOnceMessage',
   'viewOnceMessageV2',
 ];
+
+export const Integration = {
+  WHATSAPP_BUSINESS: 'WHATSAPP-BUSINESS',
+  WHATSAPP_BAILEYS: 'WHATSAPP-BAILEYS',
+};

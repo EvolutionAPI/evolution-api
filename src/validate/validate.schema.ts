@@ -277,6 +277,25 @@ export const audioMessageSchema: JSONSchema7 = {
   required: ['audioMessage', 'number'],
 };
 
+export const templateMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    options: { ...optionsSchema },
+    templateMessage: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        language: { type: 'string' },
+      },
+      required: ['name', 'language'],
+      ...isNotEmpty('name', 'language'),
+    },
+  },
+  required: ['templateMessage', 'number'],
+};
+
 export const buttonMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

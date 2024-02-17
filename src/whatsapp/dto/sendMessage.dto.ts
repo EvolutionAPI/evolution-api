@@ -142,6 +142,15 @@ export class ContactMessage {
   email?: string;
   url?: string;
 }
+
+export class TemplateMessage {
+  name: string;
+  language: string;
+}
+
+export class SendTemplateDto extends Metadata {
+  templateMessage: TemplateMessage;
+}
 export class SendContactDto extends Metadata {
   contactMessage: ContactMessage[];
 }
