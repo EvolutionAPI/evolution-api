@@ -121,7 +121,7 @@ export const typebotController = new TypebotController(typebotService);
 
 const webhookService = new WebhookService(waMonitor);
 
-export const webhookController = new WebhookController(webhookService);
+export const webhookController = new WebhookController(webhookService, waMonitor);
 
 const websocketService = new WebsocketService(waMonitor);
 
