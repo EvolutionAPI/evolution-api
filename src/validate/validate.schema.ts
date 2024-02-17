@@ -288,6 +288,7 @@ export const templateMessageSchema: JSONSchema7 = {
       properties: {
         name: { type: 'string' },
         language: { type: 'string' },
+        components: { type: 'array' },
       },
       required: ['name', 'language'],
       ...isNotEmpty('name', 'language'),

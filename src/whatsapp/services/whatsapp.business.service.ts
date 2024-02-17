@@ -685,6 +685,7 @@ export class BusinessStartupService extends WAStartupService {
               language: {
                 code: message['template']['language'] || 'en_US',
               },
+              components: message['template']['components'],
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
@@ -692,6 +693,8 @@ export class BusinessStartupService extends WAStartupService {
           return await this.post(content, 'messages');
         }
       })();
+
+      console.log(messageSent);
 
       const messageRaw: MessageRaw = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
@@ -722,6 +725,7 @@ export class BusinessStartupService extends WAStartupService {
       return messageRaw;
     } catch (error) {
       this.logger.error(error);
+      console.log(error.data);
       throw new BadRequestException(error.toString());
     }
   }
@@ -921,6 +925,7 @@ export class BusinessStartupService extends WAStartupService {
         template: {
           name: data.templateMessage.name,
           language: data.templateMessage.language,
+          components: data.templateMessage.components,
         },
       },
       data?.options,
