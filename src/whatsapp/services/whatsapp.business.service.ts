@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
+import FormData from 'form-data';
 import fs from 'fs/promises';
 import { getMIMEType } from 'node-mime-types';
 
@@ -297,8 +298,6 @@ export class BusinessStartupService extends WAStartupService {
     try {
       let messageRaw: MessageRaw;
       let pushName: any;
-
-      console.log('received?.messages[0]', received?.messages[0]);
 
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
@@ -756,7 +755,6 @@ export class BusinessStartupService extends WAStartupService {
       return messageRaw;
     } catch (error) {
       this.logger.error(error);
-      console.log(error.data);
       throw new BadRequestException(error.toString());
     }
   }
@@ -779,9 +777,11 @@ export class BusinessStartupService extends WAStartupService {
     const integration = await this.findIntegration();
 
     const formData = new FormData();
-    const arquivoBuffer = await fs.readFile(mediaMessage.media);
-    const arquivoBlob = new Blob([arquivoBuffer], { type: mediaMessage.mimetype });
-    formData.append('file', arquivoBlob);
+
+    const fileBuffer = await fs.readFile(mediaMessage.media);
+
+    const fileBlob = new Blob([fileBuffer], { type: mediaMessage.mimetype });
+    formData.append('file', fileBlob);
     formData.append('typeFile', mediaMessage.mimetype);
     formData.append('messaging_product', 'whatsapp');
     const headers = { Authorization: `Bearer ${integration.token}` };
