@@ -46,7 +46,6 @@ export class WAStartupService {
     public readonly chatwootCache: CacheService,
   ) {
     this.logger.verbose('WAStartupService initialized');
-    console.log('WAStartupService initialized');
   }
 
   public readonly logger = new Logger(WAStartupService.name);

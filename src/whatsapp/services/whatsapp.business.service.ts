@@ -38,7 +38,6 @@ export class BusinessStartupService extends WAStartupService {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BusinessStartupService initialized');
     this.cleanStore();
-    console.log('BusinessStartupService initialized');
   }
 
   public stateConnection: wa.StateConnection = { state: 'open' };
@@ -693,8 +692,6 @@ export class BusinessStartupService extends WAStartupService {
           return await this.post(content, 'messages');
         }
       })();
-
-      console.log(messageSent);
 
       const messageRaw: MessageRaw = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },

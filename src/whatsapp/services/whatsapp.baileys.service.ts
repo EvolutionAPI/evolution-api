@@ -131,7 +131,6 @@ export class BaileysStartupService extends WAStartupService {
     this.logger.verbose('BaileysStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
-    console.log('BaileysStartupService initialized');
   }
 
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -3125,6 +3124,6 @@ export class BaileysStartupService extends WAStartupService {
     }
   }
   public async templateMessage() {
-    console.log('templateMessage');
+    throw new Error('Method not available in the Baileys service');
   }
 }

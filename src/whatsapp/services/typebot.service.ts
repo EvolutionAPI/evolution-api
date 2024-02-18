@@ -518,7 +518,6 @@ export class TypebotService {
 
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
 
-        console.log('wait', wait);
         if (wait) {
           await new Promise((resolve) => setTimeout(resolve, wait * 1000));
         }
@@ -618,7 +617,6 @@ export class TypebotService {
             if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
               const newSessions = await this.clearSessions(instance, remoteJid);
 
-              console.log('keyword_finish', newSessions);
               const typebotData = {
                 enabled: findTypebot.enabled,
                 url: url,
