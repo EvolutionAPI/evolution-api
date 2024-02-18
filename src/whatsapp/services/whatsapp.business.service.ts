@@ -266,10 +266,13 @@ export class BusinessStartupService extends WAStartupService {
     return content;
   }
 
-  private async renderMessageType(type: string) {
+  private renderMessageType(type: string) {
     let messageType: string;
 
     switch (type) {
+      case 'text':
+        messageType = 'conversation';
+        break;
       case 'image':
         messageType = 'imageMessage';
         break;
@@ -317,7 +320,7 @@ export class BusinessStartupService extends WAStartupService {
               ...this.messageMediaJson(received),
               base64: buffer ? buffer.toString('base64') : undefined,
             },
-            messageType: await this.renderMessageType(received.messages[0].type),
+            messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: received.messages[0].timestamp as number,
             owner: this.instance.name,
             // source: getDevice(received.key.id),
@@ -351,7 +354,7 @@ export class BusinessStartupService extends WAStartupService {
             key,
             pushName,
             message: this.messageTextJson(received),
-            messageType: received.messages[0].type,
+            messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: received.messages[0].timestamp as number,
             owner: this.instance.name,
             //source: getDevice(received.key.id),
