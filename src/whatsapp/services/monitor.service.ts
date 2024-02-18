@@ -108,10 +108,14 @@ export class WAMonitoringService {
         }
 
         const findIntegration = await this.waInstances[key].findIntegration();
-        const integration = {
-          ...findIntegration,
-          webhook_wa_business: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
-        };
+
+        let integration: any;
+        if (findIntegration) {
+          integration = {
+            ...findIntegration,
+            webhook_wa_business: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
+          };
+        }
 
         if (value.connectionStatus.state === 'open') {
           this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
