@@ -5,7 +5,7 @@ LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
 RUN apk update && apk upgrade && \
-    apk add --no-cache git tzdata ffmpeg wget curl
+    apk add --no-cache git tzdata ffmpeg wget curl chromium
 
 WORKDIR /evolution
 
