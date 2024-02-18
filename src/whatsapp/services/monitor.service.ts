@@ -107,6 +107,12 @@ export class WAMonitoringService {
           };
         }
 
+        const findIntegration = await this.repository.integration.find(key);
+        const integration = {
+          ...findIntegration,
+          webhook_wa_business: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
+        };
+
         if (value.connectionStatus.state === 'open') {
           this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
 
@@ -128,6 +134,8 @@ export class WAMonitoringService {
             instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
+
+            instanceData.instance['integration'] = integration;
           }
 
           instances.push(instanceData);
@@ -148,6 +156,8 @@ export class WAMonitoringService {
             instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
+
+            instanceData.instance['integration'] = integration;
           }
 
           instances.push(instanceData);
@@ -189,6 +199,12 @@ export class WAMonitoringService {
           };
         }
 
+        const findIntegration = await this.repository.integration.find(key);
+        const integration = {
+          ...findIntegration,
+          webhook_wa_business: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
+        };
+
         if (value.connectionStatus.state === 'open') {
           this.logger.verbose('instance: ' + key + ' - connectionStatus: open');
 
@@ -210,6 +226,8 @@ export class WAMonitoringService {
             instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
+
+            instanceData.instance['integration'] = integration;
           }
 
           instances.push(instanceData);
@@ -230,6 +248,8 @@ export class WAMonitoringService {
             instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
+
+            instanceData.instance['integration'] = integration;
           }
 
           instances.push(instanceData);
