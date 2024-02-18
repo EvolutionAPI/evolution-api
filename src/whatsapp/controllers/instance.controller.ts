@@ -664,11 +664,7 @@ export class InstanceController {
     }
 
     try {
-      this.logger.verbose('logging out instance: ' + instanceName);
-      await this.waMonitor.waInstances[instanceName]?.client?.logout('Log out instance: ' + instanceName);
-
-      this.logger.verbose('close connection instance: ' + instanceName);
-      this.waMonitor.waInstances[instanceName]?.client?.ws?.close();
+      this.waMonitor.waInstances[instanceName]?.logoutInstance();
 
       return { status: 'SUCCESS', error: false, response: { message: 'Instance logged out' } };
     } catch (error) {

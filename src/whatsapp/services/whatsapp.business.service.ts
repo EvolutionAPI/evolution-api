@@ -64,6 +64,11 @@ export class BusinessStartupService extends WAStartupService {
     };
   }
 
+  public async logoutInstance() {
+    this.logger.verbose('Logging out instance');
+    await this.closeClient();
+  }
+
   private async post(message: any, params: string) {
     try {
       const integration = await this.findIntegration();

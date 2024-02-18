@@ -147,6 +147,14 @@ export class BaileysStartupService extends WAStartupService {
     return this.stateConnection;
   }
 
+  public async logoutInstance() {
+    this.logger.verbose('logging out instance: ' + this.instanceName);
+    await this.client?.logout('Log out instance: ' + this.instanceName);
+
+    this.logger.verbose('close connection instance: ' + this.instanceName);
+    this.client?.ws?.close();
+  }
+
   public async getProfileName() {
     this.logger.verbose('Getting profile name');
 
