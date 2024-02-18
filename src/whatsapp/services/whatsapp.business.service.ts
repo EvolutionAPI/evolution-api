@@ -729,7 +729,7 @@ export class BusinessStartupService extends WAStartupService {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
         //pushName: messageSent.pushName,
         message,
-        messageType: content.type,
+        messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
         owner: this.instance.name,
         //ource: getDevice(messageSent.key.id),
