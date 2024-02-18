@@ -302,6 +302,7 @@ export class BusinessStartupService extends WAStartupService {
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
+        console.log('received?.messages[0]', received?.messages[0]);
         const key = {
           id: received.messages[0].id,
           remoteJid: this.phoneNumber,
@@ -539,6 +540,36 @@ export class BusinessStartupService extends WAStartupService {
     }
   }
 
+  private convertMessageToRaw(message: any) {
+    if (message?.conversation) {
+      return message.conversation;
+    }
+
+    if (message?.mediaType === 'image') {
+      return {
+        imageMessage: message,
+      };
+    }
+
+    if (message?.mediaType === 'video') {
+      return {
+        videoMessage: message,
+      };
+    }
+
+    if (message?.mediaType === 'audio') {
+      return {
+        audioMessage: message,
+      };
+    }
+
+    if (message?.mediaType === 'document') {
+      return {
+        documentMessage: message,
+      };
+    }
+  }
+
   protected async eventHandler(content: any) {
     this.logger.verbose('Initializing event handler');
     const database = this.configService.get<Database>('DATABASE');
@@ -726,10 +757,13 @@ export class BusinessStartupService extends WAStartupService {
         }
       })();
 
+      console.log('messageSent', messageSent);
+      console.log('message', message);
+
       const messageRaw: MessageRaw = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
         //pushName: messageSent.pushName,
-        message,
+        message: this.convertMessageToRaw(message),
         messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
         owner: this.instance.name,
