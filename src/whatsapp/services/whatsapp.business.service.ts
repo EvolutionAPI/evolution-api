@@ -542,7 +542,7 @@ export class BusinessStartupService extends WAStartupService {
 
   private convertMessageToRaw(message: any) {
     if (message?.conversation) {
-      return message.conversation;
+      return message;
     }
 
     if (message?.mediaType === 'image') {
@@ -864,6 +864,7 @@ export class BusinessStartupService extends WAStartupService {
         mimetype = mediaMessage.mimetype;
       } else {
         if (isURL(mediaMessage.media)) {
+          mimetype = getMIMEType(mediaMessage.media);
           prepareMedia.id = mediaMessage.media;
           prepareMedia.type = 'link';
         } else {
