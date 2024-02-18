@@ -83,7 +83,7 @@ const sqsRepository = new SqsRepository(SqsModel, configService);
 const integrationRepository = new IntegrationRepository(IntegrationModel, configService);
 const chatwootRepository = new ChatwootRepository(ChatwootModel, configService);
 const settingsRepository = new SettingsRepository(SettingsModel, configService);
-const authRepository = new AuthRepository(AuthModel, configService);
+const authRepository = new AuthRepository(AuthModel, IntegrationModel, configService);
 const labelRepository = new LabelRepository(LabelModel, configService);
 
 export const repository = new RepositoryBroker(

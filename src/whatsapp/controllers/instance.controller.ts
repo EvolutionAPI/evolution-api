@@ -642,13 +642,13 @@ export class InstanceController {
     };
   }
 
-  public async fetchInstances({ instanceName, instanceId }: InstanceDto) {
+  public async fetchInstances({ instanceName, instanceId, number }: InstanceDto) {
     if (instanceName) {
       this.logger.verbose('requested fetchInstances from ' + instanceName + ' instance');
       this.logger.verbose('instanceName: ' + instanceName);
       return this.waMonitor.instanceInfo(instanceName);
-    } else if (instanceId) {
-      return this.waMonitor.instanceInfoById(instanceId);
+    } else if (instanceId || number) {
+      return this.waMonitor.instanceInfoById(instanceId, number);
     }
 
     this.logger.verbose('requested fetchInstances (all instances)');
