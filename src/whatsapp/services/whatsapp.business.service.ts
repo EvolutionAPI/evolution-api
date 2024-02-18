@@ -266,6 +266,30 @@ export class BusinessStartupService extends WAStartupService {
     return content;
   }
 
+  private async renderMessageType(type: string) {
+    let messageType: string;
+
+    switch (type) {
+      case 'image':
+        messageType = 'imageMessage';
+        break;
+      case 'video':
+        messageType = 'videoMessage';
+        break;
+      case 'audio':
+        messageType = 'audioMessage';
+        break;
+      case 'document':
+        messageType = 'documentMessage';
+        break;
+      default:
+        messageType = 'imageMessage';
+        break;
+    }
+
+    return messageType;
+  }
+
   protected async messageHandle(received: any, database: Database, settings: SettingsRaw) {
     try {
       let messageRaw: MessageRaw;
@@ -293,7 +317,7 @@ export class BusinessStartupService extends WAStartupService {
               ...this.messageMediaJson(received),
               base64: buffer ? buffer.toString('base64') : undefined,
             },
-            messageType: received.messages[0].type,
+            messageType: await this.renderMessageType(received.messages[0].type),
             messageTimestamp: received.messages[0].timestamp as number,
             owner: this.instance.name,
             // source: getDevice(received.key.id),
@@ -305,7 +329,7 @@ export class BusinessStartupService extends WAStartupService {
             message: {
               ...this.messageInteractiveJson(received),
             },
-            messageType: 'text',
+            messageType: 'conversation',
             messageTimestamp: received.messages[0].timestamp as number,
             owner: this.instance.name,
             // source: getDevice(received.key.id),
@@ -317,7 +341,7 @@ export class BusinessStartupService extends WAStartupService {
             message: {
               ...this.messageContactsJson(received),
             },
-            messageType: 'text',
+            messageType: 'conversation',
             messageTimestamp: received.messages[0].timestamp as number,
             owner: this.instance.name,
             // source: getDevice(received.key.id),

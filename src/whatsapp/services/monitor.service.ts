@@ -335,7 +335,7 @@ export class WAMonitoringService {
     const integration = await this.repository.integration.find(name);
 
     let instance: BaileysStartupService | BusinessStartupService;
-    if (integration.integration === Integration.WHATSAPP_BUSINESS) {
+    if (integration && integration.integration === Integration.WHATSAPP_BUSINESS) {
       instance = new BusinessStartupService(
         this.configService,
         this.eventEmitter,
