@@ -298,6 +298,8 @@ export class BusinessStartupService extends WAStartupService {
       let messageRaw: MessageRaw;
       let pushName: any;
 
+      console.log('received?.messages[0]', received?.messages[0]);
+
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
