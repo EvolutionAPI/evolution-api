@@ -347,6 +347,8 @@ export class WAMonitoringService {
         this.cache,
         this.chatwootCache,
       );
+
+      instance.instanceName = name;
     } else {
       instance = new BaileysStartupService(
         this.configService,
@@ -355,8 +357,14 @@ export class WAMonitoringService {
         this.cache,
         this.chatwootCache,
       );
+
+      instance.instanceName = name;
+
+      if (!integration) {
+        await instance.setIntegration({ integration: Integration.WHATSAPP_BAILEYS });
+      }
     }
-    instance.instanceName = name;
+
     this.logger.verbose('Instance loaded: ' + name);
     await instance.connectToWhatsapp();
     this.logger.verbose('connectToWhatsapp: ' + name);

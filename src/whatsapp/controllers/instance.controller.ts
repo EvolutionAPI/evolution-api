@@ -105,7 +105,6 @@ export class InstanceController {
           this.cache,
           this.chatwootCache,
         );
-        await this.waMonitor.saveInstance({ integration, instanceName, token, number });
       } else {
         instance = new BaileysStartupService(
           this.configService,
@@ -115,6 +114,8 @@ export class InstanceController {
           this.chatwootCache,
         );
       }
+
+      await this.waMonitor.saveInstance({ integration, instanceName, token, number });
 
       instance.instanceName = instanceName;
 

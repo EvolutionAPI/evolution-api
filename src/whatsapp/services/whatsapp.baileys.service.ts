@@ -2020,13 +2020,22 @@ export class BaileysStartupService extends WAStartupService {
       if (mediaMessage.mimetype) {
         mimetype = mediaMessage.mimetype;
       } else {
-        if (isURL(mediaMessage.media)) {
+        mimetype = getMIMEType(mediaMessage.fileName);
+
+        if (!mimetype && isURL(mediaMessage.media)) {
           const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
 
           mimetype = response.headers['content-type'];
-        } else {
-          mimetype = getMIMEType(mediaMessage.fileName);
         }
+        // if (isURL(mediaMessage.media)) {
+        //   const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
+
+        //   mimetype = response.headers['content-type'];
+        //   console.log('mediaMessage.mimetype2', mimetype);
+        // } else {
+        //   mimetype = getMIMEType(mediaMessage.fileName);
+        //   console.log('mediaMessage.mimetype3', mimetype);
+        // }
       }
 
       this.logger.verbose('Mimetype: ' + mimetype);
