@@ -546,8 +546,8 @@ export const blockUserSchema: JSONSchema7 = {
     number: { type: 'string' },
     status: { type: 'string', enum: ['block', 'unblock'] },
   },
-  required: ['number', 'block'],
-  ...isNotEmpty('number', 'block'),
+  required: ['number', 'status'],
+  ...isNotEmpty('number', 'status'),
 };
 
 export const archiveChatSchema: JSONSchema7 = {
