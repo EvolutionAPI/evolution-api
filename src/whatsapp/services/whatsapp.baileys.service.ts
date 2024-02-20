@@ -63,6 +63,7 @@ import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-d
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import {
   ArchiveChatDto,
+  BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
   LastMessage,
@@ -2793,6 +2794,18 @@ export class BaileysStartupService extends WAStartupService {
       return { update: 'success' };
     } catch (error) {
       throw new InternalServerErrorException('Error removing profile picture', error.toString());
+    }
+  }
+
+  public async blockUser(data: BlockUserDto) {
+    this.logger.verbose('Blocking user: ' + data.number);
+    try {
+      const jid = this.createJid(data.number);
+      await this.client.updateBlockStatus(jid, data.status);
+
+      return { block: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error blocking user', error.toString());
     }
   }
 

@@ -115,3 +115,8 @@ export class UpdateMessageDto extends Metadata {
   key: proto.IMessageKey;
   text: string;
 }
+
+export class BlockUserDto {
+  number: string;
+  status: 'block' | 'unblock';
+}

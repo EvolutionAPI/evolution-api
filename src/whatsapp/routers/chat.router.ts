@@ -3,6 +3,7 @@ import { RequestHandler, Router } from 'express';
 import { Logger } from '../../config/logger.config';
 import {
   archiveChatSchema,
+  blockUserSchema,
   contactValidateSchema,
   deleteMessageSchema,
   messageUpSchema,
@@ -20,6 +21,7 @@ import {
 import { RouterBroker } from '../abstract/abstract.router';
 import {
   ArchiveChatDto,
+  BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
   NumberDto,
@@ -384,6 +386,23 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.OK).json(response);
+      })
+      .put(this.routerPath('updateBlockStatus'), ...guards, async (req, res) => {
+        logger.verbose('request received in updateBlockStatus');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+
+        const response = await this.dataValidate<BlockUserDto>({
+          request: req,
+          schema: blockUserSchema,
+          ClassRef: BlockUserDto,
+          execute: (instance, data) => chatController.blockUser(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
       });
   }
 

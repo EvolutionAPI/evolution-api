@@ -1,6 +1,7 @@
 import { Logger } from '../../config/logger.config';
 import {
   ArchiveChatDto,
+  BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
   NumberDto,
@@ -122,5 +123,10 @@ export class ChatController {
   public async updateMessage({ instanceName }: InstanceDto, data: UpdateMessageDto) {
     logger.verbose('requested updateMessage from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].updateMessage(data);
+  }
+
+  public async blockUser({ instanceName }: InstanceDto, data: BlockUserDto) {
+    logger.verbose('requested blockUser from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].blockUser(data);
   }
 }
