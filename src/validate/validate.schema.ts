@@ -539,6 +539,17 @@ export const privacySettingsSchema: JSONSchema7 = {
   required: ['privacySettings'],
 };
 
+export const blockUserSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { type: 'string' },
+    status: { type: 'string', enum: ['block', 'unblock'] },
+  },
+  required: ['number', 'status'],
+  ...isNotEmpty('number', 'status'),
+};
+
 export const archiveChatSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

@@ -63,6 +63,7 @@ import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-d
 import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
 import {
   ArchiveChatDto,
+  BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
   LastMessage,
@@ -2793,6 +2794,29 @@ export class BaileysStartupService extends WAStartupService {
       return { update: 'success' };
     } catch (error) {
       throw new InternalServerErrorException('Error removing profile picture', error.toString());
+    }
+  }
+
+  public async blockUser(data: BlockUserDto) {
+    this.logger.verbose('Blocking user: ' + data.number);
+    try {
+      const { number } = data;
+
+      this.logger.verbose(`Check if number "${number}" is WhatsApp`);
+      const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
+
+      this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
+      if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+        throw new BadRequestException(isWA);
+      }
+
+      const sender = isWA.jid;
+
+      await this.client.updateBlockStatus(sender, data.status);
+
+      return { block: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Error blocking user', error.toString());
     }
   }
 
