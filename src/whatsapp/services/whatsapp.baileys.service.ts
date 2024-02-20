@@ -2800,8 +2800,19 @@ export class BaileysStartupService extends WAStartupService {
   public async blockUser(data: BlockUserDto) {
     this.logger.verbose('Blocking user: ' + data.number);
     try {
-      const jid = this.createJid(data.number);
-      await this.client.updateBlockStatus(jid, data.status);
+      const { number } = data;
+
+      this.logger.verbose(`Check if number "${number}" is WhatsApp`);
+      const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
+
+      this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
+      if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+        throw new BadRequestException(isWA);
+      }
+
+      const sender = isWA.jid;
+
+      await this.client.updateBlockStatus(sender, data.status);
 
       return { block: 'success' };
     } catch (error) {
