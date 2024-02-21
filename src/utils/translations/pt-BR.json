@@ -1,6 +1,25 @@
 {
   "qrgeneratedsuccesfully": "QRCode gerado com sucesso!",
-  "scanqr": "Escanei o QRCode com o Whatsapp nos próximos 40 segundos.",
+  "scanqr": "Escaneie o QRCode com o WhatsApp nos próximos 40 segundos.",
   "qrlimitreached": "Limite de geração de QRCode atingido! Para gerar um novo QRCode, envie o texto 'init' nesta conversa.",
-  "numbernotinwhatsapp": "A mensagem não foi enviada, pois o contato não é um número válido do Whatsapp."
+  "numbernotinwhatsapp": "A mensagem não foi enviada, pois o contato não é um número válido do WhatsApp.",
+  "cw.inbox.connected": "🚀 Conectado com sucesso!",
+  "cw.inbox.disconnect": "🚨 Instância *{{inboxName}}* desconectada do WhatsApp.",
+  "cw.inbox.alreadyConnected": "🚨 Instância *{{inboxName}}* já está conectada.",
+  "cw.inbox.clearCache": "✅ Instância *{{inboxName}}* cache removido.",
+  "cw.inbox.notFound": "⚠️ Instância *{{inboxName}}* não encontrada.",
+  "cw.inbox.status": "⚠️ Status da instância {{inboxName}}: *{{state}}*.",
+  "cw.import.startImport": "💬 Iniciando importação de mensagens. Por favor, aguarde...",
+  "cw.import.importingMessages": "💬 Importando mensagens. Mais um momento...",
+  "cw.import.messagesImported": "💬 {{totalMessagesImported}} mensagens importadas. Atualize a página para ver as novas mensagens.",
+  "cw.import.messagesException": "💬 Não foi possível importar as mensagens.",
+  "cw.locationMessage.location": "Localização",
+  "cw.locationMessage.latitude": "Latitude",
+  "cw.locationMessage.longitude": "Longitude",
+  "cw.locationMessage.locationName": "Nome",
+  "cw.locationMessage.locationAddress": "Endereço",
+  "cw.locationMessage.locationUrl": "URL",
+  "cw.contactMessage.contact": "Contato",
+  "cw.contactMessage.name": "Nome",
+  "cw.contactMessage.number": "Número"
 }
