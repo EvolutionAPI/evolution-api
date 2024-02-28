@@ -39,6 +39,7 @@
 * Refactor fetching participants for group in WhatsApp service
 * Fixed problem where the typebot final keyword did not work
 * Typebot's wait now pauses the flow and composing is defined by the delay_message parameter in set typebot
+* Composing over 20s now loops until finished
 
 # 1.6.1 (2023-12-22 11:43)
 
