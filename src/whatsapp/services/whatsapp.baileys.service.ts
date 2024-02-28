@@ -32,6 +32,7 @@ import makeWASocket, {
   WAMediaUpload,
   WAMessage,
   WAMessageUpdate,
+  WAPresence,
   WASocket,
 } from '@whiskeysockets/baileys';
 import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
@@ -1622,17 +1623,37 @@ export class BaileysStartupService extends WAStartupService {
       if (options?.delay) {
         this.logger.verbose('Delaying message');
 
-        await this.client.presenceSubscribe(sender);
-        this.logger.verbose('Subscribing to presence');
+        if (options.delay > 20000) {
+          let remainingDelay = options.delay;
+          while (remainingDelay > 20000) {
+            await this.client.presenceSubscribe(sender);
 
-        await this.client.sendPresenceUpdate(options?.presence ?? 'composing', sender);
-        this.logger.verbose('Sending presence update: ' + options?.presence ?? 'composing');
+            await this.client.sendPresenceUpdate((options.presence as WAPresence) ?? 'composing', sender);
 
-        await delay(options.delay);
-        this.logger.verbose('Set delay: ' + options.delay);
+            await delay(20000);
 
-        await this.client.sendPresenceUpdate('paused', sender);
-        this.logger.verbose('Sending presence update: paused');
+            await this.client.sendPresenceUpdate('paused', sender);
+
+            remainingDelay -= 20000;
+          }
+          if (remainingDelay > 0) {
+            await this.client.presenceSubscribe(sender);
+
+            await this.client.sendPresenceUpdate((options.presence as WAPresence) ?? 'composing', sender);
+
+            await delay(remainingDelay);
+
+            await this.client.sendPresenceUpdate('paused', sender);
+          }
+        } else {
+          await this.client.presenceSubscribe(sender);
+
+          await this.client.sendPresenceUpdate((options.presence as WAPresence) ?? 'composing', sender);
+
+          await delay(options.delay);
+
+          await this.client.sendPresenceUpdate('paused', sender);
+        }
       }
 
       const linkPreview = options?.linkPreview != false ? undefined : false;
