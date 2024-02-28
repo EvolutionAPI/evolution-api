@@ -1159,6 +1159,9 @@ export class BusinessStartupService extends WAStartupService {
   public async removeProfilePicture() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
+  public async blockUser() {
+    throw new BadRequestException('Method not available on WhatsApp Business API');
+  }
   public async updateMessage() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }

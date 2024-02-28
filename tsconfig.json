@@ -18,5 +18,9 @@
     "incremental": true,
     "noImplicitAny": false
   },
-  "exclude": ["node_modules", "./test", "./dist", "./prisma"]
+  "exclude": ["node_modules", "./test", "./dist", "./prisma"],
+  "include": [
+    "src/**/*",
+    "src/**/*.json"
+  ]
 }
