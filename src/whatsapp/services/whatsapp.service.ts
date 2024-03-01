@@ -33,6 +33,8 @@ import makeWASocket, {
   WAMessage,
   WAMessageUpdate,
   WASocket,
+  makeInMemoryStore,
+	
 } from '@whiskeysockets/baileys';
 import axios from 'axios';
 import { exec, execSync } from 'child_process';
@@ -135,6 +137,8 @@ import { ChatwootService } from './chatwoot.service';
 import { TypebotService } from './typebot.service';
 
 const retryCache = {};
+const pino = require('pino');
+const dados =  makeInMemoryStore({ pino });
 
 export class WAStartupService {
   constructor(
@@ -1408,7 +1412,7 @@ export class WAStartupService {
           return isGroupJid || isBroadcast;
         },
         msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+       	getMessage: (key) => { return (dados.loadMessage(key.remoteJid, key.id))?.message || undefined; },
         generateHighQualityLinkPreview: true,
         syncFullHistory: false,
         userDevicesCache: this.userDevicesCache,
