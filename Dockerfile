@@ -62,7 +62,7 @@ ENV REDIS_URI=redis://redis:6379
 ENV REDIS_PREFIX_KEY=evolution
 
 ENV RABBITMQ_ENABLED=false
-ENV RABBITMQ_MODE=isolated
+ENV RABBITMQ_MODE=global
 ENV RABBITMQ_EXCHANGE_NAME=evolution_exchange
 ENV RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
 
