@@ -71,6 +71,7 @@ export type Redis = {
 
 export type Rabbitmq = {
   ENABLED: boolean;
+  GLOBAL_EVENT_QUEUE: boolean;
   URI: string;
 };
 
@@ -282,6 +283,7 @@ export class ConfigService {
       },
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
+        GLOBAL_EVENT_QUEUE: process.env?.RABBITMQ_GLOBAL_EVENT_QUEUE === 'true',
         URI: process.env.RABBITMQ_URI || '',
       },
       SQS: {

@@ -83,6 +83,7 @@ REDIS:
 
 RABBITMQ:
   ENABLED: false
+  GLOBAL_EVENT_QUEUE: false
   URI: "amqp://guest:guest@localhost:5672"
 
 SQS:
