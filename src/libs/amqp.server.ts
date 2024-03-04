@@ -1,16 +1,35 @@
-import * as amqp from 'amqplib/callback_api';
+import { Channel, connect } from 'amqplib/callback_api';
 
 import { configService, HttpServer, Rabbitmq } from '../config/env.config';
 import { Logger } from '../config/logger.config';
+import { Events } from '../whatsapp/types/wa.types';
 
 const logger = new Logger('AMQP');
 
-let amqpChannel: amqp.Channel | null = null;
+const parseEvtName = (evt: string) => evt.replace(/_/g, '.').toLowerCase();
+
+const globalQueues: { [key: string]: Events[] } = {
+  contacts: [Events.CONTACTS_SET, Events.CONTACTS_UPDATE, Events.CONTACTS_UPSERT],
+  messages: [
+    Events.MESSAGES_DELETE,
+    Events.MESSAGES_SET,
+    Events.MESSAGES_UPDATE,
+    Events.MESSAGES_UPSERT,
+    Events.MESSAGING_HISTORY_SET,
+    Events.SEND_MESSAGE,
+  ],
+  chats: [Events.CHATS_DELETE, Events.CHATS_SET, Events.CHATS_UPDATE, Events.CHATS_UPSERT],
+  groups: [Events.GROUPS_UPDATE, Events.GROUPS_UPSERT, Events.GROUP_PARTICIPANTS_UPDATE],
+  others: [], // All other events not included in the above categories
+};
+
+let amqpChannel: Channel | null = null;
 
 export const initAMQP = () => {
   return new Promise<void>((resolve, reject) => {
     const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
-    amqp.connect(rabbitConfig.URI, (error, connection) => {
+    console.log(rabbitConfig);
+    connect(rabbitConfig.URI, (error, connection) => {
       if (error) {
         reject(error);
         return;
@@ -22,12 +41,9 @@ export const initAMQP = () => {
           return;
         }
 
-        const exchangeName = 'evolution_exchange';
-
-        channel.assertExchange(exchangeName, 'topic', {
+        channel.assertExchange(rabbitConfig.EXCHANGE_NAME, 'topic', {
           durable: true,
           autoDelete: false,
-          assert: true,
         });
 
         amqpChannel = channel;
@@ -39,69 +55,131 @@ export const initAMQP = () => {
   });
 };
 
-export const getAMQP = (): amqp.Channel | null => {
+export const getAMQP = (): Channel | null => {
   return amqpChannel;
 };
 
 export const initQueues = (instanceName: string, events: string[]) => {
   if (!instanceName || !events || !events.length) return;
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
+  const TWO_DAYS_IN_MS = 2 * 24 * 60 * 60 * 1000;
+  const amqp = getAMQP();
 
-  const queues = events.map((event) => {
-    return `${event.replace(/_/g, '.').toLowerCase()}`;
-  });
+  let exchangeName = rabbitConfig.EXCHANGE_NAME;
 
-  queues.forEach((event) => {
-    const amqp = getAMQP();
-    const exchangeName = instanceName ?? 'evolution_exchange';
+  const receivedEvents = events.map(parseEvtName);
+  if (rabbitConfig.MODE === 'isolated') {
+    exchangeName = instanceName;
 
+    receivedEvents.forEach((event) => {
+      amqp.assertExchange(exchangeName, 'topic', {
+        durable: true,
+        autoDelete: false,
+      });
+
+      const queueName = event;
+      amqp.assertQueue(queueName, {
+        durable: true,
+        autoDelete: false,
+        messageTtl: TWO_DAYS_IN_MS,
+        arguments: {
+          'x-queue-type': 'quorum',
+        },
+      });
+
+      amqp.bindQueue(queueName, exchangeName, event);
+    });
+  } else if (rabbitConfig.MODE === 'single') {
     amqp.assertExchange(exchangeName, 'topic', {
       durable: true,
       autoDelete: false,
-      assert: true,
     });
 
-    const queueName = rabbitConfig.GLOBAL_EVENT_QUEUE ? event : `${instanceName}.${event}`;
-
+    const queueName = 'evolution';
     amqp.assertQueue(queueName, {
       durable: true,
       autoDelete: false,
+      messageTtl: TWO_DAYS_IN_MS,
       arguments: {
         'x-queue-type': 'quorum',
       },
     });
 
-    amqp.bindQueue(queueName, exchangeName, event);
-  });
+    receivedEvents.forEach((event) => {
+      amqp.bindQueue(queueName, exchangeName, event);
+    });
+  } else if (rabbitConfig.MODE === 'global') {
+    const queues = Object.keys(globalQueues);
+
+    const addQueues = queues.filter((evt) => {
+      if (evt === 'others') {
+        return receivedEvents.some(
+          (e) =>
+            !Object.values(globalQueues)
+              .flat()
+              .includes(e as Events),
+        );
+      }
+      return globalQueues[evt].some((e) => receivedEvents.includes(e));
+    });
+
+    addQueues.forEach((event) => {
+      amqp.assertExchange(exchangeName, 'topic', {
+        durable: true,
+        autoDelete: false,
+      });
+
+      const queueName = event;
+      amqp.assertQueue(queueName, {
+        durable: true,
+        autoDelete: false,
+        messageTtl: TWO_DAYS_IN_MS,
+        arguments: {
+          'x-queue-type': 'quorum',
+        },
+      });
+
+      if (globalQueues[event].length === 0) {
+        // Other events
+        const otherEvents = Object.values(globalQueues).flat();
+        for (const subEvent in Events) {
+          const eventCode = Events[subEvent];
+          if (otherEvents.includes(eventCode)) continue;
+          if (!receivedEvents.includes(eventCode)) continue;
+          amqp.bindQueue(queueName, exchangeName, eventCode);
+        }
+      } else {
+        globalQueues[event].forEach((subEvent) => {
+          amqp.bindQueue(queueName, exchangeName, subEvent);
+        });
+      }
+    });
+  } else {
+    throw new Error('Invalid RabbitMQ mode');
+  }
 };
 
 export const removeQueues = (instanceName: string, events: string[]) => {
   if (!events || !events.length) return;
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
+  let exchangeName = rabbitConfig.EXCHANGE_NAME;
+  const amqp = getAMQP();
 
-  const channel = getAMQP();
+  const receivedEvents = events.map(parseEvtName);
+  if (rabbitConfig.MODE === 'isolated') {
+    exchangeName = instanceName;
+    receivedEvents.forEach((event) => {
+      amqp.assertExchange(exchangeName, 'topic', {
+        durable: true,
+        autoDelete: false,
+      });
 
-  const queues = events.map((event) => {
-    return `${event.replace(/_/g, '.').toLowerCase()}`;
-  });
+      const queueName = event;
 
-  const exchangeName = instanceName ?? 'evolution_exchange';
-
-  queues.forEach((event) => {
-    const amqp = getAMQP();
-
-    amqp.assertExchange(exchangeName, 'topic', {
-      durable: true,
-      autoDelete: false,
-      assert: true,
+      amqp.unbindQueue(queueName, exchangeName, event);
     });
-
-    const queueName = rabbitConfig.GLOBAL_EVENT_QUEUE ? event : `${instanceName}.${event}`;
-
-    amqp.deleteQueue(queueName);
-  });
-
-  channel.deleteExchange(exchangeName);
+    amqp.deleteExchange(instanceName);
+  }
 };
 
 interface SendEventData {
@@ -113,30 +191,40 @@ interface SendEventData {
 }
 
 export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendEventData) => {
-  const exchangeName = instanceName ?? 'evolution_exchange';
+  const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
+  let exchangeName = rabbitConfig.EXCHANGE_NAME;
+  if (rabbitConfig.MODE === 'isolated') exchangeName = instanceName;
 
   amqpChannel.assertExchange(exchangeName, 'topic', {
     durable: true,
     autoDelete: false,
-    assert: true,
   });
-
-  const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
-  const queueName = rabbitConfig.GLOBAL_EVENT_QUEUE ? event : `${instanceName}.${event}`;
-
+  let queueName = event;
+  if (rabbitConfig.MODE === 'single') {
+    queueName = 'evolution';
+  } else if (rabbitConfig.MODE === 'global') {
+    let eventName = '';
+    Object.keys(globalQueues).forEach((key) => {
+      if (globalQueues[key].includes(event as Events)) {
+        eventName = key;
+      }
+      if (eventName === '' && key === 'others') {
+        eventName = key;
+      }
+    });
+    queueName = eventName;
+  }
   amqpChannel.assertQueue(queueName, {
     durable: true,
     autoDelete: false,
     arguments: { 'x-queue-type': 'quorum' },
   });
-
   amqpChannel.bindQueue(queueName, exchangeName, event);
 
   const serverUrl = configService.get<HttpServer>('SERVER').URL;
   const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
   const localISOTime = new Date(Date.now() - tzoffset).toISOString();
   const now = localISOTime;
-
   const message = {
     event,
     instance: instanceName,
@@ -145,11 +233,9 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
     date_time: now,
     sender: wuid,
   };
-
   if (apiKey) {
     message['apikey'] = apiKey;
   }
-
   logger.log({
     queueName,
     exchangeName,

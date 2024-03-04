@@ -83,7 +83,8 @@ REDIS:
 
 RABBITMQ:
   ENABLED: false
-  GLOBAL_EVENT_QUEUE: false
+  MODE: "global"
+  EXCHANGE_NAME: "evolution_exchange"
   URI: "amqp://guest:guest@localhost:5672"
 
 SQS:
