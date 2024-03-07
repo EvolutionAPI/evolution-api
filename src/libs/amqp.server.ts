@@ -28,7 +28,6 @@ let amqpChannel: Channel | null = null;
 export const initAMQP = () => {
   return new Promise<void>((resolve, reject) => {
     const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
-    console.log(rabbitConfig);
     connect(rabbitConfig.URI, (error, connection) => {
       if (error) {
         reject(error);

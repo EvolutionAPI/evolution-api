@@ -1124,7 +1124,6 @@ export class BaileysStartupService extends WAStartupService {
         5: 'PLAYED',
       };
       for await (const { key, update } of args) {
-        console.log(key);
         if (settings?.groups_ignore && key.remoteJid?.includes('@g.us')) {
           this.logger.verbose('group ignored');
           return;

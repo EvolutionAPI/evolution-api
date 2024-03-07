@@ -303,7 +303,6 @@ export class BusinessStartupService extends WAStartupService {
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
-        console.log('received?.messages[0]', received?.messages[0]);
         const key = {
           id: received.messages[0].id,
           remoteJid: this.phoneNumber,
@@ -771,9 +770,6 @@ export class BusinessStartupService extends WAStartupService {
           return await this.post(content, 'messages');
         }
       })();
-
-      console.log('messageSent', messageSent);
-      console.log('message', message);
 
       const messageRaw: MessageRaw = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
