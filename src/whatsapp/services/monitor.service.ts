@@ -480,6 +480,11 @@ export class WAMonitoringService {
   }
 
   private async deleteTempInstances(collections: Collection<Document>[]) {
+    const shouldDelete = this.configService.get<boolean>('DEL_TEMP_INSTANCES');
+    if (!shouldDelete) {
+      this.logger.verbose('Temp instances deletion is disabled');
+      return;
+    }
     this.logger.verbose('Cleaning up temp instances');
     const auths = await this.repository.auth.list();
     if (auths.length === 0) {
