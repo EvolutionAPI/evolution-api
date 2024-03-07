@@ -76,7 +76,7 @@ export const initQueues = (instanceName: string, events: string[]) => {
         autoDelete: false,
       });
 
-      const queueName = event;
+      const queueName = `${instanceName}.${event}`;
       amqp.assertQueue(queueName, {
         durable: true,
         autoDelete: false,
@@ -173,9 +173,8 @@ export const removeQueues = (instanceName: string, events: string[]) => {
         autoDelete: false,
       });
 
-      const queueName = event;
-
-      amqp.unbindQueue(queueName, exchangeName, event);
+      const queueName = `${instanceName}.${event}`;
+      amqp.deleteQueue(queueName);
     });
     amqp.deleteExchange(instanceName);
   }
