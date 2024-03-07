@@ -47,6 +47,7 @@ LOG:
 # Default time: 5 minutes
 # If you don't even want an expiration, enter the value false
 DEL_INSTANCE: false # or false
+DEL_TEMP_INSTANCES: true # Delete instances with status closed on start
 
 # Temporary data storage
 STORE:
