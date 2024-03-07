@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "1.6.2",
+  "version": "1.7.0",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/src/main.js",
   "scripts": {
@@ -90,6 +90,7 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.5",
     "@types/compression": "^1.7.2",
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
