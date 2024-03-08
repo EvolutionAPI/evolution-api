@@ -68,7 +68,7 @@ export const initQueues = (instanceName: string, events: string[]) => {
 
   const receivedEvents = events.map(parseEvtName);
   if (rabbitConfig.MODE === 'isolated') {
-    exchangeName = instanceName;
+    exchangeName = instanceName ?? 'evolution_exchange';
 
     receivedEvents.forEach((event) => {
       amqp.assertExchange(exchangeName, 'topic', {
