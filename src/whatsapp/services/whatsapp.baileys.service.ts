@@ -941,7 +941,9 @@ export class BaileysStartupService extends WAStartupService {
 
         // for (const received of messages) {
         if (
-          (type !== 'notify' && type !== 'append') ||
+          // (type !== 'notify' && type !== 'append') ||
+          type !== 'notify' ||
+          !received?.message ||
           received.message?.protocolMessage ||
           received.message?.pollUpdateMessage
         ) {
