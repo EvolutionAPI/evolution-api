@@ -199,6 +199,9 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
   let exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
   if (rabbitMode === 'isolated') exchangeName = instanceName ?? 'evolution_exchange';
 
+  console.log('exchangeName: ', exchangeName);
+  console.log('rabbitMode: ', rabbitMode);
+
   amqpChannel.assertExchange(exchangeName, 'topic', {
     durable: true,
     autoDelete: false,
