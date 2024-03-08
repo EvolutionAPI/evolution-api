@@ -73,12 +73,12 @@ export const initQueues = (instanceName: string, events: string[]) => {
   if (rabbitMode === 'isolated') {
     exchangeName = instanceName ?? 'evolution_exchange';
 
-    receivedEvents.forEach((event) => {
-      amqp.assertExchange(exchangeName, 'topic', {
-        durable: true,
-        autoDelete: false,
-      });
+    amqp.assertExchange(exchangeName, 'topic', {
+      durable: true,
+      autoDelete: false,
+    });
 
+    receivedEvents.forEach((event) => {
       const queueName = `${instanceName}.${event}`;
       amqp.assertQueue(queueName, {
         durable: true,
