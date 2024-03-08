@@ -685,6 +685,7 @@ export class WAStartupService {
 
       if (amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
+          console.log('envia na fila: ', we);
           sendEventData({
             data,
             event,
