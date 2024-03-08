@@ -67,11 +67,11 @@ export const initQueues = (instanceName: string, events: string[]) => {
   const amqp = getAMQP();
 
   const rabbitMode = rabbitConfig.MODE || 'isolated';
-  const exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
+  let exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
 
   const receivedEvents = events.map(parseEvtName);
   if (rabbitMode === 'isolated') {
-    // exchangeName = instanceName ?? 'evolution_exchange';
+    exchangeName = instanceName ?? 'evolution_exchange';
 
     receivedEvents.forEach((event) => {
       amqp.assertExchange(exchangeName, 'topic', {
@@ -196,8 +196,8 @@ interface SendEventData {
 export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendEventData) => {
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
   const rabbitMode = rabbitConfig.MODE || 'isolated';
-  const exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
-  // if (rabbitMode === 'isolated') exchangeName = instanceName ?? 'evolution_exchange';
+  let exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
+  if (rabbitMode === 'isolated') exchangeName = instanceName ?? 'evolution_exchange';
 
   console.log('exchangeName: ', exchangeName);
   console.log('rabbitMode: ', rabbitMode);
