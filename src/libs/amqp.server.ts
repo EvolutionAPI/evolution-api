@@ -196,8 +196,8 @@ interface SendEventData {
 export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendEventData) => {
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
   const rabbitMode = rabbitConfig.MODE || 'isolated';
-  let exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
-  if (rabbitMode === 'isolated') exchangeName = instanceName ?? 'evolution_exchange';
+  const exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
+  // if (rabbitMode === 'isolated') exchangeName = instanceName ?? 'evolution_exchange';
 
   console.log('exchangeName: ', exchangeName);
   console.log('rabbitMode: ', rabbitMode);
