@@ -20,7 +20,7 @@ import {
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
-import { getAMQP, removeQueues, sendEventData } from '../../libs/amqp.server';
+import { getAMQP, removeQueues } from '../../libs/amqp.server';
 import { getIO } from '../../libs/socket.server';
 import { getSQS, removeQueues as removeQueuesSQS } from '../../libs/sqs.server';
 import { ChamaaiRaw, IntegrationRaw, ProxyRaw, RabbitmqRaw, SettingsRaw, SqsRaw, TypebotRaw } from '../models';
@@ -685,14 +685,39 @@ export class WAStartupService {
 
       if (amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-          console.log('envia na fila: ', we);
-          sendEventData({
-            data,
-            event,
-            instanceName: this.instanceName,
-            wuid: this.wuid,
-            apiKey: expose && instanceApikey ? instanceApikey : undefined,
+          const exchangeName = this.instanceName ?? 'evolution_exchange';
+
+          amqp.assertExchange(exchangeName, 'topic', {
+            durable: true,
+            autoDelete: false,
           });
+
+          const queueName = `${this.instanceName}.${event}`;
+
+          amqp.assertQueue(queueName, {
+            durable: true,
+            autoDelete: false,
+            arguments: {
+              'x-queue-type': 'quorum',
+            },
+          });
+
+          amqp.bindQueue(queueName, exchangeName, event);
+
+          const message = {
+            event,
+            instance: this.instance.name,
+            data,
+            server_url: serverUrl,
+            date_time: now,
+            sender: this.wuid,
+          };
+
+          if (expose && instanceApikey) {
+            message['apikey'] = instanceApikey;
+          }
+
+          amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
 
           if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
             const logData = {
