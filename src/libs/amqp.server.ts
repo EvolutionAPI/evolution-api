@@ -67,11 +67,11 @@ export const initQueues = (instanceName: string, events: string[]) => {
   const amqp = getAMQP();
 
   const rabbitMode = rabbitConfig.MODE || 'isolated';
-  let exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
+  const exchangeName = rabbitConfig.EXCHANGE_NAME ?? 'evolution_exchange';
 
   const receivedEvents = events.map(parseEvtName);
   if (rabbitMode === 'isolated') {
-    exchangeName = instanceName ?? 'evolution_exchange';
+    // exchangeName = instanceName ?? 'evolution_exchange';
 
     receivedEvents.forEach((event) => {
       amqp.assertExchange(exchangeName, 'topic', {
