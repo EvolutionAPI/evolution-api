@@ -71,7 +71,7 @@ export type Redis = {
 
 export type Rabbitmq = {
   ENABLED: boolean;
-  MODE: 'isolated' | 'global' | 'single';
+  MODE: string; // global, single, isolated
   EXCHANGE_NAME: string; // available for global and single, isolated mode will use instance name as exchange
   URI: string;
 };
@@ -285,7 +285,7 @@ export class ConfigService {
       },
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
-        MODE: (process.env?.RABBITMQ_MODE as 'isolated' | 'global' | 'single') || 'isolated',
+        MODE: process.env?.RABBITMQ_MODE || 'isolated',
         EXCHANGE_NAME: process.env?.RABBITMQ_EXCHANGE_NAME || 'evolution_exchange',
         URI: process.env.RABBITMQ_URI || '',
       },
