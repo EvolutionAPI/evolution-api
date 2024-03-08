@@ -63,7 +63,6 @@ export const getAMQP = (): Channel | null => {
 export const initQueues = (instanceName: string, events: string[]) => {
   if (!instanceName || !events || !events.length) return;
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
-  const TWO_DAYS_IN_MS = 2 * 24 * 60 * 60 * 1000;
   const amqp = getAMQP();
 
   const rabbitMode = rabbitConfig.MODE || 'isolated';
@@ -83,7 +82,6 @@ export const initQueues = (instanceName: string, events: string[]) => {
       amqp.assertQueue(queueName, {
         durable: true,
         autoDelete: false,
-        messageTtl: TWO_DAYS_IN_MS,
         arguments: {
           'x-queue-type': 'quorum',
         },
@@ -101,7 +99,6 @@ export const initQueues = (instanceName: string, events: string[]) => {
     amqp.assertQueue(queueName, {
       durable: true,
       autoDelete: false,
-      messageTtl: TWO_DAYS_IN_MS,
       arguments: {
         'x-queue-type': 'quorum',
       },
@@ -135,7 +132,6 @@ export const initQueues = (instanceName: string, events: string[]) => {
       amqp.assertQueue(queueName, {
         durable: true,
         autoDelete: false,
-        messageTtl: TWO_DAYS_IN_MS,
         arguments: {
           'x-queue-type': 'quorum',
         },
