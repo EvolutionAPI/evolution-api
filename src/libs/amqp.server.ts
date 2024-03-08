@@ -191,17 +191,20 @@ interface SendEventData {
 export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendEventData) => {
   const rabbitConfig = configService.get<Rabbitmq>('RABBITMQ');
   let exchangeName = rabbitConfig.EXCHANGE_NAME;
-  if (rabbitConfig.MODE === 'isolated') exchangeName = instanceName;
+  if (rabbitConfig.MODE === 'isolated') exchangeName = instanceName ?? 'evolution_exchange';
 
   amqpChannel.assertExchange(exchangeName, 'topic', {
     durable: true,
     autoDelete: false,
   });
+
   let queueName = event;
+
   if (rabbitConfig.MODE === 'single') {
     queueName = 'evolution';
   } else if (rabbitConfig.MODE === 'global') {
     let eventName = '';
+
     Object.keys(globalQueues).forEach((key) => {
       if (globalQueues[key].includes(event as Events)) {
         eventName = key;
@@ -211,18 +214,23 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
       }
     });
     queueName = eventName;
+  } else if (rabbitConfig.MODE === 'isolated') {
+    queueName = `${instanceName}.${event}`;
   }
+
   amqpChannel.assertQueue(queueName, {
     durable: true,
     autoDelete: false,
     arguments: { 'x-queue-type': 'quorum' },
   });
+
   amqpChannel.bindQueue(queueName, exchangeName, event);
 
   const serverUrl = configService.get<HttpServer>('SERVER').URL;
   const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
   const localISOTime = new Date(Date.now() - tzoffset).toISOString();
   const now = localISOTime;
+
   const message = {
     event,
     instance: instanceName,
@@ -231,9 +239,11 @@ export const sendEventData = ({ data, event, wuid, apiKey, instanceName }: SendE
     date_time: now,
     sender: wuid,
   };
+
   if (apiKey) {
     message['apikey'] = apiKey;
   }
+
   logger.log({
     queueName,
     exchangeName,
