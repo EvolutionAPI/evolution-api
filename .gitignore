@@ -4,6 +4,8 @@
 
 /Docker/.env
 
+.vscode
+
 # Logs
 logs/**.json
 *.log
@@ -45,3 +47,4 @@ docker-compose.yaml
 
 .DS_Store
 *.DS_Store
+.tool-versions

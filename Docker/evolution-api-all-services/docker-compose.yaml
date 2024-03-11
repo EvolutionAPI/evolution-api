@@ -62,7 +62,7 @@ services:
 
   api:
     container_name: evolution_api
-    image: davidsongomes/evolution-api
+    image: atendai/evolution-api
     restart: always
     depends_on:
       - mongodb

@@ -9,5 +9,8 @@
     "source.fixAll": "explicit"
   },
   "prisma-smart-formatter.typescript.defaultFormatter": "esbenp.prettier-vscode",
-  "prisma-smart-formatter.prisma.defaultFormatter": "Prisma.prisma"
+  "prisma-smart-formatter.prisma.defaultFormatter": "Prisma.prisma",
+  "i18n-ally.localesPaths": [
+    "store/messages"
+  ]
 }

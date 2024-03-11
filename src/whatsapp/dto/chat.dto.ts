@@ -1,7 +1,12 @@
 import { proto, WAPresence, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '@whiskeysockets/baileys';
 
 export class OnWhatsAppDto {
-  constructor(public readonly jid: string, public readonly exists: boolean, public readonly name?: string) {}
+  constructor(
+    public readonly jid: string,
+    public readonly exists: boolean,
+    public readonly number: string,
+    public readonly name?: string,
+  ) {}
 }
 
 export class getBase64FromMediaMessageDto {
@@ -26,8 +31,12 @@ export class NumberBusiness {
   message?: string;
   description?: string;
   email?: string;
+  websites?: string[];
   website?: string[];
   address?: string;
+  about?: string;
+  vertical?: string;
+  profilehandle?: string;
 }
 
 export class ProfileNameDto {
@@ -99,4 +108,15 @@ export class SendPresenceDto extends Metadata {
     presence: WAPresence;
     delay: number;
   };
+}
+
+export class UpdateMessageDto extends Metadata {
+  number: string;
+  key: proto.IMessageKey;
+  text: string;
+}
+
+export class BlockUserDto {
+  number: string;
+  status: 'block' | 'unblock';
 }

@@ -4,7 +4,7 @@ services:
 
   api:
     container_name: evolution_api
-    image: davidsongomes/evolution-api
+    image: atendai/evolution-api
     restart: always
     ports:
       - 8080:8080

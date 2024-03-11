@@ -1,6 +1,7 @@
 import { configService } from '../config/env.config';
 import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
+import { CacheEngine } from '../libs/cacheengine';
 import { dbserver } from '../libs/db.connect';
 import { RedisCache } from '../libs/redis.client';
 import { ChamaaiController } from './controllers/chamaai.controller';
@@ -8,6 +9,7 @@ import { ChatController } from './controllers/chat.controller';
 import { ChatwootController } from './controllers/chatwoot.controller';
 import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';
+import { LabelController } from './controllers/label.controller';
 import { ProxyController } from './controllers/proxy.controller';
 import { RabbitmqController } from './controllers/rabbitmq.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
@@ -22,6 +24,7 @@ import {
   ChatModel,
   ChatwootModel,
   ContactModel,
+  IntegrationModel,
   MessageModel,
   MessageUpModel,
   ProxyModel,
@@ -32,11 +35,14 @@ import {
   WebhookModel,
   WebsocketModel,
 } from './models';
+import { LabelModel } from './models/label.model';
 import { AuthRepository } from './repository/auth.repository';
 import { ChamaaiRepository } from './repository/chamaai.repository';
 import { ChatRepository } from './repository/chat.repository';
 import { ChatwootRepository } from './repository/chatwoot.repository';
 import { ContactRepository } from './repository/contact.repository';
+import { IntegrationRepository } from './repository/integration.repository';
+import { LabelRepository } from './repository/label.repository';
 import { MessageRepository } from './repository/message.repository';
 import { MessageUpRepository } from './repository/messageUp.repository';
 import { ProxyRepository } from './repository/proxy.repository';
@@ -48,8 +54,10 @@ import { TypebotRepository } from './repository/typebot.repository';
 import { WebhookRepository } from './repository/webhook.repository';
 import { WebsocketRepository } from './repository/websocket.repository';
 import { AuthService } from './services/auth.service';
+import { CacheService } from './services/cache.service';
 import { ChamaaiService } from './services/chamaai.service';
 import { ChatwootService } from './services/chatwoot.service';
+import { IntegrationService } from './services/integration.service';
 import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { RabbitmqService } from './services/rabbitmq.service';
@@ -72,9 +80,11 @@ const proxyRepository = new ProxyRepository(ProxyModel, configService);
 const chamaaiRepository = new ChamaaiRepository(ChamaaiModel, configService);
 const rabbitmqRepository = new RabbitmqRepository(RabbitmqModel, configService);
 const sqsRepository = new SqsRepository(SqsModel, configService);
+const integrationRepository = new IntegrationRepository(IntegrationModel, configService);
 const chatwootRepository = new ChatwootRepository(ChatwootModel, configService);
 const settingsRepository = new SettingsRepository(SettingsModel, configService);
-const authRepository = new AuthRepository(AuthModel, configService);
+const authRepository = new AuthRepository(AuthModel, IntegrationModel, configService);
+const labelRepository = new LabelRepository(LabelModel, configService);
 
 export const repository = new RepositoryBroker(
   messageRepository,
@@ -90,14 +100,18 @@ export const repository = new RepositoryBroker(
   typebotRepository,
   proxyRepository,
   chamaaiRepository,
+  integrationRepository,
   authRepository,
+  labelRepository,
   configService,
   dbserver?.getClient(),
 );
 
 export const cache = new RedisCache();
 
-export const waMonitor = new WAMonitoringService(eventEmitter, configService, repository, cache);
+const chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
+
+export const waMonitor = new WAMonitoringService(eventEmitter, configService, repository, cache, chatwootCache);
 
 const authService = new AuthService(configService, waMonitor, repository);
 
@@ -107,7 +121,7 @@ export const typebotController = new TypebotController(typebotService);
 
 const webhookService = new WebhookService(waMonitor);
 
-export const webhookController = new WebhookController(webhookService);
+export const webhookController = new WebhookController(webhookService, waMonitor);
 
 const websocketService = new WebsocketService(waMonitor);
 
@@ -115,7 +129,7 @@ export const websocketController = new WebsocketController(websocketService);
 
 const proxyService = new ProxyService(waMonitor);
 
-export const proxyController = new ProxyController(proxyService);
+export const proxyController = new ProxyController(proxyService, waMonitor);
 
 const chamaaiService = new ChamaaiService(waMonitor, configService);
 
@@ -129,7 +143,9 @@ const sqsService = new SqsService(waMonitor);
 
 export const sqsController = new SqsController(sqsService);
 
-const chatwootService = new ChatwootService(waMonitor, configService, repository);
+const integrationService = new IntegrationService(waMonitor);
+
+const chatwootService = new ChatwootService(waMonitor, configService, repository, chatwootCache);
 
 export const chatwootController = new ChatwootController(chatwootService, configService, repository);
 
@@ -148,13 +164,15 @@ export const instanceController = new InstanceController(
   settingsService,
   websocketService,
   rabbitmqService,
-  proxyService,
   sqsService,
   typebotService,
+  integrationService,
   cache,
+  chatwootCache,
 );
 export const sendMessageController = new SendMessageController(waMonitor);
 export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
+export const labelController = new LabelController(waMonitor);
 
 logger.info('Module - ON');

@@ -25,7 +25,7 @@ info:
     </font>
 
     [![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/26869335-5546d063-156b-4529-915f-909dd628c090?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D26869335-5546d063-156b-4529-915f-909dd628c090%26entityType%3Dcollection%26workspaceId%3D339a4ee7-378b-45c9-b5b8-fd2c0a9c2442)
-  version: 1.6.1
+  version: 1.7.0
   contact:
     name: DavidsonGomes
     email: contato@agenciadgcode.com
@@ -51,6 +51,7 @@ tags:
   - name: Send Message Controller
   - name: Chat Controller
   - name: Group Controller
+  - name: Label Controller
   - name: Profile Settings
   - name: JWT
   - name: Settings
@@ -940,7 +941,72 @@ paths:
           description: Successful response
           content:
             application/json: {}
-
+  /message/sendList/{instanceName}:
+    post:
+      tags:
+        - Send Message Controller
+      summary: Send a list to a specified instance.
+      description: This endpoint allows users to send a list to a chat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                options:
+                  type: object
+                  properties:
+                    delay:
+                      type: integer
+                    presence:
+                      type: string
+                listMessage:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    footerText:
+                      type: string
+                      nullable: true
+                    buttonText:
+                      type: string
+                    sections:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                          rows:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                title:
+                                  type: string
+                                description:
+                                  type: string
+                                rowId:
+                                  type: string
+      parameters:
+        - name: instanceName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The name of the instance to which the poll should be sent.
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json: {}
+            
   /chat/whatsappNumbers/{instanceName}:
     post:
       tags:
@@ -1791,6 +1857,8 @@ paths:
                       "GROUP_UPDATE",
                       "GROUP_PARTICIPANTS_UPDATE",
                       "CONNECTION_UPDATE",
+                      "LABELS_EDIT",
+                      "LABELS_ASSOCIATION",
                       "CALL",
                       "NEW_JWT_TOKEN",
                     ]
@@ -1867,6 +1935,8 @@ paths:
                       "GROUP_UPDATE",
                       "GROUP_PARTICIPANTS_UPDATE",
                       "CONNECTION_UPDATE",
+                      "LABELS_EDIT",
+                      "LABELS_ASSOCIATION",
                       "CALL",
                       "NEW_JWT_TOKEN",
                     ]
@@ -1943,6 +2013,8 @@ paths:
                       "GROUP_UPDATE",
                       "GROUP_PARTICIPANTS_UPDATE",
                       "CONNECTION_UPDATE",
+                      "LABELS_EDIT",
+                      "LABELS_ASSOCIATION",
                       "CALL",
                       "NEW_JWT_TOKEN",
                     ]
@@ -1981,6 +2053,97 @@ paths:
           content:
             application/json: {}
 
+  /label/findLabels/{instanceName}:
+    get:
+      tags:
+        - Label Controller
+      summary: List all labels for an instance.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    color:
+                      type: integer
+                    name:
+                      type: string
+                    id:
+                      type: string
+                    predefinedId:
+                      type: string
+                  required:
+                    - color
+                    - name
+                    - id
+  /label/handleLabel/{instanceName}:
+    put:
+      tags:
+        - Label Controller
+      summary: Change the label (add or remove) for an specific chat.
+      parameters:
+        - name: instanceName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: "- required"
+          example: "evolution"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                labelId:
+                  type: string
+                action:
+                  type: string
+                  enum:
+                    - add
+                    - remove
+              required:
+                - number
+                - labelId
+                - action
+            example:
+              number: '553499999999'
+              labelId: '1'
+              action: add
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  numberJid:
+                    type: string
+                  labelId:
+                    type: string
+                  remove:
+                    type: boolean
+                  add:
+                    type: boolean
+                required:
+                  - numberJid
+                  - labelId
+
   /settings/set/{instanceName}:
     post:
       tags:
@@ -2011,6 +2174,9 @@ paths:
                 read_status:
                   type: boolean
                   description: "Indicates whether to mark status messages as read."
+                sync_full_history:
+                  type: boolean
+                  description: "Indicates whether to request a full history messages sync on connect."
       parameters:
         - name: instanceName
           in: path
@@ -2076,6 +2242,15 @@ paths:
                 conversation_pending:
                   type: boolean
                   description: "Indicates whether to mark conversations as pending."
+                import_contacts:
+                  type: boolean
+                  description: "Indicates whether to import contacts from phone to Chatwoot when connecting."
+                import_messages:
+                  type: boolean
+                  description: "Indicates whether to import messages from phone to Chatwoot when connecting."
+                days_limit_import_messages:
+                  type: number
+                  description: "Indicates number of days to limit messages imported to Chatwoot."
       parameters:
         - name: instanceName
           in: path

@@ -1,14 +1,18 @@
-import { readFileSync } from 'fs';
+import { opendirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 import { Auth, ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { AUTH_DIR } from '../../config/path.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
-import { AuthRaw, IAuthModel } from '../models';
+import { AuthRaw, IAuthModel, IntegrationModel } from '../models';
 
 export class AuthRepository extends Repository {
-  constructor(private readonly authModel: IAuthModel, readonly configService: ConfigService) {
+  constructor(
+    private readonly authModel: IAuthModel,
+    private readonly integrationModel: IntegrationModel,
+    readonly configService: ConfigService,
+  ) {
     super(configService);
     this.auth = configService.get<Auth>('AUTHENTICATION');
   }
@@ -64,12 +68,61 @@ export class AuthRepository extends Repository {
     }
   }
 
+  public async list(): Promise<AuthRaw[]> {
+    try {
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('listing auth in db');
+        return await this.authModel.find();
+      }
+
+      this.logger.verbose('listing auth in store');
+
+      const auths: AuthRaw[] = [];
+      const openDir = opendirSync(join(AUTH_DIR, this.auth.TYPE), {
+        encoding: 'utf-8',
+      });
+      for await (const dirent of openDir) {
+        if (dirent.isFile()) {
+          auths.push(
+            JSON.parse(
+              readFileSync(join(AUTH_DIR, this.auth.TYPE, dirent.name), {
+                encoding: 'utf-8',
+              }),
+            ),
+          );
+        }
+      }
+
+      return auths;
+    } catch (error) {
+      return [];
+    }
+  }
+
   public async findInstanceNameById(instanceId: string): Promise<string | null> {
     try {
       this.logger.verbose('finding auth by instanceId');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('finding auth in db');
         const response = await this.authModel.findOne({ instanceId });
+
+        return response._id;
+      }
+
+      this.logger.verbose('finding auth in store is not supported');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  public async findInstanceNameByNumber(number: string): Promise<string | null> {
+    try {
+      this.logger.verbose('finding auth by number');
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('finding auth in db');
+        const instance = await this.integrationModel.findOne({ number });
+
+        const response = await this.authModel.findOne({ _id: instance._id });
 
         return response._id;
       }

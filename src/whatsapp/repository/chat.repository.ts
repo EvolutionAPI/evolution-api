@@ -4,9 +4,10 @@ import { join } from 'path';
 import { ConfigService, StoreConf } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ChatRaw, IChatModel } from '../models';
+import { ChatRaw, ChatRawSelect, IChatModel } from '../models';
 
 export class ChatQuery {
+  select?: ChatRawSelect;
   where: ChatRaw;
 }
 
@@ -69,7 +70,7 @@ export class ChatRepository extends Repository {
       this.logger.verbose('finding chats');
       if (this.dbSettings.ENABLED) {
         this.logger.verbose('finding chats in db');
-        return await this.chatModel.find({ owner: query.where.owner });
+        return await this.chatModel.find({ owner: query.where.owner }).select(query.select ?? {});
       }
 
       this.logger.verbose('finding chats in store');
@@ -112,6 +113,65 @@ export class ChatRepository extends Repository {
       return { deleted: { chatId: query.where.id } };
     } catch (error) {
       return { error: error?.toString() };
+    }
+  }
+
+  public async update(data: ChatRaw[], instanceName: string, saveDb = false): Promise<IInsert> {
+    try {
+      this.logger.verbose('updating chats');
+
+      if (data.length === 0) {
+        this.logger.verbose('no chats to update');
+        return;
+      }
+
+      if (this.dbSettings.ENABLED && saveDb) {
+        this.logger.verbose('updating chats in db');
+
+        const chats = data.map((chat) => {
+          return {
+            updateOne: {
+              filter: { id: chat.id },
+              update: { ...chat },
+              upsert: true,
+            },
+          };
+        });
+
+        const { nModified } = await this.chatModel.bulkWrite(chats);
+
+        this.logger.verbose('chats updated in db: ' + nModified + ' chats');
+        return { insertCount: nModified };
+      }
+
+      this.logger.verbose('updating chats in store');
+
+      const store = this.configService.get<StoreConf>('STORE');
+
+      if (store.CONTACTS) {
+        this.logger.verbose('updating chats in store');
+        data.forEach((chat) => {
+          this.writeStore({
+            path: join(this.storePath, 'chats', instanceName),
+            fileName: chat.id,
+            data: chat,
+          });
+          this.logger.verbose(
+            'chats updated in store in path: ' + join(this.storePath, 'chats', instanceName) + '/' + chat.id,
+          );
+        });
+
+        this.logger.verbose('chats updated in store: ' + data.length + ' chats');
+
+        return { insertCount: data.length };
+      }
+
+      this.logger.verbose('chats not updated');
+      return { insertCount: 0 };
+    } catch (error) {
+      return error;
+    } finally {
+      data = undefined;
     }
   }
 }

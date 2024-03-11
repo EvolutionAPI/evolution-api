@@ -28,6 +28,10 @@ export enum Events {
   TYPEBOT_START = 'typebot.start',
   TYPEBOT_CHANGE_STATUS = 'typebot.change-status',
   CHAMA_AI_ACTION = 'chama-ai.action',
+  LABELS_EDIT = 'labels.edit',
+  LABELS_ASSOCIATION = 'labels.association',
+  CREDS_UPDATE = 'creds.update',
+  MESSAGING_HISTORY_SET = 'messaging-history.set',
 }
 
 export declare namespace wa {
@@ -65,6 +69,9 @@ export declare namespace wa {
     number?: string;
     reopen_conversation?: boolean;
     conversation_pending?: boolean;
+    import_contacts?: boolean;
+    import_messages?: boolean;
+    days_limit_import_messages?: number;
   };
 
   export type LocalSettings = {
@@ -74,6 +81,7 @@ export declare namespace wa {
     always_online?: boolean;
     read_messages?: boolean;
     read_status?: boolean;
+    sync_full_history?: boolean;
   };
 
   export type LocalWebsocket = {
@@ -109,9 +117,17 @@ export declare namespace wa {
     sessions?: Session[];
   };
 
+  type Proxy = {
+    host?: string;
+    port?: string;
+    protocol?: string;
+    username?: string;
+    password?: string;
+  };
+
   export type LocalProxy = {
     enabled?: boolean;
-    proxy?: string;
+    proxy?: Proxy;
   };
 
   export type LocalChamaai = {
@@ -120,6 +136,12 @@ export declare namespace wa {
     token?: string;
     waNumber?: string;
     answerByAudio?: boolean;
+  };
+
+  export type LocalIntegration = {
+    integration?: string;
+    number?: string;
+    token?: string;
   };
 
   export type StateConnection = {
@@ -139,3 +161,8 @@ export const MessageSubtype = [
   'viewOnceMessage',
   'viewOnceMessageV2',
 ];
+
+export const Integration = {
+  WHATSAPP_BUSINESS: 'WHATSAPP-BUSINESS',
+  WHATSAPP_BAILEYS: 'WHATSAPP-BAILEYS',
+};

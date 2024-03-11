@@ -1,6 +1,6 @@
 FROM node:20.7.0-alpine AS builder
 
-LABEL version="1.6.1" description="Api to control whatsapp features through http requests." 
+LABEL version="1.7.0" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
@@ -35,6 +35,7 @@ ENV LOG_COLOR=true
 ENV LOG_BAILEYS=error
 
 ENV DEL_INSTANCE=false
+ENV DEL_TEMP_INSTANCES=true
 
 ENV STORE_MESSAGES=true
 ENV STORE_MESSAGE_UP=true
@@ -62,9 +63,16 @@ ENV REDIS_URI=redis://redis:6379
 ENV REDIS_PREFIX_KEY=evolution
 
 ENV RABBITMQ_ENABLED=false
+ENV RABBITMQ_MODE=global
+ENV RABBITMQ_EXCHANGE_NAME=evolution_exchange
 ENV RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
 
 ENV WEBSOCKET_ENABLED=false
+
+ENV WA_BUSINESS_TOKEN_WEBHOOK=evolution
+ENV WA_BUSINESS_URL=https://graph.facebook.com
+ENV WA_BUSINESS_VERSION=v18.0
+ENV WA_BUSINESS_LANGUAGE=pt_BR
 
 ENV SQS_ENABLED=false
 ENV SQS_ACCESS_KEY_ID=
@@ -98,6 +106,8 @@ ENV WEBHOOK_EVENTS_GROUPS_UPSERT=true
 ENV WEBHOOK_EVENTS_GROUPS_UPDATE=true
 ENV WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE=true
 ENV WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+ENV WEBHOOK_EVENTS_LABELS_EDIT=true
+ENV WEBHOOK_EVENTS_LABELS_ASSOCIATION=true
 ENV WEBHOOK_EVENTS_CALL=true
 
 ENV WEBHOOK_EVENTS_NEW_JWT_TOKEN=false
