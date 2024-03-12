@@ -1354,6 +1354,37 @@ export class ChatwootService {
             );
           }
         }
+
+        const chatwootRead = this.configService.get<Chatwoot>('CHATWOOT').MESSAGE_READ;
+        if (chatwootRead) {
+          const lastMessage = await this.repository.message.find({
+            where: {
+              key: {
+                fromMe: false,
+              },
+              owner: instance.instanceName,
+            },
+            limit: 1,
+          });
+          if (lastMessage.length > 0 && !lastMessage[0].chatwoot?.isRead) {
+            waInstance?.markMessageAsRead({
+              read_messages: lastMessage.map((msg) => ({
+                id: msg.key?.id,
+                fromMe: msg.key?.fromMe,
+                remoteJid: msg.key?.remoteJid,
+              })),
+            });
+            const updateMessage = lastMessage.map((msg) => ({
+              key: msg.key,
+              owner: msg.owner,
+              chatwoot: {
+                ...msg.chatwoot,
+                isRead: true,
+              },
+            }));
+            this.repository.message.update(updateMessage, instance.instanceName, true);
+          }
+        }
       }
 
       if (body.message_type === 'template' && body.event === 'message_created') {
