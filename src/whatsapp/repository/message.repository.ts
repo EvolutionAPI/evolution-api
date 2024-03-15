@@ -118,6 +118,7 @@ export class MessageRepository extends Repository {
 
         return await this.messageModel
           .find({ ...query.where })
+          .select(query.select || {})
           .sort({ messageTimestamp: -1 })
           .limit(query?.limit ?? 0);
       }
