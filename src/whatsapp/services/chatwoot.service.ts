@@ -2078,6 +2078,34 @@ export class ChatwootService {
         }
       }
 
+      if (event === 'messages.edit') {
+        const editedText = `${
+          body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
+        }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;
+        const message = await this.getMessageByKeyId(instance, body?.key?.id);
+        const messageType = message.key?.fromMe ? 'outgoing' : 'incoming';
+
+        if (message && message.chatwoot?.conversationId) {
+          const send = await this.createMessage(
+            instance,
+            message.chatwoot.conversationId,
+            editedText,
+            messageType,
+            false,
+            [],
+            {
+              message: { extendedTextMessage: { contextInfo: { stanzaId: message.key.id } } },
+            },
+            'WAID:' + body.key.id,
+          );
+          if (!send) {
+            this.logger.warn('edited message not sent');
+            return;
+          }
+        }
+        return;
+      }
+
       if (event === 'messages.read') {
         this.logger.verbose('read message from instance: ' + instance.instanceName);
 

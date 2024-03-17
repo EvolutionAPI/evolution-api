@@ -21,5 +21,6 @@
   "cw.locationMessage.locationUrl": "URL",
   "cw.contactMessage.contact": "Contato",
   "cw.contactMessage.name": "Nome",
-  "cw.contactMessage.number": "Número"
+  "cw.contactMessage.number": "Número",
+  "cw.message.edited": "Mensagem editada"
 }
