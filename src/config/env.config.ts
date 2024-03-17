@@ -164,6 +164,7 @@ export type QrCode = { LIMIT: number; COLOR: string };
 export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
 export type Chatwoot = {
   MESSAGE_DELETE: boolean;
+  MESSAGE_READ: boolean;
   IMPORT: {
     DATABASE: {
       CONNECTION: {
@@ -379,6 +380,7 @@ export class ConfigService {
       },
       CHATWOOT: {
         MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'false',
+        MESSAGE_READ: process.env.CHATWOOT_MESSAGE_READ === 'false',
         IMPORT: {
           DATABASE: {
             CONNECTION: {
