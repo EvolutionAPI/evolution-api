@@ -384,7 +384,7 @@ export class ConfigService {
         IMPORT: {
           DATABASE: {
             CONNECTION: {
-              URI: process.env.CHATWOOT_DATABASE_CONNECTION_URI || '',
+              URI: process.env.CHATWOOT_IMPORT_DATABASE_CONNECTION_URI || '',
             },
           },
           PLACEHOLDER_MEDIA_MESSAGE: process.env?.CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE === 'true',
