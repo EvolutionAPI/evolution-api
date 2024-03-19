@@ -11,7 +11,6 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   SendPresenceDto,
-  SetPresenceDto,
   UpdateMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
@@ -84,11 +83,6 @@ export class ChatController {
   public async sendPresence({ instanceName }: InstanceDto, data: SendPresenceDto) {
     logger.verbose('requested sendPresence from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].sendPresence(data);
-  }
-
-  public async setPresence({ instanceName }: InstanceDto, data: SetPresenceDto) {
-    logger.verbose('requested sendPresence from ' + instanceName + ' instance');
-    return await this.waMonitor.waInstances[instanceName].setPresence(data);
   }
 
   public async fetchPrivacySettings({ instanceName }: InstanceDto) {

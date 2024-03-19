@@ -72,7 +72,6 @@ import {
   PrivacySettingDto,
   ReadMessageDto,
   SendPresenceDto,
-  SetPresenceDto,
   UpdateMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
@@ -90,7 +89,7 @@ import {
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
 } from '../dto/group.dto';
-import { InstanceDto } from '../dto/instance.dto';
+import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { HandleLabelDto, LabelDto } from '../dto/label.dto';
 import {
   ContactMessage,

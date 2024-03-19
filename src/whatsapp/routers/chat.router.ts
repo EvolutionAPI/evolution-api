@@ -32,7 +32,6 @@ import {
   ProfileStatusDto,
   ReadMessageDto,
   SendPresenceDto,
-  SetPresenceDto,
   UpdateMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
@@ -248,22 +247,6 @@ export class ChatRouter extends RouterBroker {
           schema: presenceSchema,
           ClassRef: SendPresenceDto,
           execute: (instance, data) => chatController.sendPresence(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
-      .post(this.routerPath('setPresence'), ...guards, async (req, res) => {
-        logger.verbose('request received in setPresence');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-        const response = await this.dataValidate<null>({
-          request: req,
-          schema: presenceOnlySchema,
-          ClassRef: SetPresenceDto,
-          execute: (instance, data) => chatController.setPresence(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

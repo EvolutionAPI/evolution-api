@@ -110,10 +110,6 @@ export class SendPresenceDto extends Metadata {
   };
 }
 
-export class SetPresenceDto {
-  presence: WAPresence;
-}
-
 export class UpdateMessageDto extends Metadata {
   number: string;
   key: proto.IMessageKey;
