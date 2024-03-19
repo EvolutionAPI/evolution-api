@@ -72,6 +72,7 @@ import {
   PrivacySettingDto,
   ReadMessageDto,
   SendPresenceDto,
+  SetPresenceDto,
   UpdateMessageDto,
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
@@ -1830,7 +1831,6 @@ export class BaileysStartupService extends WAStartupService {
   }
 
   // Instance Controller
-
   public async sendPresence(data: SendPresenceDto) {
     try {
       const { number } = data;
@@ -1857,6 +1857,17 @@ export class BaileysStartupService extends WAStartupService {
 
       await this.client.sendPresenceUpdate('paused', sender);
       this.logger.verbose('Sending presence update: paused');
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  // Presence Controller
+  public async setPresence(data: SetPresenceDto) {
+    try {
+      await this.client.sendPresenceUpdate(data.presence);
+      this.logger.verbose('Sending presence update: ' + data.presence);
     } catch (error) {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
