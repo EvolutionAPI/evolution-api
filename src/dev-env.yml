@@ -166,6 +166,8 @@ TYPEBOT:
 CHATWOOT:
   # If you leave this option as false, when deleting the message for everyone on WhatsApp, it will not be deleted on Chatwoot.
   MESSAGE_DELETE: true # false | true
+  # If you leave this option as true, when sending a message in Chatwoot, the client's last message will be marked as read on WhatsApp.
+  MESSAGE_READ: false # false | true
   IMPORT:
     # This db connection is used to import messages from whatsapp to chatwoot database
     DATABASE:

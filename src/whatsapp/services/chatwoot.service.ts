@@ -1354,6 +1354,37 @@ export class ChatwootService {
             );
           }
         }
+
+        const chatwootRead = this.configService.get<Chatwoot>('CHATWOOT').MESSAGE_READ;
+        if (chatwootRead) {
+          const lastMessage = await this.repository.message.find({
+            where: {
+              key: {
+                fromMe: false,
+              },
+              owner: instance.instanceName,
+            },
+            limit: 1,
+          });
+          if (lastMessage.length > 0 && !lastMessage[0].chatwoot?.isRead) {
+            waInstance?.markMessageAsRead({
+              read_messages: lastMessage.map((msg) => ({
+                id: msg.key?.id,
+                fromMe: msg.key?.fromMe,
+                remoteJid: msg.key?.remoteJid,
+              })),
+            });
+            const updateMessage = lastMessage.map((msg) => ({
+              key: msg.key,
+              owner: msg.owner,
+              chatwoot: {
+                ...msg.chatwoot,
+                isRead: true,
+              },
+            }));
+            this.repository.message.update(updateMessage, instance.instanceName, true);
+          }
+        }
       }
 
       if (body.message_type === 'template' && body.event === 'message_created') {
@@ -2045,6 +2076,34 @@ export class ChatwootService {
             });
           }
         }
+      }
+
+      if (event === 'messages.edit') {
+        const editedText = `${
+          body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
+        }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;
+        const message = await this.getMessageByKeyId(instance, body?.key?.id);
+        const messageType = message.key?.fromMe ? 'outgoing' : 'incoming';
+
+        if (message && message.chatwoot?.conversationId) {
+          const send = await this.createMessage(
+            instance,
+            message.chatwoot.conversationId,
+            editedText,
+            messageType,
+            false,
+            [],
+            {
+              message: { extendedTextMessage: { contextInfo: { stanzaId: message.key.id } } },
+            },
+            'WAID:' + body.key.id,
+          );
+          if (!send) {
+            this.logger.warn('edited message not sent');
+            return;
+          }
+        }
+        return;
       }
 
       if (event === 'messages.read') {
