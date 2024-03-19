@@ -938,6 +938,17 @@ export class BaileysStartupService extends WAStartupService {
         this.logger.verbose('Event received: messages.upsert');
         for (const received of messages) {
           if (
+            this.localChatwoot.enabled &&
+            (received.message?.protocolMessage?.editedMessage || received.message?.editedMessage?.message)
+          ) {
+            const editedMessage =
+              received.message?.protocolMessage || received.message?.editedMessage?.message?.protocolMessage;
+            if (editedMessage) {
+              this.chatwootService.eventWhatsapp('messages.edit', { instanceName: this.instance.name }, editedMessage);
+            }
+          }
+
+          if (
             (type !== 'notify' && type !== 'append') ||
             received.message?.protocolMessage ||
             received.message?.pollUpdateMessage
