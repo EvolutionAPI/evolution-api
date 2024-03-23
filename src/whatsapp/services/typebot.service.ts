@@ -269,18 +269,20 @@ export class TypebotService {
   }
 
   private getTypeMessage(msg: any) {
-    this.logger.verbose('get type message');
+  this.logger.verbose('get type message');
 
-    const types = {
-      conversation: msg.conversation,
-      extendedTextMessage: msg.extendedTextMessage?.text,
-      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
-    };
+  const types = {
+    conversation: msg.conversation,
+    audioMessage: msg.audioMessage?.url,
+    imageMessage: msg.imageMessage?.url,
+    videoMessage: msg.videoMessage?.url,
+    // Adicione mais tipos aqui conforme necessário
+  };
 
-    this.logger.verbose('type message: ' + types);
+  this.logger.verbose('type message: ' + JSON.stringify(types));
 
-    return types;
-  }
+  return types;
+}
 
   private getMessageContent(types: any) {
     this.logger.verbose('get message content');
