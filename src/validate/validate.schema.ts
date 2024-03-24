@@ -161,6 +161,18 @@ export const presenceSchema: JSONSchema7 = {
   required: ['options', 'number'],
 };
 
+export const presenceOnlySchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    presence: {
+      type: 'string',
+      enum: ['unavailable', 'available', 'composing', 'recording', 'paused'],
+    },
+  },
+  required: ['presence'],
+};
+
 export const pollMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
