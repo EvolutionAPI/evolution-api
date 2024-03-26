@@ -1774,6 +1774,13 @@ export class ChatwootService {
           return;
         }
 
+        // fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
+        if (body.message?.ephemeralMessage?.message) {
+          body.message = {
+            ...body.message?.ephemeralMessage?.message,
+          };
+        }
+
         this.logger.verbose('get conversation message');
 
         // Whatsapp to Chatwoot
