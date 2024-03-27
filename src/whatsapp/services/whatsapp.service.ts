@@ -663,6 +663,18 @@ export class WAStartupService {
     };
   }
 
+  private assertExchangeAsync = (channel, exchangeName, exchangeType, options) => {
+    return new Promise((resolve, reject) => {
+      channel.assertExchange(exchangeName, exchangeType, options, (error, ok) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(ok);
+        }
+      });
+    });
+  };
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
@@ -687,7 +699,12 @@ export class WAStartupService {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
           const exchangeName = this.instanceName ?? 'evolution_exchange';
 
-          await amqp.assertExchange(exchangeName, 'topic', {
+          // await amqp.assertExchange(exchangeName, 'topic', {
+          //   durable: true,
+          //   autoDelete: false,
+          // });
+
+          await this.assertExchangeAsync(amqp, exchangeName, 'topic', {
             durable: true,
             autoDelete: false,
           });

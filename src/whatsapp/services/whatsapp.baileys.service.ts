@@ -472,7 +472,7 @@ export class BaileysStartupService extends WAStartupService {
       if (this.localProxy.enabled) {
         this.logger.info('Proxy enabled: ' + this.localProxy.proxy);
 
-        if (this.localProxy.proxy.host.includes('proxyscrape')) {
+        if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
           try {
             const response = await axios.get(this.localProxy.proxy.host);
             const text = response.data;
