@@ -13,6 +13,7 @@ import {
   Database,
   HttpServer,
   Log,
+  Rabbitmq,
   Sqs,
   Webhook,
   Websocket,
@@ -685,7 +686,7 @@ export class WAStartupService {
 
       if (amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-          const exchangeName = this.instanceName ?? 'evolution_exchange';
+          const exchangeName = this.configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME ?? this.instanceName;
 
           amqp.assertExchange(exchangeName, 'topic', {
             durable: true,

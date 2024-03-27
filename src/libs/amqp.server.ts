@@ -10,6 +10,7 @@ let amqpChannel: amqp.Channel | null = null;
 export const initAMQP = () => {
   return new Promise<void>((resolve, reject) => {
     const uri = configService.get<Rabbitmq>('RABBITMQ').URI;
+    const exchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME ?? 'evolution_exchange';
     amqp.connect(uri, (error, connection) => {
       if (error) {
         reject(error);
@@ -21,8 +22,6 @@ export const initAMQP = () => {
           reject(channelError);
           return;
         }
-
-        const exchangeName = 'evolution_exchange';
 
         channel.assertExchange(exchangeName, 'topic', {
           durable: true,
@@ -51,7 +50,7 @@ export const initQueues = (instanceName: string, events: string[]) => {
 
   queues.forEach((event) => {
     const amqp = getAMQP();
-    const exchangeName = instanceName ?? 'evolution_exchange';
+    const exchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME ?? instanceName;
 
     amqp.assertExchange(exchangeName, 'topic', {
       durable: true,
@@ -81,7 +80,7 @@ export const removeQueues = (instanceName: string, events: string[]) => {
     return `${event.replace(/_/g, '.').toLowerCase()}`;
   });
 
-  const exchangeName = instanceName ?? 'evolution_exchange';
+  const exchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME ?? instanceName;
 
   queues.forEach((event) => {
     const amqp = getAMQP();
