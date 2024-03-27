@@ -268,53 +268,34 @@ export class TypebotService {
     };
   }
 
-  function extractMessageContent(message: any) {
-    switch (message.type) {
-      case 'conversation':
-      case 'extendedTextMessage':
-        return message.content.text || message.content.extendedTextMessage?.text;
-      case 'imageMessage':
-        return message.content.imageMessage?.url;
-      case 'audioMessage':
-        return message.content.audioMessage?.url;
-      case 'videoMessage':
-        return message.content.videoMessage?.url;
-      case 'documentMessage':
-        return message.content.documentMessage?.url;
-      case 'contactMessage':
-        return message.content.contactMessage.displayName;
-      case 'listResponseMessage':
-        return message.content.listResponseMessage.singleSelectReply?.selectedRowId;
-      case 'locationMessage':
-        return JSON.stringify({
-          lat: message.content.locationMessage.degreesLatitude,
-          lng: message.content.locationMessage.degreesLongitude,
-        });
-      default:
-        return '';
-    }
-  }
-
   private getTypeMessage(msg: any) {
     this.logger.verbose('get type message');
-
+  
+    // Mapeamento dos tipos de mensagem recebida para os campos relevantes
     const types = {
       conversation: msg.conversation,
-      extendedTextMessage: msg.extendedTextMessage,
-      imageMessage: msg.imageMessage,
-      audioMessage: msg.audioMessage,
-      videoMessage: msg.videoMessage,
-      documentMessage: msg.documentMessage,
-      contactMessage: msg.contactMessage,
-      listResponseMessage: msg.listResponseMessage,
-      locationMessage: msg.locationMessage,
+      extendedTextMessage: msg.extendedTextMessage?.text,
+      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+      audioMessage: msg.audioMessage?.url,
+      imageMessage: msg.imageMessage?.url,
+      videoMessage: msg.videoMessage?.url,
+      documentMessage: msg.documentMessage?.fileName,
+      contactMessage: msg.contactMessage?.displayName,
+      locationMessage: msg.locationMessage?.degreesLatitude + ', ' + msg.locationMessage?.degreesLongitude,
+      viewOnceMessage: msg.viewOnceMessageV2?.message?.imageMessage?.url,
     };
 
-    const messageContent = extractMessageContent(types[Object.keys(types).find((key) => types[key])]);
+    this.logger.verbose('type message: ' + types);  
+    
+    const messageType = Object.keys(types).find(key => types[key] !== undefined);
   
-    this.logger.verbose('conversation message: ' + messageContent);
+    if (messageType) {
+      this.logger.verbose('Message type identified: ' + messageType);
+    } else {
+      this.logger.verbose('Message type could not be identified');
+    }
   
-    return messageContent;
+    return { messageType, content: types[messageType] };
   }
 
   private getMessageContent(types: any) {
