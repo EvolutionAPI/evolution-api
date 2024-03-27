@@ -1,3 +1,5 @@
+import { WAPresence } from "@whiskeysockets/baileys";
+
 export class InstanceDto {
   instanceName: string;
   instanceId?: string;
@@ -39,4 +41,8 @@ export class InstanceDto {
   typebot_unknown_message?: string;
   typebot_listening_from_me?: boolean;
   proxy?: string;
+}
+
+export class SetPresenceDto {
+  presence: WAPresence;
 }
