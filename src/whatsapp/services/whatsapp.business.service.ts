@@ -1185,6 +1185,9 @@ export class BusinessStartupService extends WAStartupService {
   public async sendPresence() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
+  public async setPresence() {
+    throw new BadRequestException('Method not available on WhatsApp Business API');
+  }
   public async fetchPrivacySettings() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }

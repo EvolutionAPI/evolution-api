@@ -7,7 +7,7 @@ import { ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
 import { RedisCache } from '../../libs/redis.client';
-import { InstanceDto } from '../dto/instance.dto';
+import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
 import { CacheService } from '../services/cache.service';
@@ -654,6 +654,11 @@ export class InstanceController {
 
     this.logger.verbose('requested fetchInstances (all instances)');
     return this.waMonitor.instanceInfo();
+  }
+
+  public async setPresence({ instanceName }: InstanceDto, data: SetPresenceDto) {
+    this.logger.verbose('requested sendPresence from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].setPresence(data);
   }
 
   public async logout({ instanceName }: InstanceDto) {
