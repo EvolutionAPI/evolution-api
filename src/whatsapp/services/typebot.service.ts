@@ -267,35 +267,27 @@ export class TypebotService {
       },
     };
   }
-
+  
   private getTypeMessage(msg: any) {
     this.logger.verbose('get type message');
-  
-    // Mapeamento dos tipos de mensagem recebida para os campos relevantes
+
     const types = {
       conversation: msg.conversation,
       extendedTextMessage: msg.extendedTextMessage?.text,
-      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
       audioMessage: msg.audioMessage?.url,
       imageMessage: msg.imageMessage?.url,
       videoMessage: msg.videoMessage?.url,
       documentMessage: msg.documentMessage?.fileName,
       contactMessage: msg.contactMessage?.displayName,
-      locationMessage: msg.locationMessage?.degreesLatitude + ', ' + msg.locationMessage?.degreesLongitude,
-      viewOnceMessage: msg.viewOnceMessageV2?.message?.imageMessage?.url,
+      locationMessage: msg.locationMessage?.degreesLatitude,
+      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url,
+      listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
     };
 
-    this.logger.verbose('type message: ' + types);  
-    
-    const messageType = Object.keys(types).find(key => types[key] !== undefined);
-  
-    if (messageType) {
-      this.logger.verbose('Message type identified: ' + messageType);
-    } else {
-      this.logger.verbose('Message type could not be identified');
-    }
-  
-    return { messageType, content: types[messageType] };
+    this.logger.verbose('type message: ' + JSON.stringify(types));
+
+    return types;
   }
 
   private getMessageContent(types: any) {
