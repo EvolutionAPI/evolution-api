@@ -663,6 +663,18 @@ export class WAStartupService {
     };
   }
 
+  private assertExchangeAsync = (channel, exchangeName, exchangeType, options) => {
+    return new Promise((resolve, reject) => {
+      channel.assertExchange(exchangeName, exchangeType, options, (error, ok) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(ok);
+        }
+      });
+    });
+  };
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
@@ -687,14 +699,19 @@ export class WAStartupService {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
           const exchangeName = this.instanceName ?? 'evolution_exchange';
 
-          amqp.assertExchange(exchangeName, 'topic', {
+          // await amqp.assertExchange(exchangeName, 'topic', {
+          //   durable: true,
+          //   autoDelete: false,
+          // });
+
+          await this.assertExchangeAsync(amqp, exchangeName, 'topic', {
             durable: true,
             autoDelete: false,
           });
 
           const queueName = `${this.instanceName}.${event}`;
 
-          amqp.assertQueue(queueName, {
+          await amqp.assertQueue(queueName, {
             durable: true,
             autoDelete: false,
             arguments: {
@@ -702,7 +719,7 @@ export class WAStartupService {
             },
           });
 
-          amqp.bindQueue(queueName, exchangeName, event);
+          await amqp.bindQueue(queueName, exchangeName, event);
 
           const message = {
             event,
@@ -717,7 +734,7 @@ export class WAStartupService {
             message['apikey'] = instanceApikey;
           }
 
-          amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+          await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
 
           if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
             const logData = {
