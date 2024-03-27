@@ -687,14 +687,14 @@ export class WAStartupService {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
           const exchangeName = this.instanceName ?? 'evolution_exchange';
 
-          amqp.assertExchange(exchangeName, 'topic', {
+          await amqp.assertExchange(exchangeName, 'topic', {
             durable: true,
             autoDelete: false,
           });
 
           const queueName = `${this.instanceName}.${event}`;
 
-          amqp.assertQueue(queueName, {
+          await amqp.assertQueue(queueName, {
             durable: true,
             autoDelete: false,
             arguments: {
@@ -702,7 +702,7 @@ export class WAStartupService {
             },
           });
 
-          amqp.bindQueue(queueName, exchangeName, event);
+          await amqp.bindQueue(queueName, exchangeName, event);
 
           const message = {
             event,
@@ -717,7 +717,7 @@ export class WAStartupService {
             message['apikey'] = instanceApikey;
           }
 
-          amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+          await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
 
           if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
             const logData = {
