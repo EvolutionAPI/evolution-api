@@ -171,7 +171,6 @@ export class TypebotService {
     const prefilledVariables = {
       remoteJid: remoteJid,
       instanceName: instance.instanceName,
-      messageType: this.messageType,
     };
 
     if (variables?.length) {
@@ -281,21 +280,16 @@ export class TypebotService {
       documentMessage: msg.documentMessage?.fileName, 
       contactMessage: msg.contactMessage?.displayName, 
       locationMessage: msg.locationMessage?.degreesLatitude, 
-      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.videoMessage?.url, 
+      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url, 
       listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
       responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
-      // Adiciona uma nova propriedade messageType para identificar o tipo da mensagem
-      //messageType: Object.keys(types).find(key => types[key] !== undefined) || 'unknown'
     };
     
     this.logger.verbose('type message: ' + JSON.stringify(types));
     
     return types;
   }
-  
-  // Obtém os tipos de mensagem e o tipo identificado
-  //const messageType = this.getTypeMessage(msg.message);
-   
+
   private getMessageContent(types: any) {
     this.logger.verbose('get message content');
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
