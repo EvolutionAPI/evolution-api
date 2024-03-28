@@ -181,6 +181,14 @@ export class TypebotService {
 
     if (startSession) {
       const newSessions = await this.clearSessions(instance, remoteJid);
+	  
+	  const prefilledVariables = {
+		...data.prefilledVariables,
+		remoteJid: data.remoteJid,
+		pushName: data.pushName || '',
+		messageType: msg.type,
+		instanceName: instance.instanceName,
+	  };
 
       const response = await this.createNewSession(instance, {
         enabled: findTypebot.enabled,
@@ -641,6 +649,12 @@ export class TypebotService {
 
               return;
             }
+			
+			const prefilledVariables = {
+				remoteJid: remoteJid,
+				pushName: pushName,
+				messageType: msg.type,
+			};
 
             try {
               const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
@@ -695,6 +709,7 @@ export class TypebotService {
           sessions: sessions,
           remoteJid: remoteJid,
           pushName: msg.pushName,
+		  prefilledVariables: prefilledVariables,
         });
 
         await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
