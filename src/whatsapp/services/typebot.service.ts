@@ -269,25 +269,28 @@ export class TypebotService {
   }
   
   private getTypeMessage(msg: any) {
-    this.logger.verbose('get type message');
-
     const types = {
-      conversation: msg.conversation,
-      extendedTextMessage: msg.extendedTextMessage?.text,
-      audioMessage: msg.audioMessage?.url,
-      imageMessage: msg.imageMessage?.url,
-      videoMessage: msg.videoMessage?.url,
-      documentMessage: msg.documentMessage?.fileName,
-      contactMessage: msg.contactMessage?.displayName,
-      locationMessage: msg.locationMessage?.degreesLatitude,
-      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url,
-      listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
-      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+      text: msg.extendedTextMessage !== undefined,
+      audio: msg.audioMessage !== undefined,
+      image: msg.imageMessage !== undefined,
+      video: msg.videoMessage !== undefined,
+      document: msg.documentMessage !== undefined,
+      contact: msg.contactMessage !== undefined,
+      location: msg.locationMessage !== undefined,
+      viewOnce: msg.viewOnceMessageV2 !== undefined,
+      listResponse: msg.listResponseMessage !== undefined
     };
 
-    this.logger.verbose('type message: ' + JSON.stringify(types));
+    let messageType = 'unknown';
 
-    return types;
+    for (const [key, value] of Object.entries(types)) {
+        if (value) {
+            messageType = key;
+            break;
+        }
+    }
+
+    return messageType;
   }
 
   private getMessageContent(types: any) {
