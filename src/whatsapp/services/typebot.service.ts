@@ -269,29 +269,27 @@ export class TypebotService {
   }
   
   private getTypeMessage(msg: any) {
-    this.logger.verbose('get type message');
-
-    const types = {
-      conversation: msg.conversation,
-      extendedTextMessage: msg.extendedTextMessage?.text,
-      audioMessage: msg.audioMessage?.url,
-      imageMessage: msg.imageMessage?.url,
-      videoMessage: msg.videoMessage?.url,
-      documentMessage: msg.documentMessage?.fileName,
-      contactMessage: msg.contactMessage?.displayName,
-      locationMessage: msg.locationMessage?.degreesLatitude,
-      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url,
-      listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
-      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
-      messageType: "unknown" // Adicionando uma variável para armazenar o tipo de mensagem
-    };
-
-    // Verificando qual é o tipo de mensagem
-    for (const [key, value] of Object.entries(types)) {
-        if (value !== undefined) {
-            types.messageType = key;
-            break;
-        }
+     if (msg.extendedTextMessage !== undefined) {
+          return 'text';
+      } else if (msg.audioMessage !== undefined) {
+          return 'audio';
+      } else if (msg.imageMessage !== undefined) {
+          return 'image';
+      } else if (msg.videoMessage !== undefined) {
+          return 'video';
+      } else if (msg.documentMessage !== undefined) {
+          return 'document';
+      } else if (msg.contactMessage !== undefined) {
+          return 'contact';
+      } else if (msg.locationMessage !== undefined) {
+          return 'location';
+      } else if (msg.viewOnceMessageV2 !== undefined) {
+          return 'oneViewer';
+      } else if (msg.listResponseMessage !== undefined) {
+          return 'ListResponse';
+      } else {
+         return 'desconhecido';
+      }
     }
 
     this.logger.verbose('type message: ' + JSON.stringify(types));
