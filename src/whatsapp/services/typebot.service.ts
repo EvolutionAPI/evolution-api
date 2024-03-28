@@ -285,7 +285,7 @@ export class TypebotService {
       listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
       responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
       // Adiciona uma nova propriedade messageType para identificar o tipo da mensagem
-      messageType: Object.keys(types).find(key => types[key] !== undefined) || 'unknown'
+      //messageType: Object.keys(types).find(key => types[key] !== undefined) || 'unknown'
     };
     
     this.logger.verbose('type message: ' + JSON.stringify(types));
