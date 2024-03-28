@@ -294,7 +294,7 @@ export class TypebotService {
   }
   
   // Obtém os tipos de mensagem e o tipo identificado
-  const messageType = this.getTypeMessage(msg.message);
+  //const messageType = this.getTypeMessage(msg.message);
    
   private getMessageContent(types: any) {
     this.logger.verbose('get message content');
