@@ -295,34 +295,7 @@ export class TypebotService {
   
   // Obtém os tipos de mensagem e o tipo identificado
   const messageType = this.getTypeMessage(msg.message);
-  
-  // Condiciona a lógica com switch-case
-  switch (messageType) {
-    case 'audioMessage':
-      return 'audio';
-    case 'imageMessage':
-      return 'image';
-    case 'videoMessage':
-      return 'video';
-    case 'documentMessage':
-      return 'document';
-    case 'contactMessage':
-      return 'contact';
-    case 'locationMessage':
-      return 'location';
-    case 'viewOnceMessageV2':
-      return 'oneView';
-    case 'listResponseMessage':
-    case 'responseRowId':
-      return 'option';
-    case 'conversation':
-      return 'text';
-    case 'extendedTextMessage':
-      return 'textWeb';
-    default:
-      return 'unknown';
-  }
-  
+   
   private getMessageContent(types: any) {
     this.logger.verbose('get message content');
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
