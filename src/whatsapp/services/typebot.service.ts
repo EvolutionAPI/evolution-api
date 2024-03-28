@@ -268,28 +268,26 @@ export class TypebotService {
     };
   }
   
-  private getTypeMessage(msg: any) {
-    if (msg.extendedTextMessage !== undefined) {
-        return 'texto';
-    } else if (msg.audioMessage !== undefined) {
-        return 'áudio';
-    } else if (msg.imageMessage !== undefined) {
-        return 'imagem';
-    } else if (msg.videoMessage !== undefined) {
-        return 'vídeo';
-    } else if (msg.documentMessage !== undefined) {
-        return 'documento';
-    } else if (msg.contactMessage !== undefined) {
-        return 'contato';
-    } else if (msg.locationMessage !== undefined) {
-        return 'localização';
-    } else if (msg.viewOnceMessageV2 !== undefined) {
-        return 'mensagem de visualização única';
-    } else if (msg.listResponseMessage !== undefined) {
-        return 'resposta de lista';
-    } else {
-        return 'desconhecido';
-    }
+  private getTypeMessage(msg: any) { 
+    this.logger.verbose('get type message');
+    
+    const types = { 
+      conversation: msg.conversation, 
+      extendedTextMessage: msg.extendedTextMessage?.text, 
+      audioMessage: msg.audioMessage?.url, 
+      imageMessage: msg.imageMessage?.url, 
+      videoMessage: msg.videoMessage?.url, 
+      documentMessage: msg.documentMessage?.fileName, 
+      contactMessage: msg.contactMessage?.displayName, 
+      locationMessage: msg.locationMessage?.degreesLatitude, 
+      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url, 
+      listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
+      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
+    };
+    
+    this.logger.verbose('type message: ' + JSON.stringify(types));
+    
+    return types;
   }
 
   private getMessageContent(types: any) {
