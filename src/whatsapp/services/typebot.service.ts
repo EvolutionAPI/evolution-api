@@ -269,32 +269,27 @@ export class TypebotService {
   }
   
   private getTypeMessage(msg: any) {
-     if (msg.extendedTextMessage !== undefined) {
-          return 'text';
-      } else if (msg.audioMessage !== undefined) {
-          return 'audio';
-      } else if (msg.imageMessage !== undefined) {
-          return 'image';
-      } else if (msg.videoMessage !== undefined) {
-          return 'video';
-      } else if (msg.documentMessage !== undefined) {
-          return 'document';
-      } else if (msg.contactMessage !== undefined) {
-          return 'contact';
-      } else if (msg.locationMessage !== undefined) {
-          return 'location';
-      } else if (msg.viewOnceMessageV2 !== undefined) {
-          return 'oneViewer';
-      } else if (msg.listResponseMessage !== undefined) {
-          return 'ListResponse';
-      } else {
-         return 'desconhecido';
-      }
+    if (msg.extendedTextMessage !== undefined) {
+        return 'texto';
+    } else if (msg.audioMessage !== undefined) {
+        return 'áudio';
+    } else if (msg.imageMessage !== undefined) {
+        return 'imagem';
+    } else if (msg.videoMessage !== undefined) {
+        return 'vídeo';
+    } else if (msg.documentMessage !== undefined) {
+        return 'documento';
+    } else if (msg.contactMessage !== undefined) {
+        return 'contato';
+    } else if (msg.locationMessage !== undefined) {
+        return 'localização';
+    } else if (msg.viewOnceMessageV2 !== undefined) {
+        return 'mensagem de visualização única';
+    } else if (msg.listResponseMessage !== undefined) {
+        return 'resposta de lista';
+    } else {
+        return 'desconhecido';
     }
-
-    this.logger.verbose('type message: ' + JSON.stringify(types));
-
-    return types;
   }
 
   private getMessageContent(types: any) {
