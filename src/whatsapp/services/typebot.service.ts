@@ -314,6 +314,106 @@ export class TypebotService {
     return messageContent;
   }
 
+  private getAudioMessageContent(msg: any) {
+    this.logger.verbose('get audio message content');
+
+    const types = this.getTypeMessage(msg);
+
+    // Supondo que `getTypeMessage` foi adaptado para incluir 'audioMessage'
+    const audioContent = types.audioMessage;
+
+    this.logger.verbose('audio message URL: ' + audioContent);
+
+    return audioContent;
+  }
+
+  private getImageMessageContent(msg: any) {
+    this.logger.verbose('get image message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+      // Supondo que `getTypeMessage` foi adaptado para incluir 'imageMessage'
+    const imageContent = types.imageMessage;
+  
+    this.logger.verbose('image message URL: ' + imageContent);
+  
+    return imageContent;
+  }
+  
+  private getVideoMessageContent(msg: any) {
+    this.logger.verbose('get video message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    // Supondo que `getTypeMessage` foi adaptado para incluir 'videoMessage'
+    const videoContent = types.videoMessage;
+  
+    this.logger.verbose('video message URL: ' + videoContent);
+  
+    return videoContent;
+  }
+  
+  private getDocumentMessageContent(msg: any) {
+    this.logger.verbose('get document message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    // Supondo que `getTypeMessage` foi adaptado para incluir 'documentMessage'
+    const documentContent = types.documentMessage;
+  
+    this.logger.verbose('document message fileName: ' + documentContent);
+  
+    return documentContent;
+  }
+
+  private getContactMessageContent(msg: any) {
+    this.logger.verbose('get contact message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const contactContent = types.contactMessage;
+  
+    this.logger.verbose('contact message displayName: ' + contactContent);
+  
+    return contactContent;
+  }
+
+  private getLocationMessageContent(msg: any) {
+    this.logger.verbose('get location message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const locationContent = types.locationMessage;
+  
+    this.logger.verbose('location message degreesLatitude: ' + locationContent);
+  
+    return locationContent;
+  }
+
+  private getViewOnceMessageV2Content(msg: any) {
+    this.logger.verbose('get viewOnceMessageV2 content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const viewOnceContent = types.viewOnceMessageV2;
+  
+    this.logger.verbose('viewOnceMessageV2 URL: ' + viewOnceContent);
+  
+    return viewOnceContent;
+  }
+
+  private getListResponseMessageContent(msg: any) {
+    this.logger.verbose('get listResponseMessage content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const listResponseContent = types.listResponseMessage || types.responseRowId;
+  
+    this.logger.verbose('listResponseMessage selectedRowId: ' + listResponseContent);
+  
+    return listResponseContent;
+  }
+
   public async createNewSession(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
     const id = Math.floor(Math.random() * 10000000000).toString();
