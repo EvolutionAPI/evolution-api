@@ -271,6 +271,7 @@ export class TypebotService {
   private getTypeMessage(msg: any) {
     this.logger.verbose('get type message');
     const types = {
+      messageType: 'UNKNOWN',
       conversation: msg.conversation,
       extendedTextMessage: msg.extendedTextMessage?.text,
       audioMessage: msg.audioMessage?.url,
@@ -282,15 +283,14 @@ export class TypebotService {
       viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url,
       listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
       responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
-      UNKNOWN: 'unknown',
     };
   
-    types['messageType'] = Object.keys(types).find((key) => types[key] !== undefined) || 'UNKNOWN';
+    types.messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'UNKNOWN';
   
     this.logger.verbose('type message: ' + JSON.stringify(types));
     return types;
   }
-
+  
   private getMessageContent(types: any) {
     this.logger.verbose('get message content');
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
