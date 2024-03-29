@@ -271,7 +271,6 @@ export class TypebotService {
   private getTypeMessage(msg: any) {
       this.logger.verbose('get type message');
       const types = {
-        messageType: 'UNKNOWN',
         conversation: msg.conversation,
         extendedTextMessage: msg.extendedTextMessage?.text,
         audioMessage: msg.audioMessage?.url,
@@ -284,37 +283,11 @@ export class TypebotService {
         listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
         responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
       };
-  
-      // linha 288 a 314 
-      types.messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'UNKNOWN';
-  
-      // Agora, adiciona a lógica de verificação detalhada para definir o tipo detalhado da mensagem
-      if (types.conversation !== undefined) {
-          types.detailedMessageType = 'Text Message';
-      } else if (types.extendedTextMessage !== undefined) {
-          types.detailedMessageType = 'Extended Text Message';
-      } else if (types.audioMessage !== undefined) {
-          types.detailedMessageType = 'Audio Message';
-      } else if (types.imageMessage !== undefined) {
-          types.detailedMessageType = 'Image Message';
-      } else if (types.videoMessage !== undefined) {
-          types.detailedMessageType = 'Video Message';
-      } else if (types.documentMessage !== undefined) {
-          types.detailedMessageType = 'Document Message';
-      } else if (types.contactMessage !== undefined) {
-          types.detailedMessageType = 'Contact Message';
-      } else if (types.locationMessage !== undefined) {
-          types.detailedMessageType = 'Location Message';
-      } else if (types.viewOnceMessageV2 !== undefined) {
-          types.detailedMessageType = 'View Once Message';
-      } else if (types.listResponseMessage !== undefined || types.responseRowId !== undefined) {
-          types.detailedMessageType = 'List Response Message';
-      } else {
-          types.detailedMessageType = 'Unknown Message Type';
-      }
-      
+
+      const messageType = Object.keys(types).find(key => types[key] !== undefined) || 'unknown';
+    
       this.logger.verbose('Type message: ' + JSON.stringify(types));
-      return types;
+      return { ...types, messageType };
   }
   
   private getMessageContent(types: any) {
@@ -700,6 +673,7 @@ export class TypebotService {
     const delay_message = findTypebot.delay_message;
     const unknown_message = findTypebot.unknown_message;
     const listening_from_me = findTypebot.listening_from_me;
+    const messageType = this.getTypeMessage(msg.message).messageType; // variavel que extrai o tipo de mensagem.
 
     const session = sessions.find((session) => session.remoteJid === remoteJid);
 
@@ -822,6 +796,10 @@ export class TypebotService {
           sessions: sessions,
           remoteJid: remoteJid,
           pushName: msg.pushName,
+          //linha 800 a 802 add
+          prefilledVariables: { 
+            messageType: messageType,
+          },
         });
 
         await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
