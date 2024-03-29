@@ -268,25 +268,26 @@ export class TypebotService {
     };
   }
   
-  private getTypeMessage(msg: any) { 
+  private getTypeMessage(msg: any) {
     this.logger.verbose('get type message');
-    
-    const types = { 
-      conversation: msg.conversation, 
-      extendedTextMessage: msg.extendedTextMessage?.text, 
-      audioMessage: msg.audioMessage?.url, 
-      imageMessage: msg.imageMessage?.url, 
-      videoMessage: msg.videoMessage?.url, 
-      documentMessage: msg.documentMessage?.fileName, 
-      contactMessage: msg.contactMessage?.displayName, 
-      locationMessage: msg.locationMessage?.degreesLatitude, 
-      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url, 
-      listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
-      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId, 
+    const types = {
+      conversation: msg.conversation,
+      extendedTextMessage: msg.extendedTextMessage?.text,
+      audioMessage: msg.audioMessage?.url,
+      imageMessage: msg.imageMessage?.url,
+      videoMessage: msg.videoMessage?.url,
+      documentMessage: msg.documentMessage?.fileName,
+      contactMessage: msg.contactMessage?.displayName,
+      locationMessage: msg.locationMessage?.degreesLatitude,
+      viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url,
+      listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+      UNKNOWN: 'unknown',
     };
-    
+  
+    types['messageType'] = Object.keys(types).find((key) => types[key] !== undefined) || 'UNKNOWN';
+  
     this.logger.verbose('type message: ' + JSON.stringify(types));
-    
     return types;
   }
 
