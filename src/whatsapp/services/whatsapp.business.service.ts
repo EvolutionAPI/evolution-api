@@ -287,8 +287,11 @@ export class BusinessStartupService extends WAStartupService {
       case 'document':
         messageType = 'documentMessage';
         break;
+      case 'template':
+        messageType = 'conversation';
+        break;
       default:
-        messageType = 'imageMessage';
+        messageType = 'conversation';
         break;
     }
 
