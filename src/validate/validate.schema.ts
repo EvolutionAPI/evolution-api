@@ -406,7 +406,7 @@ export const listMessageSchema: JSONSchema7 = {
                     description: { type: 'string' },
                     rowId: { type: 'string' },
                   },
-                  required: ['title', 'description', 'rowId'],
+                  required: ['title', 'rowId'],
                   ...isNotEmpty('title', 'description', 'rowId'),
                 },
               },
