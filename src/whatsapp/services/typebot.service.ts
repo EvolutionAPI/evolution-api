@@ -279,9 +279,7 @@ export class TypebotService {
         documentMessage: msg.documentMessage?.fileName,
         contactMessage: msg.contactMessage?.displayName,
         locationMessage: msg.locationMessage?.degreesLatitude,
-        viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url,
-        viewOnceMessageV2: msg.viewOnceMessageV2?.message?.videoMessage?.url,
-        viewOnceMessageV2: msg.viewOnceMessageV2?.message?.audioMessage?.url,
+        viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url || msg.viewOnceMessageV2?.message?.videoMessage?.url || msg.viewOnceMessageV2?.message?.audioMessage?.url,
         listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
         responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
       };
