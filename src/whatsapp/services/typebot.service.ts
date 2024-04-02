@@ -269,19 +269,29 @@ export class TypebotService {
   }
 
   private getTypeMessage(msg: any) {
-    this.logger.verbose('get type message');
+      this.logger.verbose('get type message');
+      const types = {
+        conversation: msg.conversation,
+        extendedTextMessage: msg.extendedTextMessage?.text,
+        audioMessage: msg.audioMessage?.url,
+        imageMessage: msg.imageMessage?.url,
+        videoMessage: msg.videoMessage?.url,
+        documentMessage: msg.documentMessage?.fileName,
+        contactMessage: msg.contactMessage?.displayName,
+        locationMessage: msg.locationMessage?.degreesLatitude,
+        viewOnceMessageV2: msg.viewOnceMessageV2?.message?.imageMessage?.url,
+        viewOnceMessageV2: msg.viewOnceMessageV2?.message?.videoMessage?.url,
+        viewOnceMessageV2: msg.viewOnceMessageV2?.message?.audioMessage?.url,
+        listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+        responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+      };
 
-    const types = {
-      conversation: msg.conversation,
-      extendedTextMessage: msg.extendedTextMessage?.text,
-      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
-    };
-
-    this.logger.verbose('type message: ' + types);
-
-    return types;
+      const messageType = Object.keys(types).find(key => types[key] !== undefined) || 'unknown';
+    
+      this.logger.verbose('Type message: ' + JSON.stringify(types));
+      return { ...types, messageType };
   }
-
+  
   private getMessageContent(types: any) {
     this.logger.verbose('get message content');
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
@@ -305,6 +315,101 @@ export class TypebotService {
     return messageContent;
   }
 
+  private getAudioMessageContent(msg: any) {
+    this.logger.verbose('get audio message content');
+
+    const types = this.getTypeMessage(msg);
+    
+    const audioContent = types.audioMessage;
+
+    this.logger.verbose('audio message URL: ' + audioContent);
+
+    return audioContent;
+  }
+
+  private getImageMessageContent(msg: any) {
+    this.logger.verbose('get image message content');
+  
+    const types = this.getTypeMessage(msg);
+    
+    const imageContent = types.imageMessage;
+  
+    this.logger.verbose('image message URL: ' + imageContent);
+  
+    return imageContent;
+  }
+  
+  private getVideoMessageContent(msg: any) {
+    this.logger.verbose('get video message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const videoContent = types.videoMessage;
+  
+    this.logger.verbose('video message URL: ' + videoContent);
+  
+    return videoContent;
+  }
+  
+  private getDocumentMessageContent(msg: any) {
+    this.logger.verbose('get document message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const documentContent = types.documentMessage;
+  
+    this.logger.verbose('document message fileName: ' + documentContent);
+  
+    return documentContent;
+  }
+
+  private getContactMessageContent(msg: any) {
+    this.logger.verbose('get contact message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const contactContent = types.contactMessage;
+  
+    this.logger.verbose('contact message displayName: ' + contactContent);
+  
+    return contactContent;
+  }
+
+  private getLocationMessageContent(msg: any) {
+    this.logger.verbose('get location message content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const locationContent = types.locationMessage;
+  
+    this.logger.verbose('location message degreesLatitude: ' + locationContent);
+  
+    return locationContent;
+  }
+
+  private getViewOnceMessageV2Content(msg: any) {
+    this.logger.verbose('get viewOnceMessageV2 content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const viewOnceContent = types.viewOnceMessageV2;
+  
+    this.logger.verbose('viewOnceMessageV2 URL: ' + viewOnceContent);
+  
+    return viewOnceContent;
+  }
+
+  private getListResponseMessageContent(msg: any) {
+    this.logger.verbose('get listResponseMessage content');
+  
+    const types = this.getTypeMessage(msg);
+  
+    const listResponseContent = types.listResponseMessage || types.responseRowId;
+  
+    this.logger.verbose('listResponseMessage selectedRowId: ' + listResponseContent);
+  
+    return listResponseContent;
+  }
   public async createNewSession(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
     const id = Math.floor(Math.random() * 10000000000).toString();
@@ -565,6 +670,7 @@ export class TypebotService {
     const delay_message = findTypebot.delay_message;
     const unknown_message = findTypebot.unknown_message;
     const listening_from_me = findTypebot.listening_from_me;
+    const messageType = this.getTypeMessage(msg.message).messageType;
 
     const session = sessions.find((session) => session.remoteJid === remoteJid);
 
@@ -687,6 +793,9 @@ export class TypebotService {
           sessions: sessions,
           remoteJid: remoteJid,
           pushName: msg.pushName,
+          prefilledVariables: { 
+            messageType: messageType,
+          },
         });
 
         await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
