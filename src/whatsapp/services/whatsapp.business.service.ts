@@ -198,11 +198,13 @@ export class BusinessStartupService extends WAStartupService {
     let content: any;
     const message = received.messages[0];
     if (message.from === received.metadata.phone_number_id) {
-      content = { extendedTextMessage: { text: message.text.body } };
-      message.context ? (content.contextInfo = { stanzaId: message.context.id }) : content;
+      content = {
+        extendedTextMessage: { text: message.text.body },
+      };
+      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
     } else {
       content = { conversation: message.text.body };
-      message.context ? (content = { contextInfo: { stanzaId: message.context.id } }) : content;
+      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
     }
     return content;
   }
@@ -303,6 +305,8 @@ export class BusinessStartupService extends WAStartupService {
       let messageRaw: MessageRaw;
       let pushName: any;
 
+      console.log('msg_wa', received);
+
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
@@ -378,6 +382,7 @@ export class BusinessStartupService extends WAStartupService {
 
         this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
 
+        console.log('msg_evo', messageRaw.message);
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
         if (this.localChatwoot.enabled) {
@@ -614,7 +619,7 @@ export class BusinessStartupService extends WAStartupService {
               message_id: message['reactionMessage']['key']['id'],
               emoji: message['reactionMessage']['text'],
             },
-            // context: { message_id: quoted.id },
+            context: { message_id: quoted.id },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
           return await this.post(content, 'messages');
