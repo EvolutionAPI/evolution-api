@@ -1,3 +1,14 @@
+# 1.7.1 (2024-04-03 10:19)
+
+### Fixed
+
+* Correction when sending files with captions on Whatsapp Business
+* Correction in receiving messages with response on WhatsApp Business
+* Correction when sending a reaction to a message on WhatsApp Business
+* Correction of receiving reactions on WhatsApp business
+* Removed mandatory description of rows from sendList
+* Feature to collect message type in typebot
+
 # 1.7.0 (2024-03-11 18:23)
 
 ### Feature
