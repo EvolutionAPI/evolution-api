@@ -10,6 +10,7 @@ export class Session {
 export class PrefilledVariables {
   remoteJid?: string;
   pushName?: string;
+  messageType?: string;
   additionalData?: { [key: string]: any };
 }
 
