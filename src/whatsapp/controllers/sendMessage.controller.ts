@@ -1,4 +1,4 @@
-import { isBase64, isURL } from 'class-validator';
+import { isBase64, isEmpty, isURL } from 'class-validator';
 
 import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
@@ -46,10 +46,10 @@ export class SendMessageController {
     }
 
     logger.verbose('isURL: ' + isURL(data?.mediaMessage?.media) + ', isBase64: ' + isBase64(data?.mediaMessage?.media));
-    if (isURL(data?.mediaMessage?.media) || isBase64(data?.mediaMessage?.media)) {
+   if (!isEmpty(data?.mediaMessage?.media)) {
       return await this.waMonitor.waInstances[instanceName].mediaMessage(data);
     }
-    throw new BadRequestException('Owned media must be a url or base64');
+    throw new BadRequestException('Owned media must be a url or base64 or file');
   }
 
   public async sendSticker({ instanceName }: InstanceDto, data: SendStickerDto) {

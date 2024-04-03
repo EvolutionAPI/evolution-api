@@ -895,24 +895,28 @@ export class BusinessStartupService extends WAStartupService {
     return res;
   }
 
-  private async getIdMedia(mediaMessage: any) {
+  private async getIdMedia(mediaMessage: any, mimetype: string) {
     const integration = await this.findIntegration();
 
     const formData = new FormData();
-
     const fileBuffer = await fs.readFile(mediaMessage.media);
-
-    const fileBlob = new Blob([fileBuffer], { type: mediaMessage.mimetype });
-    formData.append('file', fileBlob);
-    formData.append('typeFile', mediaMessage.mimetype);
+    formData.append('file', fileBuffer, { filename: mediaMessage.fileName });
+    formData.append('typeFile', mimetype);
     formData.append('messaging_product', 'whatsapp');
     const headers = { Authorization: `Bearer ${integration.token}` };
+    let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
+    const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
+    urlServer =  `${urlServer}/${version}/${integration.number}/media`;
+    try {
     const res = await axios.post(
-      process.env.API_URL + '/' + process.env.VERSION + '/' + integration.number + '/media',
+        urlServer,
       formData,
-      { headers },
+        { headers }
     );
     return res.data.id;
+    } catch (error) {
+      console.error('Erro ao enviar o arquivo:', error);
+    }
   }
 
   protected async prepareMediaMessage(mediaMessage: MediaMessage) {
@@ -957,7 +961,7 @@ export class BusinessStartupService extends WAStartupService {
           prepareMedia.type = 'link';
         } else {
           mimetype = getMIMEType(mediaMessage.fileName);
-          const id = await this.getIdMedia(prepareMedia);
+          const id = await this.getIdMedia(prepareMedia, mimetype);
           prepareMedia.id = id;
           prepareMedia.type = 'id';
         }
@@ -1001,7 +1005,7 @@ export class BusinessStartupService extends WAStartupService {
       prepareMedia.type = 'link';
     } else {
       mimetype = getMIMEType(prepareMedia.fileName);
-      const id = await this.getIdMedia(prepareMedia);
+      const id = await this.getIdMedia(prepareMedia, mimetype);
       prepareMedia.id = id;
       prepareMedia.type = 'id';
     }
