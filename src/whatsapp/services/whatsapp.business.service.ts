@@ -23,6 +23,7 @@ import {
   SendTemplateDto,
   SendTextDto,
 } from '../dto/sendMessage.dto';
+import {downloadMediaMessageDto} from '../dto/chat.dto';
 import { ContactRaw, MessageRaw, MessageUpdateRaw, SettingsRaw } from '../models';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Events, wa } from '../types/wa.types';
@@ -162,18 +163,15 @@ export class BusinessStartupService extends WAStartupService {
     }
   }
 
-  private async downloadMediaMessage(message: any) {
+  public async downloadMediaMessage(message: downloadMediaMessageDto) {
     try {
       const integration = await this.findIntegration();
-
-      const id = message[message.type].id;
       let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
-      urlServer = `${urlServer}/${version}/${id}`;
+      urlServer = `${urlServer}/${version}/${message.id}`;
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${integration.token}` };
       let result = await axios.get(urlServer, { headers });
-      result = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
-      return result.data;
+      return await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
     } catch (e) {
       this.logger.error(e);
     }
@@ -333,13 +331,14 @@ export class BusinessStartupService extends WAStartupService {
           received?.messages[0].audio ||
           received?.messages[0].video
         ) {
-          const buffer = await this.downloadMediaMessage(received?.messages[0]);
+          const content = received?.messages[0];
+          const buffer = await this.downloadMediaMessage(content[content.type].id);
           messageRaw = {
             key,
             pushName,
             message: {
               ...this.messageMediaJson(received),
-              base64: buffer ? buffer.toString('base64') : undefined,
+              base64: buffer ? buffer.data.toString('base64') : undefined,
             },
             messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: received.messages[0].timestamp as number,
@@ -680,6 +679,7 @@ export class BusinessStartupService extends WAStartupService {
               message_id: message['reactionMessage']['key']['id'],
               emoji: message['reactionMessage']['text'],
             },
+            context: { message_id: quoted.id },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
           return await this.post(content, 'messages');

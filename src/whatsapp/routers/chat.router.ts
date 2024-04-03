@@ -25,6 +25,7 @@ import {
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  downloadMediaMessageDto,
   NumberDto,
   PrivacySettingDto,
   ProfileNameDto,
@@ -183,6 +184,20 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('downloadMediaMessage'), ...guards, async (req, res) => {
+        logger.verbose('request received in downloadMediaMessage');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+        const response = await this.dataValidate<downloadMediaMessageDto>({
+          request: req,
+          schema: null,
+          ClassRef: downloadMediaMessageDto,
+          execute: (instance, data) => chatController.downloadMediaMessage(instance, data),
+        });
+        return res.status(HttpStatus.CREATED).writeHead(200,
+          { 'Content-Type': response?.headers["content-type"] }).end(response.data);
+
       })
       .post(this.routerPath('findMessages'), ...guards, async (req, res) => {
         logger.verbose('request received in findMessages');

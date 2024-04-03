@@ -4,6 +4,7 @@ import {
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  downloadMediaMessageDto,
   NumberDto,
   PrivacySettingDto,
   ProfileNameDto,
@@ -63,6 +64,11 @@ export class ChatController {
   public async getBase64FromMediaMessage({ instanceName }: InstanceDto, data: getBase64FromMediaMessageDto) {
     logger.verbose('requested getBase64FromMediaMessage from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].getBase64FromMediaMessage(data);
+  }
+
+  public async downloadMediaMessage({ instanceName }: InstanceDto, data: downloadMediaMessageDto) {
+    logger.verbose('requested getBase64FromMediaMessage from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].downloadMediaMessage(data);
   }
 
   public async fetchMessages({ instanceName }: InstanceDto, query: MessageQuery) {

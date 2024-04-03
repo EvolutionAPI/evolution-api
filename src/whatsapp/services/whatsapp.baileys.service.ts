@@ -35,6 +35,7 @@ import makeWASocket, {
   WAPresence,
   WASocket,
 } from '@whiskeysockets/baileys';
+import { downloadMediaMessageDto } from '../dto/chat.dto';
 import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
 import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
 import axios from 'axios';
@@ -2032,6 +2033,7 @@ export class BaileysStartupService extends WAStartupService {
       const prepareMedia = await prepareWAMessageMedia(
         {
           [mediaMessage.mediatype]: isURL(mediaMessage.media)
+            || fs.existsSync(mediaMessage.media)
             ? { url: mediaMessage.media }
             : Buffer.from(mediaMessage.media, 'base64'),
         } as any,
@@ -3238,6 +3240,21 @@ export class BaileysStartupService extends WAStartupService {
     } catch (error) {
       throw new BadRequestException('Unable to leave the group', error.toString());
     }
+  }
+
+  public async downloadMediaMessage(msg: downloadMediaMessageDto) {
+    const buffer = await downloadMediaMessage(
+      { key: msg?.key, message: msg?.message } as any,
+      'buffer',
+      {},
+      {
+        logger: P({ level: 'error' }) as any,
+        reuploadRequest: this.client.updateMediaMessage,
+      },
+    );
+    const message = msg?.message;
+    const headers = { "content-type": message[Object.keys(message)[0]]?.mimetype };
+    return { data: buffer, headers };
   }
   public async templateMessage() {
     throw new Error('Method not available in the Baileys service');

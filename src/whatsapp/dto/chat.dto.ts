@@ -14,6 +14,28 @@ export class getBase64FromMediaMessageDto {
   convertToMp4?: boolean;
 }
 
+export class downloadMediaMessageDto {
+  message: message;
+  key: Key;
+  id: string;
+}
+
+export type MediaType = 'image' | 'document' | 'video' | 'audio';
+export class message {
+  mediatype: MediaType;
+  mimetype?: string;
+  caption?: string;
+  fileName?: string;
+  media: string;
+}
+
+export class key {
+  fromMe: boolean;
+  id: string;
+  key: string;
+}
+
+
 export class WhatsAppNumberDto {
   numbers: string[];
 }
