@@ -199,10 +199,10 @@ export class BusinessStartupService extends WAStartupService {
     const message = received.messages[0];
     if (message.from === received.metadata.phone_number_id) {
       content = { extendedTextMessage: { text: message.text.body } };
-      message.context ? (content.extendedTextMessage.contextInfo = { stanzaId: message.context.id }) : content;
+      message.context ? (content.contextInfo = { stanzaId: message.context.id }) : content;
     } else {
       content = { conversation: message.text.body };
-      message.context ? (content.extendedTextMessage = { contextInfo: { stanzaId: message.context.id } }) : content;
+      message.context ? (content = { contextInfo: { stanzaId: message.context.id } }) : content;
     }
     return content;
   }
@@ -377,6 +377,7 @@ export class BusinessStartupService extends WAStartupService {
         this.logger.log(messageRaw);
 
         this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
+
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
         if (this.localChatwoot.enabled) {
@@ -613,7 +614,7 @@ export class BusinessStartupService extends WAStartupService {
               message_id: message['reactionMessage']['key']['id'],
               emoji: message['reactionMessage']['text'],
             },
-            context: { message_id: quoted.id },
+            // context: { message_id: quoted.id },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
           return await this.post(content, 'messages');
@@ -673,6 +674,7 @@ export class BusinessStartupService extends WAStartupService {
             [message['mediaType']]: {
               [message['type']]: message['id'],
               preview_url: linkPreview,
+              caption: message['caption'],
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
@@ -773,6 +775,11 @@ export class BusinessStartupService extends WAStartupService {
           return await this.post(content, 'messages');
         }
       })();
+
+      if (messageSent?.error?.message) {
+        this.logger.error(messageSent.error.message);
+        throw messageSent.error.message.toString();
+      }
 
       const messageRaw: MessageRaw = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
