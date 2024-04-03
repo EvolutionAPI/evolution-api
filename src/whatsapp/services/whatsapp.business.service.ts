@@ -183,14 +183,14 @@ export class BusinessStartupService extends WAStartupService {
     const message = received.messages[0];
     let content: any = message.type + 'Message';
     content = { [content]: message[message.type] };
-    message.context ? (content.extendedTextMessage = { contextInfo: { stanzaId: message.context.id } }) : content;
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
     return content;
   }
 
   private messageInteractiveJson(received: any) {
     const message = received.messages[0];
-    const content: any = { conversation: message.interactive[message.interactive.type].title };
-    message.context ? (content.extendedTextMessage = { contextInfo: { stanzaId: message.context.id } }) : content;
+    let content: any = { conversation: message.interactive[message.interactive.type].title };
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
     return content;
   }
 
@@ -211,7 +211,7 @@ export class BusinessStartupService extends WAStartupService {
 
   private messageContactsJson(received: any) {
     const message = received.messages[0];
-    const content: any = {};
+    let content: any = {};
 
     const vcard = (contact: any) => {
       this.logger.verbose('Creating vcard');
@@ -266,7 +266,7 @@ export class BusinessStartupService extends WAStartupService {
         }),
       };
     }
-    message.context ? (content.extendedTextMessage = { contextInfo: { stanzaId: message.context.id } }) : content;
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
     return content;
   }
 
@@ -304,8 +304,6 @@ export class BusinessStartupService extends WAStartupService {
     try {
       let messageRaw: MessageRaw;
       let pushName: any;
-
-      console.log('msg_wa', received);
 
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
@@ -382,7 +380,6 @@ export class BusinessStartupService extends WAStartupService {
 
         this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
 
-        console.log('msg_evo', messageRaw.message);
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
         if (this.localChatwoot.enabled) {
@@ -549,30 +546,68 @@ export class BusinessStartupService extends WAStartupService {
     }
   }
 
-  private convertMessageToRaw(message: any) {
+  private convertMessageToRaw(message: any, content: any) {
+    let convertMessage: any;
+
     if (message?.conversation) {
-      return message;
+      if (content?.context?.message_id) {
+        convertMessage = {
+          ...message,
+          contextInfo: { stanzaId: content.context.message_id },
+        };
+        return convertMessage;
+      }
+      convertMessage = message;
+      return convertMessage;
     }
 
     if (message?.mediaType === 'image') {
+      if (content?.context?.message_id) {
+        convertMessage = {
+          imageMessage: message,
+          contextInfo: { stanzaId: content.context.message_id },
+        };
+        return convertMessage;
+      }
       return {
         imageMessage: message,
       };
     }
 
     if (message?.mediaType === 'video') {
+      if (content?.context?.message_id) {
+        convertMessage = {
+          videoMessage: message,
+          contextInfo: { stanzaId: content.context.message_id },
+        };
+        return convertMessage;
+      }
       return {
         videoMessage: message,
       };
     }
 
     if (message?.mediaType === 'audio') {
+      if (content?.context?.message_id) {
+        convertMessage = {
+          audioMessage: message,
+          contextInfo: { stanzaId: content.context.message_id },
+        };
+        return convertMessage;
+      }
       return {
         audioMessage: message,
       };
     }
 
     if (message?.mediaType === 'document') {
+      if (content?.context?.message_id) {
+        convertMessage = {
+          documentMessage: message,
+          contextInfo: { stanzaId: content.context.message_id },
+        };
+        return convertMessage;
+      }
       return {
         documentMessage: message,
       };
@@ -619,7 +654,6 @@ export class BusinessStartupService extends WAStartupService {
               message_id: message['reactionMessage']['key']['id'],
               emoji: message['reactionMessage']['text'],
             },
-            context: { message_id: quoted.id },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
           return await this.post(content, 'messages');
@@ -786,10 +820,12 @@ export class BusinessStartupService extends WAStartupService {
         throw messageSent.error.message.toString();
       }
 
+      console.log(content);
+
       const messageRaw: MessageRaw = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
         //pushName: messageSent.pushName,
-        message: this.convertMessageToRaw(message),
+        message: this.convertMessageToRaw(message, content),
         messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
         owner: this.instance.name,
