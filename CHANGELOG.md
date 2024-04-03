@@ -5,6 +5,7 @@
 * Correction when sending files with captions on Whatsapp Business
 * Correction in receiving messages with response on WhatsApp Business
 * Correction when sending a reaction to a message on WhatsApp Business
+* Correction of receiving reactions on WhatsApp business
 * Removed mandatory description of rows from sendList
 * Feature to collect message type in typebot
 

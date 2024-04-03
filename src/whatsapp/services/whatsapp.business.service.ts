@@ -194,6 +194,20 @@ export class BusinessStartupService extends WAStartupService {
     return content;
   }
 
+  private messageReactionJson(received: any) {
+    const message = received.messages[0];
+    let content: any = {
+      reactionMessage: {
+        key: {
+          id: message.reaction.message_id,
+        },
+        text: message.reaction.emoji,
+      },
+    };
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+    return content;
+  }
+
   private messageTextJson(received: any) {
     let content: any;
     const message = received.messages[0];
@@ -340,6 +354,18 @@ export class BusinessStartupService extends WAStartupService {
               ...this.messageInteractiveJson(received),
             },
             messageType: 'conversation',
+            messageTimestamp: received.messages[0].timestamp as number,
+            owner: this.instance.name,
+            // source: getDevice(received.key.id),
+          };
+        } else if (received?.messages[0].reaction) {
+          messageRaw = {
+            key,
+            pushName,
+            message: {
+              ...this.messageReactionJson(received),
+            },
+            messageType: 'reactionMessage',
             messageTimestamp: received.messages[0].timestamp as number,
             owner: this.instance.name,
             // source: getDevice(received.key.id),
@@ -1205,6 +1231,10 @@ export class BusinessStartupService extends WAStartupService {
     }
   }
 
+  public async deleteMessage() {
+    throw new BadRequestException('Method not available on WhatsApp Business API');
+  }
+
   // methods not available on WhatsApp Business API
   public async mediaSticker() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
@@ -1225,9 +1255,6 @@ export class BusinessStartupService extends WAStartupService {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async archiveChat() {
-    throw new BadRequestException('Method not available on WhatsApp Business API');
-  }
-  public async deleteMessage() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async fetchProfile() {
