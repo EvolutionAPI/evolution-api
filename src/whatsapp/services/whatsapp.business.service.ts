@@ -44,7 +44,8 @@ export class BusinessStartupService extends WAStartupService {
 
   public stateConnection: wa.StateConnection = { state: 'open' };
 
-  private phoneNumber: string;
+  public phoneNumber: string;
+  public mobile: boolean;
 
   public get connectionStatus() {
     this.logger.verbose('Getting connection status');
@@ -1345,6 +1346,9 @@ export class BusinessStartupService extends WAStartupService {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
   public async handleLabel() {
+    throw new BadRequestException('Method not available on WhatsApp Business API');
+  }
+  public async receiveMobileCode() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
 }

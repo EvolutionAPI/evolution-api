@@ -12,6 +12,7 @@ import makeWASocket, {
   DisconnectReason,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
+  generateMobileNode,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
   getContentType,
@@ -24,6 +25,7 @@ import makeWASocket, {
   MessageUpsertType,
   MiscMessageGenerationOptions,
   ParticipantAction,
+  PHONENUMBER_MCC,
   prepareWAMessageMedia,
   proto,
   useMultiFileAuthState,
@@ -42,6 +44,7 @@ import { exec } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import fs, { existsSync, readFileSync } from 'fs';
+import { parsePhoneNumber } from 'libphonenumber-js';
 import Long from 'long';
 import NodeCache from 'node-cache';
 import { getMIMEType } from 'node-mime-types';
@@ -132,6 +135,7 @@ export class BaileysStartupService extends WAStartupService {
     this.logger.verbose('BaileysStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
+    this.mobile = false;
   }
 
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -141,7 +145,8 @@ export class BaileysStartupService extends WAStartupService {
 
   public stateConnection: wa.StateConnection = { state: 'close' };
 
-  private phoneNumber: string;
+  public phoneNumber: string;
+  public mobile: boolean;
 
   public get connectionStatus() {
     this.logger.verbose('Getting connection status');
@@ -389,6 +394,10 @@ export class BaileysStartupService extends WAStartupService {
         );
       }
     }
+
+    if (connection === 'connecting') {
+      if (this.mobile) this.sendMobileCode();
+    }
   }
 
   private async getMessage(key: proto.IMessageKey, full = false) {
@@ -446,7 +455,7 @@ export class BaileysStartupService extends WAStartupService {
     return await useMultiFileAuthState(join(INSTANCE_DIR, this.instance.name));
   }
 
-  public async connectToWhatsapp(number?: string): Promise<WASocket> {
+  public async connectToWhatsapp(number?: string, mobile?: boolean): Promise<WASocket> {
     this.logger.verbose('Connecting to whatsapp');
     try {
       this.loadWebhook();
@@ -461,7 +470,14 @@ export class BaileysStartupService extends WAStartupService {
 
       this.instance.authState = await this.defineAuthState();
 
+      if (!mobile) {
+        this.mobile = false;
+      } else {
+        this.mobile = mobile;
+      }
+
       const { version } = await fetchLatestBaileysVersion();
+
       this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
@@ -500,6 +516,7 @@ export class BaileysStartupService extends WAStartupService {
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
+        mobile,
         browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
         version,
         markOnlineOnConnect: this.localSettings.always_online,
@@ -562,6 +579,70 @@ export class BaileysStartupService extends WAStartupService {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
     }
+  }
+
+  private async sendMobileCode() {
+    const { registration } = this.client.authState.creds || null;
+
+    let phoneNumber = registration.phoneNumber || this.phoneNumber;
+
+    if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+' + phoneNumber;
+    }
+
+    if (!phoneNumber) {
+      this.logger.error('Phone number not found');
+      return;
+    }
+
+    console.log('phoneNumber', phoneNumber);
+
+    const parsedPhoneNumber = parsePhoneNumber(phoneNumber);
+
+    console.log('parsedPhoneNumber', parsedPhoneNumber);
+
+    if (!parsedPhoneNumber?.isValid()) {
+      this.logger.error('Phone number invalid');
+      return;
+    }
+
+    registration.phoneNumber = parsedPhoneNumber.format('E.164');
+    registration.phoneNumberCountryCode = parsedPhoneNumber.countryCallingCode;
+    registration.phoneNumberNationalNumber = parsedPhoneNumber.nationalNumber;
+
+    const mcc = await PHONENUMBER_MCC[parsedPhoneNumber.countryCallingCode];
+    if (!mcc) {
+      this.logger.error('MCC not found');
+      return;
+    }
+
+    registration.phoneNumberMobileCountryCode = mcc;
+    registration.method = 'voice';
+
+    try {
+      const response = await this.client.requestRegistrationCode(registration);
+
+      console.log('response', response);
+      if (['ok', 'sent'].includes(response?.status)) {
+        this.logger.verbose('Registration code sent successfully');
+
+        return response;
+      }
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  public async receiveMobileCode(code: string) {
+    await this.client
+      .register(code.replace(/["']/g, '').trim().toLowerCase())
+      .then(async (response) => {
+        this.logger.verbose('Registration code received successfully');
+        console.log(response);
+      })
+      .catch((error) => {
+        this.logger.error(error);
+      });
   }
 
   public async reloadConnection(): Promise<WASocket> {

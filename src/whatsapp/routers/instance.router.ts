@@ -3,7 +3,7 @@ import { RequestHandler, Router } from 'express';
 import { Auth, ConfigService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { dbserver } from '../../libs/db.connect';
-import {instanceNameSchema, oldTokenSchema, presenceOnlySchema} from '../../validate/validate.schema';
+import { instanceNameSchema, oldTokenSchema, presenceOnlySchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { OldToken } from '../services/auth.service';
@@ -46,6 +46,22 @@ export class InstanceRouter extends RouterBroker {
           schema: instanceNameSchema,
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.restartInstance(instance),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('registerMobileCode'), ...guards, async (req, res) => {
+        logger.verbose('request received in registerMobileCode');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+        const response = await this.dataValidate<null>({
+          request: req,
+          schema: instanceNameSchema,
+          ClassRef: SetPresenceDto,
+          execute: (instance, data) => instanceController.registerMobileCode(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);

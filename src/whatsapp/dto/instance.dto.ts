@@ -1,10 +1,11 @@
-import { WAPresence } from "@whiskeysockets/baileys";
+import { WAPresence } from '@whiskeysockets/baileys';
 
 export class InstanceDto {
   instanceName: string;
   instanceId?: string;
   qrcode?: boolean;
   number?: string;
+  mobile?: boolean;
   integration?: string;
   token?: string;
   webhook?: string;
