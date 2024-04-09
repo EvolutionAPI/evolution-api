@@ -57,7 +57,7 @@ export class TypebotService {
 
     if (session) {
       if (status === 'closed') {
-        findData.sessions.splice(findData.sessions.indexOf(session), 1);
+        const found_session : Session[] = findData.sessions.splice(findData.sessions.indexOf(session), 1);
 
         const typebotData = {
           enabled: findData.enabled,
@@ -68,7 +68,7 @@ export class TypebotService {
           delay_message: findData.delay_message,
           unknown_message: findData.unknown_message,
           listening_from_me: findData.listening_from_me,
-          sessions: findData.sessions,
+          sessions: found_session,
         };
 
         this.create(instance, typebotData);
@@ -106,7 +106,7 @@ export class TypebotService {
       delay_message: findData.delay_message,
       unknown_message: findData.unknown_message,
       listening_from_me: findData.listening_from_me,
-      sessions: findData.sessions,
+      sessions: findData.sessions.splice(findData.sessions.indexOf(session), 1),
     };
 
     this.create(instance, typebotData);
