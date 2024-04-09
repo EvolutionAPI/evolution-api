@@ -167,6 +167,7 @@ export const instanceController = new InstanceController(
   sqsService,
   typebotService,
   integrationService,
+  proxyController,
   cache,
   chatwootCache,
 );

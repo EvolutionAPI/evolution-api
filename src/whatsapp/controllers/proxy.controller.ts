@@ -46,7 +46,7 @@ export class ProxyController {
     return this.proxyService.find(instance);
   }
 
-  private async testProxy(proxy: ProxyDto['proxy']) {
+  public async testProxy(proxy: ProxyDto['proxy']) {
     logger.verbose('requested testProxy');
     try {
       const serverIp = await axios.get('https://icanhazip.com/');

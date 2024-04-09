@@ -9,7 +9,6 @@ import {
   messageUpSchema,
   messageValidateSchema,
   presenceSchema,
-  presenceOnlySchema,
   privacySettingsSchema,
   profileNameSchema,
   profilePictureSchema,

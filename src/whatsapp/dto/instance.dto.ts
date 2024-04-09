@@ -1,5 +1,7 @@
 import { WAPresence } from '@whiskeysockets/baileys';
 
+import { ProxyDto } from './proxy.dto';
+
 export class InstanceDto {
   instanceName: string;
   instanceId?: string;
@@ -41,7 +43,7 @@ export class InstanceDto {
   typebot_delay_message?: number;
   typebot_unknown_message?: string;
   typebot_listening_from_me?: boolean;
-  proxy?: string;
+  proxy?: ProxyDto['proxy'];
 }
 
 export class SetPresenceDto {

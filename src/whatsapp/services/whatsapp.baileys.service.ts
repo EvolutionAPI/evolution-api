@@ -12,7 +12,6 @@ import makeWASocket, {
   DisconnectReason,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
-  generateMobileNode,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
   getContentType,
@@ -486,7 +485,7 @@ export class BaileysStartupService extends WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy);
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy.host);
 
         if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
           try {
@@ -656,11 +655,26 @@ export class BaileysStartupService extends WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.verbose('Proxy enabled');
-        options = {
-          agent: makeProxyAgent(this.localProxy.proxy),
-          fetchAgent: makeProxyAgent(this.localProxy.proxy),
-        };
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy.host);
+
+        if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
+          try {
+            const response = await axios.get(this.localProxy.proxy.host);
+            const text = response.data;
+            const proxyUrls = text.split('\r\n');
+            const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
+            const proxyUrl = 'http://' + proxyUrls[rand];
+            options = {
+              agent: makeProxyAgent(proxyUrl),
+            };
+          } catch (error) {
+            this.localProxy.enabled = false;
+          }
+        } else {
+          options = {
+            agent: makeProxyAgent(this.localProxy.proxy),
+          };
+        }
       }
 
       const socketConfig: UserFacingSocketConfig = {
@@ -2147,7 +2161,18 @@ export class BaileysStartupService extends WAStartupService {
         mimetype = getMIMEType(mediaMessage.fileName);
 
         if (!mimetype && isURL(mediaMessage.media)) {
-          const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
+          let config: any = {
+            responseType: 'arraybuffer',
+          };
+
+          if (this.localProxy.enabled) {
+            config = {
+              ...config,
+              httpsAgent: makeProxyAgent(this.localProxy.proxy),
+            };
+          }
+
+          const response = await axios.get(mediaMessage.media, config);
 
           mimetype = response.headers['content-type'];
         }
@@ -2216,7 +2241,18 @@ export class BaileysStartupService extends WAStartupService {
         const url = `${image}?timestamp=${timestamp}`;
         this.logger.verbose('including timestamp in url: ' + url);
 
-        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        let config: any = {
+          responseType: 'arraybuffer',
+        };
+
+        if (this.localProxy.enabled) {
+          config = {
+            ...config,
+            httpsAgent: makeProxyAgent(this.localProxy.proxy),
+          };
+        }
+
+        const response = await axios.get(url, config);
         this.logger.verbose('Getting image from url');
 
         const imageBuffer = Buffer.from(response.data, 'binary');
@@ -2286,7 +2322,18 @@ export class BaileysStartupService extends WAStartupService {
 
       this.logger.verbose('Including timestamp in url: ' + url);
 
-      const response = await axios.get(url, { responseType: 'arraybuffer' });
+      let config: any = {
+        responseType: 'arraybuffer',
+      };
+
+      if (this.localProxy.enabled) {
+        config = {
+          ...config,
+          httpsAgent: makeProxyAgent(this.localProxy.proxy),
+        };
+      }
+
+      const response = await axios.get(url, config);
       this.logger.verbose('Getting audio from url');
 
       fs.writeFileSync(tempAudioPath, response.data);
@@ -2920,7 +2967,18 @@ export class BaileysStartupService extends WAStartupService {
         const url = `${picture}?timestamp=${timestamp}`;
         this.logger.verbose('Including timestamp in url: ' + url);
 
-        pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
+        let config: any = {
+          responseType: 'arraybuffer',
+        };
+
+        if (this.localProxy.enabled) {
+          config = {
+            ...config,
+            httpsAgent: makeProxyAgent(this.localProxy.proxy),
+          };
+        }
+
+        pic = (await axios.get(url, config)).data;
         this.logger.verbose('Getting picture from url');
       } else if (isBase64(picture)) {
         this.logger.verbose('Picture is base64');
@@ -3080,7 +3138,18 @@ export class BaileysStartupService extends WAStartupService {
         const url = `${picture.image}?timestamp=${timestamp}`;
         this.logger.verbose('Including timestamp in url: ' + url);
 
-        pic = (await axios.get(url, { responseType: 'arraybuffer' })).data;
+        let config: any = {
+          responseType: 'arraybuffer',
+        };
+
+        if (this.localProxy.enabled) {
+          config = {
+            ...config,
+            httpsAgent: makeProxyAgent(this.localProxy.proxy),
+          };
+        }
+
+        pic = (await axios.get(url, config)).data;
         this.logger.verbose('Getting picture from url');
       } else if (isBase64(picture.image)) {
         this.logger.verbose('Picture is base64');

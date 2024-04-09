@@ -23,6 +23,7 @@ import { WebsocketService } from '../services/websocket.service';
 import { BaileysStartupService } from '../services/whatsapp.baileys.service';
 import { BusinessStartupService } from '../services/whatsapp.business.service';
 import { Events, Integration, wa } from '../types/wa.types';
+import { ProxyController } from './proxy.controller';
 
 export class InstanceController {
   constructor(
@@ -39,6 +40,7 @@ export class InstanceController {
     private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
     private readonly integrationService: IntegrationService,
+    private readonly proxyService: ProxyController,
     private readonly cache: RedisCache,
     private readonly chatwootCache: CacheService,
   ) {}
@@ -85,6 +87,7 @@ export class InstanceController {
     typebot_delay_message,
     typebot_unknown_message,
     typebot_listening_from_me,
+    proxy,
   }: InstanceDto) {
     try {
       this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
@@ -344,6 +347,18 @@ export class InstanceController {
         } catch (error) {
           this.logger.log(error);
         }
+      }
+
+      if (proxy) {
+        const testProxy = await this.proxyService.testProxy(proxy);
+        if (!testProxy) {
+          throw new BadRequestException('Invalid proxy');
+        }
+
+        await this.proxyService.createProxy(instance, {
+          enabled: true,
+          proxy,
+        });
       }
 
       if (typebot_url) {
