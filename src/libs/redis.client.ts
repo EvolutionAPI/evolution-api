@@ -72,7 +72,7 @@ export class RedisCache {
     try {
       this.logger.verbose('setData: ' + field);
       const json = JSON.stringify(data, BufferJSON.replacer);
-      await this.client.hSet(`${this.redisEnv.PREFIX_KEY}-${this.instanceName}`, field, json);
+      await this.client.hSet(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field, json);
       return true;
     } catch (error) {
       this.logger.error(error);
@@ -83,7 +83,7 @@ export class RedisCache {
   public async getData(field: string): Promise<any | null> {
     try {
       this.logger.verbose('getData: ' + field);
-      const data = await this.client.hGet(`${this.redisEnv.PREFIX_KEY}-${this.instanceName}`, field);
+      const data = await this.client.hGet(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field);
 
       if (data) {
         this.logger.verbose('getData: ' + field + ' success');
@@ -101,7 +101,7 @@ export class RedisCache {
   public async removeData(field: string): Promise<boolean> {
     try {
       this.logger.verbose('removeData: ' + field);
-      await this.client.hDel(`${this.redisEnv.PREFIX_KEY}-${this.instanceName}`, field);
+      await this.client.hDel(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field);
       return true;
     } catch (error) {
       this.logger.error(error);
@@ -111,7 +111,7 @@ export class RedisCache {
 
   public async delAll(hash?: string): Promise<boolean> {
     try {
-      const targetHash = hash || `${this.redisEnv.PREFIX_KEY}-${this.instanceName}`;
+      const targetHash = hash || this.redisEnv.PREFIX_KEY + ':' + this.instanceName;
       this.logger.verbose('instance delAll: ' + targetHash);
       const result = await this.client.del(targetHash);
       return !!result;

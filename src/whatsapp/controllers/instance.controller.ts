@@ -641,8 +641,8 @@ export class InstanceController {
       const instance = this.waMonitor.waInstances[instanceName];
 
       console.log('mobileCode', mobileCode);
-      return await instance.receiveMobileCode(mobileCode);
-      // return { status: 'SUCCESS', error: false, response: { message: 'Mobile code registered' } };
+      await instance.receiveMobileCode(mobileCode);
+      return { status: 'SUCCESS', error: false, response: { message: 'Mobile code registered' } };
     } catch (error) {
       this.logger.error(error);
     }
