@@ -617,7 +617,7 @@ export class BaileysStartupService extends WAStartupService {
     }
 
     registration.phoneNumberMobileCountryCode = mcc;
-    registration.method = 'voice';
+    registration.method = 'sms';
 
     try {
       const response = await this.client.requestRegistrationCode(registration);
