@@ -68,6 +68,7 @@ ENV RABBITMQ_EXCHANGE_NAME=evolution_exchange
 ENV RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
 
 ENV WEBSOCKET_ENABLED=false
+ENV WEBSOCKET_GLOBAL_EVENTS=false
 
 ENV WA_BUSINESS_TOKEN_WEBHOOK=evolution
 ENV WA_BUSINESS_URL=https://graph.facebook.com

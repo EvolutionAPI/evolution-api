@@ -828,27 +828,55 @@ export class WAStartupService {
       }
     }
 
-    if (this.configService.get<Websocket>('WEBSOCKET')?.ENABLED && this.localWebsocket.enabled) {
+    if (this.configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
       this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
-      if (Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
-        this.logger.verbose('Sending data to websocket on event: ' + event);
-        const io = getIO();
+      const io = getIO();
 
-        const message = {
-          event,
-          instance: this.instance.name,
-          data,
-          server_url: serverUrl,
-          date_time: now,
-          sender: this.wuid,
-        };
+      const message = {
+        event,
+        instance: this.instance.name,
+        data,
+        server_url: serverUrl,
+        date_time: now,
+        sender: this.wuid,
+      };
 
-        if (expose && instanceApikey) {
-          message['apikey'] = instanceApikey;
+      if (expose && instanceApikey) {
+        message['apikey'] = instanceApikey;
+      }
+
+      if (this.configService.get<Websocket>('WEBSOCKET')?.GLOBAL_EVENTS) {
+        io.emit(event, message);
+
+        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+          const logData = {
+            local: WAStartupService.name + '.sendData-WebsocketGlobal',
+            event,
+            instance: this.instance.name,
+            data,
+            server_url: serverUrl,
+            apikey: (expose && instanceApikey) || null,
+            date_time: now,
+            sender: this.wuid,
+          };
+
+          if (expose && instanceApikey) {
+            logData['apikey'] = instanceApikey;
+          }
+
+          this.logger.log(logData);
         }
+      }
+
+      if (this.localWebsocket.enabled && Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
+        this.logger.verbose('Sending data to websocket on event: ' + event);
 
         this.logger.verbose('Sending data to socket.io in channel: ' + this.instance.name);
         io.of(`/${this.instance.name}`).emit(event, message);
+
+        if (this.configService.get<Websocket>('WEBSOCKET')?.GLOBAL_EVENTS) {
+          io.emit(event, message);
+        }
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
