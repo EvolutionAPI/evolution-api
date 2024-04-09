@@ -1032,7 +1032,8 @@ export class BaileysStartupService extends WAStartupService {
           if (
             (type !== 'notify' && type !== 'append') ||
             received.message?.protocolMessage ||
-            received.message?.pollUpdateMessage
+            received.message?.pollUpdateMessage ||
+            !received?.message
           ) {
             this.logger.verbose('message rejected');
             return;

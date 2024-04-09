@@ -375,7 +375,7 @@ export class WAMonitoringService {
   private async loadInstancesFromRedis() {
     this.logger.verbose('Redis enabled');
     await this.cache.connect(this.redis as Redis);
-    const keys = await this.cache.instanceKeys();
+    const keys = await this.cache.getInstanceKeys();
 
     if (keys?.length > 0) {
       this.logger.verbose('Reading instance keys and setting instances');
