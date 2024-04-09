@@ -634,16 +634,15 @@ export class BaileysStartupService extends WAStartupService {
   }
 
   public async receiveMobileCode(code: string) {
-    console.log('code', code);
-    // await this.client
-    //   .register(code.replace(/["']/g, '').trim().toLowerCase())
-    //   .then(async (response) => {
-    //     this.logger.verbose('Registration code received successfully');
-    //     console.log(response);
-    //   })
-    //   .catch((error) => {
-    //     this.logger.error(error);
-    //   });
+    await this.client
+      .register(code.replace(/["']/g, '').trim().toLowerCase())
+      .then(async (response) => {
+        this.logger.verbose('Registration code received successfully');
+        console.log(response);
+      })
+      .catch((error) => {
+        this.logger.error(error);
+      });
   }
 
   public async reloadConnection(): Promise<WASocket> {
