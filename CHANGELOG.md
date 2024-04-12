@@ -8,6 +8,7 @@
 
 * Adjusts in redis
 * Send global event in websocket
+* Fix audio encoding
 
 # 1.7.1 (2024-04-03 10:19)
 

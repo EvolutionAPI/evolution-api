@@ -39,9 +39,9 @@ import makeWASocket, {
 import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
 import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
 import axios from 'axios';
-import { exec } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
+import ffmpeg from 'fluent-ffmpeg';
 import fs, { existsSync, readFileSync } from 'fs';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import Long from 'long';
@@ -2311,7 +2311,7 @@ export class BaileysStartupService extends WAStartupService {
     if (isURL(audio)) {
       this.logger.verbose('Audio is url');
 
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
@@ -2340,7 +2340,7 @@ export class BaileysStartupService extends WAStartupService {
     } else {
       this.logger.verbose('Audio is base64');
 
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
@@ -2353,15 +2353,25 @@ export class BaileysStartupService extends WAStartupService {
 
     this.logger.verbose('Converting audio to mp4');
     return new Promise((resolve, reject) => {
-      exec(`${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`, (error) => {
-        fs.unlinkSync(tempAudioPath);
-        this.logger.verbose('Temp audio deleted');
+      // This fix was suggested by @PurpShell
+      ffmpeg.setFfmpegPath(ffmpegPath.path);
 
-        if (error) reject(error);
-
-        this.logger.verbose('Audio converted to mp4');
-        resolve(outputAudio);
-      });
+      ffmpeg()
+        .input(tempAudioPath)
+        .outputFormat('ogg')
+        .noVideo()
+        .audioCodec('libopus')
+        .save(outputAudio)
+        .on('error', function (error) {
+          console.log('error', error);
+          fs.unlinkSync(tempAudioPath);
+          if (error) reject(error);
+        })
+        .on('end', async function () {
+          fs.unlinkSync(tempAudioPath);
+          resolve(outputAudio);
+        })
+        .run();
     });
   }
 
@@ -2381,7 +2391,7 @@ export class BaileysStartupService extends WAStartupService {
           {
             audio: Buffer.from(audio, 'base64'),
             ptt: true,
-            mimetype: 'audio/mp4',
+            mimetype: 'audio/ogg; codecs=opus',
           },
           { presence: 'recording', delay: data?.options?.delay },
           isChatwoot,
