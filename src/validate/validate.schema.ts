@@ -2,6 +2,7 @@ import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { v4 } from 'uuid';
 
 // Integrations Schema
+export * from '../api/integrations/chamaai/validate/chamaai.schema';
 export * from '../api/integrations/chatwoot/validate/chatwoot.schema';
 export * from '../api/integrations/rabbitmq/validate/rabbitmq.schema';
 export * from '../api/integrations/sqs/validate/sqs.schema';
@@ -1044,20 +1045,6 @@ export const proxySchema: JSONSchema7 = {
   },
   required: ['enabled', 'proxy'],
   ...isNotEmpty('enabled', 'proxy'),
-};
-
-export const chamaaiSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    enabled: { type: 'boolean', enum: [true, false] },
-    url: { type: 'string' },
-    token: { type: 'string' },
-    waNumber: { type: 'string' },
-    answerByAudio: { type: 'boolean', enum: [true, false] },
-  },
-  required: ['enabled', 'url', 'token', 'waNumber', 'answerByAudio'],
-  ...isNotEmpty('enabled', 'url', 'token', 'waNumber', 'answerByAudio'),
 };
 
 export const handleLabelSchema: JSONSchema7 = {

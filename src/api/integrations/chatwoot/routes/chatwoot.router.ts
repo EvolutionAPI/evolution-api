@@ -4,7 +4,7 @@ import { Logger } from '../../../../config/logger.config';
 import { chatwootSchema, instanceNameSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routers/index.router';
+import { HttpStatus } from '../../../routes/index.router';
 import { chatwootController } from '../../../server.module';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 

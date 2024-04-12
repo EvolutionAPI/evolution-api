@@ -2,13 +2,13 @@ import axios from 'axios';
 import { writeFileSync } from 'fs';
 import path from 'path';
 
-import { ConfigService, HttpServer } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
+import { ConfigService, HttpServer } from '../../../../config/env.config';
+import { Logger } from '../../../../config/logger.config';
+import { InstanceDto } from '../../../dto/instance.dto';
+import { ChamaaiRaw } from '../../../models';
+import { WAMonitoringService } from '../../../services/monitor.service';
+import { Events } from '../../../types/wa.types';
 import { ChamaaiDto } from '../dto/chamaai.dto';
-import { InstanceDto } from '../dto/instance.dto';
-import { ChamaaiRaw } from '../models';
-import { Events } from '../types/wa.types';
-import { WAMonitoringService } from './monitor.service';
 
 export class ChamaaiService {
   constructor(private readonly waMonitor: WAMonitoringService, private readonly configService: ConfigService) {}

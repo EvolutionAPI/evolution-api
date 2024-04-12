@@ -4,7 +4,7 @@ import { Logger } from '../../../../config/logger.config';
 import { instanceNameSchema, websocketSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routers/index.router';
+import { HttpStatus } from '../../../routes/index.router';
 import { websocketController } from '../../../server.module';
 import { WebsocketDto } from '../dto/websocket.dto';
 

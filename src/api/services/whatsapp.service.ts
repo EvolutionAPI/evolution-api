@@ -20,6 +20,7 @@ import {
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
+import { ChamaaiService } from '../integrations/chamaai/services/chamaai.service';
 import { ChatwootRaw } from '../integrations/chatwoot/models/chatwoot.model';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
 import { getAMQP, removeQueues } from '../integrations/rabbitmq/libs/amqp.server';
@@ -36,7 +37,6 @@ import { RepositoryBroker } from '../repository/repository.manager';
 import { waMonitor } from '../server.module';
 import { Events, wa } from '../types/wa.types';
 import { CacheService } from './cache.service';
-import { ChamaaiService } from './chamaai.service';
 
 export class WAStartupService {
   constructor(

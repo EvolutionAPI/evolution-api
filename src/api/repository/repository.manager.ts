@@ -4,13 +4,13 @@ import { join } from 'path';
 
 import { Auth, ConfigService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
+import { ChamaaiRepository } from '../integrations/chamaai/repository/chamaai.repository';
 import { ChatwootRepository } from '../integrations/chatwoot/repository/chatwoot.repository';
 import { RabbitmqRepository } from '../integrations/rabbitmq/repository/rabbitmq.repository';
 import { SqsRepository } from '../integrations/sqs/repository/sqs.repository';
 import { TypebotRepository } from '../integrations/typebot/repository/typebot.repository';
 import { WebsocketRepository } from '../integrations/websocket/repository/websocket.repository';
 import { AuthRepository } from './auth.repository';
-import { ChamaaiRepository } from './chamaai.repository';
 import { ChatRepository } from './chat.repository';
 import { ContactRepository } from './contact.repository';
 import { IntegrationRepository } from './integration.repository';

@@ -4,7 +4,7 @@ import { Logger } from '../../../../config/logger.config';
 import { instanceNameSchema, sqsSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routers/index.router';
+import { HttpStatus } from '../../../routes/index.router';
 import { sqsController } from '../../../server.module';
 import { SqsDto } from '../dto/sqs.dto';
 

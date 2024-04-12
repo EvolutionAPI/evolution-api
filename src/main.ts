@@ -9,7 +9,7 @@ import { join } from 'path';
 import { initAMQP } from './api/integrations/rabbitmq/libs/amqp.server';
 import { initSQS } from './api/integrations/sqs/libs/sqs.server';
 import { initIO } from './api/integrations/websocket/libs/socket.server';
-import { HttpStatus, router } from './api/routers/index.router';
+import { HttpStatus, router } from './api/routes/index.router';
 import { waMonitor } from './api/server.module';
 import { Auth, configService, Cors, HttpServer, Rabbitmq, Sqs, Webhook } from './config/env.config';
 import { onUnexpectedError } from './config/error.config';

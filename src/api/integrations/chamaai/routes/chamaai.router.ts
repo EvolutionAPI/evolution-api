@@ -1,12 +1,12 @@
 import { RequestHandler, Router } from 'express';
 
-import { Logger } from '../../config/logger.config';
-import { chamaaiSchema, instanceNameSchema } from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
+import { Logger } from '../../../../config/logger.config';
+import { chamaaiSchema, instanceNameSchema } from '../../../../validate/validate.schema';
+import { RouterBroker } from '../../../abstract/abstract.router';
+import { InstanceDto } from '../../../dto/instance.dto';
+import { HttpStatus } from '../../../routes/index.router';
+import { chamaaiController } from '../../../server.module';
 import { ChamaaiDto } from '../dto/chamaai.dto';
-import { InstanceDto } from '../dto/instance.dto';
-import { chamaaiController } from '../server.module';
-import { HttpStatus } from './index.router';
 
 const logger = new Logger('ChamaaiRouter');
 

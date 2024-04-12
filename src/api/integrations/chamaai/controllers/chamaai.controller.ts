@@ -1,6 +1,6 @@
-import { Logger } from '../../config/logger.config';
+import { Logger } from '../../../../config/logger.config';
+import { InstanceDto } from '../../../dto/instance.dto';
 import { ChamaaiDto } from '../dto/chamaai.dto';
-import { InstanceDto } from '../dto/instance.dto';
 import { ChamaaiService } from '../services/chamaai.service';
 
 const logger = new Logger('ChamaaiController');
