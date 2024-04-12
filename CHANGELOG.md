@@ -13,6 +13,7 @@
 * Fix conversation read on chatwoot version 3.7
 * Fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
 * Changed returned sessions on typebot status change
+* Reorganization of files and folders
 
 # 1.7.1 (2024-04-03 10:19)
 

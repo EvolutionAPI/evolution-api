@@ -1,4 +1,4 @@
-import { HttpStatus } from '../whatsapp/routers/index.router';
+import { HttpStatus } from '../api/routers/index.router';
 
 export class NotFoundException {
   constructor(...objectError: any[]) {
