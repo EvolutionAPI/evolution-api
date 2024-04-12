@@ -108,7 +108,6 @@ export const repository = new RepositoryBroker(
 );
 
 export const cache = new RedisCache();
-
 const chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
 
 export const waMonitor = new WAMonitoringService(eventEmitter, configService, repository, cache, chatwootCache);
@@ -116,41 +115,32 @@ export const waMonitor = new WAMonitoringService(eventEmitter, configService, re
 const authService = new AuthService(configService, waMonitor, repository);
 
 const typebotService = new TypebotService(waMonitor, configService, eventEmitter);
-
 export const typebotController = new TypebotController(typebotService);
 
 const webhookService = new WebhookService(waMonitor);
-
 export const webhookController = new WebhookController(webhookService, waMonitor);
 
 const websocketService = new WebsocketService(waMonitor);
-
 export const websocketController = new WebsocketController(websocketService);
 
 const proxyService = new ProxyService(waMonitor);
-
 export const proxyController = new ProxyController(proxyService, waMonitor);
 
 const chamaaiService = new ChamaaiService(waMonitor, configService);
-
 export const chamaaiController = new ChamaaiController(chamaaiService);
 
 const rabbitmqService = new RabbitmqService(waMonitor);
-
 export const rabbitmqController = new RabbitmqController(rabbitmqService);
 
 const sqsService = new SqsService(waMonitor);
-
 export const sqsController = new SqsController(sqsService);
 
 const integrationService = new IntegrationService(waMonitor);
 
 const chatwootService = new ChatwootService(waMonitor, configService, repository, chatwootCache);
-
 export const chatwootController = new ChatwootController(chatwootService, configService, repository);
 
 const settingsService = new SettingsService(waMonitor);
-
 export const settingsController = new SettingsController(settingsService);
 
 export const instanceController = new InstanceController(
