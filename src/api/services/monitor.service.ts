@@ -26,8 +26,8 @@ import {
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Integration } from '../types/wa.types';
 import { CacheService } from './cache.service';
-import { BaileysStartupService } from './whatsapp.baileys.service';
-import { BusinessStartupService } from './whatsapp.business.service';
+import { BaileysStartupService } from './whatsapp/whatsapp.baileys.service';
+import { BusinessStartupService } from './whatsapp/whatsapp.business.service';
 
 export class WAMonitoringService {
   constructor(

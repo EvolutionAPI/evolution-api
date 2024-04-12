@@ -20,8 +20,8 @@ import { IntegrationService } from '../services/integration.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { SettingsService } from '../services/settings.service';
 import { WebhookService } from '../services/webhook.service';
-import { BaileysStartupService } from '../services/whatsapp.baileys.service';
-import { BusinessStartupService } from '../services/whatsapp.business.service';
+import { BaileysStartupService } from '../services/whatsapp/whatsapp.baileys.service';
+import { BusinessStartupService } from '../services/whatsapp/whatsapp.business.service';
 import { Events, Integration, wa } from '../types/wa.types';
 import { ProxyController } from './proxy.controller';
 

@@ -5,10 +5,10 @@ import FormData from 'form-data';
 import fs from 'fs/promises';
 import { getMIMEType } from 'node-mime-types';
 
-import { ConfigService, Database, WaBusiness } from '../../config/env.config';
-import { BadRequestException, InternalServerErrorException } from '../../exceptions';
-import { RedisCache } from '../../libs/redis.client';
-import { NumberBusiness } from '../dto/chat.dto';
+import { ConfigService, Database, WaBusiness } from '../../../config/env.config';
+import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
+import { RedisCache } from '../../../libs/redis.client';
+import { NumberBusiness } from '../../dto/chat.dto';
 import {
   ContactMessage,
   MediaMessage,
@@ -22,12 +22,12 @@ import {
   SendReactionDto,
   SendTemplateDto,
   SendTextDto,
-} from '../dto/sendMessage.dto';
-import { ContactRaw, MessageRaw, MessageUpdateRaw, SettingsRaw } from '../models';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { Events, wa } from '../types/wa.types';
-import { CacheService } from './cache.service';
-import { WAStartupService } from './whatsapp.service';
+} from '../../dto/sendMessage.dto';
+import { ContactRaw, MessageRaw, MessageUpdateRaw, SettingsRaw } from '../../models';
+import { RepositoryBroker } from '../../repository/repository.manager';
+import { Events, wa } from '../../types/wa.types';
+import { CacheService } from './../cache.service';
+import { WAStartupService } from './../whatsapp.service';
 
 export class BusinessStartupService extends WAStartupService {
   constructor(

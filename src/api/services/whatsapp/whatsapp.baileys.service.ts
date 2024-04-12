@@ -54,14 +54,14 @@ import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 
-import { ConfigService, ConfigSessionPhone, Database, Log, QrCode, Redis } from '../../config/env.config';
-import { INSTANCE_DIR } from '../../config/path.config';
-import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../exceptions';
-import { dbserver } from '../../libs/db.connect';
-import { RedisCache } from '../../libs/redis.client';
-import { makeProxyAgent } from '../../utils/makeProxyAgent';
-import { useMultiFileAuthStateDb } from '../../utils/use-multi-file-auth-state-db';
-import { useMultiFileAuthStateRedisDb } from '../../utils/use-multi-file-auth-state-redis-db';
+import { ConfigService, ConfigSessionPhone, Database, Log, QrCode, Redis } from '../../../config/env.config';
+import { INSTANCE_DIR } from '../../../config/path.config';
+import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
+import { dbserver } from '../../../libs/db.connect';
+import { RedisCache } from '../../../libs/redis.client';
+import { makeProxyAgent } from '../../../utils/makeProxyAgent';
+import { useMultiFileAuthStateDb } from '../../../utils/use-multi-file-auth-state-db';
+import { useMultiFileAuthStateRedisDb } from '../../../utils/use-multi-file-auth-state-redis-db';
 import {
   ArchiveChatDto,
   BlockUserDto,
@@ -75,7 +75,7 @@ import {
   SendPresenceDto,
   UpdateMessageDto,
   WhatsAppNumberDto,
-} from '../dto/chat.dto';
+} from '../../dto/chat.dto';
 import {
   AcceptGroupInvite,
   CreateGroupDto,
@@ -89,9 +89,9 @@ import {
   GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
-} from '../dto/group.dto';
-import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
-import { HandleLabelDto, LabelDto } from '../dto/label.dto';
+} from '../../dto/group.dto';
+import { InstanceDto, SetPresenceDto } from '../../dto/instance.dto';
+import { HandleLabelDto, LabelDto } from '../../dto/label.dto';
 import {
   ContactMessage,
   MediaMessage,
@@ -108,17 +108,17 @@ import {
   SendStickerDto,
   SendTextDto,
   StatusMessage,
-} from '../dto/sendMessage.dto';
-import { chatwootImport } from '../integrations/chatwoot/utils/chatwoot-import-helper';
-import { SettingsRaw } from '../models';
-import { ChatRaw } from '../models/chat.model';
-import { ContactRaw } from '../models/contact.model';
-import { MessageRaw, MessageUpdateRaw } from '../models/message.model';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { waMonitor } from '../server.module';
-import { Events, MessageSubtype, TypeMediaMessage, wa } from '../types/wa.types';
-import { CacheService } from './cache.service';
-import { WAStartupService } from './whatsapp.service';
+} from '../../dto/sendMessage.dto';
+import { chatwootImport } from '../../integrations/chatwoot/utils/chatwoot-import-helper';
+import { SettingsRaw } from '../../models';
+import { ChatRaw } from '../../models/chat.model';
+import { ContactRaw } from '../../models/contact.model';
+import { MessageRaw, MessageUpdateRaw } from '../../models/message.model';
+import { RepositoryBroker } from '../../repository/repository.manager';
+import { waMonitor } from '../../server.module';
+import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
+import { CacheService } from './../cache.service';
+import { WAStartupService } from './../whatsapp.service';
 
 // const retryCache = {};
 
