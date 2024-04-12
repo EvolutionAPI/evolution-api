@@ -1,4 +1,12 @@
-import ChatwootClient, { ChatwootAPIConfig, contact, conversation, generic_id, inbox } from '@figuro/chatwoot-sdk';
+import ChatwootClient, {
+  ChatwootAPIConfig,
+  contact,
+  contact_inboxes,
+  conversation,
+  conversation_show,
+  generic_id,
+  inbox,
+} from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import axios from 'axios';
 import FormData from 'form-data';
@@ -1774,6 +1782,13 @@ export class ChatwootService {
           return;
         }
 
+        // fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
+        if (body.message?.ephemeralMessage?.message) {
+          body.message = {
+            ...body.message?.ephemeralMessage?.message,
+          };
+        }
+
         this.logger.verbose('get conversation message');
 
         // Whatsapp to Chatwoot
@@ -2123,12 +2138,13 @@ export class ChatwootService {
           };
 
           if (!sourceId && inbox) {
-            const contact = (await this.findContact(
-              instance,
-              this.getNumberFromRemoteJid(body.key.remoteJid),
-            )) as contact;
-            const contactInbox = contact?.contact_inboxes?.find((contactInbox) => contactInbox?.inbox?.id === inbox.id);
-            sourceId = contactInbox?.source_id;
+            const conversation = (await client.conversations.get({
+              accountId: this.provider.account_id,
+              conversationId: conversationId,
+            })) as conversation_show & {
+              last_non_activity_message: { conversation: { contact_inbox: contact_inboxes } };
+            };
+            sourceId = conversation.last_non_activity_message?.conversation?.contact_inbox?.source_id;
           }
 
           if (sourceId && inbox?.inbox_identifier) {
