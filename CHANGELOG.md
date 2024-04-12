@@ -2,13 +2,16 @@
 
 ### Feature
 
-* Mobile connection via sms
+* Mobile connection via sms (test)
 
 ### Fixed
 
 * Adjusts in redis
 * Send global event in websocket
 * Fix audio encoding
+* Fix conversation read on chatwoot version 3.7
+* Fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
+* Changed returned sessions on typebot status change
 
 # 1.7.1 (2024-04-03 10:19)
 

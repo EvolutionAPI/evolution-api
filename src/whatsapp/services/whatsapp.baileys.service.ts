@@ -829,7 +829,7 @@ export class BaileysStartupService extends WAStartupService {
         }
 
         this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
-        this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
+        if (contactsRaw.length > 0) this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
         this.logger.verbose('Inserting contacts in database');
         this.repository.contact.insert(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
@@ -851,7 +851,7 @@ export class BaileysStartupService extends WAStartupService {
         }
 
         this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
-        this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
+        if (contactsRaw.length > 0) this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
         this.logger.verbose('Updating contacts in database');
         this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
