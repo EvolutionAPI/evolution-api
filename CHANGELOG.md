@@ -8,6 +8,7 @@
 
 * Adjusts in redis
 * Send global event in websocket
+* Adjusts in proxy
 * Fix audio encoding
 * Fix conversation read on chatwoot version 3.7
 * Fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
