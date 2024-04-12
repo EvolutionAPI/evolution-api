@@ -1,6 +1,6 @@
 FROM node:20.7.0-alpine AS builder
 
-LABEL version="1.7.1" description="Api to control whatsapp features through http requests." 
+LABEL version="1.7.2" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
@@ -68,6 +68,7 @@ ENV RABBITMQ_EXCHANGE_NAME=evolution_exchange
 ENV RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
 
 ENV WEBSOCKET_ENABLED=false
+ENV WEBSOCKET_GLOBAL_EVENTS=false
 
 ENV WA_BUSINESS_TOKEN_WEBHOOK=evolution
 ENV WA_BUSINESS_URL=https://graph.facebook.com

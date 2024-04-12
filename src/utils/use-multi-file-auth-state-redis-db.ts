@@ -17,7 +17,7 @@ export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
 
   const writeData = async (data: any, key: string): Promise<any> => {
     try {
-      return await cache.writeData(key, data);
+      return await cache.setData(key, data);
     } catch (error) {
       return logger.error({ localError: 'writeData', error });
     }
@@ -25,9 +25,9 @@ export async function useMultiFileAuthStateRedisDb(cache: RedisCache): Promise<{
 
   const readData = async (key: string): Promise<any> => {
     try {
-      return await cache.readData(key);
+      return await cache.getData(key);
     } catch (error) {
-      logger.error({ readData: 'writeData', error });
+      logger.error({ localError: 'readData', error });
       return;
     }
   };

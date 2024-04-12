@@ -97,6 +97,7 @@ SQS:
 
 WEBSOCKET:
   ENABLED: false
+  GLOBAL_EVENTS: false
 
 WA_BUSINESS:
   TOKEN_WEBHOOK: evolution

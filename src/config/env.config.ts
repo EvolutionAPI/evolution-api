@@ -86,6 +86,7 @@ export type Sqs = {
 
 export type Websocket = {
   ENABLED: boolean;
+  GLOBAL_EVENTS: boolean;
 };
 
 export type WaBusiness = {
@@ -299,6 +300,7 @@ export class ConfigService {
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
+        GLOBAL_EVENTS: process.env?.WEBSOCKET_GLOBAL_EVENTS === 'true',
       },
       WA_BUSINESS: {
         TOKEN_WEBHOOK: process.env.WA_BUSINESS_TOKEN_WEBHOOK || '',

@@ -1,6 +1,6 @@
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
-import { wa } from '../whatsapp/types/wa.types';
+import { wa } from '../api/types/wa.types';
 
 export function makeProxyAgent(proxy: wa.Proxy | string) {
   if (typeof proxy === 'string') {

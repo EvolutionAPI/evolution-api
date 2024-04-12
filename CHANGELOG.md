@@ -1,3 +1,20 @@
+# 1.7.2 (2024-04-12 17:31)
+
+### Feature
+
+* Mobile connection via sms (test)
+
+### Fixed
+
+* Adjusts in redis
+* Send global event in websocket
+* Adjusts in proxy
+* Fix audio encoding
+* Fix conversation read on chatwoot version 3.7
+* Fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
+* Changed returned sessions on typebot status change
+* Reorganization of files and folders
+
 # 1.7.1 (2024-04-03 10:19)
 
 ### Fixed

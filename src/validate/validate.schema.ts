@@ -1,6 +1,13 @@
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { v4 } from 'uuid';
 
+// Integrations Schema
+export * from '../api/integrations/chamaai/validate/chamaai.schema';
+export * from '../api/integrations/chatwoot/validate/chatwoot.schema';
+export * from '../api/integrations/rabbitmq/validate/rabbitmq.schema';
+export * from '../api/integrations/sqs/validate/sqs.schema';
+export * from '../api/integrations/typebot/validate/typebot.schema';
+
 const isNotEmpty = (...propertyNames: string[]): JSONSchema7 => {
   const properties = {};
   propertyNames.forEach(
@@ -957,27 +964,6 @@ export const webhookSchema: JSONSchema7 = {
   ...isNotEmpty('url'),
 };
 
-export const chatwootSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    enabled: { type: 'boolean', enum: [true, false] },
-    account_id: { type: 'string' },
-    token: { type: 'string' },
-    url: { type: 'string' },
-    sign_msg: { type: 'boolean', enum: [true, false] },
-    sign_delimiter: { type: ['string', 'null'] },
-    reopen_conversation: { type: 'boolean', enum: [true, false] },
-    conversation_pending: { type: 'boolean', enum: [true, false] },
-    auto_create: { type: 'boolean', enum: [true, false] },
-    import_contacts: { type: 'boolean', enum: [true, false] },
-    import_messages: { type: 'boolean', enum: [true, false] },
-    days_limit_import_messages: { type: 'number' },
-  },
-  required: ['enabled', 'account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'],
-  ...isNotEmpty('account_id', 'token', 'url', 'sign_msg', 'reopen_conversation', 'conversation_pending'),
-};
-
 export const settingsSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
@@ -1039,135 +1025,6 @@ export const websocketSchema: JSONSchema7 = {
   ...isNotEmpty('enabled'),
 };
 
-export const rabbitmqSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    enabled: { type: 'boolean', enum: [true, false] },
-    events: {
-      type: 'array',
-      minItems: 0,
-      items: {
-        type: 'string',
-        enum: [
-          'APPLICATION_STARTUP',
-          'QRCODE_UPDATED',
-          'MESSAGES_SET',
-          'MESSAGES_UPSERT',
-          'MESSAGES_UPDATE',
-          'MESSAGES_DELETE',
-          'SEND_MESSAGE',
-          'CONTACTS_SET',
-          'CONTACTS_UPSERT',
-          'CONTACTS_UPDATE',
-          'PRESENCE_UPDATE',
-          'CHATS_SET',
-          'CHATS_UPSERT',
-          'CHATS_UPDATE',
-          'CHATS_DELETE',
-          'GROUPS_UPSERT',
-          'GROUP_UPDATE',
-          'GROUP_PARTICIPANTS_UPDATE',
-          'CONNECTION_UPDATE',
-          'LABELS_EDIT',
-          'LABELS_ASSOCIATION',
-          'CALL',
-          'NEW_JWT_TOKEN',
-          'TYPEBOT_START',
-          'TYPEBOT_CHANGE_STATUS',
-          'CHAMA_AI_ACTION',
-        ],
-      },
-    },
-  },
-  required: ['enabled'],
-  ...isNotEmpty('enabled'),
-};
-
-export const sqsSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    enabled: { type: 'boolean', enum: [true, false] },
-    events: {
-      type: 'array',
-      minItems: 0,
-      items: {
-        type: 'string',
-        enum: [
-          'APPLICATION_STARTUP',
-          'QRCODE_UPDATED',
-          'MESSAGES_SET',
-          'MESSAGES_UPSERT',
-          'MESSAGES_UPDATE',
-          'MESSAGES_DELETE',
-          'SEND_MESSAGE',
-          'CONTACTS_SET',
-          'CONTACTS_UPSERT',
-          'CONTACTS_UPDATE',
-          'PRESENCE_UPDATE',
-          'CHATS_SET',
-          'CHATS_UPSERT',
-          'CHATS_UPDATE',
-          'CHATS_DELETE',
-          'GROUPS_UPSERT',
-          'GROUP_UPDATE',
-          'GROUP_PARTICIPANTS_UPDATE',
-          'CONNECTION_UPDATE',
-          'LABELS_EDIT',
-          'LABELS_ASSOCIATION',
-          'CALL',
-          'NEW_JWT_TOKEN',
-          'TYPEBOT_START',
-          'TYPEBOT_CHANGE_STATUS',
-          'CHAMA_AI_ACTION',
-        ],
-      },
-    },
-  },
-  required: ['enabled'],
-  ...isNotEmpty('enabled'),
-};
-
-export const typebotSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    enabled: { type: 'boolean', enum: [true, false] },
-    url: { type: 'string' },
-    typebot: { type: 'string' },
-    expire: { type: 'integer' },
-    delay_message: { type: 'integer' },
-    unknown_message: { type: 'string' },
-    listening_from_me: { type: 'boolean', enum: [true, false] },
-  },
-  required: ['enabled', 'url', 'typebot', 'expire', 'delay_message', 'unknown_message', 'listening_from_me'],
-  ...isNotEmpty('enabled', 'url', 'typebot', 'expire', 'delay_message', 'unknown_message', 'listening_from_me'),
-};
-
-export const typebotStatusSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    remoteJid: { type: 'string' },
-    status: { type: 'string', enum: ['opened', 'closed', 'paused'] },
-  },
-  required: ['remoteJid', 'status'],
-  ...isNotEmpty('remoteJid', 'status'),
-};
-
-export const typebotStartSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    remoteJid: { type: 'string' },
-    url: { type: 'string' },
-    typebot: { type: 'string' },
-  },
-  required: ['remoteJid', 'url', 'typebot'],
-  ...isNotEmpty('remoteJid', 'url', 'typebot'),
-};
-
 export const proxySchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
@@ -1188,20 +1045,6 @@ export const proxySchema: JSONSchema7 = {
   },
   required: ['enabled', 'proxy'],
   ...isNotEmpty('enabled', 'proxy'),
-};
-
-export const chamaaiSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    enabled: { type: 'boolean', enum: [true, false] },
-    url: { type: 'string' },
-    token: { type: 'string' },
-    waNumber: { type: 'string' },
-    answerByAudio: { type: 'boolean', enum: [true, false] },
-  },
-  required: ['enabled', 'url', 'token', 'waNumber', 'answerByAudio'],
-  ...isNotEmpty('enabled', 'url', 'token', 'waNumber', 'answerByAudio'),
 };
 
 export const handleLabelSchema: JSONSchema7 = {
