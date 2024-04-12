@@ -1772,12 +1772,10 @@ export class BaileysStartupService extends WAStartupService {
 
         const msg = m?.message ? m : ((await this.getMessage(m.key, true)) as proto.IWebMessageInfo);
 
-        if (!msg) {
-          throw 'Message not found';
+        if (msg) {
+          quoted = msg;
+          this.logger.verbose('Quoted message');
         }
-
-        quoted = msg;
-        this.logger.verbose('Quoted message');
       }
 
       let mentions: string[];
