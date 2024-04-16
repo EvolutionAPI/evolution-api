@@ -39,9 +39,10 @@ import makeWASocket, {
 import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
 import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
 import axios from 'axios';
+import { exec } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
-import ffmpeg from 'fluent-ffmpeg';
+// import ffmpeg from 'fluent-ffmpeg';
 import fs, { existsSync, readFileSync } from 'fs';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import Long from 'long';
@@ -485,11 +486,11 @@ export class BaileysStartupService extends WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy.host);
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
 
         if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
           try {
-            const response = await axios.get(this.localProxy.proxy.host);
+            const response = await axios.get(this.localProxy.proxy?.host);
             const text = response.data;
             const proxyUrls = text.split('\r\n');
             const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
@@ -655,11 +656,11 @@ export class BaileysStartupService extends WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy.host);
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
 
         if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
           try {
-            const response = await axios.get(this.localProxy.proxy.host);
+            const response = await axios.get(this.localProxy.proxy?.host);
             const text = response.data;
             const proxyUrls = text.split('\r\n');
             const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
@@ -1041,6 +1042,12 @@ export class BaileysStartupService extends WAStartupService {
             if (editedMessage) {
               this.chatwootService.eventWhatsapp('messages.edit', { instanceName: this.instance.name }, editedMessage);
             }
+          }
+
+          if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
+            this.logger.info('Recovering message lost');
+            await this.client.sendMessageAck(JSON.parse(received.messageStubParameters[1], BufferJSON.reviver));
+            continue;
           }
 
           if (
@@ -2093,7 +2100,7 @@ export class BaileysStartupService extends WAStartupService {
           content: {
             audio: Buffer.from(audio, 'base64'),
             ptt: true,
-            mimetype: 'audio/mp4',
+            mimetype: 'audio/ogg; codecs=opus',
           },
           option: {
             statusJidList: status.statusJidList,
@@ -2297,6 +2304,82 @@ export class BaileysStartupService extends WAStartupService {
     return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
   }
 
+  // public async processAudio(audio: string, number: string) {
+  //   this.logger.verbose('Processing audio');
+  //   let tempAudioPath: string;
+  //   let outputAudio: string;
+
+  //   number = number.replace(/\D/g, '');
+  //   const hash = `${number}-${new Date().getTime()}`;
+  //   this.logger.verbose('Hash to audio name: ' + hash);
+
+  //   if (isURL(audio)) {
+  //     this.logger.verbose('Audio is url');
+
+  //     outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+  //     tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+  //     this.logger.verbose('Output audio path: ' + outputAudio);
+  //     this.logger.verbose('Temp audio path: ' + tempAudioPath);
+
+  //     const timestamp = new Date().getTime();
+  //     const url = `${audio}?timestamp=${timestamp}`;
+
+  //     this.logger.verbose('Including timestamp in url: ' + url);
+
+  //     let config: any = {
+  //       responseType: 'arraybuffer',
+  //     };
+
+  //     if (this.localProxy.enabled) {
+  //       config = {
+  //         ...config,
+  //         httpsAgent: makeProxyAgent(this.localProxy.proxy),
+  //       };
+  //     }
+
+  //     const response = await axios.get(url, config);
+  //     this.logger.verbose('Getting audio from url');
+
+  //     fs.writeFileSync(tempAudioPath, response.data);
+  //   } else {
+  //     this.logger.verbose('Audio is base64');
+
+  //     outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+  //     tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+  //     this.logger.verbose('Output audio path: ' + outputAudio);
+  //     this.logger.verbose('Temp audio path: ' + tempAudioPath);
+
+  //     const audioBuffer = Buffer.from(audio, 'base64');
+  //     fs.writeFileSync(tempAudioPath, audioBuffer);
+  //     this.logger.verbose('Temp audio created');
+  //   }
+
+  //   this.logger.verbose('Converting audio to mp4');
+  //   return new Promise((resolve, reject) => {
+  //     // This fix was suggested by @PurpShell
+  //     ffmpeg.setFfmpegPath(ffmpegPath.path);
+
+  //     ffmpeg()
+  //       .input(tempAudioPath)
+  //       .outputFormat('ogg')
+  //       .noVideo()
+  //       .audioCodec('libopus')
+  //       .save(outputAudio)
+  //       .on('error', function (error) {
+  //         console.log('error', error);
+  //         fs.unlinkSync(tempAudioPath);
+  //         if (error) reject(error);
+  //       })
+  //       .on('end', async function () {
+  //         fs.unlinkSync(tempAudioPath);
+  //         resolve(outputAudio);
+  //       })
+  //       .run();
+  //   });
+  // }
+
   public async processAudio(audio: string, number: string) {
     this.logger.verbose('Processing audio');
     let tempAudioPath: string;
@@ -2309,7 +2392,7 @@ export class BaileysStartupService extends WAStartupService {
     if (isURL(audio)) {
       this.logger.verbose('Audio is url');
 
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
@@ -2320,25 +2403,14 @@ export class BaileysStartupService extends WAStartupService {
 
       this.logger.verbose('Including timestamp in url: ' + url);
 
-      let config: any = {
-        responseType: 'arraybuffer',
-      };
-
-      if (this.localProxy.enabled) {
-        config = {
-          ...config,
-          httpsAgent: makeProxyAgent(this.localProxy.proxy),
-        };
-      }
-
-      const response = await axios.get(url, config);
+      const response = await axios.get(url, { responseType: 'arraybuffer' });
       this.logger.verbose('Getting audio from url');
 
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
       this.logger.verbose('Audio is base64');
 
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
@@ -2351,25 +2423,15 @@ export class BaileysStartupService extends WAStartupService {
 
     this.logger.verbose('Converting audio to mp4');
     return new Promise((resolve, reject) => {
-      // This fix was suggested by @PurpShell
-      ffmpeg.setFfmpegPath(ffmpegPath.path);
+      exec(`${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`, (error) => {
+        fs.unlinkSync(tempAudioPath);
+        this.logger.verbose('Temp audio deleted');
 
-      ffmpeg()
-        .input(tempAudioPath)
-        .outputFormat('ogg')
-        .noVideo()
-        .audioCodec('libopus')
-        .save(outputAudio)
-        .on('error', function (error) {
-          console.log('error', error);
-          fs.unlinkSync(tempAudioPath);
-          if (error) reject(error);
-        })
-        .on('end', async function () {
-          fs.unlinkSync(tempAudioPath);
-          resolve(outputAudio);
-        })
-        .run();
+        if (error) reject(error);
+
+        this.logger.verbose('Audio converted to mp4');
+        resolve(outputAudio);
+      });
     });
   }
 

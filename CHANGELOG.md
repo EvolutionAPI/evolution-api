@@ -1,3 +1,10 @@
+# 1.7.3 (develop)
+
+### Fixed
+* Fix audio encoding
+* Recovering messages lost
+* Adjusts in proxy
+
 # 1.7.2 (2024-04-12 17:31)
 
 ### Feature
