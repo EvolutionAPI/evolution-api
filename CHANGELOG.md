@@ -1,7 +1,7 @@
 # 1.7.3 (develop)
 
 ### Fixed
-* Fix audio encoding
+* Revert fix audio encoding
 * Recovering messages lost
 * Adjusts in proxy
 * Revert pull request #523
