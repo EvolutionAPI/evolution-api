@@ -1,5 +1,6 @@
 import { isURL } from 'class-validator';
 
+import { CacheEngine } from '../../../../cache/cacheengine';
 import { ConfigService, HttpServer } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { BadRequestException } from '../../../../exceptions';
@@ -7,7 +8,6 @@ import { InstanceDto } from '../../../dto/instance.dto';
 import { RepositoryBroker } from '../../../repository/repository.manager';
 import { waMonitor } from '../../../server.module';
 import { CacheService } from '../../../services/cache.service';
-import { CacheEngine } from '../cache/cacheengine';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { ChatwootService } from '../services/chatwoot.service';
 
