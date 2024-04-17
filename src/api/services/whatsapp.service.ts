@@ -583,7 +583,7 @@ export class WAStartupService {
     this.logger.verbose(`Proxy enabled: ${this.localProxy.enabled}`);
 
     this.localProxy.proxy = data?.proxy;
-    this.logger.verbose(`Proxy proxy: ${this.localProxy.proxy.host}`);
+    this.logger.verbose(`Proxy proxy: ${this.localProxy.proxy?.host}`);
 
     this.logger.verbose('Proxy loaded');
   }
