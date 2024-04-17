@@ -135,10 +135,7 @@ export class BaileysStartupService extends WAStartupService {
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
     this.mobile = false;
-
-    setTimeout(() => {
-      this.recoveringMessages();
-    }, 30000);
+    this.recoveringMessages();
   }
 
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -152,15 +149,19 @@ export class BaileysStartupService extends WAStartupService {
   public mobile: boolean;
 
   private async recoveringMessages() {
-    this.logger.info('Recovering messages');
-    this.messagesLostCache.keys().then((keys) => {
-      keys.forEach(async (key) => {
-        const message = await this.messagesLostCache.get(key.split(':')[2]);
+    setTimeout(async () => {
+      this.logger.info('Recovering messages');
+      this.messagesLostCache.keys().then((keys) => {
+        keys.forEach(async (key) => {
+          const message = await this.messagesLostCache.get(key.split(':')[2]);
 
-        if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node')
-          await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
+          if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
+            this.logger.verbose('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
+            await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
+          }
+        });
       });
-    });
+    }, 30000);
   }
 
   public get connectionStatus() {
