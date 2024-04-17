@@ -2100,7 +2100,7 @@ export class BaileysStartupService extends WAStartupService {
           content: {
             audio: Buffer.from(audio, 'base64'),
             ptt: true,
-            mimetype: 'audio/ogg; codecs=opus',
+            mimetype: 'audio/mp4',
           },
           option: {
             statusJidList: status.statusJidList,
@@ -2451,7 +2451,7 @@ export class BaileysStartupService extends WAStartupService {
           {
             audio: Buffer.from(audio, 'base64'),
             ptt: true,
-            mimetype: 'audio/ogg; codecs=opus',
+            mimetype: 'audio/mp4',
           },
           { presence: 'recording', delay: data?.options?.delay },
           isChatwoot,
