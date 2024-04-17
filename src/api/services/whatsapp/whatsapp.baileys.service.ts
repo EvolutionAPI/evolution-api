@@ -1061,8 +1061,6 @@ export class BaileysStartupService extends WAStartupService {
             }
           }
 
-          await this.messagesLostCache.set(received.key.id, received);
-
           if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
             this.logger.info('Recovering message lost');
 
@@ -1070,12 +1068,12 @@ export class BaileysStartupService extends WAStartupService {
             continue;
           }
 
-          // const retryCache = (await this.messagesLostCache.get(received.key.id)) || null;
+          const retryCache = (await this.messagesLostCache.get(received.key.id)) || null;
 
-          // if (retryCache) {
-          //   this.logger.info('Recovered message lost');
-          //   await this.messagesLostCache.delete(received.key.id);
-          // }
+          if (retryCache) {
+            this.logger.info('Recovered message lost');
+            await this.messagesLostCache.delete(received.key.id);
+          }
 
           if (
             (type !== 'notify' && type !== 'append') ||
