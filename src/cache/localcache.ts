@@ -1,7 +1,7 @@
 import NodeCache from 'node-cache';
 
-import { CacheConf, CacheConfLocal, ConfigService } from '../../../../config/env.config';
-import { ICache } from '../../../abstract/abstract.cache';
+import { ICache } from '../api/abstract/abstract.cache';
+import { CacheConf, CacheConfLocal, ConfigService } from '../config/env.config';
 
 export class LocalCache implements ICache {
   private conf: CacheConfLocal;

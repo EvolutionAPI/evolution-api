@@ -36,6 +36,7 @@ export class BusinessStartupService extends WAStartupService {
     public readonly repository: RepositoryBroker,
     public readonly cache: RedisCache,
     public readonly chatwootCache: CacheService,
+    public readonly messagesLostCache: CacheService,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BusinessStartupService initialized');

@@ -36,6 +36,7 @@ export class WAMonitoringService {
     private readonly repository: RepositoryBroker,
     private readonly cache: RedisCache,
     private readonly chatwootCache: CacheService,
+    private readonly messagesLostCache: CacheService,
   ) {
     this.logger.verbose('instance created');
 
@@ -346,6 +347,7 @@ export class WAMonitoringService {
         this.repository,
         this.cache,
         this.chatwootCache,
+        this.messagesLostCache,
       );
 
       instance.instanceName = name;
@@ -356,6 +358,7 @@ export class WAMonitoringService {
         this.repository,
         this.cache,
         this.chatwootCache,
+        this.messagesLostCache,
       );
 
       instance.instanceName = name;

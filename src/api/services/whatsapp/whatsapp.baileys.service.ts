@@ -121,8 +121,6 @@ import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.typ
 import { CacheService } from './../cache.service';
 import { WAStartupService } from './../whatsapp.service';
 
-// const retryCache = {};
-
 export class BaileysStartupService extends WAStartupService {
   constructor(
     public readonly configService: ConfigService,
@@ -130,12 +128,17 @@ export class BaileysStartupService extends WAStartupService {
     public readonly repository: RepositoryBroker,
     public readonly cache: RedisCache,
     public readonly chatwootCache: CacheService,
+    public readonly messagesLostCache: CacheService,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BaileysStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
     this.mobile = false;
+
+    setTimeout(() => {
+      this.recoveringMessages();
+    }, 30000);
   }
 
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -147,6 +150,18 @@ export class BaileysStartupService extends WAStartupService {
 
   public phoneNumber: string;
   public mobile: boolean;
+
+  private async recoveringMessages() {
+    this.logger.info('Recovering messages');
+    this.messagesLostCache.keys().then((keys) => {
+      keys.forEach(async (key) => {
+        const message = await this.messagesLostCache.get(key.split(':')[2]);
+
+        if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node')
+          await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
+      });
+    });
+  }
 
   public get connectionStatus() {
     this.logger.verbose('Getting connection status');
@@ -378,10 +393,12 @@ export class BaileysStartupService extends WAStartupService {
         │    CONNECTED TO WHATSAPP     │
         └──────────────────────────────┘`.replace(/^ +/gm, '  '),
       );
-      this.logger.info(`
+      this.logger.info(
+        `
         wuid: ${formattedWuid}
         name: ${formattedName}
-      `);
+      `,
+      );
 
       if (this.localChatwoot.enabled) {
         this.chatwootService.eventWhatsapp(
@@ -1046,8 +1063,16 @@ export class BaileysStartupService extends WAStartupService {
 
           if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
             this.logger.info('Recovering message lost');
-            await this.client.sendMessageAck(JSON.parse(received.messageStubParameters[1], BufferJSON.reviver));
+
+            await this.messagesLostCache.set(received.key.id, received);
             continue;
+          }
+
+          const retryCache = (await this.messagesLostCache.get(received.key.id)) || null;
+
+          if (retryCache) {
+            this.logger.info('Recovered message lost');
+            await this.messagesLostCache.delete(received.key.id);
           }
 
           if (
@@ -1248,7 +1273,6 @@ export class BaileysStartupService extends WAStartupService {
           }
         }
 
-        // if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
         if (key.remoteJid !== 'status@broadcast') {
           this.logger.verbose('Message update is valid');
 
@@ -1479,27 +1503,12 @@ export class BaileysStartupService extends WAStartupService {
         if (events['messages.upsert']) {
           this.logger.verbose('Listening event: messages.upsert');
           const payload = events['messages.upsert'];
-          // if (payload.messages.find((a) => a?.messageStubType === 2)) {
-          //   const msg = payload.messages[0];
-          //   retryCache[msg.key.id] = msg;
-          //   return;
-          // }
           this.messageHandle['messages.upsert'](payload, database, settings);
         }
 
         if (events['messages.update']) {
           this.logger.verbose('Listening event: messages.update');
           const payload = events['messages.update'];
-          // payload.forEach((message) => {
-          //   if (retryCache[message.key.id]) {
-          //     this.client.ev.emit('messages.upsert', {
-          //       messages: [message],
-          //       type: 'notify',
-          //     });
-          //     delete retryCache[message.key.id];
-          //     return;
-          //   }
-          // });
           this.messageHandle['messages.update'](payload, database, settings);
         }
 

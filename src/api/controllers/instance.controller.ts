@@ -43,6 +43,7 @@ export class InstanceController {
     private readonly proxyService: ProxyController,
     private readonly cache: RedisCache,
     private readonly chatwootCache: CacheService,
+    private readonly messagesLostCache: CacheService,
   ) {}
 
   private readonly logger = new Logger(InstanceController.name);
@@ -108,6 +109,7 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
+          this.messagesLostCache,
         );
       } else {
         instance = new BaileysStartupService(
@@ -116,6 +118,7 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
+          this.messagesLostCache,
         );
       }
 

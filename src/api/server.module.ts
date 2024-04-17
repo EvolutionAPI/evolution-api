@@ -1,3 +1,4 @@
+import { CacheEngine } from '../cache/cacheengine';
 import { configService } from '../config/env.config';
 import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
@@ -14,7 +15,6 @@ import { WebhookController } from './controllers/webhook.controller';
 import { ChamaaiController } from './integrations/chamaai/controllers/chamaai.controller';
 import { ChamaaiRepository } from './integrations/chamaai/repository/chamaai.repository';
 import { ChamaaiService } from './integrations/chamaai/services/chamaai.service';
-import { CacheEngine } from './integrations/chatwoot/cache/cacheengine';
 import { ChatwootController } from './integrations/chatwoot/controllers/chatwoot.controller';
 import { ChatwootRepository } from './integrations/chatwoot/repository/chatwoot.repository';
 import { ChatwootService } from './integrations/chatwoot/services/chatwoot.service';
@@ -109,8 +109,16 @@ export const repository = new RepositoryBroker(
 
 export const cache = new RedisCache();
 const chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
+const messagesLostCache = new CacheService(new CacheEngine(configService, 'baileys').getEngine());
 
-export const waMonitor = new WAMonitoringService(eventEmitter, configService, repository, cache, chatwootCache);
+export const waMonitor = new WAMonitoringService(
+  eventEmitter,
+  configService,
+  repository,
+  cache,
+  chatwootCache,
+  messagesLostCache,
+);
 
 const authService = new AuthService(configService, waMonitor, repository);
 
@@ -160,6 +168,7 @@ export const instanceController = new InstanceController(
   proxyController,
   cache,
   chatwootCache,
+  messagesLostCache,
 );
 export const sendMessageController = new SendMessageController(waMonitor);
 export const chatController = new ChatController(waMonitor);

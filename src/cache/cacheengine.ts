@@ -1,5 +1,5 @@
-import { CacheConf, ConfigService } from '../../../../config/env.config';
-import { ICache } from '../../../abstract/abstract.cache';
+import { ICache } from '../api/abstract/abstract.cache';
+import { CacheConf, ConfigService } from '../config/env.config';
 import { LocalCache } from './localcache';
 import { RedisCache } from './rediscache';
 

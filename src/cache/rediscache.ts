@@ -1,8 +1,8 @@
 import { RedisClientType } from 'redis';
 
-import { CacheConf, CacheConfRedis, ConfigService } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import { ICache } from '../../../abstract/abstract.cache';
+import { ICache } from '../api/abstract/abstract.cache';
+import { CacheConf, CacheConfRedis, ConfigService } from '../config/env.config';
+import { Logger } from '../config/logger.config';
 import { redisClient } from './rediscache.client';
 
 export class RedisCache implements ICache {
