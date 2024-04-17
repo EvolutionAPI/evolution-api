@@ -43,73 +43,81 @@ export class RedisCache {
     }
   }
 
-  public async instanceKeys(): Promise<string[]> {
+  public async getInstanceKeys(): Promise<string[]> {
     const keys: string[] = [];
     try {
       this.logger.verbose('Fetching instance keys');
       for await (const key of this.client.scanIterator({ MATCH: `${this.redisEnv.PREFIX_KEY}:*` })) {
         keys.push(key);
       }
+      return keys;
     } catch (error) {
       this.logger.error('Error fetching instance keys ' + error);
+      throw error;
     }
-    return keys;
   }
 
   public async keyExists(key?: string) {
-    if (key) {
-      this.logger.verbose('keyExists: ' + key);
-      return !!(await this.instanceKeys()).find((i) => i === key);
+    try {
+      const keys = await this.getInstanceKeys();
+      const targetKey = key || this.instanceName;
+      this.logger.verbose('keyExists: ' + targetKey);
+      return keys.includes(targetKey);
+    } catch (error) {
+      return false;
     }
-    this.logger.verbose('keyExists: ' + this.instanceName);
-    return !!(await this.instanceKeys()).find((i) => i === this.instanceName);
   }
 
-  public async writeData(field: string, data: any) {
+  public async setData(field: string, data: any) {
     try {
-      this.logger.verbose('writeData: ' + field);
+      this.logger.verbose('setData: ' + field);
       const json = JSON.stringify(data, BufferJSON.replacer);
-
-      return await this.client.hSet(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field, json);
+      await this.client.hSet(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field, json);
+      return true;
     } catch (error) {
       this.logger.error(error);
+      return false;
     }
   }
 
-  public async readData(field: string) {
+  public async getData(field: string): Promise<any | null> {
     try {
-      this.logger.verbose('readData: ' + field);
+      this.logger.verbose('getData: ' + field);
       const data = await this.client.hGet(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field);
 
       if (data) {
-        this.logger.verbose('readData: ' + field + ' success');
+        this.logger.verbose('getData: ' + field + ' success');
         return JSON.parse(data, BufferJSON.reviver);
       }
 
-      this.logger.verbose('readData: ' + field + ' not found');
+      this.logger.verbose('getData: ' + field + ' not found');
       return null;
     } catch (error) {
       this.logger.error(error);
+      return null;
     }
   }
 
-  public async removeData(field: string) {
+  public async removeData(field: string): Promise<boolean> {
     try {
       this.logger.verbose('removeData: ' + field);
-      return await this.client.hDel(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field);
+      await this.client.hDel(this.redisEnv.PREFIX_KEY + ':' + this.instanceName, field);
+      return true;
     } catch (error) {
       this.logger.error(error);
+      return false;
     }
   }
 
-  public async delAll(hash?: string) {
+  public async delAll(hash?: string): Promise<boolean> {
     try {
-      this.logger.verbose('instance delAll: ' + hash);
-      const result = await this.client.del(hash || this.redisEnv.PREFIX_KEY + ':' + this.instanceName);
-
-      return result;
+      const targetHash = hash || this.redisEnv.PREFIX_KEY + ':' + this.instanceName;
+      this.logger.verbose('instance delAll: ' + targetHash);
+      const result = await this.client.del(targetHash);
+      return !!result;
     } catch (error) {
       this.logger.error(error);
+      return false;
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/src/main.js",
   "scripts": {
@@ -46,7 +46,7 @@
     "@figuro/chatwoot-sdk": "^1.1.16",
     "@hapi/boom": "^10.0.1",
     "@sentry/node": "^7.59.2",
-    "@whiskeysockets/baileys": "6.6.0",
+    "@whiskeysockets/baileys": "github:AtendAI/Baileys",
     "amqplib": "^0.10.3",
     "aws-sdk": "^2.1499.0",
     "axios": "^1.6.5",
@@ -60,6 +60,7 @@
     "exiftool-vendored": "^22.0.0",
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",
+    "fluent-ffmpeg": "^2.1.2",
     "form-data": "^4.0.0",
     "hbs": "^4.2.0",
     "https-proxy-agent": "^7.0.2",
