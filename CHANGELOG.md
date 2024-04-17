@@ -6,6 +6,8 @@
 * Adjusts in proxy
 * Revert pull request #523
 * Added instance name on logs
+* Added support for Spanish
+* Fix error: invalid operator. The allowed operators for identifier are equal_to,not_equal_to
 
 # 1.7.2 (2024-04-12 17:31)
 
