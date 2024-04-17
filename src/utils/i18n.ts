@@ -4,7 +4,7 @@ import path from 'path';
 
 import { ConfigService, Language } from '../config/env.config';
 
-const languages = ['en', 'pt-BR'];
+const languages = ['en', 'pt-BR', 'es'];
 const translationsPath = path.join(__dirname, 'translations');
 const configService: ConfigService = new ConfigService();
 
