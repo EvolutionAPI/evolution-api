@@ -2,9 +2,10 @@
 
 ### Fixed
 * Revert fix audio encoding
-* Recovering messages lost
+* Recovering messages lost with redis cache
 * Adjusts in proxy
 * Revert pull request #523
+* Added instance name on logs
 
 # 1.7.2 (2024-04-12 17:31)
 
