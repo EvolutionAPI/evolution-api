@@ -3,6 +3,7 @@
 ### Fixed
 * Adjusts in proxy on fetchAgent
 * Recovering messages lost with redis cache
+* Log when init redis cache service
 
 # 1.7.3 (2024-04-18 12:07)
 
