@@ -151,7 +151,7 @@ export class BaileysStartupService extends WAStartupService {
     const cacheConf = this.configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
-      setTimeout(async () => {
+      setInterval(async () => {
         this.logger.info('Recovering messages');
         this.messagesLostCache.keys().then((keys) => {
           keys.forEach(async (key) => {

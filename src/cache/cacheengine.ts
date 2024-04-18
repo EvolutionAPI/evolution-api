@@ -1,7 +1,10 @@
 import { ICache } from '../api/abstract/abstract.cache';
 import { CacheConf, ConfigService } from '../config/env.config';
+import { Logger } from '../config/logger.config';
 import { LocalCache } from './localcache';
 import { RedisCache } from './rediscache';
+
+const logger = new Logger('Redis');
 
 export class CacheEngine {
   private engine: ICache;
@@ -14,6 +17,8 @@ export class CacheEngine {
     } else if (cacheConf?.LOCAL?.ENABLED) {
       this.engine = new LocalCache(configService, module);
     }
+
+    logger.info(`RedisCache initialized for ${module}`);
   }
 
   public getEngine() {
