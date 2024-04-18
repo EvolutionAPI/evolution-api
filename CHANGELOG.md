@@ -1,3 +1,8 @@
+# 1.7.4 (develop)
+
+### Fixed
+* Adjusts in proxy
+
 # 1.7.3 (2024-04-18 12:07)
 
 ### Fixed

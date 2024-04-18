@@ -517,6 +517,7 @@ export class BaileysStartupService extends WAStartupService {
             const proxyUrl = 'http://' + proxyUrls[rand];
             options = {
               agent: makeProxyAgent(proxyUrl),
+              fetchAgent: makeProxyAgent(proxyUrl),
             };
           } catch (error) {
             this.localProxy.enabled = false;
@@ -524,6 +525,7 @@ export class BaileysStartupService extends WAStartupService {
         } else {
           options = {
             agent: makeProxyAgent(this.localProxy.proxy),
+            fetchAgent: makeProxyAgent(this.localProxy.proxy),
           };
         }
       }
@@ -687,6 +689,7 @@ export class BaileysStartupService extends WAStartupService {
             const proxyUrl = 'http://' + proxyUrls[rand];
             options = {
               agent: makeProxyAgent(proxyUrl),
+              fetchAgent: makeProxyAgent(proxyUrl),
             };
           } catch (error) {
             this.localProxy.enabled = false;
@@ -694,6 +697,7 @@ export class BaileysStartupService extends WAStartupService {
         } else {
           options = {
             agent: makeProxyAgent(this.localProxy.proxy),
+            fetchAgent: makeProxyAgent(this.localProxy.proxy),
           };
         }
       }
