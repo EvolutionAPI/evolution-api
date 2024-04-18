@@ -5,11 +5,10 @@ import { Db } from 'mongodb';
 import { Collection } from 'mongoose';
 import { join } from 'path';
 
-import { Auth, ConfigService, Database, DelInstance, HttpServer, Redis } from '../../config/env.config';
+import { Auth, CacheConf, ConfigService, Database, DelInstance, HttpServer } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
-import { RedisCache } from '../../libs/redis.client';
 import {
   AuthModel,
   ChamaaiModel,
@@ -34,7 +33,7 @@ export class WAMonitoringService {
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
     private readonly repository: RepositoryBroker,
-    private readonly cache: RedisCache,
+    private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
     private readonly messagesLostCache: CacheService,
   ) {
@@ -44,7 +43,7 @@ export class WAMonitoringService {
     this.noConnection();
 
     Object.assign(this.db, configService.get<Database>('DATABASE'));
-    Object.assign(this.redis, configService.get<Redis>('REDIS'));
+    Object.assign(this.redis, configService.get<CacheConf>('CACHE'));
 
     this.dbInstance = this.db.ENABLED
       ? this.repository.dbServer?.db(this.db.CONNECTION.DB_PREFIX_NAME + '-instances')
@@ -52,7 +51,7 @@ export class WAMonitoringService {
   }
 
   private readonly db: Partial<Database> = {};
-  private readonly redis: Partial<Redis> = {};
+  private readonly redis: Partial<CacheConf> = {};
 
   private dbInstance: Db;
 
@@ -213,7 +212,7 @@ export class WAMonitoringService {
           });
           this.logger.verbose('instance files deleted: ' + name);
         });
-      } else if (!this.redis.ENABLED) {
+      } else if (!this.redis.REDIS.ENABLED && !this.redis.REDIS.SAVE_INSTANCES) {
         const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
         for await (const dirent of dir) {
           if (dirent.isDirectory()) {
@@ -248,10 +247,9 @@ export class WAMonitoringService {
       return;
     }
 
-    if (this.redis.ENABLED) {
+    if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
       this.logger.verbose('cleaning up instance in redis: ' + instanceName);
-      this.cache.reference = instanceName;
-      await this.cache.delAll();
+      await this.cache.delete(instanceName);
       return;
     }
 
@@ -304,7 +302,7 @@ export class WAMonitoringService {
     this.logger.verbose('Loading instances');
 
     try {
-      if (this.redis.ENABLED) {
+      if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
         await this.loadInstancesFromRedis();
       } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
         await this.loadInstancesFromDatabase();
@@ -377,12 +375,11 @@ export class WAMonitoringService {
 
   private async loadInstancesFromRedis() {
     this.logger.verbose('Redis enabled');
-    await this.cache.connect(this.redis as Redis);
-    const keys = await this.cache.getInstanceKeys();
+    const keys = await this.cache.keys();
 
     if (keys?.length > 0) {
       this.logger.verbose('Reading instance keys and setting instances');
-      await Promise.all(keys.map((k) => this.setInstance(k.split(':')[1])));
+      await Promise.all(keys.map((k) => this.setInstance(k.split(':')[2])));
     } else {
       this.logger.verbose('No instance keys found');
     }

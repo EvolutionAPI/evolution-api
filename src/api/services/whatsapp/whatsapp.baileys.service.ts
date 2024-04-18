@@ -55,11 +55,10 @@ import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 
-import { ConfigService, ConfigSessionPhone, Database, Log, QrCode, Redis } from '../../../config/env.config';
+import { CacheConf, ConfigService, ConfigSessionPhone, Database, Log, QrCode } from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
 import { dbserver } from '../../../libs/db.connect';
-import { RedisCache } from '../../../libs/redis.client';
 import { makeProxyAgent } from '../../../utils/makeProxyAgent';
 import { useMultiFileAuthStateDb } from '../../../utils/use-multi-file-auth-state-db';
 import { useMultiFileAuthStateRedisDb } from '../../../utils/use-multi-file-auth-state-redis-db';
@@ -126,7 +125,7 @@ export class BaileysStartupService extends WAStartupService {
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
     public readonly repository: RepositoryBroker,
-    public readonly cache: RedisCache,
+    public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
     public readonly messagesLostCache: CacheService,
   ) {
@@ -149,19 +148,23 @@ export class BaileysStartupService extends WAStartupService {
   public mobile: boolean;
 
   private async recoveringMessages() {
-    setTimeout(async () => {
-      this.logger.info('Recovering messages');
-      this.messagesLostCache.keys().then((keys) => {
-        keys.forEach(async (key) => {
-          const message = await this.messagesLostCache.get(key.split(':')[2]);
+    const cacheConf = this.configService.get<CacheConf>('CACHE');
 
-          if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
-            this.logger.verbose('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
-            await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
-          }
+    if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
+      setTimeout(async () => {
+        this.logger.info('Recovering messages');
+        this.messagesLostCache.keys().then((keys) => {
+          keys.forEach(async (key) => {
+            const message = await this.messagesLostCache.get(key.split(':')[2]);
+
+            if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
+              this.logger.verbose('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
+              await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
+            }
+          });
         });
-      });
-    }, 30000);
+      }, 30000);
+    }
   }
 
   public get connectionStatus() {
@@ -456,12 +459,11 @@ export class BaileysStartupService extends WAStartupService {
   private async defineAuthState() {
     this.logger.verbose('Defining auth state');
     const db = this.configService.get<Database>('DATABASE');
-    const redis = this.configService.get<Redis>('REDIS');
+    const cache = this.configService.get<CacheConf>('CACHE');
 
-    if (redis?.ENABLED) {
-      this.logger.verbose('Redis enabled');
-      this.cache.reference = this.instance.name;
-      return await useMultiFileAuthStateRedisDb(this.cache);
+    if (cache?.REDIS.ENABLED && cache?.REDIS.SAVE_INSTANCES) {
+      this.logger.info('Redis enabled');
+      return await useMultiFileAuthStateRedisDb(this.instance.name, this.cache);
     }
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {

@@ -45,4 +45,17 @@ export class LocalCache implements ICache {
   buildKey(key: string) {
     return `${this.module}:${key}`;
   }
+
+  async hGet() {
+    console.log('hGet not implemented');
+  }
+
+  async hSet() {
+    console.log('hSet not implemented');
+  }
+
+  async hDelete() {
+    console.log('hDelete not implemented');
+    return 0;
+  }
 }

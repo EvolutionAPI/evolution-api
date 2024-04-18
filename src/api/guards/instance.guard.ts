@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-import { configService, Database, Redis } from '../../config/env.config';
+import { CacheConf, configService, Database } from '../../config/env.config';
 import { INSTANCE_DIR } from '../../config/path.config';
 import {
   BadRequestException,
@@ -17,12 +17,13 @@ import { cache, waMonitor } from '../server.module';
 async function getInstance(instanceName: string) {
   try {
     const db = configService.get<Database>('DATABASE');
-    const redisConf = configService.get<Redis>('REDIS');
+    const cacheConf = configService.get<CacheConf>('CACHE');
 
     const exists = !!waMonitor.waInstances[instanceName];
 
-    if (redisConf.ENABLED) {
-      const keyExists = await cache.keyExists();
+    if (cacheConf.REDIS.ENABLED && cacheConf.REDIS.SAVE_INSTANCES) {
+      const keyExists = await cache.has(instanceName);
+
       return exists || keyExists;
     }
 

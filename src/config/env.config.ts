@@ -63,12 +63,6 @@ export type Database = {
   SAVE_DATA: SaveData;
 };
 
-export type Redis = {
-  ENABLED: boolean;
-  URI: string;
-  PREFIX_KEY: string;
-};
-
 export type Rabbitmq = {
   ENABLED: boolean;
   MODE: string; // global, single, isolated
@@ -153,6 +147,7 @@ export type CacheConfRedis = {
   URI: string;
   PREFIX_KEY: string;
   TTL: number;
+  SAVE_INSTANCES: boolean;
 };
 export type CacheConfLocal = {
   ENABLED: boolean;
@@ -186,7 +181,6 @@ export interface Env {
   STORE: StoreConf;
   CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
-  REDIS: Redis;
   RABBITMQ: Rabbitmq;
   SQS: Sqs;
   WEBSOCKET: Websocket;
@@ -279,11 +273,6 @@ export class ConfigService {
           CHATS: process.env?.DATABASE_SAVE_DATA_CHATS === 'true',
           LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
         },
-      },
-      REDIS: {
-        ENABLED: process.env?.REDIS_ENABLED === 'true',
-        URI: process.env.REDIS_URI || '',
-        PREFIX_KEY: process.env.REDIS_PREFIX_KEY || 'evolution',
       },
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
@@ -398,6 +387,7 @@ export class ConfigService {
           URI: process.env?.CACHE_REDIS_URI || '',
           PREFIX_KEY: process.env?.CACHE_REDIS_PREFIX_KEY || 'evolution-cache',
           TTL: Number.parseInt(process.env?.CACHE_REDIS_TTL) || 604800,
+          SAVE_INSTANCES: process.env?.CACHE_REDIS_SAVE_INSTANCES === 'true',
         },
         LOCAL: {
           ENABLED: process.env?.CACHE_LOCAL_ENABLED === 'true',
