@@ -1,8 +1,9 @@
+import { BufferJSON } from '@whiskeysockets/baileys';
 import { RedisClientType } from 'redis';
 
-import { CacheConf, CacheConfRedis, ConfigService } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import { ICache } from '../../../abstract/abstract.cache';
+import { ICache } from '../api/abstract/abstract.cache';
+import { CacheConf, CacheConfRedis, ConfigService } from '../config/env.config';
+import { Logger } from '../config/logger.config';
 import { redisClient } from './rediscache.client';
 
 export class RedisCache implements ICache {
@@ -14,7 +15,6 @@ export class RedisCache implements ICache {
     this.conf = this.configService.get<CacheConf>('CACHE')?.REDIS;
     this.client = redisClient.getConnection();
   }
-
   async get(key: string): Promise<any> {
     try {
       return JSON.parse(await this.client.get(this.buildKey(key)));
@@ -23,9 +23,33 @@ export class RedisCache implements ICache {
     }
   }
 
+  async hGet(key: string, field: string) {
+    try {
+      const data = await this.client.hGet(this.buildKey(key), field);
+
+      if (data) {
+        return JSON.parse(data, BufferJSON.reviver);
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   async set(key: string, value: any, ttl?: number) {
     try {
       await this.client.setEx(this.buildKey(key), ttl || this.conf?.TTL, JSON.stringify(value));
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  async hSet(key: string, field: string, value: any) {
+    try {
+      const json = JSON.stringify(value, BufferJSON.replacer);
+
+      await this.client.hSet(this.buildKey(key), field, json);
     } catch (error) {
       this.logger.error(error);
     }
@@ -42,6 +66,14 @@ export class RedisCache implements ICache {
   async delete(key: string) {
     try {
       return await this.client.del(this.buildKey(key));
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  async hDelete(key: string, field: string) {
+    try {
+      return await this.client.hDel(this.buildKey(key), field);
     } catch (error) {
       this.logger.error(error);
     }

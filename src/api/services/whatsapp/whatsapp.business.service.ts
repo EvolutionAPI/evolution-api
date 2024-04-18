@@ -7,7 +7,6 @@ import { getMIMEType } from 'node-mime-types';
 
 import { ConfigService, Database, WaBusiness } from '../../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
-import { RedisCache } from '../../../libs/redis.client';
 import { NumberBusiness } from '../../dto/chat.dto';
 import {
   ContactMessage,
@@ -34,8 +33,9 @@ export class BusinessStartupService extends WAStartupService {
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
     public readonly repository: RepositoryBroker,
-    public readonly cache: RedisCache,
+    public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
+    public readonly messagesLostCache: CacheService,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BusinessStartupService initialized');

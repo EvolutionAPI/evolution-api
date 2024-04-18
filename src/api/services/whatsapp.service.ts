@@ -71,6 +71,8 @@ export class WAStartupService {
   public chamaaiService = new ChamaaiService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
+    this.logger.setInstance(name);
+
     this.logger.verbose(`Initializing instance '${name}'`);
     if (!name) {
       this.logger.verbose('Instance name not found, generating random name with uuid');
@@ -583,7 +585,7 @@ export class WAStartupService {
     this.logger.verbose(`Proxy enabled: ${this.localProxy.enabled}`);
 
     this.localProxy.proxy = data?.proxy;
-    this.logger.verbose(`Proxy proxy: ${this.localProxy.proxy.host}`);
+    this.logger.verbose(`Proxy proxy: ${this.localProxy.proxy?.host}`);
 
     this.logger.verbose('Proxy loaded');
   }

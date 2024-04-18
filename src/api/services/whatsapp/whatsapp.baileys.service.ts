@@ -39,9 +39,10 @@ import makeWASocket, {
 import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
 import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
 import axios from 'axios';
+import { exec } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
-import ffmpeg from 'fluent-ffmpeg';
+// import ffmpeg from 'fluent-ffmpeg';
 import fs, { existsSync, readFileSync } from 'fs';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import Long from 'long';
@@ -54,11 +55,10 @@ import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 
-import { ConfigService, ConfigSessionPhone, Database, Log, QrCode, Redis } from '../../../config/env.config';
+import { CacheConf, ConfigService, ConfigSessionPhone, Database, Log, QrCode } from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
 import { dbserver } from '../../../libs/db.connect';
-import { RedisCache } from '../../../libs/redis.client';
 import { makeProxyAgent } from '../../../utils/makeProxyAgent';
 import { useMultiFileAuthStateDb } from '../../../utils/use-multi-file-auth-state-db';
 import { useMultiFileAuthStateRedisDb } from '../../../utils/use-multi-file-auth-state-redis-db';
@@ -120,21 +120,21 @@ import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.typ
 import { CacheService } from './../cache.service';
 import { WAStartupService } from './../whatsapp.service';
 
-// const retryCache = {};
-
 export class BaileysStartupService extends WAStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
     public readonly repository: RepositoryBroker,
-    public readonly cache: RedisCache,
+    public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
+    public readonly messagesLostCache: CacheService,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BaileysStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
     this.mobile = false;
+    this.recoveringMessages();
   }
 
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
@@ -146,6 +146,26 @@ export class BaileysStartupService extends WAStartupService {
 
   public phoneNumber: string;
   public mobile: boolean;
+
+  private async recoveringMessages() {
+    const cacheConf = this.configService.get<CacheConf>('CACHE');
+
+    if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
+      setTimeout(async () => {
+        this.logger.info('Recovering messages');
+        this.messagesLostCache.keys().then((keys) => {
+          keys.forEach(async (key) => {
+            const message = await this.messagesLostCache.get(key.split(':')[2]);
+
+            if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
+              this.logger.verbose('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
+              await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
+            }
+          });
+        });
+      }, 30000);
+    }
+  }
 
   public get connectionStatus() {
     this.logger.verbose('Getting connection status');
@@ -377,10 +397,12 @@ export class BaileysStartupService extends WAStartupService {
         │    CONNECTED TO WHATSAPP     │
         └──────────────────────────────┘`.replace(/^ +/gm, '  '),
       );
-      this.logger.info(`
+      this.logger.info(
+        `
         wuid: ${formattedWuid}
         name: ${formattedName}
-      `);
+      `,
+      );
 
       if (this.localChatwoot.enabled) {
         this.chatwootService.eventWhatsapp(
@@ -437,12 +459,11 @@ export class BaileysStartupService extends WAStartupService {
   private async defineAuthState() {
     this.logger.verbose('Defining auth state');
     const db = this.configService.get<Database>('DATABASE');
-    const redis = this.configService.get<Redis>('REDIS');
+    const cache = this.configService.get<CacheConf>('CACHE');
 
-    if (redis?.ENABLED) {
-      this.logger.verbose('Redis enabled');
-      this.cache.reference = this.instance.name;
-      return await useMultiFileAuthStateRedisDb(this.cache);
+    if (cache?.REDIS.ENABLED && cache?.REDIS.SAVE_INSTANCES) {
+      this.logger.info('Redis enabled');
+      return await useMultiFileAuthStateRedisDb(this.instance.name, this.cache);
     }
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {
@@ -485,11 +506,11 @@ export class BaileysStartupService extends WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy.host);
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
 
         if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
           try {
-            const response = await axios.get(this.localProxy.proxy.host);
+            const response = await axios.get(this.localProxy.proxy?.host);
             const text = response.data;
             const proxyUrls = text.split('\r\n');
             const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
@@ -655,11 +676,11 @@ export class BaileysStartupService extends WAStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy.host);
+        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
 
         if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
           try {
-            const response = await axios.get(this.localProxy.proxy.host);
+            const response = await axios.get(this.localProxy.proxy?.host);
             const text = response.data;
             const proxyUrls = text.split('\r\n');
             const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
@@ -1043,6 +1064,20 @@ export class BaileysStartupService extends WAStartupService {
             }
           }
 
+          if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
+            this.logger.info('Recovering message lost');
+
+            await this.messagesLostCache.set(received.key.id, received);
+            continue;
+          }
+
+          const retryCache = (await this.messagesLostCache.get(received.key.id)) || null;
+
+          if (retryCache) {
+            this.logger.info('Recovered message lost');
+            await this.messagesLostCache.delete(received.key.id);
+          }
+
           if (
             (type !== 'notify' && type !== 'append') ||
             received.message?.protocolMessage ||
@@ -1241,7 +1276,6 @@ export class BaileysStartupService extends WAStartupService {
           }
         }
 
-        // if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
         if (key.remoteJid !== 'status@broadcast') {
           this.logger.verbose('Message update is valid');
 
@@ -1472,27 +1506,12 @@ export class BaileysStartupService extends WAStartupService {
         if (events['messages.upsert']) {
           this.logger.verbose('Listening event: messages.upsert');
           const payload = events['messages.upsert'];
-          // if (payload.messages.find((a) => a?.messageStubType === 2)) {
-          //   const msg = payload.messages[0];
-          //   retryCache[msg.key.id] = msg;
-          //   return;
-          // }
           this.messageHandle['messages.upsert'](payload, database, settings);
         }
 
         if (events['messages.update']) {
           this.logger.verbose('Listening event: messages.update');
           const payload = events['messages.update'];
-          // payload.forEach((message) => {
-          //   if (retryCache[message.key.id]) {
-          //     this.client.ev.emit('messages.upsert', {
-          //       messages: [message],
-          //       type: 'notify',
-          //     });
-          //     delete retryCache[message.key.id];
-          //     return;
-          //   }
-          // });
           this.messageHandle['messages.update'](payload, database, settings);
         }
 
@@ -2297,6 +2316,82 @@ export class BaileysStartupService extends WAStartupService {
     return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
   }
 
+  // public async processAudio(audio: string, number: string) {
+  //   this.logger.verbose('Processing audio');
+  //   let tempAudioPath: string;
+  //   let outputAudio: string;
+
+  //   number = number.replace(/\D/g, '');
+  //   const hash = `${number}-${new Date().getTime()}`;
+  //   this.logger.verbose('Hash to audio name: ' + hash);
+
+  //   if (isURL(audio)) {
+  //     this.logger.verbose('Audio is url');
+
+  //     outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+  //     tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+  //     this.logger.verbose('Output audio path: ' + outputAudio);
+  //     this.logger.verbose('Temp audio path: ' + tempAudioPath);
+
+  //     const timestamp = new Date().getTime();
+  //     const url = `${audio}?timestamp=${timestamp}`;
+
+  //     this.logger.verbose('Including timestamp in url: ' + url);
+
+  //     let config: any = {
+  //       responseType: 'arraybuffer',
+  //     };
+
+  //     if (this.localProxy.enabled) {
+  //       config = {
+  //         ...config,
+  //         httpsAgent: makeProxyAgent(this.localProxy.proxy),
+  //       };
+  //     }
+
+  //     const response = await axios.get(url, config);
+  //     this.logger.verbose('Getting audio from url');
+
+  //     fs.writeFileSync(tempAudioPath, response.data);
+  //   } else {
+  //     this.logger.verbose('Audio is base64');
+
+  //     outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+  //     tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+  //     this.logger.verbose('Output audio path: ' + outputAudio);
+  //     this.logger.verbose('Temp audio path: ' + tempAudioPath);
+
+  //     const audioBuffer = Buffer.from(audio, 'base64');
+  //     fs.writeFileSync(tempAudioPath, audioBuffer);
+  //     this.logger.verbose('Temp audio created');
+  //   }
+
+  //   this.logger.verbose('Converting audio to mp4');
+  //   return new Promise((resolve, reject) => {
+  //     // This fix was suggested by @PurpShell
+  //     ffmpeg.setFfmpegPath(ffmpegPath.path);
+
+  //     ffmpeg()
+  //       .input(tempAudioPath)
+  //       .outputFormat('ogg')
+  //       .noVideo()
+  //       .audioCodec('libopus')
+  //       .save(outputAudio)
+  //       .on('error', function (error) {
+  //         console.log('error', error);
+  //         fs.unlinkSync(tempAudioPath);
+  //         if (error) reject(error);
+  //       })
+  //       .on('end', async function () {
+  //         fs.unlinkSync(tempAudioPath);
+  //         resolve(outputAudio);
+  //       })
+  //       .run();
+  //   });
+  // }
+
   public async processAudio(audio: string, number: string) {
     this.logger.verbose('Processing audio');
     let tempAudioPath: string;
@@ -2309,7 +2404,7 @@ export class BaileysStartupService extends WAStartupService {
     if (isURL(audio)) {
       this.logger.verbose('Audio is url');
 
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
@@ -2320,25 +2415,14 @@ export class BaileysStartupService extends WAStartupService {
 
       this.logger.verbose('Including timestamp in url: ' + url);
 
-      let config: any = {
-        responseType: 'arraybuffer',
-      };
-
-      if (this.localProxy.enabled) {
-        config = {
-          ...config,
-          httpsAgent: makeProxyAgent(this.localProxy.proxy),
-        };
-      }
-
-      const response = await axios.get(url, config);
+      const response = await axios.get(url, { responseType: 'arraybuffer' });
       this.logger.verbose('Getting audio from url');
 
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
       this.logger.verbose('Audio is base64');
 
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
       this.logger.verbose('Output audio path: ' + outputAudio);
@@ -2351,25 +2435,15 @@ export class BaileysStartupService extends WAStartupService {
 
     this.logger.verbose('Converting audio to mp4');
     return new Promise((resolve, reject) => {
-      // This fix was suggested by @PurpShell
-      ffmpeg.setFfmpegPath(ffmpegPath.path);
+      exec(`${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`, (error) => {
+        fs.unlinkSync(tempAudioPath);
+        this.logger.verbose('Temp audio deleted');
 
-      ffmpeg()
-        .input(tempAudioPath)
-        .outputFormat('ogg')
-        .noVideo()
-        .audioCodec('libopus')
-        .save(outputAudio)
-        .on('error', function (error) {
-          console.log('error', error);
-          fs.unlinkSync(tempAudioPath);
-          if (error) reject(error);
-        })
-        .on('end', async function () {
-          fs.unlinkSync(tempAudioPath);
-          resolve(outputAudio);
-        })
-        .run();
+        if (error) reject(error);
+
+        this.logger.verbose('Audio converted to mp4');
+        resolve(outputAudio);
+      });
     });
   }
 
@@ -2389,7 +2463,7 @@ export class BaileysStartupService extends WAStartupService {
           {
             audio: Buffer.from(audio, 'base64'),
             ptt: true,
-            mimetype: 'audio/ogg; codecs=opus',
+            mimetype: 'audio/mp4',
           },
           { presence: 'recording', delay: data?.options?.delay },
           isChatwoot,

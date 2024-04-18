@@ -461,7 +461,7 @@ export class ChatwootService {
         const queryOperator = fieldsToSearch.length - 1 === index1 && numbers.length - 1 === index2 ? null : 'OR';
         filterPayload.push({
           attribute_key: field,
-          filter_operator: field == 'phone_number' ? 'equal_to' : 'contains',
+          filter_operator: ['phone_number', 'identifier'].includes(field) ? 'equal_to' : 'contains',
           values: [number.replace('+', '')],
           query_operator: queryOperator,
         });
