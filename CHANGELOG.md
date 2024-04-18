@@ -1,4 +1,4 @@
-# 1.7.3 (develop)
+# 1.7.3 (2024-04-18 12:07)
 
 ### Fixed
 * Revert fix audio encoding
