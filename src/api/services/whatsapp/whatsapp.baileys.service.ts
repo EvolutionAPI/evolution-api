@@ -151,7 +151,7 @@ export class BaileysStartupService extends WAStartupService {
     const cacheConf = this.configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
-      setTimeout(async () => {
+      setInterval(async () => {
         this.logger.info('Recovering messages');
         this.messagesLostCache.keys().then((keys) => {
           keys.forEach(async (key) => {
@@ -517,6 +517,7 @@ export class BaileysStartupService extends WAStartupService {
             const proxyUrl = 'http://' + proxyUrls[rand];
             options = {
               agent: makeProxyAgent(proxyUrl),
+              fetchAgent: makeProxyAgent(proxyUrl),
             };
           } catch (error) {
             this.localProxy.enabled = false;
@@ -524,6 +525,7 @@ export class BaileysStartupService extends WAStartupService {
         } else {
           options = {
             agent: makeProxyAgent(this.localProxy.proxy),
+            fetchAgent: makeProxyAgent(this.localProxy.proxy),
           };
         }
       }
@@ -687,6 +689,7 @@ export class BaileysStartupService extends WAStartupService {
             const proxyUrl = 'http://' + proxyUrls[rand];
             options = {
               agent: makeProxyAgent(proxyUrl),
+              fetchAgent: makeProxyAgent(proxyUrl),
             };
           } catch (error) {
             this.localProxy.enabled = false;
@@ -694,6 +697,7 @@ export class BaileysStartupService extends WAStartupService {
         } else {
           options = {
             agent: makeProxyAgent(this.localProxy.proxy),
+            fetchAgent: makeProxyAgent(this.localProxy.proxy),
           };
         }
       }
@@ -997,6 +1001,15 @@ export class BaileysStartupService extends WAStartupService {
             continue;
           }
 
+          const status: Record<number, wa.StatusMessage> = {
+            0: 'ERROR',
+            1: 'PENDING',
+            2: 'SERVER_ACK',
+            3: 'DELIVERY_ACK',
+            4: 'READ',
+            5: 'PLAYED',
+          };
+
           messagesRaw.push({
             key: m.key,
             pushName: m.pushName || m.key.remoteJid.split('@')[0],
@@ -1005,6 +1018,7 @@ export class BaileysStartupService extends WAStartupService {
             messageType: getContentType(m.message),
             messageTimestamp: m.messageTimestamp as number,
             owner: this.instance.name,
+            status: m.status ? status[m.status] : null,
           });
         }
 
