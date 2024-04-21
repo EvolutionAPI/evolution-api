@@ -85,7 +85,7 @@ export class ChatwootService {
     return client;
   }
 
-  public getClientCwConfig(): ChatwootAPIConfig {
+  public getClientCwConfig(): ChatwootAPIConfig & { name_inbox: string } {
     return {
       basePath: this.provider.url,
       with_credentials: true,
