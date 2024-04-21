@@ -216,6 +216,19 @@ export class ChatwootService {
       }
 
       inboxId = inbox.id;
+      const data = {
+        type: 'api',
+        webhook_url: webhookUrl,
+      };
+      await client.inboxes.update({
+        id: inboxId,
+        accountId: this.provider.account_id,
+        data: {
+          enable_auto_assignment: false,
+          name: inboxName,
+          channel: data as any,
+        },
+      });
     }
 
     this.logger.verbose('find contact in chatwoot and create if not exists');
