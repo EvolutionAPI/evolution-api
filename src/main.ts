@@ -1,5 +1,4 @@
 import 'express-async-errors';
-
 import axios from 'axios';
 import compression from 'compression';
 import cors from 'cors';
