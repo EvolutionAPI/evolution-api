@@ -1,3 +1,39 @@
+# 1.7.4 (develop)
+
+### Fixed
+* Adjusts in proxy on fetchAgent
+* Recovering messages lost with redis cache
+* Log when init redis cache service
+
+# 1.7.3 (2024-04-18 12:07)
+
+### Fixed
+* Revert fix audio encoding
+* Recovering messages lost with redis cache
+* Adjusts in redis for save instances
+* Adjusts in proxy
+* Revert pull request #523
+* Added instance name on logs
+* Added support for Spanish
+* Fix error: invalid operator. The allowed operators for identifier are equal_to,not_equal_to in chatwoot
+
+# 1.7.2 (2024-04-12 17:31)
+
+### Feature
+
+* Mobile connection via sms (test)
+
+### Fixed
+
+* Adjusts in redis
+* Send global event in websocket
+* Adjusts in proxy
+* Fix audio encoding
+* Fix conversation read on chatwoot version 3.7
+* Fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
+* Changed returned sessions on typebot status change
+* Reorganization of files and folders
+
 # 1.7.1 (2024-04-03 10:19)
 
 ### Fixed

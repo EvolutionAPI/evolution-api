@@ -63,12 +63,6 @@ export type Database = {
   SAVE_DATA: SaveData;
 };
 
-export type Redis = {
-  ENABLED: boolean;
-  URI: string;
-  PREFIX_KEY: string;
-};
-
 export type Rabbitmq = {
   ENABLED: boolean;
   MODE: string; // global, single, isolated
@@ -86,6 +80,7 @@ export type Sqs = {
 
 export type Websocket = {
   ENABLED: boolean;
+  GLOBAL_EVENTS: boolean;
 };
 
 export type WaBusiness = {
@@ -152,6 +147,7 @@ export type CacheConfRedis = {
   URI: string;
   PREFIX_KEY: string;
   TTL: number;
+  SAVE_INSTANCES: boolean;
 };
 export type CacheConfLocal = {
   ENABLED: boolean;
@@ -185,7 +181,6 @@ export interface Env {
   STORE: StoreConf;
   CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
-  REDIS: Redis;
   RABBITMQ: Rabbitmq;
   SQS: Sqs;
   WEBSOCKET: Websocket;
@@ -279,11 +274,6 @@ export class ConfigService {
           LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
         },
       },
-      REDIS: {
-        ENABLED: process.env?.REDIS_ENABLED === 'true',
-        URI: process.env.REDIS_URI || '',
-        PREFIX_KEY: process.env.REDIS_PREFIX_KEY || 'evolution',
-      },
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
         MODE: process.env?.RABBITMQ_MODE || 'isolated',
@@ -299,6 +289,7 @@ export class ConfigService {
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
+        GLOBAL_EVENTS: process.env?.WEBSOCKET_GLOBAL_EVENTS === 'true',
       },
       WA_BUSINESS: {
         TOKEN_WEBHOOK: process.env.WA_BUSINESS_TOKEN_WEBHOOK || '',
@@ -396,6 +387,7 @@ export class ConfigService {
           URI: process.env?.CACHE_REDIS_URI || '',
           PREFIX_KEY: process.env?.CACHE_REDIS_PREFIX_KEY || 'evolution-cache',
           TTL: Number.parseInt(process.env?.CACHE_REDIS_TTL) || 604800,
+          SAVE_INSTANCES: process.env?.CACHE_REDIS_SAVE_INSTANCES === 'true',
         },
         LOCAL: {
           ENABLED: process.env?.CACHE_LOCAL_ENABLED === 'true',

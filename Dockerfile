@@ -1,6 +1,6 @@
 FROM node:20.7.0-alpine AS builder
 
-LABEL version="1.7.1" description="Api to control whatsapp features through http requests." 
+LABEL version="1.7.3" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
@@ -58,16 +58,13 @@ ENV DATABASE_SAVE_MESSAGE_UPDATE=false
 ENV DATABASE_SAVE_DATA_CONTACTS=false
 ENV DATABASE_SAVE_DATA_CHATS=false
 
-ENV REDIS_ENABLED=false
-ENV REDIS_URI=redis://redis:6379
-ENV REDIS_PREFIX_KEY=evolution
-
 ENV RABBITMQ_ENABLED=false
 ENV RABBITMQ_MODE=global
 ENV RABBITMQ_EXCHANGE_NAME=evolution_exchange
 ENV RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
 
 ENV WEBSOCKET_ENABLED=false
+ENV WEBSOCKET_GLOBAL_EVENTS=false
 
 ENV WA_BUSINESS_TOKEN_WEBHOOK=evolution
 ENV WA_BUSINESS_URL=https://graph.facebook.com
@@ -127,6 +124,14 @@ ENV QRCODE_LIMIT=30
 ENV QRCODE_COLOR=#198754
 
 ENV TYPEBOT_API_VERSION=latest
+
+ENV CACHE_REDIS_ENABLED=false
+ENV CACHE_REDIS_URI=redis://redis:6379
+ENV CACHE_REDIS_PREFIX_KEY=evolution
+ENV CACHE_REDIS_TTL=604800
+ENV CACHE_REDIS_SAVE_INSTANCES=false
+ENV CACHE_LOCAL_ENABLED=false
+ENV CACHE_LOCAL_TTL=604800
 
 ENV AUTHENTICATION_TYPE=apikey
 
