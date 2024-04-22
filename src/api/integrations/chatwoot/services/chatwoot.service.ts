@@ -628,7 +628,7 @@ export class ChatwootService {
         id: contactId,
       })) as any;
 
-      if (contactConversations) {
+      if (contactConversations?.payload?.length) {
         let conversation: any;
         if (this.provider.reopen_conversation) {
           conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
