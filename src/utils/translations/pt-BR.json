@@ -22,5 +22,6 @@
   "cw.contactMessage.contact": "Contato",
   "cw.contactMessage.name": "Nome",
   "cw.contactMessage.number": "Número",
+  "cw.message.notsent": "🚨 Não foi possível enviar a mensagem. Verifique sua conexão. {{error}}",
   "cw.message.edited": "Mensagem editada"
 }

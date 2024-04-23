@@ -8,6 +8,7 @@ import ChatwootClient, {
   inbox,
 } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
+import { proto } from '@whiskeysockets/baileys';
 import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
@@ -1106,6 +1107,26 @@ export class ChatwootService {
     }
   }
 
+  public async onSendMessageError(instance: InstanceDto, conversation: number, error?: string) {
+    const client = await this.clientCw(instance);
+
+    if (!client) {
+      return;
+    }
+
+    client.messages.create({
+      accountId: this.provider.account_id,
+      conversationId: conversation,
+      data: {
+        content: i18next.t('cw.message.notsent', {
+          error: error.length > 0 ? `_${error}_` : '',
+        }),
+        message_type: 'outgoing',
+        private: true,
+      },
+    });
+  }
+
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -1310,6 +1331,9 @@ export class ChatwootService {
                 formatText,
                 options,
               );
+              if (!messageSent && body.conversation?.id) {
+                this.onSendMessageError(instance, body.conversation?.id);
+              }
 
               this.updateChatwootMessageId(
                 {
@@ -1343,23 +1367,31 @@ export class ChatwootService {
               },
             };
 
-            const messageSent = await waInstance?.textMessage(data, true);
+            let messageSent: MessageRaw | proto.WebMessageInfo;
+            try {
+              messageSent = await waInstance?.textMessage(data, true);
 
-            this.updateChatwootMessageId(
-              {
-                ...messageSent,
-                owner: instance.instanceName,
-              },
-              {
-                messageId: body.id,
-                inboxId: body.inbox?.id,
-                conversationId: body.conversation?.id,
-                contactInbox: {
-                  sourceId: body.conversation?.contact_inbox?.source_id,
+              this.updateChatwootMessageId(
+                {
+                  ...messageSent,
+                  owner: instance.instanceName,
                 },
-              },
-              instance,
-            );
+                {
+                  messageId: body.id,
+                  inboxId: body.inbox?.id,
+                  conversationId: body.conversation?.id,
+                  contactInbox: {
+                    sourceId: body.conversation?.contact_inbox?.source_id,
+                  },
+                },
+                instance,
+              );
+            } catch (error) {
+              if (!messageSent && body.conversation?.id) {
+                this.onSendMessageError(instance, body.conversation?.id, error.toString());
+              }
+              throw error;
+            }
           }
         }
 
