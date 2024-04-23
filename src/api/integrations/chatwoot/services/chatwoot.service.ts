@@ -1119,7 +1119,7 @@ export class ChatwootService {
       conversationId: conversation,
       data: {
         content: i18next.t('cw.message.notsent', {
-          error: error.length > 0 ? `_${error}_` : '',
+          error: error?.length > 0 ? `_${error}_` : '',
         }),
         message_type: 'outgoing',
         private: true,
@@ -1295,6 +1295,11 @@ export class ChatwootService {
           return { message: 'bot' };
         }
 
+        if (!waInstance && body.conversation?.id) {
+          this.onSendMessageError(instance, body.conversation?.id, 'Instance not found');
+          return { message: 'bot' };
+        }
+
         this.logger.verbose('Format message to send');
         let formatText: string;
         if (senderName === null || senderName === undefined) {
@@ -1370,6 +1375,9 @@ export class ChatwootService {
             let messageSent: MessageRaw | proto.WebMessageInfo;
             try {
               messageSent = await waInstance?.textMessage(data, true);
+              if (!messageSent) {
+                throw new Error('Message not sent');
+              }
 
               this.updateChatwootMessageId(
                 {
