@@ -6,7 +6,6 @@ import { v4 } from 'uuid';
 import { ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException } from '../../exceptions';
-import { RedisCache } from '../../libs/redis.client';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
 import { RabbitmqService } from '../integrations/rabbitmq/services/rabbitmq.service';
@@ -41,8 +40,9 @@ export class InstanceController {
     private readonly typebotService: TypebotService,
     private readonly integrationService: IntegrationService,
     private readonly proxyService: ProxyController,
-    private readonly cache: RedisCache,
+    private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
+    private readonly messagesLostCache: CacheService,
   ) {}
 
   private readonly logger = new Logger(InstanceController.name);
@@ -108,6 +108,7 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
+          this.messagesLostCache,
         );
       } else {
         instance = new BaileysStartupService(
@@ -116,6 +117,7 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
+          this.messagesLostCache,
         );
       }
 

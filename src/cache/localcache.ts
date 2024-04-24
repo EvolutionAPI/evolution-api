@@ -1,7 +1,7 @@
 import NodeCache from 'node-cache';
 
-import { CacheConf, CacheConfLocal, ConfigService } from '../../../../config/env.config';
-import { ICache } from '../../../abstract/abstract.cache';
+import { ICache } from '../api/abstract/abstract.cache';
+import { CacheConf, CacheConfLocal, ConfigService } from '../config/env.config';
 
 export class LocalCache implements ICache {
   private conf: CacheConfLocal;
@@ -44,5 +44,18 @@ export class LocalCache implements ICache {
 
   buildKey(key: string) {
     return `${this.module}:${key}`;
+  }
+
+  async hGet() {
+    console.log('hGet not implemented');
+  }
+
+  async hSet() {
+    console.log('hSet not implemented');
+  }
+
+  async hDelete() {
+    console.log('hDelete not implemented');
+    return 0;
   }
 }

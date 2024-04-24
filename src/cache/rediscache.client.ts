@@ -1,7 +1,7 @@
 import { createClient, RedisClientType } from 'redis';
 
-import { CacheConf, CacheConfRedis, configService } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
+import { CacheConf, CacheConfRedis, configService } from '../config/env.config';
+import { Logger } from '../config/logger.config';
 
 class Redis {
   private logger = new Logger(Redis.name);
