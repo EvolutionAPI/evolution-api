@@ -136,11 +136,13 @@ export class WAStartupService {
 
   public async findIntegration() {
     this.logger.verbose('Finding integration');
-    const data = await this.repository.integration.find(this.instanceName);
+    let data: any;
+
+    data = await this.repository.integration.find(this.instanceName);
 
     if (!data) {
-      this.logger.verbose('Integration not found');
-      throw new NotFoundException('Integration not found');
+      this.repository.integration.create({ integration: 'WHATSAPP-BAILEYS', number: '', token: '' }, this.instanceName);
+      data = { integration: 'WHATSAPP-BAILEYS', number: '', token: '' };
     }
 
     this.logger.verbose(`Integration: ${data.integration}`);
