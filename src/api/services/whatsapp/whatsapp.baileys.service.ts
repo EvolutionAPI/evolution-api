@@ -36,7 +36,7 @@ import makeWASocket, {
   WAPresence,
   WASocket,
 } from '@whiskeysockets/baileys';
-import { downloadMediaMessageDto } from '../dto/chat.dto';
+import { downloadMediaMessageDto } from '../../dto/chat.dto';
 import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
 import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
 import axios from 'axios';

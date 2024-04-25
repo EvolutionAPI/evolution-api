@@ -4,6 +4,7 @@ import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
 import fs from 'fs/promises';
 import { getMIMEType } from 'node-mime-types';
+import { downloadMediaMessageDto } from '../../dto/chat.dto';
 
 import { ConfigService, Database, WaBusiness } from '../../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
