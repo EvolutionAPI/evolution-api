@@ -148,17 +148,17 @@ export class BaileysStartupService extends WAStartupService {
   public mobile: boolean;
 
   private async recoveringMessages() {
+    this.logger.info('Recovering messages lost');
     const cacheConf = this.configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
       setInterval(async () => {
-        this.logger.info('Recovering messages');
         this.messagesLostCache.keys().then((keys) => {
           keys.forEach(async (key) => {
             const message = await this.messagesLostCache.get(key.split(':')[2]);
 
             if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
-              this.logger.verbose('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
+              this.logger.info('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
               await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
             }
           });
