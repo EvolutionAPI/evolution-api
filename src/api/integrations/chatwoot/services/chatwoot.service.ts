@@ -86,12 +86,13 @@ export class ChatwootService {
     return client;
   }
 
-  public getClientCwConfig(): ChatwootAPIConfig {
+  public getClientCwConfig(): ChatwootAPIConfig & { name_inbox: string } {
     return {
       basePath: this.provider.url,
       with_credentials: true,
       credentials: 'include',
       token: this.provider.token,
+      name_inbox: this.provider.name_inbox,
     };
   }
 
@@ -111,7 +112,7 @@ export class ChatwootService {
 
       await this.initInstanceChatwoot(
         instance,
-        instance.instanceName.split('-cwId-')[0],
+        data.name_inbox ?? instance.instanceName.split('-cwId-')[0],
         `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         true,
         data.number,
@@ -711,7 +712,7 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find inbox by name');
-    const findByName = inbox.payload.find((inbox) => inbox.name === instance.instanceName.split('-cwId-')[0]);
+    const findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().name_inbox);
 
     if (!findByName) {
       this.logger.warn('inbox not found');
