@@ -1,9 +1,10 @@
-# 1.7.4 (develop)
+# 1.8.0 (develop)
 
 ### Fixed
 * Adjusts in proxy on fetchAgent
 * Recovering messages lost with redis cache
 * Log when init redis cache service
+* Recovering messages lost with redis cache
 
 # 1.7.3 (2024-04-18 12:07)
 
