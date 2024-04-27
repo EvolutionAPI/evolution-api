@@ -5,6 +5,7 @@
 * Recovering messages lost with redis cache
 * Log when init redis cache service
 * Recovering messages lost with redis cache
+* Chatwoot inbox name
 
 # 1.7.3 (2024-04-18 12:07)
 
