@@ -9,6 +9,7 @@ import ChatwootClient, {
 } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import axios from 'axios';
+import { proto } from 'baileys';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
@@ -85,12 +86,13 @@ export class ChatwootService {
     return client;
   }
 
-  public getClientCwConfig(): ChatwootAPIConfig {
+  public getClientCwConfig(): ChatwootAPIConfig & { name_inbox: string } {
     return {
       basePath: this.provider.url,
       with_credentials: true,
       credentials: 'include',
       token: this.provider.token,
+      name_inbox: this.provider.name_inbox,
     };
   }
 
@@ -110,7 +112,7 @@ export class ChatwootService {
 
       await this.initInstanceChatwoot(
         instance,
-        instance.instanceName.split('-cwId-')[0],
+        data.name_inbox ?? instance.instanceName.split('-cwId-')[0],
         `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         true,
         data.number,
@@ -628,7 +630,7 @@ export class ChatwootService {
         id: contactId,
       })) as any;
 
-      if (contactConversations) {
+      if (contactConversations?.payload?.length) {
         let conversation: any;
         if (this.provider.reopen_conversation) {
           conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
@@ -710,7 +712,7 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find inbox by name');
-    const findByName = inbox.payload.find((inbox) => inbox.name === instance.instanceName.split('-cwId-')[0]);
+    const findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().name_inbox);
 
     if (!findByName) {
       this.logger.warn('inbox not found');
@@ -1106,6 +1108,26 @@ export class ChatwootService {
     }
   }
 
+  public async onSendMessageError(instance: InstanceDto, conversation: number, error?: string) {
+    const client = await this.clientCw(instance);
+
+    if (!client) {
+      return;
+    }
+
+    client.messages.create({
+      accountId: this.provider.account_id,
+      conversationId: conversation,
+      data: {
+        content: i18next.t('cw.message.notsent', {
+          error: error?.length > 0 ? `_${error}_` : '',
+        }),
+        message_type: 'outgoing',
+        private: true,
+      },
+    });
+  }
+
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -1274,6 +1296,11 @@ export class ChatwootService {
           return { message: 'bot' };
         }
 
+        if (!waInstance && body.conversation?.id) {
+          this.onSendMessageError(instance, body.conversation?.id, 'Instance not found');
+          return { message: 'bot' };
+        }
+
         this.logger.verbose('Format message to send');
         let formatText: string;
         if (senderName === null || senderName === undefined) {
@@ -1310,6 +1337,9 @@ export class ChatwootService {
                 formatText,
                 options,
               );
+              if (!messageSent && body.conversation?.id) {
+                this.onSendMessageError(instance, body.conversation?.id);
+              }
 
               this.updateChatwootMessageId(
                 {
@@ -1343,23 +1373,34 @@ export class ChatwootService {
               },
             };
 
-            const messageSent = await waInstance?.textMessage(data, true);
+            let messageSent: MessageRaw | proto.WebMessageInfo;
+            try {
+              messageSent = await waInstance?.textMessage(data, true);
+              if (!messageSent) {
+                throw new Error('Message not sent');
+              }
 
-            this.updateChatwootMessageId(
-              {
-                ...messageSent,
-                owner: instance.instanceName,
-              },
-              {
-                messageId: body.id,
-                inboxId: body.inbox?.id,
-                conversationId: body.conversation?.id,
-                contactInbox: {
-                  sourceId: body.conversation?.contact_inbox?.source_id,
+              this.updateChatwootMessageId(
+                {
+                  ...messageSent,
+                  owner: instance.instanceName,
                 },
-              },
-              instance,
-            );
+                {
+                  messageId: body.id,
+                  inboxId: body.inbox?.id,
+                  conversationId: body.conversation?.id,
+                  contactInbox: {
+                    sourceId: body.conversation?.contact_inbox?.source_id,
+                  },
+                },
+                instance,
+              );
+            } catch (error) {
+              if (!messageSent && body.conversation?.id) {
+                this.onSendMessageError(instance, body.conversation?.id, error.toString());
+              }
+              throw error;
+            }
           }
         }
 

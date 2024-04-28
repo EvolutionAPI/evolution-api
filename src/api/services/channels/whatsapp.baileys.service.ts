@@ -1,5 +1,6 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
+import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -35,12 +36,11 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-} from '@whiskeysockets/baileys';
-import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
-import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
-import axios from 'axios';
+} from 'baileys';
+import { Label } from 'baileys/lib/Types/Label';
+import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { exec } from 'child_process';
-import { arrayUnique, isBase64, isURL } from 'class-validator';
+import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 // import ffmpeg from 'fluent-ffmpeg';
 import fs, { existsSync, readFileSync } from 'fs';
@@ -97,7 +97,6 @@ import {
   MediaMessage,
   Options,
   SendAudioDto,
-  SendButtonDto,
   SendContactDto,
   SendListDto,
   SendLocationDto,
@@ -118,9 +117,9 @@ import { RepositoryBroker } from '../../repository/repository.manager';
 import { waMonitor } from '../../server.module';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
-import { WAStartupService } from './../whatsapp.service';
+import { ChannelStartupService } from './../channel.service';
 
-export class BaileysStartupService extends WAStartupService {
+export class BaileysStartupService extends ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
@@ -148,17 +147,17 @@ export class BaileysStartupService extends WAStartupService {
   public mobile: boolean;
 
   private async recoveringMessages() {
+    this.logger.info('Recovering messages lost');
     const cacheConf = this.configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
       setInterval(async () => {
-        this.logger.info('Recovering messages');
         this.messagesLostCache.keys().then((keys) => {
           keys.forEach(async (key) => {
             const message = await this.messagesLostCache.get(key.split(':')[2]);
 
             if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
-              this.logger.verbose('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
+              this.logger.info('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
               await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
             }
           });
@@ -2207,15 +2206,6 @@ export class BaileysStartupService extends WAStartupService {
 
           mimetype = response.headers['content-type'];
         }
-        // if (isURL(mediaMessage.media)) {
-        //   const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
-
-        //   mimetype = response.headers['content-type'];
-        //   console.log('mediaMessage.mimetype2', mimetype);
-        // } else {
-        //   mimetype = getMIMEType(mediaMessage.fileName);
-        //   console.log('mediaMessage.mimetype3', mimetype);
-        // }
       }
 
       this.logger.verbose('Mimetype: ' + mimetype);
@@ -2330,82 +2320,6 @@ export class BaileysStartupService extends WAStartupService {
     return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
   }
 
-  // public async processAudio(audio: string, number: string) {
-  //   this.logger.verbose('Processing audio');
-  //   let tempAudioPath: string;
-  //   let outputAudio: string;
-
-  //   number = number.replace(/\D/g, '');
-  //   const hash = `${number}-${new Date().getTime()}`;
-  //   this.logger.verbose('Hash to audio name: ' + hash);
-
-  //   if (isURL(audio)) {
-  //     this.logger.verbose('Audio is url');
-
-  //     outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
-  //     tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
-
-  //     this.logger.verbose('Output audio path: ' + outputAudio);
-  //     this.logger.verbose('Temp audio path: ' + tempAudioPath);
-
-  //     const timestamp = new Date().getTime();
-  //     const url = `${audio}?timestamp=${timestamp}`;
-
-  //     this.logger.verbose('Including timestamp in url: ' + url);
-
-  //     let config: any = {
-  //       responseType: 'arraybuffer',
-  //     };
-
-  //     if (this.localProxy.enabled) {
-  //       config = {
-  //         ...config,
-  //         httpsAgent: makeProxyAgent(this.localProxy.proxy),
-  //       };
-  //     }
-
-  //     const response = await axios.get(url, config);
-  //     this.logger.verbose('Getting audio from url');
-
-  //     fs.writeFileSync(tempAudioPath, response.data);
-  //   } else {
-  //     this.logger.verbose('Audio is base64');
-
-  //     outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
-  //     tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
-
-  //     this.logger.verbose('Output audio path: ' + outputAudio);
-  //     this.logger.verbose('Temp audio path: ' + tempAudioPath);
-
-  //     const audioBuffer = Buffer.from(audio, 'base64');
-  //     fs.writeFileSync(tempAudioPath, audioBuffer);
-  //     this.logger.verbose('Temp audio created');
-  //   }
-
-  //   this.logger.verbose('Converting audio to mp4');
-  //   return new Promise((resolve, reject) => {
-  //     // This fix was suggested by @PurpShell
-  //     ffmpeg.setFfmpegPath(ffmpegPath.path);
-
-  //     ffmpeg()
-  //       .input(tempAudioPath)
-  //       .outputFormat('ogg')
-  //       .noVideo()
-  //       .audioCodec('libopus')
-  //       .save(outputAudio)
-  //       .on('error', function (error) {
-  //         console.log('error', error);
-  //         fs.unlinkSync(tempAudioPath);
-  //         if (error) reject(error);
-  //       })
-  //       .on('end', async function () {
-  //         fs.unlinkSync(tempAudioPath);
-  //         resolve(outputAudio);
-  //       })
-  //       .run();
-  //   });
-  // }
-
   public async processAudio(audio: string, number: string) {
     this.logger.verbose('Processing audio');
     let tempAudioPath: string;
@@ -2506,50 +2420,8 @@ export class BaileysStartupService extends WAStartupService {
     );
   }
 
-  public async buttonMessage(data: SendButtonDto) {
-    this.logger.verbose('Sending button message');
-    const embeddedMedia: any = {};
-    let mediatype = 'TEXT';
-
-    if (data.buttonMessage?.mediaMessage) {
-      mediatype = data.buttonMessage.mediaMessage?.mediatype.toUpperCase() ?? 'TEXT';
-      embeddedMedia.mediaKey = mediatype.toLowerCase() + 'Message';
-      const generate = await this.prepareMediaMessage(data.buttonMessage.mediaMessage);
-      embeddedMedia.message = generate.message[embeddedMedia.mediaKey];
-      embeddedMedia.contentText = `*${data.buttonMessage.title}*\n\n${data.buttonMessage.description}`;
-    }
-
-    const btnItems = {
-      text: data.buttonMessage.buttons.map((btn) => btn.buttonText),
-      ids: data.buttonMessage.buttons.map((btn) => btn.buttonId),
-    };
-
-    if (!arrayUnique(btnItems.text) || !arrayUnique(btnItems.ids)) {
-      throw new BadRequestException('Button texts cannot be repeated', 'Button IDs cannot be repeated.');
-    }
-
-    return await this.sendMessageWithTyping(
-      data.number,
-      {
-        buttonsMessage: {
-          text: !embeddedMedia?.mediaKey ? data.buttonMessage.title : undefined,
-          contentText: embeddedMedia?.contentText ?? data.buttonMessage.description,
-          footerText: data.buttonMessage?.footerText,
-          buttons: data.buttonMessage.buttons.map((button) => {
-            return {
-              buttonText: {
-                displayText: button.buttonText,
-              },
-              buttonId: button.buttonId,
-              type: 1,
-            };
-          }),
-          headerType: proto.Message.ButtonsMessage.HeaderType[mediatype],
-          [embeddedMedia?.mediaKey]: embeddedMedia?.message,
-        },
-      },
-      data?.options,
-    );
+  public async buttonMessage() {
+    throw new BadRequestException('Method not available on WhatsApp Baileys');
   }
 
   public async locationMessage(data: SendLocationDto) {

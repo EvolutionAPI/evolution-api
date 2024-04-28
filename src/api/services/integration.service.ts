@@ -22,7 +22,8 @@ export class IntegrationService {
       const result = await this.waMonitor.waInstances[instance.instanceName].findIntegration();
 
       if (Object.keys(result).length === 0) {
-        throw new Error('Integration not found');
+        this.create(instance, { integration: 'WHATSAPP-BAILEYS', number: '', token: '' });
+        return { integration: 'WHATSAPP-BAILEYS', number: '', token: '' };
       }
 
       return result;

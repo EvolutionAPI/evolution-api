@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { AuthenticationState, WAConnectionState } from '@whiskeysockets/baileys';
+import { AuthenticationState, WAConnectionState } from 'baileys';
 
 export enum Events {
   APPLICATION_STARTUP = 'application.startup',

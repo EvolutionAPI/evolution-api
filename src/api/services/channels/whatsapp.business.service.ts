@@ -26,9 +26,9 @@ import { ContactRaw, MessageRaw, MessageUpdateRaw, SettingsRaw } from '../../mod
 import { RepositoryBroker } from '../../repository/repository.manager';
 import { Events, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
-import { WAStartupService } from './../whatsapp.service';
+import { ChannelStartupService } from './../channel.service';
 
-export class BusinessStartupService extends WAStartupService {
+export class BusinessStartupService extends ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
