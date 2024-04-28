@@ -1,5 +1,6 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
+import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -35,10 +36,9 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-} from '@whiskeysockets/baileys';
-import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
-import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
-import axios from 'axios';
+} from 'baileys';
+import { Label } from 'baileys/lib/Types/Label';
+import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { exec } from 'child_process';
 import { arrayUnique, isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -118,9 +118,9 @@ import { RepositoryBroker } from '../../repository/repository.manager';
 import { waMonitor } from '../../server.module';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
-import { WAStartupService } from './../whatsapp.service';
+import { ChannelStartupService } from './../channel.service';
 
-export class BaileysStartupService extends WAStartupService {
+export class BaileysStartupService extends ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,

@@ -1,5 +1,5 @@
-import { WASocket } from '@whiskeysockets/baileys';
 import axios from 'axios';
+import { WASocket } from 'baileys';
 import { execSync } from 'child_process';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -38,17 +38,17 @@ import { waMonitor } from '../server.module';
 import { Events, wa } from '../types/wa.types';
 import { CacheService } from './cache.service';
 
-export class WAStartupService {
+export class ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
     public readonly repository: RepositoryBroker,
     public readonly chatwootCache: CacheService,
   ) {
-    this.logger.verbose('WAStartupService initialized');
+    this.logger.verbose('ChannelStartupService initialized');
   }
 
-  public readonly logger = new Logger(WAStartupService.name);
+  public readonly logger = new Logger(ChannelStartupService.name);
 
   public client: WASocket;
   public readonly instance: wa.Instance = {};
@@ -742,7 +742,7 @@ export class WAStartupService {
 
           if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
             const logData = {
-              local: WAStartupService.name + '.sendData-RabbitMQ',
+              local: ChannelStartupService.name + '.sendData-RabbitMQ',
               event,
               instance: this.instance.name,
               data,
@@ -798,7 +798,7 @@ export class WAStartupService {
           sqs.sendMessage(params, (err, data) => {
             if (err) {
               this.logger.error({
-                local: WAStartupService.name + '.sendData-SQS',
+                local: ChannelStartupService.name + '.sendData-SQS',
                 message: err?.message,
                 hostName: err?.hostname,
                 code: err?.code,
@@ -810,7 +810,7 @@ export class WAStartupService {
             } else {
               if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
                 const logData = {
-                  local: WAStartupService.name + '.sendData-SQS',
+                  local: ChannelStartupService.name + '.sendData-SQS',
                   event,
                   instance: this.instance.name,
                   data,
@@ -854,7 +854,7 @@ export class WAStartupService {
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
-            local: WAStartupService.name + '.sendData-WebsocketGlobal',
+            local: ChannelStartupService.name + '.sendData-WebsocketGlobal',
             event,
             instance: this.instance.name,
             data,
@@ -884,7 +884,7 @@ export class WAStartupService {
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
-            local: WAStartupService.name + '.sendData-Websocket',
+            local: ChannelStartupService.name + '.sendData-Websocket',
             event,
             instance: this.instance.name,
             data,
@@ -918,7 +918,7 @@ export class WAStartupService {
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
-            local: WAStartupService.name + '.sendDataWebhook-local',
+            local: ChannelStartupService.name + '.sendDataWebhook-local',
             url: baseURL,
             event,
             instance: this.instance.name,
@@ -958,7 +958,7 @@ export class WAStartupService {
           }
         } catch (error) {
           this.logger.error({
-            local: WAStartupService.name + '.sendDataWebhook-local',
+            local: ChannelStartupService.name + '.sendDataWebhook-local',
             message: error?.message,
             hostName: error?.hostname,
             syscall: error?.syscall,
@@ -990,7 +990,7 @@ export class WAStartupService {
 
         if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
           const logData = {
-            local: WAStartupService.name + '.sendDataWebhook-global',
+            local: ChannelStartupService.name + '.sendDataWebhook-global',
             url: globalURL,
             event,
             instance: this.instance.name,
@@ -1029,7 +1029,7 @@ export class WAStartupService {
           }
         } catch (error) {
           this.logger.error({
-            local: WAStartupService.name + '.sendDataWebhook-global',
+            local: ChannelStartupService.name + '.sendDataWebhook-global',
             message: error?.message,
             hostName: error?.hostname,
             syscall: error?.syscall,

@@ -1,4 +1,4 @@
-# 1.8.0 (develop)
+# 1.7.4 (develop)
 
 ### Fixed
 * Adjusts in proxy on fetchAgent
@@ -6,6 +6,7 @@
 * Log when init redis cache service
 * Recovering messages lost with redis cache
 * Chatwoot inbox name
+* Update Baileys version
 
 # 1.7.3 (2024-04-18 12:07)
 
