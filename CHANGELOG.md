@@ -1,4 +1,4 @@
-# 1.7.4 (develop)
+# 1.7.4 (2024-04-28 09:46)
 
 ### Fixed
 * Adjusts in proxy on fetchAgent
