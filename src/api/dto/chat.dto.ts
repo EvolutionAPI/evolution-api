@@ -73,6 +73,11 @@ export class ArchiveChatDto {
   archive: boolean;
 }
 
+export class MarkChatUnreadDto {
+  lastMessage?: LastMessage;
+  chat?: string;
+}
+
 class PrivacySetting {
   readreceipts: WAReadReceiptsValue;
   profile: WAPrivacyValue;
