@@ -1,0 +1,202 @@
+# ⚠️
+# ⚠️ ALL SETTINGS DEFINED IN THIS FILE ARE APPLIED TO ALL INSTANCES.
+# ⚠️
+
+# ⚠️ RENAME THIS FILE TO env.yml
+
+# Choose the server type for the application
+SERVER:
+  TYPE: http # https
+  PORT: 8080 # 443
+  URL: localhost
+  DISABLE_MANAGER: false
+  DISABLE_DOCS: false
+
+CORS:
+  ORIGIN:
+    - "*"
+    # - yourdomain.com
+  METHODS:
+    - POST
+    - GET
+    - PUT
+    - DELETE
+  CREDENTIALS: true
+
+# Install ssl certificate and replace string <domain> with domain name
+# Access: https://certbot.eff.org/instructions?ws=other&os=ubuntufocal
+SSL_CONF:
+  PRIVKEY: /etc/letsencrypt/live/<domain>/privkey.pem
+  FULLCHAIN: /etc/letsencrypt/live/<domain>/fullchain.pem
+
+# Determine the logs to be displayed
+LOG:
+  LEVEL:
+    - ERROR
+    - WARN
+    - DEBUG
+    - INFO
+    - LOG
+    - VERBOSE
+    - DARK
+    - WEBHOOKS
+  COLOR: true
+  BAILEYS: error # fatal | error | warn | info | debug | trace
+
+# Determine how long the instance should be deleted from memory in case of no connection.
+# Default time: 5 minutes
+# If you don't even want an expiration, enter the value false
+DEL_INSTANCE: false # or false
+DEL_TEMP_INSTANCES: true # Delete instances with status closed on start
+
+# Temporary data storage
+STORE:
+  MESSAGES: true
+  MESSAGE_UP: true
+  CONTACTS: true
+  CHATS: true
+
+CLEAN_STORE:
+  CLEANING_INTERVAL: 7200 # 7200 seconds === 2h
+  MESSAGES: true
+  MESSAGE_UP: true
+  CONTACTS: true
+  CHATS: true
+
+# Permanent data storage
+DATABASE:
+  ENABLED: false
+  CONNECTION:
+    URI: "mongodb://root:root@localhost:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true"
+    DB_PREFIX_NAME: evolution
+  # Choose the data you want to save in the application's database or store
+  SAVE_DATA:
+    INSTANCE: false
+    NEW_MESSAGE: false
+    MESSAGE_UPDATE: false
+    CONTACTS: false
+    CHATS: false
+
+RABBITMQ:
+  ENABLED: false
+  MODE: "global"
+  EXCHANGE_NAME: "evolution_exchange"
+  URI: "amqp://guest:guest@localhost:5672"
+
+SQS:
+  ENABLED: true
+  ACCESS_KEY_ID: ""
+  SECRET_ACCESS_KEY: ""
+  ACCOUNT_ID: ""
+  REGION: "us-east-1"
+
+WEBSOCKET:
+  ENABLED: false
+  GLOBAL_EVENTS: false
+
+WA_BUSINESS:
+  TOKEN_WEBHOOK: evolution
+  URL: https://graph.facebook.com
+  VERSION: v18.0
+  LANGUAGE: pt_BR
+
+# Global Webhook Settings
+# Each instance's Webhook URL and events will be requested at the time it is created
+WEBHOOK:
+  # Define a global webhook that will listen for enabled events from all instances
+  GLOBAL:
+    URL: <url>
+    ENABLED: false
+    # With this option activated, you work with a url per webhook event, respecting the global url and the name of each event
+    WEBHOOK_BY_EVENTS: false
+  # Automatically maps webhook paths
+  # Set the events you want to hear
+  EVENTS:
+    APPLICATION_STARTUP: false
+    QRCODE_UPDATED: true
+    MESSAGES_SET: true
+    MESSAGES_UPSERT: true
+    MESSAGES_UPDATE: true
+    MESSAGES_DELETE: true
+    SEND_MESSAGE: true
+    CONTACTS_SET: true
+    CONTACTS_UPSERT: true
+    CONTACTS_UPDATE: true
+    PRESENCE_UPDATE: true
+    CHATS_SET: true
+    CHATS_UPSERT: true
+    CHATS_UPDATE: true
+    CHATS_DELETE: true
+    GROUPS_UPSERT: true
+    GROUP_UPDATE: true
+    GROUP_PARTICIPANTS_UPDATE: true
+    CONNECTION_UPDATE: true
+    LABELS_EDIT: true
+    LABELS_ASSOCIATION: true
+    CALL: true
+    # This event fires every time a new token is requested via the refresh route
+    NEW_JWT_TOKEN: false
+    # This events is used with Typebot
+    TYPEBOT_START: false
+    TYPEBOT_CHANGE_STATUS: false
+    # This event is used with Chama AI
+    CHAMA_AI_ACTION: false
+    # This event is used to send errors to the webhook
+    ERRORS: false
+    ERRORS_WEBHOOK: <url>
+
+CONFIG_SESSION_PHONE:
+  # Name that will be displayed on smartphone connection
+  CLIENT: "Evolution API"
+  NAME: Chrome # Chrome | Firefox | Edge | Opera | Safari
+
+# Set qrcode display limit
+QRCODE:
+  LIMIT: 30
+  COLOR: "#198754"
+
+TYPEBOT:
+  API_VERSION: "old" # old | latest
+  KEEP_OPEN: false
+
+CHATWOOT:
+  # If you leave this option as false, when deleting the message for everyone on WhatsApp, it will not be deleted on Chatwoot.
+  MESSAGE_DELETE: true # false | true
+  # If you leave this option as true, when sending a message in Chatwoot, the client's last message will be marked as read on WhatsApp.
+  MESSAGE_READ: false # false | true
+  IMPORT:
+    # This db connection is used to import messages from whatsapp to chatwoot database
+    DATABASE:
+      CONNECTION:
+        URI: "postgres://user:password@hostname:port/dbname"
+    PLACEHOLDER_MEDIA_MESSAGE: true
+
+# Cache to optimize application performance
+CACHE:
+  REDIS:
+    ENABLED: false
+    URI: "redis://localhost:6379"
+    PREFIX_KEY: "evolution"
+    TTL: 604800
+    SAVE_INSTANCES: false
+  LOCAL:
+    ENABLED: false
+    TTL: 86400
+
+# Defines an authentication type for the api
+# We recommend using the apikey because it will allow you to use a custom token,
+# if you use jwt, a random token will be generated and may be expired and you will have to generate a new token
+AUTHENTICATION:
+  TYPE: apikey # jwt or apikey
+  # Define a global apikey to access all instances
+  API_KEY:
+    # OBS: This key must be inserted in the request header to create an instance.
+    KEY: B6D711FCDE4D4FD5936544120E713976
+  # Expose the api key on return from fetch instances
+  EXPOSE_IN_FETCH_INSTANCES: true
+  # Set the secret key to encrypt and decrypt your token and its expiration time.
+  JWT:
+    EXPIRIN_IN: 0 # seconds - 3600s === 1h | zero (0) - never expires
+    SECRET: L=0YWt]b2w[WF>#>:&E`
+
+LANGUAGE: "pt-BR" # pt-BR, en
