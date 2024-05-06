@@ -47,7 +47,7 @@
     "@hapi/boom": "^10.0.1",
     "@sentry/node": "^7.59.2",
     "amqplib": "^0.10.3",
-    "aws-sdk": "^2.1499.0",
+    "@aws-sdk/client-sqs": "^3.569.0",
     "axios": "^1.6.5",
     "baileys": "^6.7.1",
     "class-validator": "^0.14.1",
