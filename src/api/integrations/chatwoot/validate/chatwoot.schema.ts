@@ -30,6 +30,7 @@ export const chatwootSchema: JSONSchema7 = {
     url: { type: 'string' },
     sign_msg: { type: 'boolean', enum: [true, false] },
     sign_delimiter: { type: ['string', 'null'] },
+    name_inbox: { type: ['string', 'null'] },
     reopen_conversation: { type: 'boolean', enum: [true, false] },
     conversation_pending: { type: 'boolean', enum: [true, false] },
     auto_create: { type: 'boolean', enum: [true, false] },

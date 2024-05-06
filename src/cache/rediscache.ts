@@ -1,4 +1,4 @@
-import { BufferJSON } from '@whiskeysockets/baileys';
+import { BufferJSON } from 'baileys';
 import { RedisClientType } from 'redis';
 
 import { ICache } from '../api/abstract/abstract.cache';
