@@ -86,13 +86,14 @@ export class ChatwootService {
     return client;
   }
 
-  public getClientCwConfig(): ChatwootAPIConfig & { name_inbox: string } {
+  public getClientCwConfig(): ChatwootAPIConfig & { name_inbox: string; merge_brazil_contacts: boolean } {
     return {
       basePath: this.provider.url,
       with_credentials: true,
       credentials: 'include',
       token: this.provider.token,
       name_inbox: this.provider.name_inbox,
+      merge_brazil_contacts: this.provider.merge_brazil_contacts,
     };
   }
 
@@ -418,9 +419,48 @@ export class ChatwootService {
     }
   }
 
+  private async mergeBrazilianContacts(contacts: any[]) {
+    try {
+      //sdk chatwoot não tem função merge
+      this.logger.verbose('merging contacts');
+      const contact = await chatwootRequest(this.getClientCwConfig(), {
+        method: 'POST',
+        url: `/api/v1/accounts/${this.provider.account_id}/actions/contact_merge`,
+        body: {
+          base_contact_id: contacts.find((contact) => contact.phone_number.length === 14)?.id,
+          mergee_contact_id: contacts.find((contact) => contact.phone_number.length === 13)?.id,
+        },
+      });
+
+      return contact;
+    } catch {
+      this.logger.error('Error merging contacts');
+      return null;
+    }
+  }
+
   private findContactInContactList(contacts: any[], query: string) {
     const phoneNumbers = this.getNumbers(query);
     const searchableFields = this.getSearchableFields();
+
+    // eslint-disable-next-line prettier/prettier
+    if(contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')){
+
+      const contact = this.mergeBrazilianContacts(contacts);
+      if (contact) {
+        return contact;
+      }
+    }
+
+    const phone = phoneNumbers.reduce(
+      (savedNumber, number) => (number.length > savedNumber.length ? number : savedNumber),
+      '',
+    );
+
+    const contact_with9 = contacts.find((contact) => contact.phone_number === phone);
+    if (contact_with9) {
+      return contact_with9;
+    }
 
     for (const contact of contacts) {
       for (const field of searchableFields) {
@@ -449,7 +489,7 @@ export class ChatwootService {
   }
 
   private getSearchableFields() {
-    return ['phone_number', 'identifier'];
+    return ['phone_number'];
   }
 
   private getFilterPayload(query: string) {
@@ -463,7 +503,7 @@ export class ChatwootService {
         const queryOperator = fieldsToSearch.length - 1 === index1 && numbers.length - 1 === index2 ? null : 'OR';
         filterPayload.push({
           attribute_key: field,
-          filter_operator: ['phone_number', 'identifier'].includes(field) ? 'equal_to' : 'contains',
+          filter_operator: 'equal_to',
           values: [number.replace('+', '')],
           query_operator: queryOperator,
         });
