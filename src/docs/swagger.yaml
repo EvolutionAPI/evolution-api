@@ -194,6 +194,8 @@ paths:
             type: string
           description: Check the connection state of your instance.
           example: "evolution"
+      security:
+        - apikeyAuth: []
       responses:
         "200":
           description: Successful response
