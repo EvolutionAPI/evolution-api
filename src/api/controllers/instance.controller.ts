@@ -576,6 +576,7 @@ export class InstanceController {
           sign_msg: chatwoot_sign_msg || false,
           reopen_conversation: chatwoot_reopen_conversation || false,
           conversation_pending: chatwoot_conversation_pending || false,
+          merge_brazil_contacts: chatwoot_merge_brazil_contacts ?? false,
           import_contacts: chatwoot_import_contacts ?? true,
           import_messages: chatwoot_import_messages ?? true,
           days_limit_import_messages: chatwoot_days_limit_import_messages || 60,
