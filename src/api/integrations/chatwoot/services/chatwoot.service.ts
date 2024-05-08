@@ -789,26 +789,15 @@ export class ChatwootService {
       return null;
     }
 
-    const payload = [
-      ['inbox_id', inbox.id.toString()],
-      ['contact_id', contact.id.toString()],
-      ['status', 'open'],
-    ];
+    const conversations = (await client.contacts.listConversations({
+      accountId: this.provider.account_id,
+      id: contact.id,
+    })) as any;
 
     return (
-      (
-        (await client.conversations.filter({
-          accountId: this.provider.account_id,
-          payload: payload.map((item, i, payload) => {
-            return {
-              attribute_key: item[0],
-              filter_operator: 'equal_to',
-              values: [item[1]],
-              query_operator: i < payload.length - 1 ? 'AND' : null,
-            };
-          }),
-        })) as { payload: conversation[] }
-      ).payload[0] || undefined
+      conversations.payload.find(
+        (conversation) => conversation.inbox_id === inbox.id && conversation.status === 'open',
+      ) || undefined
     );
   }
 
