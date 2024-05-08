@@ -564,25 +564,29 @@ export class ChatwootService {
       let contact = await this.findContact(instance, chatId);
 
       if (contact) {
-        const waProfilePictureFile = picture_url.profilePictureUrl.split('#')[0].split('?')[0].split('/').pop();
-        const chatwootProfilePictureFile = contact?.thumbnail?.split('#')[0].split('?')[0].split('/').pop();
-        const pictureNeedsUpdate = waProfilePictureFile !== chatwootProfilePictureFile;
-        const nameNeedsUpdate =
-          !contact.name ||
-          contact.name === chatId ||
-          (`+${chatId}`.startsWith('+55')
-            ? this.getNumbers(`+${chatId}`).some(
-                (v) => contact.name === v || contact.name === v.substring(3) || contact.name === v.substring(1),
-              )
-            : false);
+        if (!body.key.fromMe) {
+          const waProfilePictureFile =
+            picture_url?.profilePictureUrl?.split('#')[0].split('?')[0].split('/').pop() || '';
+          const chatwootProfilePictureFile = contact?.thumbnail?.split('#')[0].split('?')[0].split('/').pop() || '';
+          const pictureNeedsUpdate = waProfilePictureFile !== chatwootProfilePictureFile;
+          const nameNeedsUpdate =
+            !contact.name ||
+            contact.name === chatId ||
+            (`+${chatId}`.startsWith('+55')
+              ? this.getNumbers(`+${chatId}`).some(
+                  (v) => contact.name === v || contact.name === v.substring(3) || contact.name === v.substring(1),
+                )
+              : false);
 
-        const contactNeedsUpdate = pictureNeedsUpdate || nameNeedsUpdate;
-        if (contactNeedsUpdate) {
-          this.logger.verbose('update contact in chatwoot');
-          contact = await this.updateContact(instance, contact.id, {
-            ...(nameNeedsUpdate && { name: nameContact }),
-            ...(pictureNeedsUpdate && { avatar_url: picture_url.profilePictureUrl || null }),
-          });
+          const contactNeedsUpdate = pictureNeedsUpdate || nameNeedsUpdate;
+          if (contactNeedsUpdate) {
+            this.logger.verbose('update contact in chatwoot');
+            contact = await this.updateContact(instance, contact.id, {
+              ...(nameNeedsUpdate && { name: nameContact }),
+              ...(waProfilePictureFile === '' && { avatar: null }),
+              ...(pictureNeedsUpdate && { avatar_url: picture_url?.profilePictureUrl }),
+            });
+          }
         }
       } else {
         const jid = isGroup ? null : body.key.remoteJid;
