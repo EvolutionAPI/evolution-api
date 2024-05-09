@@ -251,8 +251,8 @@ export class ConfigService {
         LABELS: process.env?.STORE_LABELS === 'true',
       },
       CLEAN_STORE: {
-        CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_TERMINAL)
-          ? Number.parseInt(process.env.CLEAN_STORE_CLEANING_TERMINAL)
+        CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_INTERVAL)
+          ? Number.parseInt(process.env.CLEAN_STORE_CLEANING_INTERVAL)
           : 7200,
         MESSAGES: process.env?.CLEAN_STORE_MESSAGES === 'true',
         MESSAGE_UP: process.env?.CLEAN_STORE_MESSAGE_UP === 'true',
