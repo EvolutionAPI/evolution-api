@@ -35,6 +35,7 @@ export const chatwootSchema: JSONSchema7 = {
     conversation_pending: { type: 'boolean', enum: [true, false] },
     auto_create: { type: 'boolean', enum: [true, false] },
     import_contacts: { type: 'boolean', enum: [true, false] },
+    merge_brazil_contacts: { type: 'boolean', enum: [true, false] },
     import_messages: { type: 'boolean', enum: [true, false] },
     days_limit_import_messages: { type: 'number' },
   },

@@ -2244,6 +2244,9 @@ paths:
                 conversation_pending:
                   type: boolean
                   description: "Indicates whether to mark conversations as pending."
+                merge_brazil_contacts:
+                  type: boolean
+                  description: "Indicates whether to merge Brazil numbers in case of numbers with and without ninth digit."
                 import_contacts:
                   type: boolean
                   description: "Indicates whether to import contacts from phone to Chatwoot when connecting."
