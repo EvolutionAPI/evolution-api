@@ -1,5 +1,5 @@
+import { WASocket } from '@whiskeysockets/baileys';
 import axios from 'axios';
-import { WASocket } from 'baileys';
 import { execSync } from 'child_process';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';

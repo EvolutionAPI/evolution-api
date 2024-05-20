@@ -1,6 +1,5 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
-import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -36,9 +35,10 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-} from 'baileys';
-import { Label } from 'baileys/lib/Types/Label';
-import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
+} from '@whiskeysockets/baileys';
+import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
+import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
+import axios from 'axios';
 import { exec } from 'child_process';
 import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';

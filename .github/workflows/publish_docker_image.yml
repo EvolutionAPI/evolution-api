@@ -29,12 +29,12 @@ jobs:
 
       - name: set docker tag
         run: |
-          echo "DOCKER_TAG=ghcr.io/stack-app-br/evolution-api:$GIT_REF" >> $GITHUB_ENV
+          echo "DOCKER_TAG=ghcr.io/atendai/evolution-api:$GIT_REF" >> $GITHUB_ENV
 
       - name: replace docker tag if main
         if: github.ref_name == 'main'
         run: |
-          echo "DOCKER_TAG=ghcr.io/stack-app-br/evolution-api:latest" >> $GITHUB_ENV
+          echo "DOCKER_TAG=ghcr.io/atendai/evolution-api:latest" >> $GITHUB_ENV
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3

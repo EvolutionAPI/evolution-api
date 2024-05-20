@@ -1,4 +1,4 @@
-import { WAPresence } from 'baileys';
+import { WAPresence } from '@whiskeysockets/baileys';
 
 import { ProxyDto } from './proxy.dto';
 
