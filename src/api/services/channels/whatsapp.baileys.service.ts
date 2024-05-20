@@ -540,7 +540,7 @@ export class BaileysStartupService extends ChannelStartupService {
         printQRInTerminal: false,
         mobile,
         browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
-        version,
+        version: [2, 2413, 1],
         markOnlineOnConnect: this.localSettings.always_online,
         retryRequestDelayMs: 10,
         connectTimeoutMs: 60_000,
@@ -671,7 +671,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       this.instance.authState = await this.defineAuthState();
 
-      const { version } = await fetchLatestBaileysVersion();
+      // const { version } = await fetchLatestBaileysVersion();
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
 
@@ -711,7 +711,7 @@ export class BaileysStartupService extends ChannelStartupService {
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
         browser: this.phoneNumber ? ['Chrome (Linux)', session.NAME, release()] : browser,
-        version,
+        version: [2, 2413, 1],
         markOnlineOnConnect: this.localSettings.always_online,
         retryRequestDelayMs: 10,
         connectTimeoutMs: 60_000,
