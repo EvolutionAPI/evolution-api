@@ -1,4 +1,4 @@
-import { proto, WAPresence, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from 'baileys';
+import { proto, WAPresence, WAPrivacyOnlineValue, WAPrivacyValue, WAReadReceiptsValue } from '@whiskeysockets/baileys';
 
 export class OnWhatsAppDto {
   constructor(
@@ -71,6 +71,11 @@ export class ArchiveChatDto {
   lastMessage?: LastMessage;
   chat?: string;
   archive: boolean;
+}
+
+export class MarkChatUnreadDto {
+  lastMessage?: LastMessage;
+  chat?: string;
 }
 
 class PrivacySetting {
