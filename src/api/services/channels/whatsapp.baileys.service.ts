@@ -496,12 +496,23 @@ export class BaileysStartupService extends ChannelStartupService {
         this.mobile = mobile;
       }
 
-      const { version } = await fetchLatestBaileysVersion();
-
-      this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
+
+      let version;
+      let log;
+
+      if (session.VERSION) {
+        version = session.VERSION.split(',');
+        log = `Baileys version env: ${version}`;
+      } else {
+        const baileysVersion = await fetchLatestBaileysVersion();
+        version = baileysVersion.version;
+        log = `Baileys version: ${version}`;
+      }
+
+      this.logger.info(log);
 
       let options;
 
@@ -540,7 +551,7 @@ export class BaileysStartupService extends ChannelStartupService {
         printQRInTerminal: false,
         mobile,
         browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
-        version: [2, 2413, 1],
+        version,
         markOnlineOnConnect: this.localSettings.always_online,
         retryRequestDelayMs: 10,
         connectTimeoutMs: 60_000,
@@ -671,9 +682,22 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       this.instance.authState = await this.defineAuthState();
 
-      // const { version } = await fetchLatestBaileysVersion();
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+
+      let version;
+      let log;
+
+      if (session.VERSION) {
+        version = session.VERSION.split(',');
+        log = `Baileys version env: ${version}`;
+      } else {
+        const baileysVersion = await fetchLatestBaileysVersion();
+        version = baileysVersion.version;
+        log = `Baileys version: ${version}`;
+      }
+
+      this.logger.info(log);
 
       let options;
 
@@ -711,7 +735,7 @@ export class BaileysStartupService extends ChannelStartupService {
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
         browser: this.phoneNumber ? ['Chrome (Linux)', session.NAME, release()] : browser,
-        version: [2, 2413, 1],
+        version,
         markOnlineOnConnect: this.localSettings.always_online,
         retryRequestDelayMs: 10,
         connectTimeoutMs: 60_000,

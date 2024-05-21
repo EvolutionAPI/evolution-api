@@ -155,7 +155,7 @@ export type CacheConfLocal = {
 };
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
-export type ConfigSessionPhone = { CLIENT: string; NAME: string };
+export type ConfigSessionPhone = { CLIENT: string; NAME: string; VERSION: string };
 export type QrCode = { LIMIT: number; COLOR: string };
 export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
 export type Chatwoot = {
@@ -360,6 +360,7 @@ export class ConfigService {
       CONFIG_SESSION_PHONE: {
         CLIENT: process.env?.CONFIG_SESSION_PHONE_CLIENT || 'Evolution API',
         NAME: process.env?.CONFIG_SESSION_PHONE_NAME || 'Chrome',
+        VERSION: process.env?.CONFIG_SESSION_PHONE_VERSION || null,
       },
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
