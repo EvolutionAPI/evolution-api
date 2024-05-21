@@ -1,3 +1,14 @@
+# 1.7.5 (2024-05-21 08:50)
+
+### Fixed
+* Add merge_brazil_contacts function to solve nine digit in brazilian numbers
+* Optimize ChatwootService method for updating contact
+* Fix swagger auth
+* Update aws sdk v3
+* Fix getOpenConversationByContact and init queries error
+* Method to mark chat as unread
+* Added environment variable to manually select the WhatsApp web version for the baileys lib (optional)
+
 # 1.7.4 (2024-04-28 09:46)
 
 ### Fixed
