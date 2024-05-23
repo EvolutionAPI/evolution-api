@@ -1,3 +1,9 @@
+# 1.8.0 (develop)
+
+### Feature
+
+* Now in the manager, when logging in with the client's apikey, the listing only shows the instance corresponding to the provided apikey (only with MongoDB)
+
 # 1.7.5 (2024-05-21 08:50)
 
 ### Fixed
