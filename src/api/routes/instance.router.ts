@@ -103,13 +103,15 @@ export class InstanceRouter extends RouterBroker {
         logger.verbose('request body: ');
         logger.verbose(req.body);
 
+        const key = req.get('apikey');
+
         logger.verbose('request query: ');
         logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: null,
           ClassRef: InstanceDto,
-          execute: (instance) => instanceController.fetchInstances(instance),
+          execute: (instance) => instanceController.fetchInstances(instance, key),
         });
 
         return res.status(HttpStatus.OK).json(response);

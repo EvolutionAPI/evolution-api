@@ -59,6 +59,10 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
   const env = configService.get<Auth>('AUTHENTICATION').API_KEY;
   const key = req.get('apikey');
 
+  if (!key) {
+    throw new UnauthorizedException();
+  }
+
   if (env.KEY === key) {
     return next();
   }
@@ -66,12 +70,19 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
   if ((req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) && !key) {
     throw new ForbiddenException('Missing global api key', 'The global api key must be set');
   }
+  const param = req.params as unknown as InstanceDto;
 
   try {
-    const param = req.params as unknown as InstanceDto;
-    const instanceKey = await repository.auth.find(param.instanceName);
-    if (instanceKey.apikey === key) {
-      return next();
+    if (param?.instanceName) {
+      const instanceKey = await repository.auth.find(param.instanceName);
+      if (instanceKey?.apikey === key) {
+        return next();
+      }
+    } else {
+      const instanceByKey = await repository.auth.findByKey(key);
+      if (instanceByKey) {
+        return next();
+      }
     }
   } catch (error) {
     logger.error(error);

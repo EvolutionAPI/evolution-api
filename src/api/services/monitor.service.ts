@@ -83,7 +83,7 @@ export class WAMonitoringService {
     }
   }
 
-  public async instanceInfo(instanceName?: string) {
+  public async instanceInfo(instanceName?: string, arrayReturn = false) {
     this.logger.verbose('get instance info');
     if (instanceName && !this.waInstances[instanceName]) {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
@@ -171,6 +171,9 @@ export class WAMonitoringService {
 
     this.logger.verbose('return instance info: ' + instances.length);
 
+    if (arrayReturn) {
+      return [instances.find((i) => i.instance.instanceName === instanceName) ?? instances];
+    }
     return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
   }
 
