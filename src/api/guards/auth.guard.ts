@@ -79,9 +79,11 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
         return next();
       }
     } else {
-      const instanceByKey = await repository.auth.findByKey(key);
-      if (instanceByKey) {
-        return next();
+      if (req.originalUrl.includes('/instance/fetchInstances')) {
+        const instanceByKey = await repository.auth.findByKey(key);
+        if (instanceByKey) {
+          return next();
+        }
       }
     }
   } catch (error) {

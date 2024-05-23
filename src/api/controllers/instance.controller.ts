@@ -687,7 +687,6 @@ export class InstanceController {
 
     if (env.KEY !== key) {
       const instanceByKey = await this.repository.auth.findByKey(key);
-      console.log('instanceByKey', instanceByKey);
       if (instanceByKey) {
         name = instanceByKey._id;
         arrayReturn = true;
