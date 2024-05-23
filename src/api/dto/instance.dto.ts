@@ -1,4 +1,4 @@
-import { WAPresence } from 'baileys';
+import { WAPresence } from '@whiskeysockets/baileys';
 
 import { ProxyDto } from './proxy.dto';
 
@@ -27,6 +27,7 @@ export class InstanceDto {
   chatwoot_sign_msg?: boolean;
   chatwoot_reopen_conversation?: boolean;
   chatwoot_conversation_pending?: boolean;
+  chatwoot_merge_brazil_contacts?: boolean;
   chatwoot_import_contacts?: boolean;
   chatwoot_import_messages?: boolean;
   chatwoot_days_limit_import_messages?: number;

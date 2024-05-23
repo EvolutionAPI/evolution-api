@@ -1,4 +1,4 @@
-import { SQS } from 'aws-sdk';
+import { SQS } from '@aws-sdk/client-sqs';
 
 import { configService, Sqs } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
@@ -12,8 +12,11 @@ export const initSQS = () => {
   return new Promise<void>((resolve, reject) => {
     const awsConfig = configService.get<Sqs>('SQS');
     sqs = new SQS({
-      accessKeyId: awsConfig.ACCESS_KEY_ID,
-      secretAccessKey: awsConfig.SECRET_ACCESS_KEY,
+      credentials: {
+        accessKeyId: awsConfig.ACCESS_KEY_ID,
+        secretAccessKey: awsConfig.SECRET_ACCESS_KEY,
+      },
+
       region: awsConfig.REGION,
     });
 

@@ -14,6 +14,7 @@ export class ChatwootRaw {
   number?: string;
   reopen_conversation?: boolean;
   conversation_pending?: boolean;
+  merge_brazil_contacts?: boolean;
   import_contacts?: boolean;
   import_messages?: boolean;
   days_limit_import_messages?: number;
@@ -31,6 +32,7 @@ const chatwootSchema = new Schema<ChatwootRaw>({
   number: { type: String, required: true },
   reopen_conversation: { type: Boolean, required: true },
   conversation_pending: { type: Boolean, required: true },
+  merge_brazil_contacts: { type: Boolean, required: true },
   import_contacts: { type: Boolean, required: true },
   import_messages: { type: Boolean, required: true },
   days_limit_import_messages: { type: Number, required: true },

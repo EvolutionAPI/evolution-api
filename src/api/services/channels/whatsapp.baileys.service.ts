@@ -1,6 +1,5 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
-import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -36,9 +35,10 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-} from 'baileys';
-import { Label } from 'baileys/lib/Types/Label';
-import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
+} from '@whiskeysockets/baileys';
+import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
+import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
+import axios from 'axios';
 import { exec } from 'child_process';
 import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -68,6 +68,7 @@ import {
   DeleteMessage,
   getBase64FromMediaMessageDto,
   LastMessage,
+  MarkChatUnreadDto,
   NumberBusiness,
   OnWhatsAppDto,
   PrivacySettingDto,
@@ -495,12 +496,23 @@ export class BaileysStartupService extends ChannelStartupService {
         this.mobile = mobile;
       }
 
-      const { version } = await fetchLatestBaileysVersion();
-
-      this.logger.verbose('Baileys version: ' + version);
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
       this.logger.verbose('Browser: ' + JSON.stringify(browser));
+
+      let version;
+      let log;
+
+      if (session.VERSION) {
+        version = session.VERSION.split(',');
+        log = `Baileys version env: ${version}`;
+      } else {
+        const baileysVersion = await fetchLatestBaileysVersion();
+        version = baileysVersion.version;
+        log = `Baileys version: ${version}`;
+      }
+
+      this.logger.info(log);
 
       let options;
 
@@ -670,9 +682,22 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       this.instance.authState = await this.defineAuthState();
 
-      const { version } = await fetchLatestBaileysVersion();
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+
+      let version;
+      let log;
+
+      if (session.VERSION) {
+        version = session.VERSION.split(',');
+        log = `Baileys version env: ${version}`;
+      } else {
+        const baileysVersion = await fetchLatestBaileysVersion();
+        version = baileysVersion.version;
+        log = `Baileys version: ${version}`;
+      }
+
+      this.logger.info(log);
 
       let options;
 
@@ -2710,6 +2735,45 @@ export class BaileysStartupService extends ChannelStartupService {
       throw new InternalServerErrorException({
         archived: false,
         message: ['An error occurred while archiving the chat. Open a calling.', error.toString()],
+      });
+    }
+  }
+
+  public async markChatUnread(data: MarkChatUnreadDto) {
+    this.logger.verbose('Marking chat as unread');
+
+    try {
+      let last_message = data.lastMessage;
+      let number = data.chat;
+
+      if (!last_message && number) {
+        last_message = await this.getLastMessage(number);
+      } else {
+        last_message = data.lastMessage;
+        last_message.messageTimestamp = last_message?.messageTimestamp ?? Date.now();
+        number = last_message?.key?.remoteJid;
+      }
+
+      if (!last_message || Object.keys(last_message).length === 0) {
+        throw new NotFoundException('Last message not found');
+      }
+
+      await this.client.chatModify(
+        {
+          markRead: false,
+          lastMessages: [last_message],
+        },
+        this.createJid(number),
+      );
+
+      return {
+        chatId: number,
+        markedChatUnread: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        markedChatUnread: false,
+        message: ['An error occurred while marked unread the chat. Open a calling.', error.toString()],
       });
     }
   }

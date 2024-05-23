@@ -1,5 +1,5 @@
 import { inbox } from '@figuro/chatwoot-sdk';
-import { proto } from 'baileys';
+import { proto } from '@whiskeysockets/baileys';
 
 import { InstanceDto } from '../../../../api/dto/instance.dto';
 import { ChatwootRaw, ContactRaw, MessageRaw } from '../../../../api/models';

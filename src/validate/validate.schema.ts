@@ -597,6 +597,33 @@ export const archiveChatSchema: JSONSchema7 = {
   required: ['archive'],
 };
 
+export const markChatUnreadSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    chat: { type: 'string' },
+    lastMessage: {
+      type: 'object',
+      properties: {
+        key: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            remoteJid: { type: 'string' },
+            fromMe: { type: 'boolean', enum: [true, false] },
+          },
+          required: ['id', 'fromMe', 'remoteJid'],
+          ...isNotEmpty('id', 'remoteJid'),
+        },
+        messageTimestamp: { type: 'integer', minLength: 1 },
+      },
+      required: ['key'],
+      ...isNotEmpty('messageTimestamp'),
+    },
+  },
+  required: ['lastMessage'],
+};
+
 export const deleteMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

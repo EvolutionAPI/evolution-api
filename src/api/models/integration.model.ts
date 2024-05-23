@@ -9,12 +9,12 @@ export class IntegrationRaw {
   token?: string;
 }
 
-const sqsSchema = new Schema<IntegrationRaw>({
+const integrationSchema = new Schema<IntegrationRaw>({
   _id: { type: String, _id: true },
   integration: { type: String, required: true },
   number: { type: String, required: true },
   token: { type: String, required: true },
 });
 
-export const IntegrationModel = dbserver?.model(IntegrationRaw.name, sqsSchema, 'integration');
+export const IntegrationModel = dbserver?.model(IntegrationRaw.name, integrationSchema, 'integration');
 export type IntegrationModel = typeof IntegrationModel;
