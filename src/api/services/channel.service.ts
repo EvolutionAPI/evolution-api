@@ -332,6 +332,7 @@ export class ChannelStartupService {
     this.logger.verbose(`Chatwoot sign delimiter: ${data.sign_delimiter}`);
     this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
     this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
+    this.logger.verbose(`Chatwoot merge brazil contacts: ${data.merge_brazil_contacts}`);
     this.logger.verbose(`Chatwoot import contacts: ${data.import_contacts}`);
     this.logger.verbose(`Chatwoot import messages: ${data.import_messages}`);
     this.logger.verbose(`Chatwoot days limit import messages: ${data.days_limit_import_messages}`);
@@ -360,7 +361,7 @@ export class ChannelStartupService {
     this.logger.verbose(`Chatwoot sign delimiter: ${data.sign_delimiter}`);
     this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
     this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
-    this.logger.verbose(`Chatwoot merge brazilian contacts: ${data.import_contacts}`);
+    this.logger.verbose(`Chatwoot merge brazilian contacts: ${data.merge_brazil_contacts}`);
     this.logger.verbose(`Chatwoot import contacts: ${data.import_contacts}`);
     this.logger.verbose(`Chatwoot import messages: ${data.import_messages}`);
     this.logger.verbose(`Chatwoot days limit import messages: ${data.days_limit_import_messages}`);
