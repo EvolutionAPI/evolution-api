@@ -306,6 +306,9 @@ export class ChannelStartupService {
     this.localChatwoot.conversation_pending = data?.conversation_pending;
     this.logger.verbose(`Chatwoot conversation pending: ${this.localChatwoot.conversation_pending}`);
 
+    this.localChatwoot.merge_brazil_contacts = data?.merge_brazil_contacts;
+    this.logger.verbose(`Chatwoot merge brazil contacts: ${this.localChatwoot.merge_brazil_contacts}`);
+
     this.localChatwoot.import_contacts = data?.import_contacts;
     this.logger.verbose(`Chatwoot import contacts: ${this.localChatwoot.import_contacts}`);
 
