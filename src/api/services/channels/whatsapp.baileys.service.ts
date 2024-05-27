@@ -1995,18 +1995,37 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const sender = isWA.jid;
 
-      this.logger.verbose('Sending presence');
-      await this.client.presenceSubscribe(sender);
-      this.logger.verbose('Subscribing to presence');
+      if (data?.options?.delay && data?.options?.delay > 20000) {
+        let remainingDelay = data?.options.delay;
+        while (remainingDelay > 20000) {
+          await this.client.presenceSubscribe(sender);
 
-      await this.client.sendPresenceUpdate(data.options?.presence ?? 'composing', sender);
-      this.logger.verbose('Sending presence update: ' + data.options?.presence ?? 'composing');
+          await this.client.sendPresenceUpdate((data?.options?.presence as WAPresence) ?? 'composing', sender);
 
-      await delay(data.options.delay);
-      this.logger.verbose('Set delay: ' + data.options.delay);
+          await delay(20000);
 
-      await this.client.sendPresenceUpdate('paused', sender);
-      this.logger.verbose('Sending presence update: paused');
+          await this.client.sendPresenceUpdate('paused', sender);
+
+          remainingDelay -= 20000;
+        }
+        if (remainingDelay > 0) {
+          await this.client.presenceSubscribe(sender);
+
+          await this.client.sendPresenceUpdate((data?.options?.presence as WAPresence) ?? 'composing', sender);
+
+          await delay(remainingDelay);
+
+          await this.client.sendPresenceUpdate('paused', sender);
+        }
+      } else {
+        await this.client.presenceSubscribe(sender);
+
+        await this.client.sendPresenceUpdate((data?.options?.presence as WAPresence) ?? 'composing', sender);
+
+        await delay(data?.options?.delay);
+
+        await this.client.sendPresenceUpdate('paused', sender);
+      }
     } catch (error) {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
