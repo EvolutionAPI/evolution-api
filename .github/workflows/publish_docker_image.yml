@@ -8,7 +8,7 @@ on:
 jobs:
   build_deploy:
     name: Build and Deploy
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
