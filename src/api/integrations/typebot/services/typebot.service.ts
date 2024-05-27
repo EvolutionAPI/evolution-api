@@ -519,16 +519,30 @@ export class TypebotService {
         text += element.text;
       }
 
-      if (
-        element.children &&
-        (element.type === 'p' ||
-          element.type === 'a' ||
-          element.type === 'inline-variable' ||
-          element.type === 'variable')
-      ) {
+      if (element.children && element.type !== 'a') {
         for (const child of element.children) {
           text += applyFormatting(child);
         }
+      }
+
+      if (element.type === 'p') {
+        text = text.trim() + '\n';
+      }
+
+      if (element.type === 'ol') {
+        text =
+          '\n' +
+          text
+            .split('\n')
+            .map((line, index) => (line ? `${index + 1}. ${line}` : ''))
+            .join('\n');
+      }
+
+      if (element.type === 'li') {
+        text = text
+          .split('\n')
+          .map((line) => (line ? `  ${line}` : ''))
+          .join('\n');
       }
 
       let formats = '';
@@ -558,6 +572,7 @@ export class TypebotService {
       for (const message of messages) {
         if (message.type === 'text') {
           let formattedText = '';
+          console.log('message.content', message.content);
 
           for (const richText of message.content.richText) {
             for (const element of richText.children) {
