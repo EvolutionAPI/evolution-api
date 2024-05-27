@@ -1,9 +1,9 @@
-name: Build Docker image
+name: Build Docker image Homolog
 
 on:
   push:
-    tags:
-      - "*.*.*"
+    branches:
+      - develop
 
 jobs:
   build_deploy:
@@ -22,7 +22,7 @@ jobs:
         with:
           images: atendai/evolution-api
           tags: |
-            type=semver,pattern=v{{version}}
+            type=semver,pattern=homolog
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
