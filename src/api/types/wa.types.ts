@@ -69,6 +69,7 @@ export declare namespace wa {
     number?: string;
     reopen_conversation?: boolean;
     conversation_pending?: boolean;
+    merge_brazil_contacts?: boolean;
     import_contacts?: boolean;
     import_messages?: boolean;
     days_limit_import_messages?: number;
