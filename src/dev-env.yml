@@ -172,7 +172,7 @@ CHATWOOT:
     # This db connection is used to import messages from whatsapp to chatwoot database
     DATABASE:
       CONNECTION:
-        URI: "postgres://user:password@hostname:port/dbname"
+        URI: "postgres://user:password@hostname:port/dbname?sslmode=disable"
     PLACEHOLDER_MEDIA_MESSAGE: true
 
 # Cache to optimize application performance
