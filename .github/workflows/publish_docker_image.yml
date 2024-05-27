@@ -21,8 +21,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: atendai/evolution-api
-          tags: |
-            type=semver,pattern=v{{version}}
+          tags: type=semver,pattern=v{{version}}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
