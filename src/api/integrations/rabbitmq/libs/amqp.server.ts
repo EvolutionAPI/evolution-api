@@ -42,6 +42,41 @@ export const getAMQP = (): amqp.Channel | null => {
   return amqpChannel;
 };
 
+export const initGlobalQueues = () => {
+  logger.info('Initializing global queues');
+  const events = configService.get<Rabbitmq>('RABBITMQ').EVENTS;
+
+  if (!events) {
+    logger.warn('No events to initialize on AMQP');
+    return;
+  }
+
+  const eventKeys = Object.keys(events);
+
+  eventKeys.forEach((event) => {
+    if (events[event] === false) return;
+
+    const queueName = `${event.replace(/_/g, '.').toLowerCase()}`;
+    const amqp = getAMQP();
+    const exchangeName = 'evolution_exchange';
+
+    amqp.assertExchange(exchangeName, 'topic', {
+      durable: true,
+      autoDelete: false,
+    });
+
+    amqp.assertQueue(queueName, {
+      durable: true,
+      autoDelete: false,
+      arguments: {
+        'x-queue-type': 'quorum',
+      },
+    });
+
+    amqp.bindQueue(queueName, exchangeName, event);
+  });
+};
+
 export const initQueues = (instanceName: string, events: string[]) => {
   if (!events || !events.length) return;
 

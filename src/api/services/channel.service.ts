@@ -13,6 +13,7 @@ import {
   Database,
   HttpServer,
   Log,
+  Rabbitmq,
   Sqs,
   Webhook,
   Websocket,
@@ -305,6 +306,9 @@ export class ChannelStartupService {
     this.localChatwoot.conversation_pending = data?.conversation_pending;
     this.logger.verbose(`Chatwoot conversation pending: ${this.localChatwoot.conversation_pending}`);
 
+    this.localChatwoot.merge_brazil_contacts = data?.merge_brazil_contacts;
+    this.logger.verbose(`Chatwoot merge brazil contacts: ${this.localChatwoot.merge_brazil_contacts}`);
+
     this.localChatwoot.import_contacts = data?.import_contacts;
     this.logger.verbose(`Chatwoot import contacts: ${this.localChatwoot.import_contacts}`);
 
@@ -328,6 +332,7 @@ export class ChannelStartupService {
     this.logger.verbose(`Chatwoot sign delimiter: ${data.sign_delimiter}`);
     this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
     this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
+    this.logger.verbose(`Chatwoot merge brazil contacts: ${data.merge_brazil_contacts}`);
     this.logger.verbose(`Chatwoot import contacts: ${data.import_contacts}`);
     this.logger.verbose(`Chatwoot import messages: ${data.import_messages}`);
     this.logger.verbose(`Chatwoot days limit import messages: ${data.days_limit_import_messages}`);
@@ -356,7 +361,7 @@ export class ChannelStartupService {
     this.logger.verbose(`Chatwoot sign delimiter: ${data.sign_delimiter}`);
     this.logger.verbose(`Chatwoot reopen conversation: ${data.reopen_conversation}`);
     this.logger.verbose(`Chatwoot conversation pending: ${data.conversation_pending}`);
-    this.logger.verbose(`Chatwoot merge brazilian contacts: ${data.import_contacts}`);
+    this.logger.verbose(`Chatwoot merge brazilian contacts: ${data.merge_brazil_contacts}`);
     this.logger.verbose(`Chatwoot import contacts: ${data.import_contacts}`);
     this.logger.verbose(`Chatwoot import messages: ${data.import_messages}`);
     this.logger.verbose(`Chatwoot days limit import messages: ${data.days_limit_import_messages}`);
@@ -688,6 +693,9 @@ export class ChannelStartupService {
     const rabbitmqLocal = this.localRabbitmq.events;
     const sqsLocal = this.localSqs.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
+    const rabbitmqEnabled = this.configService.get<Rabbitmq>('RABBITMQ').ENABLED;
+    const rabbitmqGlobal = this.configService.get<Rabbitmq>('RABBITMQ').GLOBAL_ENABLED;
+    const rabbitmqEvents = this.configService.get<Rabbitmq>('RABBITMQ').EVENTS;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
@@ -698,67 +706,134 @@ export class ChannelStartupService {
     const tokenStore = await this.repository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
 
-    if (this.localRabbitmq.enabled) {
+    if (rabbitmqEnabled) {
       const amqp = getAMQP();
-
-      if (amqp) {
+      if (this.localRabbitmq.enabled && amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
           const exchangeName = this.instanceName ?? 'evolution_exchange';
 
-          // await amqp.assertExchange(exchangeName, 'topic', {
-          //   durable: true,
-          //   autoDelete: false,
-          // });
+          let retry = 0;
 
-          await this.assertExchangeAsync(amqp, exchangeName, 'topic', {
-            durable: true,
-            autoDelete: false,
-          });
+          while (retry < 3) {
+            try {
+              await amqp.assertExchange(exchangeName, 'topic', {
+                durable: true,
+                autoDelete: false,
+              });
 
-          const queueName = `${this.instanceName}.${event}`;
+              const queueName = `${this.instanceName}.${event}`;
 
-          await amqp.assertQueue(queueName, {
-            durable: true,
-            autoDelete: false,
-            arguments: {
-              'x-queue-type': 'quorum',
-            },
-          });
+              await amqp.assertQueue(queueName, {
+                durable: true,
+                autoDelete: false,
+                arguments: {
+                  'x-queue-type': 'quorum',
+                },
+              });
 
-          await amqp.bindQueue(queueName, exchangeName, event);
+              await amqp.bindQueue(queueName, exchangeName, event);
 
-          const message = {
-            event,
-            instance: this.instance.name,
-            data,
-            server_url: serverUrl,
-            date_time: now,
-            sender: this.wuid,
-          };
+              const message = {
+                event,
+                instance: this.instance.name,
+                data,
+                server_url: serverUrl,
+                date_time: now,
+                sender: this.wuid,
+              };
 
-          if (expose && instanceApikey) {
-            message['apikey'] = instanceApikey;
+              if (expose && instanceApikey) {
+                message['apikey'] = instanceApikey;
+              }
+
+              await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+
+              if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+                const logData = {
+                  local: ChannelStartupService.name + '.sendData-RabbitMQ',
+                  event,
+                  instance: this.instance.name,
+                  data,
+                  server_url: serverUrl,
+                  apikey: (expose && instanceApikey) || null,
+                  date_time: now,
+                  sender: this.wuid,
+                };
+
+                if (expose && instanceApikey) {
+                  logData['apikey'] = instanceApikey;
+                }
+
+                this.logger.log(logData);
+              }
+              break;
+            } catch (error) {
+              retry++;
+            }
           }
+        }
+      }
 
-          await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+      if (rabbitmqGlobal && rabbitmqEvents[we] && amqp) {
+        const exchangeName = 'evolution_exchange';
 
-          if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-            const logData = {
-              local: ChannelStartupService.name + '.sendData-RabbitMQ',
+        let retry = 0;
+
+        while (retry < 3) {
+          try {
+            await amqp.assertExchange(exchangeName, 'topic', {
+              durable: true,
+              autoDelete: false,
+            });
+
+            const queueName = transformedWe;
+
+            await amqp.assertQueue(queueName, {
+              durable: true,
+              autoDelete: false,
+              arguments: {
+                'x-queue-type': 'quorum',
+              },
+            });
+
+            await amqp.bindQueue(queueName, exchangeName, event);
+
+            const message = {
               event,
               instance: this.instance.name,
               data,
               server_url: serverUrl,
-              apikey: (expose && instanceApikey) || null,
               date_time: now,
               sender: this.wuid,
             };
 
             if (expose && instanceApikey) {
-              logData['apikey'] = instanceApikey;
+              message['apikey'] = instanceApikey;
+            }
+            await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+
+            if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+              const logData = {
+                local: ChannelStartupService.name + '.sendData-RabbitMQ-Global',
+                event,
+                instance: this.instance.name,
+                data,
+                server_url: serverUrl,
+                apikey: (expose && instanceApikey) || null,
+                date_time: now,
+                sender: this.wuid,
+              };
+
+              if (expose && instanceApikey) {
+                logData['apikey'] = instanceApikey;
+              }
+
+              this.logger.log(logData);
             }
 
-            this.logger.log(logData);
+            break;
+          } catch (error) {
+            retry++;
           }
         }
       }

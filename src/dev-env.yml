@@ -79,9 +79,35 @@ DATABASE:
 
 RABBITMQ:
   ENABLED: false
-  MODE: "global"
-  EXCHANGE_NAME: "evolution_exchange"
   URI: "amqp://guest:guest@localhost:5672"
+  EXCHANGE_NAME: evolution_exchange
+  GLOBAL_ENABLED: true
+  EVENTS:
+    APPLICATION_STARTUP: false
+    INSTANCE_CREATE: false
+    INSTANCE_DELETE: false
+    QRCODE_UPDATED: false
+    MESSAGES_SET: false
+    MESSAGES_UPSERT: true
+    MESSAGES_UPDATE: true
+    MESSAGES_DELETE: false
+    SEND_MESSAGE: false
+    CONTACTS_SET: false
+    CONTACTS_UPSERT: false
+    CONTACTS_UPDATE: false
+    PRESENCE_UPDATE: false
+    CHATS_SET: false
+    CHATS_UPSERT: false
+    CHATS_UPDATE: false
+    CHATS_DELETE: false
+    GROUPS_UPSERT: true
+    GROUP_UPDATE: true
+    GROUP_PARTICIPANTS_UPDATE: true
+    CONNECTION_UPDATE: true
+    CALL: false
+    # This events is used with Typebot
+    TYPEBOT_START: false
+    TYPEBOT_CHANGE_STATUS: false
 
 SQS:
   ENABLED: true
@@ -168,7 +194,7 @@ CHATWOOT:
     # This db connection is used to import messages from whatsapp to chatwoot database
     DATABASE:
       CONNECTION:
-        URI: "postgres://user:password@hostname:port/dbname"
+        URI: "postgres://user:password@hostname:port/dbname?sslmode=disable"
     PLACEHOLDER_MEDIA_MESSAGE: true
 
 # Cache to optimize application performance

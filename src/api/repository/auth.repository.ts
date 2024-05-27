@@ -68,6 +68,20 @@ export class AuthRepository extends Repository {
     }
   }
 
+  public async findByKey(key: string): Promise<AuthRaw> {
+    try {
+      this.logger.verbose('finding auth');
+      if (this.dbSettings.ENABLED) {
+        this.logger.verbose('finding auth in db');
+        return await this.authModel.findOne({ apikey: key });
+      }
+
+      return {};
+    } catch (error) {
+      return {};
+    }
+  }
+
   public async list(): Promise<AuthRaw[]> {
     try {
       if (this.dbSettings.ENABLED) {

@@ -3,9 +3,9 @@ import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
-import { ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
+import { Auth, ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { BadRequestException, InternalServerErrorException } from '../../exceptions';
+import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '../../exceptions';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
 import { RabbitmqService } from '../integrations/rabbitmq/services/rabbitmq.service';
@@ -679,11 +679,26 @@ export class InstanceController {
     };
   }
 
-  public async fetchInstances({ instanceName, instanceId, number }: InstanceDto) {
-    if (instanceName) {
-      this.logger.verbose('requested fetchInstances from ' + instanceName + ' instance');
-      this.logger.verbose('instanceName: ' + instanceName);
-      return this.waMonitor.instanceInfo(instanceName);
+  public async fetchInstances({ instanceName, instanceId, number }: InstanceDto, key: string) {
+    const env = this.configService.get<Auth>('AUTHENTICATION').API_KEY;
+
+    let name = instanceName;
+    let arrayReturn = false;
+
+    if (env.KEY !== key) {
+      const instanceByKey = await this.repository.auth.findByKey(key);
+      if (instanceByKey) {
+        name = instanceByKey._id;
+        arrayReturn = true;
+      } else {
+        throw new UnauthorizedException();
+      }
+    }
+
+    if (name) {
+      this.logger.verbose('requested fetchInstances from ' + name + ' instance');
+      this.logger.verbose('instanceName: ' + name);
+      return this.waMonitor.instanceInfo(name, arrayReturn);
     } else if (instanceId || number) {
       return this.waMonitor.instanceInfoById(instanceId, number);
     }
