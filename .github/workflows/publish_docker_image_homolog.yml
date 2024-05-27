@@ -21,7 +21,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: atendai/evolution-api
-          tags: homlog
+          tags: homolog
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
