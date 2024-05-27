@@ -572,7 +572,6 @@ export class TypebotService {
       for (const message of messages) {
         if (message.type === 'text') {
           let formattedText = '';
-          console.log('message.content', message.content);
 
           for (const richText of message.content.richText) {
             for (const element of richText.children) {
