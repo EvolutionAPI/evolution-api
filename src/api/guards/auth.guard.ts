@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 
 import { name } from '../../../package.json';
-import { Auth, configService } from '../../config/env.config';
+import { Auth, configService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { ForbiddenException, UnauthorizedException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
@@ -58,6 +58,7 @@ async function jwtGuard(req: Request, res: Response, next: NextFunction) {
 async function apikey(req: Request, _: Response, next: NextFunction) {
   const env = configService.get<Auth>('AUTHENTICATION').API_KEY;
   const key = req.get('apikey');
+  const db = configService.get<Database>('DATABASE');
 
   if (!key) {
     throw new UnauthorizedException();
@@ -79,7 +80,7 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
         return next();
       }
     } else {
-      if (req.originalUrl.includes('/instance/fetchInstances')) {
+      if (req.originalUrl.includes('/instance/fetchInstances') && db.ENABLED) {
         const instanceByKey = await repository.auth.findByKey(key);
         if (instanceByKey) {
           return next();
