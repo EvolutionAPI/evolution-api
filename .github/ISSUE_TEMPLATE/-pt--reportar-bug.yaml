@@ -1,0 +1,108 @@
+name: Relatório de bug
+description: Crie um relatório para nos ajudar a melhorar.
+labels:
+  - bug
+  - pt-br
+  # - help wanted
+# Atrubuir automaticamente a issue a:
+# assignees: DavidsonGomes
+body:
+  - type: checkboxes
+    id: termos
+    attributes:
+      label: Bem-vido!
+      description: |
+        O rastreador de problemas é apenas para relatar bugs e solicitações de recursos.
+        Para perguntas de suporte relacionadas ao usuário final, acesse:
+          - [Discord](https://evolution-api.com/discord)
+          - [Grupo do WhatsApp](https://evolution-api.com/whatsapp)
+          <br/>
+
+        **NÃO ABRA UM PROBLEMA PARA PERGUNTAS GERAIS DE SUPORTE.**
+
+      options:
+        - label: Sim, pesquisei problemas semelhantes no [GitHub](https://github.com/EvolutionAPI/evolution-api/issues) e não encontrei nenhum.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: O que você fez?
+      description: |
+        Como escrever um bom relatório de bug?
+
+        - Respeite o modelo de problema tanto quanto possível.
+        - O título deve ser curto e descritivo.
+        - Explique as condições que o levaram a reportar este problema: o contexto.
+        - O contexto deve levar a algo, ideia ou problema que você está enfrentando.
+        - Seja claro e conciso.
+        - Formate suas mensagens para ajudar o leitor a se concentrar no que importa e entender a estrutura da sua mensagem, use [sintaxe Markdown](https://help.github.com/articles/github-flavored-markdown)
+      placeholder: Descreva detalhadamente o problema que você encontrou.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: O que você esperava?
+      placeholder: Descreva o que você esperava que acontecesse.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: O que vc observou ao invés do que esperava?
+      placeholder: Explique o que realmente acontece quando você segue os passos acima.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Capturas de Tela/Vídeos
+      placeholder: |
+        Se possível, adicione capturas de tela ou vídeos que ilustrem o problema. Isso pode ser extremamente útil para entender melhor o problema.
+
+  - type: textarea
+    attributes:
+      label: Qual versão da API você está usando?
+      description: |
+        Insira o número da sua versão que está na propriedade `version` do **package.json**.
+      placeholder: Cole aqui a versão.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: select
+    attributes:
+      label: Qual é o seu ambiente?
+      options:
+        - Windows
+        - Linux
+        - Mac
+        - Docker
+        - Outro
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Outras expecificações do ambiente
+      placeholder: 'Hardware/Software: [ex: CPU, GPU]'
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Se aplicável, cole a saída do log
+      description: |
+        Por favor, anexe os logs que possam estar relacionados ao problema.
+        Se os logs contiverem informações sensíveis, considere enviá-los de forma privada para um dos mantenedores do projeto.
+      placeholder: Cole aqui o log da aplicação
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Notas Adicionais
+      description: Inclua aqui qualquer outra informação que você ache que possa ser útil para entender ou resolver o bug.
+    validations:
+      required: false
+    

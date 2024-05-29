@@ -1,0 +1,86 @@
+name: Feature Request
+description: Suggest ideas for the project.
+labels:
+  - enhancement
+  - en
+# Automatically assign the issue to:
+# assignees: DavidsonGomes
+body:
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Welcome!
+      description: '**DO NOT OPEN FOR GENERAL SUPPORT QUESTIONS.**'
+
+      options:
+        - label: Yes, I have searched for similar requests on [GitHub](https://github.com/code-chat-br/whatsapp-api/issues) and found none.
+          required: true
+
+  - type: dropdown
+    attributes:
+      label: What type of feature?
+      description: |
+        How to write a good feature request?
+
+        - Respect the issue template as much as possible.
+        - The title should be short and descriptive.
+        - Explain the conditions that led you to suggest this feature: the context.
+        - The context should lead to something, an idea or problem you are facing.
+        - Be clear and concise.
+        - Format your messages to help the reader focus on what matters and understand the structure of your message, use [Markdown syntax](https://help.github.com/articles/github-flavored-markdown)
+      options:
+        - Integration
+        - Functionality
+        - Endpoint
+        - Database adjustment
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What is the motivation for the request?
+      description: |
+        What problem does the feature seek to solve?
+        Clearly and in detail describe the functionality you want to be implemented.
+        Explain how it fits into the context of the project.
+      placeholder: Detailed description
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Usage Examples
+      description: |
+        Provide specific examples of how this functionality could be used.
+        This can include scenarios or use cases where the feature would be particularly beneficial.
+      placeholder: text - image - video - flowcharts
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: How should the feature be developed?
+      description: |
+        Should it be inserted directly into the code?
+        Should it be built as a different application that acts as an extension of the API? 
+        For example: a `worker`?
+        
+        Discuss how this new functionality could impact other parts of the project, if applicable.
+
+        ---
+
+        If you have ideas on how this functionality could be implemented, please share them here.
+        This is not mandatory, but it can be helpful for the development team.
+
+      placeholder: Insert feature ideas here
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional Notes
+      description: Any other information you believe is relevant to your request.
+      placeholder: Insert your observations here.
+    validations:
+      required: false

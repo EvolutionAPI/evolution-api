@@ -1,0 +1,107 @@
+name: Bug Report
+description: Create a report to help us improve.
+labels:
+  - bug
+  - en
+  # - help wanted
+# Automatically assign the issue to:
+# assignees: DavidsonGomes
+body:
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Welcome!
+      description: |
+        The issue tracker is only for reporting bugs and feature requests.
+        For user-related support questions, please visit:
+          - [Discord](https://evolution-api.com/discord)
+          - [WhatsApp Group](https://evolution-api.com/whatsapp)
+          <br/>
+
+        **DO NOT OPEN AN ISSUE FOR GENERAL SUPPORT QUESTIONS.**
+
+      options:
+        - label: Yes, I have searched for similar issues on [GitHub](https://github.com/EvolutionAPI/evolution-api/issues) and found none.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: What did you do?
+      description: |
+        How to write a good bug report?
+
+        - Respect the issue template as much as possible.
+        - The title should be short and descriptive.
+        - Explain the conditions that led you to report this issue: the context.
+        - The context should lead to something, an idea or problem you are facing.
+        - Be clear and concise.
+        - Format your messages to help the reader focus on what matters and understand the structure of your message, use [Markdown syntax](https://help.github.com/articles/github-flavored-markdown)
+      placeholder: Describe the problem you encountered in detail.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What did you expect?
+      placeholder: Describe what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What did you observe instead of what you expected?
+      placeholder: Explain what actually happens when you follow the steps above.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Screenshots/Videos
+      placeholder: |
+        If possible, add screenshots or videos that illustrate the problem. This can be extremely helpful in understanding the issue better.
+
+  - type: textarea
+    attributes:
+      label: Which version of the API are you using?
+      description: |
+        Enter the version number found in the `version` property of the **package.json**.
+      placeholder: Paste the version here.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: select
+    attributes:
+      label: What is your environment?
+      options:
+        - Windows
+        - Linux
+        - Mac
+        - Docker
+        - Other
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Other environment specifications
+      placeholder: 'Hardware/Software: [e.g., CPU, GPU]'
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: If applicable, paste the log output
+      description: |
+        Please attach any logs that might be related to the issue.
+        If the logs contain sensitive information, consider sending them privately to one of the project maintainers.
+      placeholder: Paste the application log here.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional Notes
+      description: Include any other information you think might be useful to understand or resolve the bug.
+    validations:
+      required: false
