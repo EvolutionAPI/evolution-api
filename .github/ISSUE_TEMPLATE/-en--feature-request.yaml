@@ -2,6 +2,7 @@ name: Feature Request
 description: Suggest ideas for the project.
 labels:
   - enhancement
+  - en
 # Automatically assign the issue to:
 # assignees: DavidsonGomes
 body:

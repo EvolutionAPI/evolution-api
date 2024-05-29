@@ -2,6 +2,7 @@ name: Solicitação de recursos
 description: Sugira ideias para o projeto.
 labels:
   - enhancement
+  - pt-br
 # Automatically assign the issue to:
 # assignees: DavidsonGomes
 body:

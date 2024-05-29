@@ -2,6 +2,7 @@ name: Relatório de bug
 description: Crie um relatório para nos ajudar a melhorar.
 labels:
   - bug
+  - pt-br
   # - help wanted
 # Atrubuir automaticamente a issue a:
 # assignees: DavidsonGomes
