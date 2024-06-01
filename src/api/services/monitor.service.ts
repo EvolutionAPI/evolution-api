@@ -22,6 +22,7 @@ import {
   WebhookModel,
   WebsocketModel,
 } from '../models';
+import { ProviderFiles } from '../provider/sessions';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Integration } from '../types/wa.types';
 import { CacheService } from './cache.service';
@@ -36,6 +37,7 @@ export class WAMonitoringService {
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
     private readonly messagesLostCache: CacheService,
+    private readonly providerFiles: ProviderFiles,
   ) {
     this.logger.verbose('instance created');
 
@@ -349,6 +351,7 @@ export class WAMonitoringService {
         this.cache,
         this.chatwootCache,
         this.messagesLostCache,
+        this.providerFiles,
       );
 
       instance.instanceName = name;
@@ -360,6 +363,7 @@ export class WAMonitoringService {
         this.cache,
         this.chatwootCache,
         this.messagesLostCache,
+        this.providerFiles,
       );
 
       instance.instanceName = name;

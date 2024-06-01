@@ -55,12 +55,21 @@ import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 
-import { CacheConf, ConfigService, ConfigSessionPhone, Database, Log, QrCode } from '../../../config/env.config';
+import {
+  CacheConf,
+  ConfigService,
+  ConfigSessionPhone,
+  Database,
+  Log,
+  ProviderSession,
+  QrCode,
+} from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
 import { dbserver } from '../../../libs/db.connect';
 import { makeProxyAgent } from '../../../utils/makeProxyAgent';
 import { useMultiFileAuthStateDb } from '../../../utils/use-multi-file-auth-state-db';
+import { AuthStateProvider } from '../../../utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '../../../utils/use-multi-file-auth-state-redis-db';
 import {
   ArchiveChatDto,
@@ -114,6 +123,7 @@ import { SettingsRaw } from '../../models';
 import { ChatRaw } from '../../models/chat.model';
 import { ContactRaw } from '../../models/contact.model';
 import { MessageRaw, MessageUpdateRaw } from '../../models/message.model';
+import { ProviderFiles } from '../../provider/sessions';
 import { RepositoryBroker } from '../../repository/repository.manager';
 import { waMonitor } from '../../server.module';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
@@ -128,6 +138,7 @@ export class BaileysStartupService extends ChannelStartupService {
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
     public readonly messagesLostCache: CacheService,
+    private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BaileysStartupService initialized');
@@ -135,8 +146,10 @@ export class BaileysStartupService extends ChannelStartupService {
     this.instance.qrcode = { count: 0 };
     this.mobile = false;
     this.recoveringMessages();
+    this.authStateProvider = new AuthStateProvider(this.configService, this.providerFiles);
   }
 
+  private authStateProvider: AuthStateProvider;
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
   private endSession = false;
@@ -460,6 +473,12 @@ export class BaileysStartupService extends ChannelStartupService {
     this.logger.verbose('Defining auth state');
     const db = this.configService.get<Database>('DATABASE');
     const cache = this.configService.get<CacheConf>('CACHE');
+
+    const provider = this.configService.get<ProviderSession>('PROVIDER');
+
+    if (provider?.ENABLED) {
+      return await this.authStateProvider.authStateProvider(this.instance.name);
+    }
 
     if (cache?.REDIS.ENABLED && cache?.REDIS.SAVE_INSTANCES) {
       this.logger.info('Redis enabled');

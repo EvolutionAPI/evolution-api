@@ -1,3 +1,8 @@
+# 1.8.1 (develop)
+
+### Feature
+* New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
+
 # 1.8.0 (2024-05-27 16:10)
 
 ### Feature
