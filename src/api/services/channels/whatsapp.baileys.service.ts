@@ -1478,7 +1478,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Sending data to webhook in event LABELS_ASSOCIATION');
 
       // Atualiza labels nos chats
-      if (database.SAVE_DATA.CHATS) {
+      if (database.ENABLED && database.SAVE_DATA.CHATS) {
         const chats = await this.repository.chat.find({
           where: {
             owner: this.instance.name,
@@ -1486,7 +1486,7 @@ export class BaileysStartupService extends ChannelStartupService {
         });
         const chat = chats.find((c) => c.id === data.association.chatId);
         if (chat) {
-          let labels = [...chat?.labels];
+          let labels = [...chat.labels];
           if (data.type === 'remove') {
             labels = labels.filter((label) => label !== data.association.labelId);
           } else if (data.type === 'add') {

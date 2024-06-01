@@ -753,7 +753,7 @@ export class InstanceController {
       this.logger.verbose('deleting instance: ' + instanceName);
 
       try {
-        this.waMonitor.waInstances[instanceName].sendDataWebhook(Events.INSTANCE_DELETE, {
+        this.waMonitor.waInstances[instanceName]?.sendDataWebhook(Events.INSTANCE_DELETE, {
           instanceName,
           instanceId: (await this.repository.auth.find(instanceName))?.instanceId,
         });

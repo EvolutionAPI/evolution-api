@@ -271,9 +271,8 @@ export class WAMonitoringService {
     this.logger.verbose('cleaning up instance in files: ' + instanceName);
     if (this.providerSession?.ENABLED) {
       await this.providerFiles.removeSession(instanceName);
-    } else {
-      rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
     }
+    rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
   }
 
   public async cleaningStoreFiles(instanceName: string) {
@@ -281,9 +280,8 @@ export class WAMonitoringService {
       this.logger.verbose('cleaning store files instance: ' + instanceName);
       if (this.providerSession?.ENABLED) {
         await this.providerFiles.removeSession(instanceName);
-      } else {
-        rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
       }
+      rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
 
       execSync(`rm -rf ${join(STORE_DIR, 'chats', instanceName)}`);
       execSync(`rm -rf ${join(STORE_DIR, 'contacts', instanceName)}`);
