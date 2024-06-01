@@ -30,7 +30,7 @@ export class ProviderFiles {
         baseURL: this.baseUrl,
       });
       try {
-        const response = await client.options('/ping');
+        const response = await client.options(`/${this.prefix}/ping`);
         if (!response?.data?.pong) {
           throw new Error('Offline file provider.');
         }
@@ -110,7 +110,7 @@ export class ProviderFiles {
 
   public async allInstances(): ResponseProvider {
     try {
-      const response = await axios.get(`${this.baseUrl}/list-instances/${this.prefix}`);
+      const response = await axios.get(`${this.baseUrl}/${this.prefix}/list-instances`);
       return [{ status: response.status, data: response?.data as string[] }];
     } catch (error) {
       return [
