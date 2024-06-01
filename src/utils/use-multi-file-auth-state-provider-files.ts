@@ -1,9 +1,9 @@
 /**
  * ┌──────────────────────────────────────────────────────────────────────────────┐
  * │ @author jrCleber                                                             │
- * │ @filename use-multi-file-auth-state-redis-db.ts                              │
+ * │ @filename use-multi-file-auth-state-provider-files.ts                              │
  * │ Developed by: Cleber Wilson                                                  │
- * │ Creation date: Apr 09, 2023                                                  │
+ * │ Creation date: May 31, 2024                                                 │
  * │ Contact: contato@codechat.dev                                                │
  * ├──────────────────────────────────────────────────────────────────────────────┤
  * │ @copyright © Cleber Wilson 2023. All rights reserved.                        │
@@ -45,13 +45,12 @@ import {
 import { isNotEmpty } from 'class-validator';
 
 import { ProviderFiles } from '../api/provider/sessions';
-import { ConfigService } from '../config/env.config';
 import { Logger } from '../config/logger.config';
 
 export type AuthState = { state: AuthenticationState; saveCreds: () => Promise<void> };
 
 export class AuthStateProvider {
-  constructor(private readonly configService: ConfigService, private readonly providerFiles: ProviderFiles) {}
+  constructor(private readonly providerFiles: ProviderFiles) {}
 
   private readonly logger = new Logger(AuthStateProvider.name);
 
@@ -68,7 +67,7 @@ export class AuthStateProvider {
         data: json,
       });
       if (error) {
-        this.logger.error([error?.message, error?.stack]);
+        this.logger.error(['writeData', error?.message, error?.stack]);
         return;
       }
       return response;
@@ -77,7 +76,7 @@ export class AuthStateProvider {
     const readData = async (key: string): Promise<any> => {
       const [response, error] = await this.providerFiles.read(instance, key);
       if (error) {
-        this.logger.error([error?.message, error?.stack]);
+        this.logger.error(['readData', error?.message, error?.stack]);
         return;
       }
       if (isNotEmpty(response?.data)) {
@@ -88,7 +87,7 @@ export class AuthStateProvider {
     const removeData = async (key: string) => {
       const [response, error] = await this.providerFiles.delete(instance, key);
       if (error) {
-        this.logger.error([error?.message, error?.stack]);
+        this.logger.error(['removeData', error?.message, error?.stack]);
         return;
       }
 

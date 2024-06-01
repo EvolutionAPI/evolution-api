@@ -146,7 +146,7 @@ export class BaileysStartupService extends ChannelStartupService {
     this.instance.qrcode = { count: 0 };
     this.mobile = false;
     this.recoveringMessages();
-    this.authStateProvider = new AuthStateProvider(this.configService, this.providerFiles);
+    this.authStateProvider = new AuthStateProvider(this.providerFiles);
   }
 
   private authStateProvider: AuthStateProvider;
@@ -1486,7 +1486,7 @@ export class BaileysStartupService extends ChannelStartupService {
         });
         const chat = chats.find((c) => c.id === data.association.chatId);
         if (chat) {
-          let labels = [...chat.labels];
+          let labels = [...chat?.labels];
           if (data.type === 'remove') {
             labels = labels.filter((label) => label !== data.association.labelId);
           } else if (data.type === 'add') {

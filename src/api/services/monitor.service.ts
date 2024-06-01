@@ -5,7 +5,15 @@ import { Db } from 'mongodb';
 import { Collection } from 'mongoose';
 import { join } from 'path';
 
-import { Auth, CacheConf, ConfigService, Database, DelInstance, HttpServer } from '../../config/env.config';
+import {
+  Auth,
+  CacheConf,
+  ConfigService,
+  Database,
+  DelInstance,
+  HttpServer,
+  ProviderSession,
+} from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
@@ -59,6 +67,8 @@ export class WAMonitoringService {
 
   private readonly logger = new Logger(WAMonitoringService.name);
   public readonly waInstances: Record<string, BaileysStartupService | BusinessStartupService> = {};
+
+  private readonly providerSession = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));
 
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
@@ -259,13 +269,21 @@ export class WAMonitoringService {
     }
 
     this.logger.verbose('cleaning up instance in files: ' + instanceName);
-    rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+    if (this.providerSession?.ENABLED) {
+      await this.providerFiles.removeSession(instanceName);
+    } else {
+      rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+    }
   }
 
   public async cleaningStoreFiles(instanceName: string) {
     if (!this.db.ENABLED) {
       this.logger.verbose('cleaning store files instance: ' + instanceName);
-      rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+      if (this.providerSession?.ENABLED) {
+        await this.providerFiles.removeSession(instanceName);
+      } else {
+        rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+      }
 
       execSync(`rm -rf ${join(STORE_DIR, 'chats', instanceName)}`);
       execSync(`rm -rf ${join(STORE_DIR, 'contacts', instanceName)}`);
@@ -307,7 +325,9 @@ export class WAMonitoringService {
     this.logger.verbose('Loading instances');
 
     try {
-      if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
+      if (this.providerSession.ENABLED) {
+        await this.loadInstancesFromProvider();
+      } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
         await this.loadInstancesFromRedis();
       } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
         await this.loadInstancesFromDatabase();
@@ -403,6 +423,18 @@ export class WAMonitoringService {
     } else {
       this.logger.verbose('No collections found');
     }
+  }
+
+  private async loadInstancesFromProvider() {
+    this.logger.verbose('Provider in files enabled');
+    const [instances] = await this.providerFiles.allInstances();
+
+    if (!instances?.data) {
+      this.logger.verbose('No instances found');
+      return;
+    }
+
+    await Promise.all(instances?.data?.map(async (instanceName: string) => this.setInstance(instanceName)));
   }
 
   private async loadInstancesFromFiles() {

@@ -9,7 +9,7 @@ type ResponseProvider = Promise<[ResponseSuccess?, Error?]>;
 
 export class ProviderFiles {
   constructor(private readonly configService: ConfigService) {
-    this.baseUrl = `http://${this.config.HOST}:${this.config.PORT}/session`;
+    this.baseUrl = `http://${this.config.HOST}:${this.config.PORT}/session/${this.config.PREFIX}`;
   }
 
   private readonly logger = new Logger(ProviderFiles.name);
@@ -17,8 +17,6 @@ export class ProviderFiles {
   private baseUrl: string;
 
   private readonly config = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));
-
-  private readonly prefix = Object.freeze(this.configService.get<ProviderSession>('PROVIDER').PREFIX);
 
   get isEnabled() {
     return !!this.config?.ENABLED;
@@ -30,7 +28,7 @@ export class ProviderFiles {
         baseURL: this.baseUrl,
       });
       try {
-        const response = await client.options(`/${this.prefix}/ping`);
+        const response = await client.options('/ping');
         if (!response?.data?.pong) {
           throw new Error('Offline file provider.');
         }
@@ -48,7 +46,7 @@ export class ProviderFiles {
 
   public async create(instance: string): ResponseProvider {
     try {
-      const response = await axios.post(`${this.baseUrl}/${this.prefix}`, {
+      const response = await axios.post(`${this.baseUrl}`, {
         instance,
       });
       return [{ status: response.status, data: response?.data }];
@@ -65,7 +63,7 @@ export class ProviderFiles {
 
   public async write(instance: string, key: string, data: any): ResponseProvider {
     try {
-      const response = await axios.post(`${this.baseUrl}/${this.prefix}/${instance}/${key}`, data);
+      const response = await axios.post(`${this.baseUrl}/${instance}/${key}`, data);
       return [{ status: response.status, data: response?.data }];
     } catch (error) {
       return [
@@ -80,7 +78,7 @@ export class ProviderFiles {
 
   public async read(instance: string, key: string): ResponseProvider {
     try {
-      const response = await axios.get(`${this.baseUrl}/${this.prefix}/${instance}/${key}`);
+      const response = await axios.get(`${this.baseUrl}/${instance}/${key}`);
       return [{ status: response.status, data: response?.data }];
     } catch (error) {
       return [
@@ -95,7 +93,7 @@ export class ProviderFiles {
 
   public async delete(instance: string, key: string): ResponseProvider {
     try {
-      const response = await axios.delete(`${this.baseUrl}/${this.prefix}/${instance}/${key}`);
+      const response = await axios.delete(`${this.baseUrl}/${instance}/${key}`);
       return [{ status: response.status, data: response?.data }];
     } catch (error) {
       return [
@@ -110,7 +108,7 @@ export class ProviderFiles {
 
   public async allInstances(): ResponseProvider {
     try {
-      const response = await axios.get(`${this.baseUrl}/${this.prefix}/list-instances`);
+      const response = await axios.get(`${this.baseUrl}/list-instances`);
       return [{ status: response.status, data: response?.data as string[] }];
     } catch (error) {
       return [
@@ -125,7 +123,7 @@ export class ProviderFiles {
 
   public async removeSession(instance: string): ResponseProvider {
     try {
-      const response = await axios.delete(`${this.baseUrl}/${this.prefix}/${instance}`);
+      const response = await axios.delete(`${this.baseUrl}/${instance}`);
       return [{ status: response.status, data: response?.data }];
     } catch (error) {
       return [
