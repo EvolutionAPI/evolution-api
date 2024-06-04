@@ -1092,6 +1092,10 @@ export class ChatwootService {
         return messageSent;
       }
 
+      if (type === 'image' && parsedMedia && parsedMedia?.ext === '.gif') {
+        type = 'document';
+      }
+
       this.logger.verbose('send media to instance: ' + waInstance.instanceName);
       const data: SendMediaDto = {
         number: number,
