@@ -1,15 +1,15 @@
+import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import { MongoClient } from 'mongodb';
 import { join } from 'path';
 
-import { Auth, ConfigService, Database } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { ChamaaiRepository } from '../integrations/chamaai/repository/chamaai.repository';
-import { ChatwootRepository } from '../integrations/chatwoot/repository/chatwoot.repository';
-import { RabbitmqRepository } from '../integrations/rabbitmq/repository/rabbitmq.repository';
-import { SqsRepository } from '../integrations/sqs/repository/sqs.repository';
-import { TypebotRepository } from '../integrations/typebot/repository/typebot.repository';
-import { WebsocketRepository } from '../integrations/websocket/repository/websocket.repository';
+import { ConfigService, Database } from '../../../config/env.config';
+import { Logger } from '../../../config/logger.config';
+import { ChatwootRepository } from '../../integrations/chatwoot/repository/chatwoot.repository';
+import { RabbitmqRepository } from '../../integrations/rabbitmq/repository/rabbitmq.repository';
+import { SqsRepository } from '../../integrations/sqs/repository/sqs.repository';
+import { TypebotRepository } from '../../integrations/typebot/repository/typebot.repository';
+import { WebsocketRepository } from '../../integrations/websocket/repository/websocket.repository';
 import { AuthRepository } from './auth.repository';
 import { ChatRepository } from './chat.repository';
 import { ContactRepository } from './contact.repository';
@@ -20,7 +20,7 @@ import { MessageUpRepository } from './messageUp.repository';
 import { ProxyRepository } from './proxy.repository';
 import { SettingsRepository } from './settings.repository';
 import { WebhookRepository } from './webhook.repository';
-export class RepositoryBroker {
+export class MongodbRepository {
   constructor(
     public readonly message: MessageRepository,
     public readonly chat: ChatRepository,
@@ -34,22 +34,28 @@ export class RepositoryBroker {
     public readonly sqs: SqsRepository,
     public readonly typebot: TypebotRepository,
     public readonly proxy: ProxyRepository,
-    public readonly chamaai: ChamaaiRepository,
     public readonly integration: IntegrationRepository,
     public readonly auth: AuthRepository,
     public readonly labels: LabelRepository,
     private configService: ConfigService,
-    dbServer?: MongoClient,
+    mongodbServer?: MongoClient,
+    prismaServer?: PrismaClient,
   ) {
-    this.dbClient = dbServer;
+    this.mongodbClient = mongodbServer;
+    this.prismaClient = prismaServer;
     this.__init_repo_without_db__();
   }
 
-  private dbClient?: MongoClient;
+  private mongodbClient?: MongoClient;
+  private prismaClient?: PrismaClient;
   private readonly logger = new Logger('RepositoryBroker');
 
-  public get dbServer() {
-    return this.dbClient;
+  public get mongodbServer() {
+    return this.mongodbClient;
+  }
+
+  public get prismaServer() {
+    return this.prismaClient;
   }
 
   private __init_repo_without_db__() {
@@ -59,7 +65,7 @@ export class RepositoryBroker {
 
       this.logger.verbose('creating store path: ' + storePath);
       try {
-        const authDir = join(storePath, 'auth', this.configService.get<Auth>('AUTHENTICATION').TYPE);
+        const authDir = join(storePath, 'auth', 'apikey');
         const chatsDir = join(storePath, 'chats');
         const contactsDir = join(storePath, 'contacts');
         const messagesDir = join(storePath, 'messages');
@@ -72,7 +78,6 @@ export class RepositoryBroker {
         const sqsDir = join(storePath, 'sqs');
         const typebotDir = join(storePath, 'typebot');
         const proxyDir = join(storePath, 'proxy');
-        const chamaaiDir = join(storePath, 'chamaai');
         const integrationDir = join(storePath, 'integration');
         const tempDir = join(storePath, 'temp');
 
@@ -127,10 +132,6 @@ export class RepositoryBroker {
         if (!fs.existsSync(proxyDir)) {
           this.logger.verbose('creating proxy dir: ' + proxyDir);
           fs.mkdirSync(proxyDir, { recursive: true });
-        }
-        if (!fs.existsSync(chamaaiDir)) {
-          this.logger.verbose('creating chamaai dir: ' + chamaaiDir);
-          fs.mkdirSync(chamaaiDir, { recursive: true });
         }
         if (!fs.existsSync(integrationDir)) {
           this.logger.verbose('creating integration dir: ' + integrationDir);

@@ -1,10 +1,10 @@
 import { opendirSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 
-import { ConfigService, StoreConf } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { IMessageModel, MessageRaw, MessageRawSelect } from '../models';
+import { ConfigService, StoreConf } from '../../../config/env.config';
+import { Logger } from '../../../config/logger.config';
+import { IInsert, Repository } from '../../abstract/abstract.repository';
+import { IMessageModel, MessageRaw, MessageRawSelect } from '../../models';
 
 export class MessageQuery {
   select?: MessageRawSelect;

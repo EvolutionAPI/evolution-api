@@ -5,7 +5,8 @@ import { ConfigService, HttpServer } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { BadRequestException } from '../../../../exceptions';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { RepositoryBroker } from '../../../repository/repository.manager';
+import { MongodbRepository } from '../../../repository/mongodb/repository.manager';
+import { PrismaRepository } from '../../../repository/prisma/repository.service';
 import { waMonitor } from '../../../server.module';
 import { CacheService } from '../../../services/cache.service';
 import { ChatwootDto } from '../dto/chatwoot.dto';
@@ -17,7 +18,8 @@ export class ChatwootController {
   constructor(
     private readonly chatwootService: ChatwootService,
     private readonly configService: ConfigService,
-    private readonly repository: RepositoryBroker,
+    private readonly mongodbRepository: MongodbRepository,
+    private readonly prismaRepository: PrismaRepository,
   ) {}
 
   public async createChatwoot(instance: InstanceDto, data: ChatwootDto) {
@@ -105,7 +107,13 @@ export class ChatwootController {
     logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
 
     const chatwootCache = new CacheService(new CacheEngine(this.configService, ChatwootService.name).getEngine());
-    const chatwootService = new ChatwootService(waMonitor, this.configService, this.repository, chatwootCache);
+    const chatwootService = new ChatwootService(
+      waMonitor,
+      this.configService,
+      this.mongodbRepository,
+      this.prismaRepository,
+      chatwootCache,
+    );
 
     return chatwootService.receiveWebhook(instance, data);
   }

@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 
 export class IntegrationRaw {
   _id?: string;
@@ -16,5 +16,5 @@ const integrationSchema = new Schema<IntegrationRaw>({
   token: { type: String, required: true },
 });
 
-export const IntegrationModel = dbserver?.model(IntegrationRaw.name, integrationSchema, 'integration');
+export const IntegrationModel = mongodbServer?.model(IntegrationRaw.name, integrationSchema, 'integration');
 export type IntegrationModel = typeof IntegrationModel;

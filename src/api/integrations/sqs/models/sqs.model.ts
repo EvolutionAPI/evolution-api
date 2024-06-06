@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../../../libs/db.connect';
+import { mongodbServer } from '../../../../libs/mongodb.connect';
 
 export class SqsRaw {
   _id?: string;
@@ -14,5 +14,5 @@ const sqsSchema = new Schema<SqsRaw>({
   events: { type: [String], required: true },
 });
 
-export const SqsModel = dbserver?.model(SqsRaw.name, sqsSchema, 'sqs');
+export const SqsModel = mongodbServer?.model(SqsRaw.name, sqsSchema, 'sqs');
 export type ISqsModel = typeof SqsModel;

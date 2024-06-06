@@ -1,10 +1,10 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { ConfigService } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { ISettingsModel, SettingsRaw } from '../models';
+import { ConfigService } from '../../../config/env.config';
+import { Logger } from '../../../config/logger.config';
+import { IInsert, Repository } from '../../abstract/abstract.repository';
+import { ISettingsModel, SettingsRaw } from '../../models';
 
 export class SettingsRepository extends Repository {
   constructor(private readonly settingsModel: ISettingsModel, private readonly configService: ConfigService) {

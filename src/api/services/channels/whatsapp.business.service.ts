@@ -24,7 +24,8 @@ import {
 } from '../../dto/sendMessage.dto';
 import { ContactRaw, MessageRaw, MessageUpdateRaw, SettingsRaw } from '../../models';
 import { ProviderFiles } from '../../provider/sessions';
-import { RepositoryBroker } from '../../repository/repository.manager';
+import { MongodbRepository } from '../../repository/mongodb/repository.manager';
+import { PrismaRepository } from '../../repository/prisma/repository.service';
 import { Events, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
 import { ChannelStartupService } from './../channel.service';
@@ -33,13 +34,14 @@ export class BusinessStartupService extends ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
-    public readonly repository: RepositoryBroker,
+    public readonly mongodbRepository: MongodbRepository,
+    public readonly prismaRepository: PrismaRepository,
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
     public readonly baileysCache: CacheService,
     private readonly providerFiles: ProviderFiles,
   ) {
-    super(configService, eventEmitter, repository, chatwootCache);
+    super(configService, eventEmitter, mongodbRepository, prismaRepository, chatwootCache);
     this.logger.verbose('BusinessStartupService initialized');
     this.cleanStore();
   }
@@ -146,7 +148,6 @@ export class BusinessStartupService extends ChannelStartupService {
       this.loadRabbitmq();
       this.loadSqs();
       this.loadTypebot();
-      this.loadChamaai();
 
       this.logger.verbose('Creating socket');
 
@@ -442,19 +443,11 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        if (this.localChamaai.enabled && messageRaw.key.fromMe === false && received?.message.type === 'notify') {
-          await this.chamaaiService.sendChamaai(
-            { instanceName: this.instance.name },
-            messageRaw.key.remoteJid,
-            messageRaw,
-          );
-        }
-
         this.logger.verbose('Inserting message in database');
-        await this.repository.message.insert([messageRaw], this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
+        await this.mongodbRepository.message.insert([messageRaw], this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
 
         this.logger.verbose('Verifying contact from message');
-        const contact = await this.repository.contact.find({
+        const contact = await this.mongodbRepository.contact.find({
           where: { owner: this.instance.name, id: key.remoteJid },
         });
 
@@ -491,7 +484,7 @@ export class BusinessStartupService extends ChannelStartupService {
           }
 
           this.logger.verbose('Updating contact in database');
-          await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+          await this.mongodbRepository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
           return;
         }
 
@@ -501,7 +494,7 @@ export class BusinessStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
         this.logger.verbose('Inserting contact in database');
-        this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+        this.mongodbRepository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
       }
       this.logger.verbose('Event received: messages.update');
       if (received.statuses) {
@@ -536,7 +529,7 @@ export class BusinessStartupService extends ChannelStartupService {
               this.logger.verbose(message);
 
               this.logger.verbose('Inserting message in database');
-              await this.repository.messageUpdate.insert(
+              await this.mongodbRepository.messageUpdate.insert(
                 [message],
                 this.instance.name,
                 database.SAVE_DATA.MESSAGE_UPDATE,
@@ -566,7 +559,11 @@ export class BusinessStartupService extends ChannelStartupService {
             this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
             this.logger.verbose('Inserting message in database');
-            this.repository.messageUpdate.insert([message], this.instance.name, database.SAVE_DATA.MESSAGE_UPDATE);
+            this.mongodbRepository.messageUpdate.insert(
+              [message],
+              this.instance.name,
+              database.SAVE_DATA.MESSAGE_UPDATE,
+            );
           }
         }
       }
@@ -871,7 +868,7 @@ export class BusinessStartupService extends ChannelStartupService {
       }
 
       this.logger.verbose('Inserting message in database');
-      await this.repository.message.insert(
+      await this.mongodbRepository.message.insert(
         [messageRaw],
         this.instance.name,
         this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE,

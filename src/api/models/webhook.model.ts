@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 
 export class WebhookRaw {
   _id?: string;
@@ -20,5 +20,5 @@ const webhookSchema = new Schema<WebhookRaw>({
   webhook_base64: { type: Boolean, required: true },
 });
 
-export const WebhookModel = dbserver?.model(WebhookRaw.name, webhookSchema, 'webhook');
+export const WebhookModel = mongodbServer?.model(WebhookRaw.name, webhookSchema, 'webhook');
 export type IWebhookModel = typeof WebhookModel;

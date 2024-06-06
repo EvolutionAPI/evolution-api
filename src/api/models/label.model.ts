@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 
 export class LabelRaw {
   _id?: string;
@@ -25,5 +25,5 @@ const labelSchema = new Schema<LabelRaw>({
   predefinedId: { type: String },
 });
 
-export const LabelModel = dbserver?.model(LabelRaw.name, labelSchema, 'labels');
+export const LabelModel = mongodbServer?.model(LabelRaw.name, labelSchema, 'labels');
 export type ILabelModel = typeof LabelModel;

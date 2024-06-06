@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../../../libs/db.connect';
+import { mongodbServer } from '../../../../libs/mongodb.connect';
 
 export class WebsocketRaw {
   _id?: string;
@@ -14,5 +14,5 @@ const websocketSchema = new Schema<WebsocketRaw>({
   events: { type: [String], required: true },
 });
 
-export const WebsocketModel = dbserver?.model(WebsocketRaw.name, websocketSchema, 'websocket');
+export const WebsocketModel = mongodbServer?.model(WebsocketRaw.name, websocketSchema, 'websocket');
 export type IWebsocketModel = typeof WebsocketModel;

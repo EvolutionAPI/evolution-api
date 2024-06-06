@@ -13,8 +13,9 @@ import { SqsService } from '../integrations/sqs/services/sqs.service';
 import { TypebotService } from '../integrations/typebot/services/typebot.service';
 import { WebsocketService } from '../integrations/websocket/services/websocket.service';
 import { ProviderFiles } from '../provider/sessions';
-import { RepositoryBroker } from '../repository/repository.manager';
-import { AuthService, OldToken } from '../services/auth.service';
+import { MongodbRepository } from '../repository/mongodb/repository.manager';
+import { PrismaRepository } from '../repository/prisma/repository.service';
+import { AuthService } from '../services/auth.service';
 import { CacheService } from '../services/cache.service';
 import { BaileysStartupService } from '../services/channels/whatsapp.baileys.service';
 import { BusinessStartupService } from '../services/channels/whatsapp.business.service';
@@ -29,7 +30,8 @@ export class InstanceController {
   constructor(
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
-    private readonly repository: RepositoryBroker,
+    private readonly mongodbRepository: MongodbRepository,
+    private readonly prismaRepository: PrismaRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly authService: AuthService,
     private readonly webhookService: WebhookService,
@@ -109,7 +111,8 @@ export class InstanceController {
         instance = new BusinessStartupService(
           this.configService,
           this.eventEmitter,
-          this.repository,
+          this.mongodbRepository,
+          this.prismaRepository,
           this.cache,
           this.chatwootCache,
           this.baileysCache,
@@ -119,7 +122,8 @@ export class InstanceController {
         instance = new BaileysStartupService(
           this.configService,
           this.eventEmitter,
-          this.repository,
+          this.mongodbRepository,
+          this.prismaRepository,
           this.cache,
           this.chatwootCache,
           this.baileysCache,
@@ -188,10 +192,8 @@ export class InstanceController {
               'LABELS_EDIT',
               'LABELS_ASSOCIATION',
               'CALL',
-              'NEW_JWT_TOKEN',
               'TYPEBOT_START',
               'TYPEBOT_CHANGE_STATUS',
-              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = events;
@@ -240,10 +242,8 @@ export class InstanceController {
               'LABELS_EDIT',
               'LABELS_ASSOCIATION',
               'CALL',
-              'NEW_JWT_TOKEN',
               'TYPEBOT_START',
               'TYPEBOT_CHANGE_STATUS',
-              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = websocket_events;
@@ -289,10 +289,8 @@ export class InstanceController {
               'LABELS_EDIT',
               'LABELS_ASSOCIATION',
               'CALL',
-              'NEW_JWT_TOKEN',
               'TYPEBOT_START',
               'TYPEBOT_CHANGE_STATUS',
-              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = rabbitmq_events;
@@ -338,10 +336,8 @@ export class InstanceController {
               'LABELS_EDIT',
               'LABELS_ASSOCIATION',
               'CALL',
-              'NEW_JWT_TOKEN',
               'TYPEBOT_START',
               'TYPEBOT_CHANGE_STATUS',
-              'CHAMA_AI_ACTION',
             ];
           } else {
             newEvents = sqs_events;
@@ -690,7 +686,7 @@ export class InstanceController {
     let arrayReturn = false;
 
     if (env.KEY !== key) {
-      const instanceByKey = await this.repository.auth.findByKey(key);
+      const instanceByKey = await this.mongodbRepository.auth.findByKey(key);
       if (instanceByKey) {
         name = instanceByKey._id;
         arrayReturn = true;
@@ -755,7 +751,7 @@ export class InstanceController {
       try {
         this.waMonitor.waInstances[instanceName]?.sendDataWebhook(Events.INSTANCE_DELETE, {
           instanceName,
-          instanceId: (await this.repository.auth.find(instanceName))?.instanceId,
+          instanceId: (await this.mongodbRepository.auth.find(instanceName))?.instanceId,
         });
       } catch (error) {
         this.logger.error(error);
@@ -767,10 +763,5 @@ export class InstanceController {
     } catch (error) {
       throw new BadRequestException(error.toString());
     }
-  }
-
-  public async refreshToken(_: InstanceDto, oldToken: OldToken) {
-    this.logger.verbose('requested refreshToken');
-    return await this.authService.refreshToken(oldToken);
   }
 }

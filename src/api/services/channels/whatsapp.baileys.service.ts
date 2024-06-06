@@ -68,9 +68,10 @@ import {
 } from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
-import { dbserver } from '../../../libs/db.connect';
+import { mongodbServer } from '../../../libs/mongodb.connect';
 import { makeProxyAgent } from '../../../utils/makeProxyAgent';
-import { useMultiFileAuthStateDb } from '../../../utils/use-multi-file-auth-state-db';
+import { useMultiFileAuthStateMongoDb } from '../../../utils/use-multi-file-auth-state-mongodb';
+import useMultiFileAuthStatePrisma from '../../../utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '../../../utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '../../../utils/use-multi-file-auth-state-redis-db';
 import {
@@ -126,7 +127,8 @@ import { ChatRaw } from '../../models/chat.model';
 import { ContactRaw } from '../../models/contact.model';
 import { MessageRaw, MessageUpdateRaw } from '../../models/message.model';
 import { ProviderFiles } from '../../provider/sessions';
-import { RepositoryBroker } from '../../repository/repository.manager';
+import { MongodbRepository } from '../../repository/mongodb/repository.manager';
+import { PrismaRepository } from '../../repository/prisma/repository.service';
 import { waMonitor } from '../../server.module';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
@@ -138,13 +140,14 @@ export class BaileysStartupService extends ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
-    public readonly repository: RepositoryBroker,
+    public readonly mongoRepository: MongodbRepository,
+    public readonly prismaRepository: PrismaRepository,
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
     public readonly baileysCache: CacheService,
     private readonly providerFiles: ProviderFiles,
   ) {
-    super(configService, eventEmitter, repository, chatwootCache);
+    super(configService, eventEmitter, mongoRepository, prismaRepository, chatwootCache);
     this.logger.verbose('BaileysStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
@@ -224,7 +227,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Profile name not found, trying to get from database');
       if (this.configService.get<Database>('DATABASE').ENABLED) {
         this.logger.verbose('Database enabled, trying to get from database');
-        const collection = dbserver
+        const collection = mongodbServer
           .getClient()
           .db(this.configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_NAME + '-instances')
           .collection(this.instanceName);
@@ -460,7 +463,7 @@ export class BaileysStartupService extends ChannelStartupService {
   private async getMessage(key: proto.IMessageKey, full = false) {
     this.logger.verbose('Getting message with key: ' + JSON.stringify(key));
     try {
-      const webMessageInfo = (await this.repository.message.find({
+      const webMessageInfo = (await this.mongodbRepository.message.find({
         where: { owner: this.instance.name, key: { id: key.id } },
       })) as unknown as proto.IWebMessageInfo[];
       if (full) {
@@ -510,7 +513,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {
       this.logger.verbose('Database enabled');
-      return await useMultiFileAuthStateDb(this.instance.name);
+      if (db.PROVIDER === 'mongodb') return await useMultiFileAuthStateMongoDb(this.instance.name);
+      else return await useMultiFileAuthStatePrisma(this.instance.name);
     }
 
     this.logger.verbose('Store file enabled');
@@ -528,7 +532,6 @@ export class BaileysStartupService extends ChannelStartupService {
       this.loadSqs();
       this.loadTypebot();
       this.loadProxy();
-      this.loadChamaai();
 
       this.instance.authState = await this.defineAuthState();
 
@@ -827,7 +830,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Event received: chats.upsert');
 
       this.logger.verbose('Finding chats in database');
-      const chatsRepository = await this.repository.chat.find({
+      const chatsRepository = await this.mongodbRepository.chat.find({
         where: { owner: this.instance.name },
       });
 
@@ -845,7 +848,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsRaw);
 
       this.logger.verbose('Inserting chats in database');
-      this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
+      this.mongodbRepository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
     },
 
     'chats.update': async (
@@ -872,7 +875,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Deleting chats in database');
       chats.forEach(
         async (chat) =>
-          await this.repository.chat.delete({
+          await this.mongodbRepository.chat.delete({
             where: { owner: this.instance.name, id: chat },
           }),
       );
@@ -890,7 +893,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.logger.verbose('Finding contacts in database');
         const contactsRepository = new Set(
           (
-            await this.repository.contact.find({
+            await this.mongodbRepository.contact.find({
               select: { id: 1, _id: 0 },
               where: { owner: this.instance.name },
             })
@@ -917,7 +920,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (contactsRaw.length > 0) this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
         this.logger.verbose('Inserting contacts in database');
-        this.repository.contact.insert(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+        this.mongodbRepository.contact.insert(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
 
         if (this.localChatwoot.enabled && this.localChatwoot.import_contacts && contactsRaw.length) {
           this.chatwootService.addHistoryContacts({ instanceName: this.instance.name }, contactsRaw);
@@ -939,7 +942,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (contactsRaw.length > 0) this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
         this.logger.verbose('Updating contacts in database');
-        this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+        this.mongodbRepository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
       } catch (error) {
         this.logger.error(error);
       }
@@ -963,7 +966,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
       this.logger.verbose('Updating contacts in database');
-      this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+      this.mongodbRepository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
     },
   };
 
@@ -1004,7 +1007,7 @@ export class BaileysStartupService extends ChannelStartupService {
         const chatsRaw: ChatRaw[] = [];
         const chatsRepository = new Set(
           (
-            await this.repository.chat.find({
+            await this.mongodbRepository.chat.find({
               select: { id: 1, _id: 0 },
               where: { owner: this.instance.name },
             })
@@ -1027,13 +1030,13 @@ export class BaileysStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         this.logger.verbose('Inserting chats in database');
-        this.repository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
+        this.mongodbRepository.chat.insert(chatsRaw, this.instance.name, database.SAVE_DATA.CHATS);
 
         const messagesRaw: MessageRaw[] = [];
         const messagesRepository = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
             (
-              await this.repository.message.find({
+              await this.mongodbRepository.message.find({
                 select: { key: { id: 1 }, _id: 0 },
                 where: { owner: this.instance.name },
               })
@@ -1086,7 +1089,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
         this.logger.verbose('Inserting messages in database');
-        await this.repository.message.insert(messagesRaw, this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
+        await this.mongodbRepository.message.insert(messagesRaw, this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
 
         if (this.localChatwoot.enabled && this.localChatwoot.import_messages && messagesRaw.length > 0) {
           this.chatwootService.addHistoryMessages(
@@ -1262,19 +1265,11 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (this.localChamaai.enabled && messageRaw.key.fromMe === false && type === 'notify') {
-            await this.chamaaiService.sendChamaai(
-              { instanceName: this.instance.name },
-              messageRaw.key.remoteJid,
-              messageRaw,
-            );
-          }
-
           this.logger.verbose('Inserting message in database');
-          await this.repository.message.insert([messageRaw], this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
+          await this.mongodbRepository.message.insert([messageRaw], this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
 
           this.logger.verbose('Verifying contact from message');
-          const contact = await this.repository.contact.find({
+          const contact = await this.mongodbRepository.contact.find({
             where: { owner: this.instance.name, id: received.key.remoteJid },
           });
 
@@ -1311,7 +1306,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             this.logger.verbose('Updating contact in database');
-            await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+            await this.mongodbRepository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
             return;
           }
 
@@ -1321,7 +1316,7 @@ export class BaileysStartupService extends ChannelStartupService {
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
           this.logger.verbose('Inserting contact in database');
-          this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+          this.mongodbRepository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
         }
       } catch (error) {
         this.logger.error(error);
@@ -1388,7 +1383,7 @@ export class BaileysStartupService extends ChannelStartupService {
             this.logger.verbose(message);
 
             this.logger.verbose('Inserting message in database');
-            await this.repository.messageUpdate.insert(
+            await this.mongodbRepository.messageUpdate.insert(
               [message],
               this.instance.name,
               database.SAVE_DATA.MESSAGE_UPDATE,
@@ -1419,7 +1414,7 @@ export class BaileysStartupService extends ChannelStartupService {
           this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
           this.logger.verbose('Inserting message in database');
-          this.repository.messageUpdate.insert([message], this.instance.name, database.SAVE_DATA.MESSAGE_UPDATE);
+          this.mongodbRepository.messageUpdate.insert([message], this.instance.name, database.SAVE_DATA.MESSAGE_UPDATE);
         }
       }
     },
@@ -1462,14 +1457,14 @@ export class BaileysStartupService extends ChannelStartupService {
     [Events.LABELS_EDIT]: async (label: Label, database: Database) => {
       this.logger.verbose('Event received: labels.edit');
       this.logger.verbose('Finding labels in database');
-      const labelsRepository = await this.repository.labels.find({
+      const labelsRepository = await this.mongodbRepository.labels.find({
         where: { owner: this.instance.name },
       });
 
       const savedLabel = labelsRepository.find((l) => l.id === label.id);
       if (label.deleted && savedLabel) {
         this.logger.verbose('Sending data to webhook in event LABELS_EDIT');
-        await this.repository.labels.delete({
+        await this.mongodbRepository.labels.delete({
           where: { owner: this.instance.name, id: label.id },
         });
         this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
@@ -1479,7 +1474,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const labelName = label.name.replace(/[^\x20-\x7E]/g, '');
       if (!savedLabel || savedLabel.color !== label.color || savedLabel.name !== labelName) {
         this.logger.verbose('Sending data to webhook in event LABELS_EDIT');
-        await this.repository.labels.insert(
+        await this.mongodbRepository.labels.insert(
           {
             color: label.color,
             name: labelName,
@@ -1502,7 +1497,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       // Atualiza labels nos chats
       if (database.ENABLED && database.SAVE_DATA.CHATS) {
-        const chats = await this.repository.chat.find({
+        const chats = await this.mongodbRepository.chat.find({
           where: {
             owner: this.instance.name,
           },
@@ -1515,7 +1510,7 @@ export class BaileysStartupService extends ChannelStartupService {
           } else if (data.type === 'add') {
             labels = [...labels, data.association.labelId];
           }
-          await this.repository.chat.update(
+          await this.mongodbRepository.chat.update(
             [{ id: chat.id, owner: this.instance.name, labels }],
             this.instance.name,
             database.SAVE_DATA.CHATS,
@@ -2041,7 +2036,7 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       this.logger.verbose('Inserting message in database');
-      await this.repository.message.insert(
+      await this.mongodbRepository.message.insert(
         [messageRaw],
         this.instance.name,
         this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE,
@@ -2160,7 +2155,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('All contacts defined as true');
 
       this.logger.verbose('Getting contacts from database');
-      const contacts = await this.repository.contact.find({
+      const contacts = await this.mongodbRepository.contact.find({
         where: { owner: this.instance.name },
       });
 
@@ -2686,7 +2681,7 @@ export class BaileysStartupService extends ChannelStartupService {
     onWhatsapp.push(...groups);
 
     // USERS
-    const contacts: ContactRaw[] = await this.repository.contact.findManyById({
+    const contacts: ContactRaw[] = await this.mongodbRepository.contact.findManyById({
       owner: this.instance.name,
       ids: jids.users.map(({ jid }) => (jid.startsWith('+') ? jid.substring(1) : jid)),
     });
@@ -3177,7 +3172,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async fetchLabels(): Promise<LabelDto[]> {
     this.logger.verbose('Fetching labels');
-    const labels = await this.repository.labels.find({
+    const labels = await this.mongodbRepository.labels.find({
       where: {
         owner: this.instance.name,
       },
@@ -3485,7 +3480,7 @@ export class BaileysStartupService extends ChannelStartupService {
     this.logger.verbose('Fetching participants for group: ' + id.groupJid);
     try {
       const participants = (await this.client.groupMetadata(id.groupJid)).participants;
-      const contacts = await this.repository.contact.findManyById({
+      const contacts = await this.mongodbRepository.contact.findManyById({
         owner: this.instance.name,
         ids: participants.map((p) => p.id),
       });

@@ -2,7 +2,6 @@ import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { v4 } from 'uuid';
 
 // Integrations Schema
-export * from '../api/integrations/chamaai/validate/chamaai.schema';
 export * from '../api/integrations/chatwoot/validate/chatwoot.schema';
 export * from '../api/integrations/rabbitmq/validate/rabbitmq.schema';
 export * from '../api/integrations/sqs/validate/sqs.schema';
@@ -63,10 +62,8 @@ export const instanceNameSchema: JSONSchema7 = {
           'LABELS_EDIT',
           'LABELS_ASSOCIATION',
           'CALL',
-          'NEW_JWT_TOKEN',
           'TYPEBOT_START',
           'TYPEBOT_CHANGE_STATUS',
-          'CHAMA_AI_ACTION',
         ],
       },
     },
@@ -979,10 +976,8 @@ export const webhookSchema: JSONSchema7 = {
           'LABELS_EDIT',
           'LABELS_ASSOCIATION',
           'CALL',
-          'NEW_JWT_TOKEN',
           'TYPEBOT_START',
           'TYPEBOT_CHANGE_STATUS',
-          'CHAMA_AI_ACTION',
         ],
       },
     },
@@ -1040,10 +1035,8 @@ export const websocketSchema: JSONSchema7 = {
           'LABELS_EDIT',
           'LABELS_ASSOCIATION',
           'CALL',
-          'NEW_JWT_TOKEN',
           'TYPEBOT_START',
           'TYPEBOT_CHANGE_STATUS',
-          'CHAMA_AI_ACTION',
         ],
       },
     },

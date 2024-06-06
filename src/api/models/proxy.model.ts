@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 
 class Proxy {
   host?: string;
@@ -28,5 +28,5 @@ const proxySchema = new Schema<ProxyRaw>({
   },
 });
 
-export const ProxyModel = dbserver?.model(ProxyRaw.name, proxySchema, 'proxy');
+export const ProxyModel = mongodbServer?.model(ProxyRaw.name, proxySchema, 'proxy');
 export type IProxyModel = typeof ProxyModel;

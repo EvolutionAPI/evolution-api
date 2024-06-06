@@ -16,9 +16,9 @@ import {
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
-import { ContactQuery } from '../repository/contact.repository';
-import { MessageQuery } from '../repository/message.repository';
-import { MessageUpQuery } from '../repository/messageUp.repository';
+import { ContactQuery } from '../repository/mongodb/contact.repository';
+import { MessageQuery } from '../repository/mongodb/message.repository';
+import { MessageUpQuery } from '../repository/mongodb/messageUp.repository';
 import { WAMonitoringService } from '../services/monitor.service';
 
 const logger = new Logger('ChatController');

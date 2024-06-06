@@ -41,10 +41,8 @@ export class SqsController {
         'LABELS_EDIT',
         'LABELS_ASSOCIATION',
         'CALL',
-        'NEW_JWT_TOKEN',
         'TYPEBOT_START',
         'TYPEBOT_CHANGE_STATUS',
-        'CHAMA_AI_ACTION',
       ];
     }
 

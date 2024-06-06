@@ -9,14 +9,14 @@ import {
 
 import { configService, Database } from '../config/env.config';
 import { Logger } from '../config/logger.config';
-import { dbserver } from '../libs/db.connect';
+import { mongodbServer } from '../libs/mongodb.connect';
 
-export async function useMultiFileAuthStateDb(
+export async function useMultiFileAuthStateMongoDb(
   coll: string,
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> {
-  const logger = new Logger(useMultiFileAuthStateDb.name);
+  const logger = new Logger(useMultiFileAuthStateMongoDb.name);
 
-  const client = dbserver.getClient();
+  const client = mongodbServer.getClient();
 
   const collection = client
     .db(configService.get<Database>('DATABASE').CONNECTION.DB_PREFIX_NAME + '-instances')

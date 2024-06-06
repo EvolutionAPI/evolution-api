@@ -16,7 +16,6 @@ import { Auth, configService, Cors, HttpServer, Rabbitmq, Sqs, Webhook } from '.
 import { onUnexpectedError } from './config/error.config';
 import { Logger } from './config/logger.config';
 import { ROOT_DIR } from './config/path.config';
-import { swaggerRouter } from './docs/swagger.conf';
 import { ServerUP } from './utils/server-up';
 
 function initWA() {
@@ -58,8 +57,6 @@ async function bootstrap() {
   app.use('/store', express.static(join(ROOT_DIR, 'store')));
 
   app.use('/', router);
-
-  if (!configService.get('SERVER').DISABLE_DOCS) app.use(swaggerRouter);
 
   app.use(
     (err: Error, req: Request, res: Response, next: NextFunction) => {

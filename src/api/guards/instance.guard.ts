@@ -10,7 +10,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '../../exceptions';
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../server.module';
 
@@ -28,7 +28,7 @@ async function getInstance(instanceName: string) {
     }
 
     if (db.ENABLED) {
-      const collection = dbserver
+      const collection = mongodbServer
         .getClient()
         .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
         .collection(instanceName);

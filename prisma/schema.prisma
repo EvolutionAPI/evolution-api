@@ -1,0 +1,285 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_CONNECTION_URI")
+}
+
+enum InstanceConnectionStatus {
+  open
+  close
+  connecting
+}
+
+enum DeviceMessage {
+  ios
+  android
+  web
+  unknown
+  desktop
+}
+
+enum TypebotSessionStatus {
+  open
+  closed
+  paused
+}
+
+model Instance {
+  id               Int                      @id @default(autoincrement())
+  name             String                   @unique @db.VarChar(255)
+  description      String?                  @db.VarChar(255)
+  connectionStatus InstanceConnectionStatus @default(open)
+  ownerJid         String?                  @db.VarChar(100)
+  profilePicUrl    String?                  @db.VarChar(500)
+  createdAt        DateTime?                @default(now()) @db.Date
+  updatedAt        DateTime?                @updatedAt @db.Date
+  Auth             Auth?
+  Chat             Chat[]
+  Contact          Contact[]
+  Message          Message[]
+  Webhook          Webhook?
+  Chatwoot         Chatwoot?
+  Integration      Integration?
+  Label            Label[]
+  Proxy            Proxy?
+  Setting          Setting?
+  Rabbitmq         Rabbitmq?
+  Sqs              Sqs?
+  Websocket        Websocket?
+  Typebot          Typebot?
+  Session          Session?
+}
+
+model Session {
+  id         Int      @id @unique @default(autoincrement())
+  sessionId  String   @unique @default(cuid())
+  creds      String?  @db.Text
+  createdAt  DateTime @default(now())
+  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId Int      @unique @db.Integer
+
+  @@map("sessions")
+}
+
+model Auth {
+  id         Int       @id @default(autoincrement())
+  apiKey     String    @unique
+  createdAt  DateTime? @default(now()) @db.Date
+  updatedAt  DateTime? @updatedAt @db.Date
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId Int       @unique @db.Integer
+}
+
+model Chat {
+  id               Int       @id @default(autoincrement())
+  lastMsgTimestamp DateTime? @db.Timestamp
+  labels           Json?     @db.JsonB
+  createdAt        DateTime? @default(now()) @db.Date
+  updatedAt        DateTime? @updatedAt @db.Date
+  Instance         Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId       Int
+}
+
+model Contact {
+  id            Int       @id @default(autoincrement())
+  remoteJid     String    @db.VarChar(100)
+  pushName      String?   @db.VarChar(100)
+  profilePicUrl String?   @db.VarChar(500)
+  createdAt     DateTime? @default(now()) @db.Date
+  updatedAt     DateTime? @updatedAt @db.Date
+  Instance      Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId    Int
+}
+
+model Message {
+  id                           Int             @id @default(autoincrement())
+  keyId                        String          @db.VarChar(100)
+  keyRemoteJid                 String          @db.VarChar(100)
+  keyFromMe                    Boolean         @db.Boolean
+  keyParticipant               String?         @db.VarChar(100)
+  pushName                     String?         @db.VarChar(100)
+  participant                  String?         @db.VarChar(100)
+  messageType                  String          @db.VarChar(100)
+  message                      Json            @db.JsonB
+  source                       DeviceMessage
+  messageTimestamp             Int             @db.Integer
+  chatwootMessageId            Int?            @db.Integer
+  chatwootInboxId              Int?            @db.Integer
+  chatwootConversationId       Int?            @db.Integer
+  chatwootContactInboxSourceId String?         @db.VarChar(100)
+  chatwotIsRead                Boolean?        @db.Boolean
+  Instance                     Instance        @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId                   Int
+  typebotSessionId             Int?
+  MessageUpdate                MessageUpdate[]
+  TypebotSession               TypebotSession? @relation(fields: [typebotSessionId], references: [id])
+
+  @@index([keyId], name: "keyId")
+}
+
+model MessageUpdate {
+  id          Int      @id @default(autoincrement())
+  remoteJid   String   @db.VarChar(100)
+  fromMe      Boolean  @db.Boolean
+  participant String?  @db.VarChar(100)
+  dateTime    DateTime @db.Date
+  status      String   @db.VarChar(30)
+  Message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId   Int
+}
+
+model Webhook {
+  id                Int       @id @default(autoincrement())
+  url               String    @db.VarChar(500)
+  enabled           Boolean?  @default(true) @db.Boolean
+  events            Json?     @db.JsonB
+  webhook_by_events Boolean?  @default(false) @db.Boolean
+  webhook_base64    Boolean?  @default(false) @db.Boolean
+  createdAt         DateTime? @default(now()) @db.Date
+  updatedAt         DateTime  @updatedAt @db.Date
+  Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId        Int       @unique
+}
+
+model Chatwoot {
+  id                         Int       @id @default(autoincrement())
+  enabled                    Boolean?  @default(true) @db.Boolean
+  account_id                 String?   @db.VarChar(100)
+  token                      String?   @db.VarChar(100)
+  url                        String?   @db.VarChar(500)
+  name_inbox                 String?   @db.VarChar(100)
+  sign_msg                   Boolean?  @default(false) @db.Boolean
+  sign_delimiter             String?   @db.VarChar(100)
+  number                     String?   @db.VarChar(100)
+  reopen_conversation        Boolean?  @default(false) @db.Boolean
+  conversation_pending       Boolean?  @default(false) @db.Boolean
+  merge_brazil_contacts      Boolean?  @default(false) @db.Boolean
+  import_contacts            Boolean?  @default(false) @db.Boolean
+  import_messages            Boolean?  @default(false) @db.Boolean
+  days_limit_import_messages Int?      @db.Integer
+  createdAt                  DateTime? @default(now()) @db.Date
+  updatedAt                  DateTime  @updatedAt @db.Date
+  Instance                   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId                 Int       @unique
+}
+
+model Integration {
+  id          Int       @id @default(autoincrement())
+  integration String    @db.VarChar(100)
+  number      String?   @db.VarChar(100)
+  token       String?   @db.VarChar(100)
+  createdAt   DateTime? @default(now()) @db.Date
+  updatedAt   DateTime  @updatedAt @db.Date
+  Instance    Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId  Int       @unique
+}
+
+model Label {
+  id           Int       @id @default(autoincrement())
+  labelId      String?   @unique @db.VarChar(100)
+  name         String    @db.VarChar(100)
+  color        String    @db.VarChar(100)
+  predefinedId String?   @db.VarChar(100)
+  createdAt    DateTime? @default(now()) @db.Date
+  updatedAt    DateTime  @updatedAt @db.Date
+  Instance     Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId   Int
+}
+
+model Proxy {
+  id            Int       @id @default(autoincrement())
+  enabled       Boolean?  @default(true) @db.Boolean
+  proxyHost     String?   @db.VarChar(100)
+  proxyPort     Int?      @db.Integer
+  proxyUsername String?   @db.VarChar(100)
+  proxyPassword String?   @db.VarChar(100)
+  createdAt     DateTime? @default(now()) @db.Date
+  updatedAt     DateTime  @updatedAt @db.Date
+  Instance      Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId    Int       @unique
+}
+
+model Setting {
+  id              Int       @id @default(autoincrement())
+  rejectCall      Boolean?  @default(false) @db.Boolean
+  msgCall         String?   @db.VarChar(100)
+  groupsIgnore    Boolean?  @default(false) @db.Boolean
+  alwaysOnline    Boolean?  @default(false) @db.Boolean
+  readMessages    Boolean?  @default(false) @db.Boolean
+  readStatus      Boolean?  @default(false) @db.Boolean
+  syncFullHistory Boolean?  @default(false) @db.Boolean
+  createdAt       DateTime? @default(now()) @db.Date
+  updatedAt       DateTime  @updatedAt @db.Date
+  Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      Int       @unique
+}
+
+model Rabbitmq {
+  id         Int       @id @default(autoincrement())
+  enabled    Boolean?  @default(false) @db.Boolean
+  events     Json?     @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Date
+  updatedAt  DateTime  @updatedAt @db.Date
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId Int       @unique
+}
+
+model Sqs {
+  id         Int       @id @default(autoincrement())
+  enabled    Boolean?  @default(false) @db.Boolean
+  events     Json?     @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Date
+  updatedAt  DateTime  @updatedAt @db.Date
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId Int       @unique
+}
+
+model Websocket {
+  id         Int       @id @default(autoincrement())
+  enabled    Boolean?  @default(false) @db.Boolean
+  events     Json?     @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Date
+  updatedAt  DateTime  @updatedAt @db.Date
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId Int       @unique
+}
+
+model Typebot {
+  id              Int              @id @default(autoincrement())
+  enabled         Boolean?         @default(true) @db.Boolean
+  url             String           @db.VarChar(500)
+  typebot         String           @db.VarChar(100)
+  expire          Int?             @db.Integer
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  createdAt       DateTime?        @default(now()) @db.Date
+  updatedAt       DateTime?        @updatedAt @db.Date
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      Int              @unique
+  sessions        TypebotSession[]
+}
+
+model TypebotSession {
+  id                 Int       @id @default(autoincrement())
+  remoteJid          String    @db.VarChar(100)
+  pushName           String?   @db.VarChar(100)
+  sessionId          String    @db.VarChar(100)
+  status             String    @db.VarChar(100)
+  prefilledVariables Json?     @db.JsonB
+  createdAt          DateTime? @default(now()) @db.Date
+  updatedAt          DateTime  @updatedAt @db.Date
+  Typebot            Typebot   @relation(fields: [typebotId], references: [id], onDelete: Cascade)
+  typebotId          Int
+  Message            Message[]
+}

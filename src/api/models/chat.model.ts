@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 
 export class ChatRaw {
   _id?: string;
@@ -22,5 +22,5 @@ const chatSchema = new Schema<ChatRaw>({
   labels: { type: [String], default: [] },
 });
 
-export const ChatModel = dbserver?.model(ChatRaw.name, chatSchema, 'chats');
+export const ChatModel = mongodbServer?.model(ChatRaw.name, chatSchema, 'chats');
 export type IChatModel = typeof ChatModel;

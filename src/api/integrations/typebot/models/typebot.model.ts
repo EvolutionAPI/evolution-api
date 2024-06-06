@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../../../libs/db.connect';
+import { mongodbServer } from '../../../../libs/mongodb.connect';
 
 class Session {
   remoteJid?: string;
@@ -54,5 +54,5 @@ const typebotSchema = new Schema<TypebotRaw>({
   ],
 });
 
-export const TypebotModel = dbserver?.model(TypebotRaw.name, typebotSchema, 'typebot');
+export const TypebotModel = mongodbServer?.model(TypebotRaw.name, typebotSchema, 'typebot');
 export type ITypebotModel = typeof TypebotModel;

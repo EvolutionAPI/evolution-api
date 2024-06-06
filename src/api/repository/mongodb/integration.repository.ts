@@ -1,10 +1,10 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { ConfigService } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { IntegrationModel, IntegrationRaw } from '../models';
+import { ConfigService } from '../../../config/env.config';
+import { Logger } from '../../../config/logger.config';
+import { IInsert, Repository } from '../../abstract/abstract.repository';
+import { IntegrationModel, IntegrationRaw } from '../../models';
 
 export class IntegrationRepository extends Repository {
   constructor(private readonly integrationModel: IntegrationModel, private readonly configService: ConfigService) {

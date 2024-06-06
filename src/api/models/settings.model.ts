@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 
 export class SettingsRaw {
   _id?: string;
@@ -24,5 +24,5 @@ const settingsSchema = new Schema<SettingsRaw>({
   sync_full_history: { type: Boolean, required: true },
 });
 
-export const SettingsModel = dbserver?.model(SettingsRaw.name, settingsSchema, 'settings');
+export const SettingsModel = mongodbServer?.model(SettingsRaw.name, settingsSchema, 'settings');
 export type ISettingsModel = typeof SettingsModel;

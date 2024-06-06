@@ -1,11 +1,11 @@
 import { opendirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-import { Auth, ConfigService } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { AUTH_DIR } from '../../config/path.config';
-import { IInsert, Repository } from '../abstract/abstract.repository';
-import { AuthRaw, IAuthModel, IntegrationModel } from '../models';
+import { Auth, ConfigService } from '../../../config/env.config';
+import { Logger } from '../../../config/logger.config';
+import { AUTH_DIR } from '../../../config/path.config';
+import { IInsert, Repository } from '../../abstract/abstract.repository';
+import { AuthRaw, IAuthModel, IntegrationModel } from '../../models';
 
 export class AuthRepository extends Repository {
   constructor(
@@ -35,11 +35,11 @@ export class AuthRepository extends Repository {
       this.logger.verbose('saving auth to store');
 
       this.writeStore<AuthRaw>({
-        path: join(AUTH_DIR, this.auth.TYPE),
+        path: join(AUTH_DIR, 'apikey'),
         fileName: instance,
         data,
       });
-      this.logger.verbose('auth saved to store in path: ' + join(AUTH_DIR, this.auth.TYPE) + '/' + instance);
+      this.logger.verbose('auth saved to store in path: ' + join(AUTH_DIR, 'apikey') + '/' + instance);
 
       this.logger.verbose('auth created');
       return { insertCount: 1 };
@@ -59,7 +59,7 @@ export class AuthRepository extends Repository {
       this.logger.verbose('finding auth in store');
 
       return JSON.parse(
-        readFileSync(join(AUTH_DIR, this.auth.TYPE, instance + '.json'), {
+        readFileSync(join(AUTH_DIR, 'apikey', instance + '.json'), {
           encoding: 'utf-8',
         }),
       ) as AuthRaw;
@@ -92,14 +92,14 @@ export class AuthRepository extends Repository {
       this.logger.verbose('listing auth in store');
 
       const auths: AuthRaw[] = [];
-      const openDir = opendirSync(join(AUTH_DIR, this.auth.TYPE), {
+      const openDir = opendirSync(join(AUTH_DIR, 'apikey'), {
         encoding: 'utf-8',
       });
       for await (const dirent of openDir) {
         if (dirent.isFile()) {
           auths.push(
             JSON.parse(
-              readFileSync(join(AUTH_DIR, this.auth.TYPE, dirent.name), {
+              readFileSync(join(AUTH_DIR, 'apikey', dirent.name), {
                 encoding: 'utf-8',
               }),
             ),

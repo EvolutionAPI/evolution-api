@@ -1,13 +1,12 @@
 import { RequestHandler, Router } from 'express';
 
-import { Auth, ConfigService, Database } from '../../config/env.config';
+import { ConfigService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { dbserver } from '../../libs/db.connect';
-import { instanceNameSchema, oldTokenSchema, presenceOnlySchema } from '../../validate/validate.schema';
+import { mongodbServer } from '../../libs/mongodb.connect';
+import { instanceNameSchema, presenceOnlySchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { instanceController } from '../server.module';
-import { OldToken } from '../services/auth.service';
 import { HttpStatus } from './index.router';
 
 const logger = new Logger('InstanceRouter');
@@ -15,7 +14,6 @@ const logger = new Logger('InstanceRouter');
 export class InstanceRouter extends RouterBroker {
   constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
     super();
-    const auth = configService.get<Auth>('AUTHENTICATION');
     this.router
       .post('/create', ...guards, async (req, res) => {
         logger.verbose('request received in createInstance');
@@ -165,25 +163,6 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       });
 
-    if (auth.TYPE === 'jwt') {
-      this.router.put('/refreshToken', async (req, res) => {
-        logger.verbose('request received in refreshToken');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-        const response = await this.dataValidate<OldToken>({
-          request: req,
-          schema: oldTokenSchema,
-          ClassRef: OldToken,
-          execute: (_, data) => instanceController.refreshToken(_, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      });
-    }
-
     this.router.delete('/deleteDatabase', async (req, res) => {
       logger.verbose('request received in deleteDatabase');
       logger.verbose('request body: ');
@@ -194,7 +173,7 @@ export class InstanceRouter extends RouterBroker {
       const db = this.configService.get<Database>('DATABASE');
       if (db.ENABLED) {
         try {
-          await dbserver.dropDatabase();
+          await mongodbServer.dropDatabase();
           return res
             .status(HttpStatus.CREATED)
             .json({ status: 'SUCCESS', error: false, response: { message: 'database deleted' } });

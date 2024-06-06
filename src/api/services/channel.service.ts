@@ -21,7 +21,6 @@ import {
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
-import { ChamaaiService } from '../integrations/chamaai/services/chamaai.service';
 import { ChatwootRaw } from '../integrations/chatwoot/models/chatwoot.model';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
 import { getAMQP, removeQueues } from '../integrations/rabbitmq/libs/amqp.server';
@@ -29,12 +28,13 @@ import { getSQS, removeQueues as removeQueuesSQS } from '../integrations/sqs/lib
 import { TypebotService } from '../integrations/typebot/services/typebot.service';
 import { getIO } from '../integrations/websocket/libs/socket.server';
 import { WebsocketRaw } from '../integrations/websocket/models/websocket.model';
-import { ChamaaiRaw, IntegrationRaw, ProxyRaw, RabbitmqRaw, SettingsRaw, SqsRaw, TypebotRaw } from '../models';
+import { IntegrationRaw, ProxyRaw, RabbitmqRaw, SettingsRaw, SqsRaw, TypebotRaw } from '../models';
 import { WebhookRaw } from '../models/webhook.model';
-import { ContactQuery } from '../repository/contact.repository';
-import { MessageQuery } from '../repository/message.repository';
-import { MessageUpQuery } from '../repository/messageUp.repository';
-import { RepositoryBroker } from '../repository/repository.manager';
+import { ContactQuery } from '../repository/mongodb/contact.repository';
+import { MessageQuery } from '../repository/mongodb/message.repository';
+import { MessageUpQuery } from '../repository/mongodb/messageUp.repository';
+import { MongodbRepository } from '../repository/mongodb/repository.manager';
+import { PrismaRepository } from '../repository/prisma/repository.service';
 import { waMonitor } from '../server.module';
 import { Events, wa } from '../types/wa.types';
 import { CacheService } from './cache.service';
@@ -43,7 +43,8 @@ export class ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
-    public readonly repository: RepositoryBroker,
+    public readonly mongodbRepository: MongodbRepository,
+    public readonly prismaRepository: PrismaRepository,
     public readonly chatwootCache: CacheService,
   ) {
     this.logger.verbose('ChannelStartupService initialized');
@@ -60,16 +61,19 @@ export class ChannelStartupService {
   public readonly localSqs: wa.LocalSqs = {};
   public readonly localTypebot: wa.LocalTypebot = {};
   public readonly localProxy: wa.LocalProxy = {};
-  public readonly localChamaai: wa.LocalChamaai = {};
   public readonly localIntegration: wa.LocalIntegration = {};
   public readonly localSettings: wa.LocalSettings = {};
   public readonly storePath = join(ROOT_DIR, 'store');
 
-  public chatwootService = new ChatwootService(waMonitor, this.configService, this.repository, this.chatwootCache);
+  public chatwootService = new ChatwootService(
+    waMonitor,
+    this.configService,
+    this.mongodbRepository,
+    this.prismaRepository,
+    this.chatwootCache,
+  );
 
   public typebotService = new TypebotService(waMonitor, this.configService, this.eventEmitter);
-
-  public chamaaiService = new ChamaaiService(waMonitor, this.configService);
 
   public set instanceName(name: string) {
     this.logger.setInstance(name);
@@ -112,7 +116,7 @@ export class ChannelStartupService {
 
   public async loadIntegration() {
     this.logger.verbose('Loading webhook');
-    const data = await this.repository.integration.find(this.instanceName);
+    const data = await this.mongodbRepository.integration.find(this.instanceName);
     this.localIntegration.integration = data?.integration;
     this.logger.verbose(`Integration: ${this.localIntegration.integration}`);
 
@@ -127,7 +131,7 @@ export class ChannelStartupService {
 
   public async setIntegration(data: IntegrationRaw) {
     this.logger.verbose('Setting integration');
-    await this.repository.integration.create(data, this.instanceName);
+    await this.mongodbRepository.integration.create(data, this.instanceName);
     this.logger.verbose(`Integration: ${data.integration}`);
     this.logger.verbose(`Integration number: ${data.number}`);
     this.logger.verbose(`Integration token: ${data.token}`);
@@ -139,10 +143,13 @@ export class ChannelStartupService {
     this.logger.verbose('Finding integration');
     let data: any;
 
-    data = await this.repository.integration.find(this.instanceName);
+    data = await this.mongodbRepository.integration.find(this.instanceName);
 
     if (!data) {
-      this.repository.integration.create({ integration: 'WHATSAPP-BAILEYS', number: '', token: '' }, this.instanceName);
+      this.mongodbRepository.integration.create(
+        { integration: 'WHATSAPP-BAILEYS', number: '', token: '' },
+        this.instanceName,
+      );
       data = { integration: 'WHATSAPP-BAILEYS', number: '', token: '' };
     }
 
@@ -159,7 +166,7 @@ export class ChannelStartupService {
 
   public async loadSettings() {
     this.logger.verbose('Loading settings');
-    const data = await this.repository.settings.find(this.instanceName);
+    const data = await this.mongodbRepository.settings.find(this.instanceName);
     this.localSettings.reject_call = data?.reject_call;
     this.logger.verbose(`Settings reject_call: ${this.localSettings.reject_call}`);
 
@@ -186,7 +193,7 @@ export class ChannelStartupService {
 
   public async setSettings(data: SettingsRaw) {
     this.logger.verbose('Setting settings');
-    await this.repository.settings.create(data, this.instanceName);
+    await this.mongodbRepository.settings.create(data, this.instanceName);
     this.logger.verbose(`Settings reject_call: ${data.reject_call}`);
     this.logger.verbose(`Settings msg_call: ${data.msg_call}`);
     this.logger.verbose(`Settings groups_ignore: ${data.groups_ignore}`);
@@ -200,7 +207,7 @@ export class ChannelStartupService {
 
   public async findSettings() {
     this.logger.verbose('Finding settings');
-    const data = await this.repository.settings.find(this.instanceName);
+    const data = await this.mongodbRepository.settings.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Settings not found');
@@ -227,7 +234,7 @@ export class ChannelStartupService {
 
   public async loadWebhook() {
     this.logger.verbose('Loading webhook');
-    const data = await this.repository.webhook.find(this.instanceName);
+    const data = await this.mongodbRepository.webhook.find(this.instanceName);
     this.localWebhook.url = data?.url;
     this.logger.verbose(`Webhook url: ${this.localWebhook.url}`);
 
@@ -248,7 +255,7 @@ export class ChannelStartupService {
 
   public async setWebhook(data: WebhookRaw) {
     this.logger.verbose('Setting webhook');
-    await this.repository.webhook.create(data, this.instanceName);
+    await this.mongodbRepository.webhook.create(data, this.instanceName);
     this.logger.verbose(`Webhook url: ${data.url}`);
     this.logger.verbose(`Webhook events: ${data.events}`);
     Object.assign(this.localWebhook, data);
@@ -257,7 +264,7 @@ export class ChannelStartupService {
 
   public async findWebhook() {
     this.logger.verbose('Finding webhook');
-    const data = await this.repository.webhook.find(this.instanceName);
+    const data = await this.mongodbRepository.webhook.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Webhook not found');
@@ -278,7 +285,7 @@ export class ChannelStartupService {
 
   public async loadChatwoot() {
     this.logger.verbose('Loading chatwoot');
-    const data = await this.repository.chatwoot.find(this.instanceName);
+    const data = await this.mongodbRepository.chatwoot.find(this.instanceName);
     this.localChatwoot.enabled = data?.enabled;
     this.logger.verbose(`Chatwoot enabled: ${this.localChatwoot.enabled}`);
 
@@ -323,7 +330,7 @@ export class ChannelStartupService {
 
   public async setChatwoot(data: ChatwootRaw) {
     this.logger.verbose('Setting chatwoot');
-    await this.repository.chatwoot.create(data, this.instanceName);
+    await this.mongodbRepository.chatwoot.create(data, this.instanceName);
     this.logger.verbose(`Chatwoot account id: ${data.account_id}`);
     this.logger.verbose(`Chatwoot token: ${data.token}`);
     this.logger.verbose(`Chatwoot url: ${data.url}`);
@@ -346,7 +353,7 @@ export class ChannelStartupService {
 
   public async findChatwoot() {
     this.logger.verbose('Finding chatwoot');
-    const data = await this.repository.chatwoot.find(this.instanceName);
+    const data = await this.mongodbRepository.chatwoot.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Chatwoot not found');
@@ -393,7 +400,7 @@ export class ChannelStartupService {
 
   public async loadWebsocket() {
     this.logger.verbose('Loading websocket');
-    const data = await this.repository.websocket.find(this.instanceName);
+    const data = await this.mongodbRepository.websocket.find(this.instanceName);
 
     this.localWebsocket.enabled = data?.enabled;
     this.logger.verbose(`Websocket enabled: ${this.localWebsocket.enabled}`);
@@ -406,7 +413,7 @@ export class ChannelStartupService {
 
   public async setWebsocket(data: WebsocketRaw) {
     this.logger.verbose('Setting websocket');
-    await this.repository.websocket.create(data, this.instanceName);
+    await this.mongodbRepository.websocket.create(data, this.instanceName);
     this.logger.verbose(`Websocket events: ${data.events}`);
     Object.assign(this.localWebsocket, data);
     this.logger.verbose('Websocket set');
@@ -414,7 +421,7 @@ export class ChannelStartupService {
 
   public async findWebsocket() {
     this.logger.verbose('Finding websocket');
-    const data = await this.repository.websocket.find(this.instanceName);
+    const data = await this.mongodbRepository.websocket.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Websocket not found');
@@ -430,7 +437,7 @@ export class ChannelStartupService {
 
   public async loadRabbitmq() {
     this.logger.verbose('Loading rabbitmq');
-    const data = await this.repository.rabbitmq.find(this.instanceName);
+    const data = await this.mongodbRepository.rabbitmq.find(this.instanceName);
 
     this.localRabbitmq.enabled = data?.enabled;
     this.logger.verbose(`Rabbitmq enabled: ${this.localRabbitmq.enabled}`);
@@ -443,7 +450,7 @@ export class ChannelStartupService {
 
   public async setRabbitmq(data: RabbitmqRaw) {
     this.logger.verbose('Setting rabbitmq');
-    await this.repository.rabbitmq.create(data, this.instanceName);
+    await this.mongodbRepository.rabbitmq.create(data, this.instanceName);
     this.logger.verbose(`Rabbitmq events: ${data.events}`);
     Object.assign(this.localRabbitmq, data);
     this.logger.verbose('Rabbitmq set');
@@ -451,7 +458,7 @@ export class ChannelStartupService {
 
   public async findRabbitmq() {
     this.logger.verbose('Finding rabbitmq');
-    const data = await this.repository.rabbitmq.find(this.instanceName);
+    const data = await this.mongodbRepository.rabbitmq.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Rabbitmq not found');
@@ -475,7 +482,7 @@ export class ChannelStartupService {
 
   public async loadSqs() {
     this.logger.verbose('Loading sqs');
-    const data = await this.repository.sqs.find(this.instanceName);
+    const data = await this.mongodbRepository.sqs.find(this.instanceName);
 
     this.localSqs.enabled = data?.enabled;
     this.logger.verbose(`Sqs enabled: ${this.localSqs.enabled}`);
@@ -488,7 +495,7 @@ export class ChannelStartupService {
 
   public async setSqs(data: SqsRaw) {
     this.logger.verbose('Setting sqs');
-    await this.repository.sqs.create(data, this.instanceName);
+    await this.mongodbRepository.sqs.create(data, this.instanceName);
     this.logger.verbose(`Sqs events: ${data.events}`);
     Object.assign(this.localSqs, data);
     this.logger.verbose('Sqs set');
@@ -496,7 +503,7 @@ export class ChannelStartupService {
 
   public async findSqs() {
     this.logger.verbose('Finding sqs');
-    const data = await this.repository.sqs.find(this.instanceName);
+    const data = await this.mongodbRepository.sqs.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Sqs not found');
@@ -520,7 +527,7 @@ export class ChannelStartupService {
 
   public async loadTypebot() {
     this.logger.verbose('Loading typebot');
-    const data = await this.repository.typebot.find(this.instanceName);
+    const data = await this.mongodbRepository.typebot.find(this.instanceName);
 
     this.localTypebot.enabled = data?.enabled;
     this.logger.verbose(`Typebot enabled: ${this.localTypebot.enabled}`);
@@ -553,7 +560,7 @@ export class ChannelStartupService {
 
   public async setTypebot(data: TypebotRaw) {
     this.logger.verbose('Setting typebot');
-    await this.repository.typebot.create(data, this.instanceName);
+    await this.mongodbRepository.typebot.create(data, this.instanceName);
     this.logger.verbose(`Typebot typebot: ${data.typebot}`);
     this.logger.verbose(`Typebot expire: ${data.expire}`);
     this.logger.verbose(`Typebot keyword_finish: ${data.keyword_finish}`);
@@ -566,7 +573,7 @@ export class ChannelStartupService {
 
   public async findTypebot() {
     this.logger.verbose('Finding typebot');
-    const data = await this.repository.typebot.find(this.instanceName);
+    const data = await this.mongodbRepository.typebot.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Typebot not found');
@@ -588,7 +595,7 @@ export class ChannelStartupService {
 
   public async loadProxy() {
     this.logger.verbose('Loading proxy');
-    const data = await this.repository.proxy.find(this.instanceName);
+    const data = await this.mongodbRepository.proxy.find(this.instanceName);
 
     this.localProxy.enabled = data?.enabled;
     this.logger.verbose(`Proxy enabled: ${this.localProxy.enabled}`);
@@ -601,7 +608,7 @@ export class ChannelStartupService {
 
   public async setProxy(data: ProxyRaw) {
     this.logger.verbose('Setting proxy');
-    await this.repository.proxy.create(data, this.instanceName);
+    await this.mongodbRepository.proxy.create(data, this.instanceName);
     this.logger.verbose(`Proxy proxy: ${data.proxy}`);
     Object.assign(this.localProxy, data);
     this.logger.verbose('Proxy set');
@@ -609,7 +616,7 @@ export class ChannelStartupService {
 
   public async findProxy() {
     this.logger.verbose('Finding proxy');
-    const data = await this.repository.proxy.find(this.instanceName);
+    const data = await this.mongodbRepository.proxy.find(this.instanceName);
 
     if (!data) {
       this.logger.verbose('Proxy not found');
@@ -621,70 +628,6 @@ export class ChannelStartupService {
       proxy: data.proxy,
     };
   }
-
-  public async loadChamaai() {
-    this.logger.verbose('Loading chamaai');
-    const data = await this.repository.chamaai.find(this.instanceName);
-
-    this.localChamaai.enabled = data?.enabled;
-    this.logger.verbose(`Chamaai enabled: ${this.localChamaai.enabled}`);
-
-    this.localChamaai.url = data?.url;
-    this.logger.verbose(`Chamaai url: ${this.localChamaai.url}`);
-
-    this.localChamaai.token = data?.token;
-    this.logger.verbose(`Chamaai token: ${this.localChamaai.token}`);
-
-    this.localChamaai.waNumber = data?.waNumber;
-    this.logger.verbose(`Chamaai waNumber: ${this.localChamaai.waNumber}`);
-
-    this.localChamaai.answerByAudio = data?.answerByAudio;
-    this.logger.verbose(`Chamaai answerByAudio: ${this.localChamaai.answerByAudio}`);
-
-    this.logger.verbose('Chamaai loaded');
-  }
-
-  public async setChamaai(data: ChamaaiRaw) {
-    this.logger.verbose('Setting chamaai');
-    await this.repository.chamaai.create(data, this.instanceName);
-    this.logger.verbose(`Chamaai url: ${data.url}`);
-    this.logger.verbose(`Chamaai token: ${data.token}`);
-    this.logger.verbose(`Chamaai waNumber: ${data.waNumber}`);
-    this.logger.verbose(`Chamaai answerByAudio: ${data.answerByAudio}`);
-
-    Object.assign(this.localChamaai, data);
-    this.logger.verbose('Chamaai set');
-  }
-
-  public async findChamaai() {
-    this.logger.verbose('Finding chamaai');
-    const data = await this.repository.chamaai.find(this.instanceName);
-
-    if (!data) {
-      this.logger.verbose('Chamaai not found');
-      throw new NotFoundException('Chamaai not found');
-    }
-
-    return {
-      enabled: data.enabled,
-      url: data.url,
-      token: data.token,
-      waNumber: data.waNumber,
-      answerByAudio: data.answerByAudio,
-    };
-  }
-
-  private assertExchangeAsync = (channel, exchangeName, exchangeType, options) => {
-    return new Promise((resolve, reject) => {
-      channel.assertExchange(exchangeName, exchangeType, options, (error, ok) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(ok);
-        }
-      });
-    });
-  };
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
@@ -703,7 +646,7 @@ export class ChannelStartupService {
     const now = localISOTime;
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
-    const tokenStore = await this.repository.auth.find(this.instanceName);
+    const tokenStore = await this.mongodbRepository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
 
     if (rabbitmqEnabled) {
@@ -1238,7 +1181,7 @@ export class ChannelStartupService {
         },
       };
     }
-    return await this.repository.contact.find(query);
+    return await this.mongodbRepository.contact.find(query);
   }
 
   public async fetchMessages(query: MessageQuery) {
@@ -1256,7 +1199,7 @@ export class ChannelStartupService {
         limit: query?.limit,
       };
     }
-    return await this.repository.message.find(query);
+    return await this.mongodbRepository.message.find(query);
   }
 
   public async fetchStatusMessage(query: MessageUpQuery) {
@@ -1274,11 +1217,11 @@ export class ChannelStartupService {
         limit: query?.limit,
       };
     }
-    return await this.repository.messageUpdate.find(query);
+    return await this.mongodbRepository.messageUpdate.find(query);
   }
 
   public async fetchChats() {
     this.logger.verbose('Fetching chats');
-    return await this.repository.chat.find({ where: { owner: this.instance.name } });
+    return await this.mongodbRepository.chat.find({ where: { owner: this.instance.name } });
   }
 }

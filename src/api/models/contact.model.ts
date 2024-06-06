@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 
 export class ContactRaw {
   _id?: string;
@@ -23,5 +23,5 @@ const contactSchema = new Schema<ContactRaw>({
   owner: { type: String, required: true, minlength: 1 },
 });
 
-export const ContactModel = dbserver?.model(ContactRaw.name, contactSchema, 'contacts');
+export const ContactModel = mongodbServer?.model(ContactRaw.name, contactSchema, 'contacts');
 export type IContactModel = typeof ContactModel;

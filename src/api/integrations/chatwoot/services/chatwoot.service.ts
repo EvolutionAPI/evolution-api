@@ -23,7 +23,8 @@ import { ICache } from '../../../abstract/abstract.cache';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../../../dto/sendMessage.dto';
 import { ChatwootRaw, ContactRaw, MessageRaw } from '../../../models';
-import { RepositoryBroker } from '../../../repository/repository.manager';
+import { MongodbRepository } from '../../../repository/mongodb/repository.manager';
+import { PrismaRepository } from '../../../repository/prisma/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
 import { Events } from '../../../types/wa.types';
 import { ChatwootDto } from '../dto/chatwoot.dto';
@@ -37,7 +38,8 @@ export class ChatwootService {
   constructor(
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
-    private readonly repository: RepositoryBroker,
+    private readonly mongodbRepository: MongodbRepository,
+    private readonly prismaRepository: PrismaRepository,
     private readonly cache: ICache,
   ) {}
 
@@ -444,8 +446,7 @@ export class ChatwootService {
     const searchableFields = this.getSearchableFields();
 
     // eslint-disable-next-line prettier/prettier
-    if(contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')){
-
+    if (contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')) {
       const contact = this.mergeBrazilianContacts(contacts);
       if (contact) {
         return contact;
@@ -1194,7 +1195,7 @@ export class ChatwootService {
 
       this.logger.verbose('check if is a message deletion');
       if (body.event === 'message_updated' && body.content_attributes?.deleted) {
-        const message = await this.repository.message.find({
+        const message = await this.mongodbRepository.message.find({
           where: {
             owner: instance.instanceName,
             chatwoot: {
@@ -1208,7 +1209,7 @@ export class ChatwootService {
           await waInstance?.client.sendMessage(message[0].key.remoteJid, { delete: message[0].key });
 
           this.logger.verbose('deleting message in repository. Message id: ' + message[0].key.id);
-          this.repository.message.delete({
+          this.mongodbRepository.message.delete({
             where: {
               owner: instance.instanceName,
               chatwoot: {
@@ -1423,7 +1424,7 @@ export class ChatwootService {
 
         const chatwootRead = this.configService.get<Chatwoot>('CHATWOOT').MESSAGE_READ;
         if (chatwootRead) {
-          const lastMessage = await this.repository.message.find({
+          const lastMessage = await this.mongodbRepository.message.find({
             where: {
               key: {
                 fromMe: false,
@@ -1448,7 +1449,7 @@ export class ChatwootService {
                 isRead: true,
               },
             }));
-            this.repository.message.update(updateMessage, instance.instanceName, true);
+            this.mongodbRepository.message.update(updateMessage, instance.instanceName, true);
           }
         }
       }
@@ -1490,11 +1491,11 @@ export class ChatwootService {
     }
 
     message.chatwoot = chatwootMessageIds;
-    this.repository.message.update([message], instance.instanceName, true);
+    this.mongodbRepository.message.update([message], instance.instanceName, true);
   }
 
   private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageRaw> {
-    const messages = await this.repository.message.find({
+    const messages = await this.mongodbRepository.message.find({
       where: {
         key: {
           id: keyId,
@@ -1532,7 +1533,7 @@ export class ChatwootService {
 
   private async getQuotedMessage(msg: any, instance: InstanceDto): Promise<Quoted> {
     if (msg?.content_attributes?.in_reply_to) {
-      const message = await this.repository.message.find({
+      const message = await this.mongodbRepository.message.find({
         where: {
           chatwoot: {
             messageId: msg?.content_attributes?.in_reply_to,
@@ -2132,7 +2133,7 @@ export class ChatwootService {
           const message = await this.getMessageByKeyId(instance, body.key.id);
           if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
             this.logger.verbose('deleting message in repository. Message id: ' + body.key.id);
-            this.repository.message.delete({
+            this.mongodbRepository.message.delete({
               where: {
                 key: {
                   id: body.key.id,
@@ -2381,7 +2382,7 @@ export class ChatwootService {
       );
 
       const contactsWithProfilePicture = (
-        await this.repository.contact.find({
+        await this.mongodbRepository.contact.find({
           where: {
             owner: instance.instanceName,
             id: {

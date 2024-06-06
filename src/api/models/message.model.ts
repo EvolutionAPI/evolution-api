@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../libs/db.connect';
+import { mongodbServer } from '../../libs/mongodb.connect';
 import { wa } from '../types/wa.types';
 
 class Key {
@@ -72,7 +72,7 @@ messageSchema.index({ 'key.id': 1 });
 messageSchema.index({ 'key.id': 1, owner: 1 });
 messageSchema.index({ owner: 1 });
 
-export const MessageModel = dbserver?.model(MessageRaw.name, messageSchema, 'messages');
+export const MessageModel = mongodbServer?.model(MessageRaw.name, messageSchema, 'messages');
 export type IMessageModel = typeof MessageModel;
 
 export class MessageUpdateRaw {
@@ -98,5 +98,5 @@ const messageUpdateSchema = new Schema<MessageUpdateRaw>({
   owner: { type: String, required: true, min: 1 },
 });
 
-export const MessageUpModel = dbserver?.model(MessageUpdateRaw.name, messageUpdateSchema, 'messageUpdate');
+export const MessageUpModel = mongodbServer?.model(MessageUpdateRaw.name, messageUpdateSchema, 'messageUpdate');
 export type IMessageUpModel = typeof MessageUpModel;

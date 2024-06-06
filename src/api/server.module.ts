@@ -2,7 +2,8 @@ import { CacheEngine } from '../cache/cacheengine';
 import { configService } from '../config/env.config';
 import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
-import { dbserver } from '../libs/db.connect';
+import { mongodbServer } from '../libs/mongodb.connect';
+import { prismaServer } from '../libs/prisma.connect';
 import { ChatController } from './controllers/chat.controller';
 import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';
@@ -11,9 +12,6 @@ import { ProxyController } from './controllers/proxy.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { WebhookController } from './controllers/webhook.controller';
-import { ChamaaiController } from './integrations/chamaai/controllers/chamaai.controller';
-import { ChamaaiRepository } from './integrations/chamaai/repository/chamaai.repository';
-import { ChamaaiService } from './integrations/chamaai/services/chamaai.service';
 import { ChatwootController } from './integrations/chatwoot/controllers/chatwoot.controller';
 import { ChatwootRepository } from './integrations/chatwoot/repository/chatwoot.repository';
 import { ChatwootService } from './integrations/chatwoot/services/chatwoot.service';
@@ -31,7 +29,6 @@ import { WebsocketRepository } from './integrations/websocket/repository/websock
 import { WebsocketService } from './integrations/websocket/services/websocket.service';
 import {
   AuthModel,
-  ChamaaiModel,
   ChatModel,
   ChatwootModel,
   ContactModel,
@@ -48,17 +45,18 @@ import {
 } from './models';
 import { LabelModel } from './models/label.model';
 import { ProviderFiles } from './provider/sessions';
-import { AuthRepository } from './repository/auth.repository';
-import { ChatRepository } from './repository/chat.repository';
-import { ContactRepository } from './repository/contact.repository';
-import { IntegrationRepository } from './repository/integration.repository';
-import { LabelRepository } from './repository/label.repository';
-import { MessageRepository } from './repository/message.repository';
-import { MessageUpRepository } from './repository/messageUp.repository';
-import { ProxyRepository } from './repository/proxy.repository';
-import { RepositoryBroker } from './repository/repository.manager';
-import { SettingsRepository } from './repository/settings.repository';
-import { WebhookRepository } from './repository/webhook.repository';
+import { AuthRepository } from './repository/mongodb/auth.repository';
+import { ChatRepository } from './repository/mongodb/chat.repository';
+import { ContactRepository } from './repository/mongodb/contact.repository';
+import { IntegrationRepository } from './repository/mongodb/integration.repository';
+import { LabelRepository } from './repository/mongodb/label.repository';
+import { MessageRepository } from './repository/mongodb/message.repository';
+import { MessageUpRepository } from './repository/mongodb/messageUp.repository';
+import { ProxyRepository } from './repository/mongodb/proxy.repository';
+import { MongodbRepository } from './repository/mongodb/repository.manager';
+import { SettingsRepository } from './repository/mongodb/settings.repository';
+import { WebhookRepository } from './repository/mongodb/webhook.repository';
+import { PrismaRepository } from './repository/prisma/repository.service';
 import { AuthService } from './services/auth.service';
 import { CacheService } from './services/cache.service';
 import { IntegrationService } from './services/integration.service';
@@ -77,7 +75,6 @@ const typebotRepository = new TypebotRepository(TypebotModel, configService);
 const webhookRepository = new WebhookRepository(WebhookModel, configService);
 const websocketRepository = new WebsocketRepository(WebsocketModel, configService);
 const proxyRepository = new ProxyRepository(ProxyModel, configService);
-const chamaaiRepository = new ChamaaiRepository(ChamaaiModel, configService);
 const rabbitmqRepository = new RabbitmqRepository(RabbitmqModel, configService);
 const sqsRepository = new SqsRepository(SqsModel, configService);
 const integrationRepository = new IntegrationRepository(IntegrationModel, configService);
@@ -86,7 +83,7 @@ const settingsRepository = new SettingsRepository(SettingsModel, configService);
 const authRepository = new AuthRepository(AuthModel, IntegrationModel, configService);
 const labelRepository = new LabelRepository(LabelModel, configService);
 
-export const repository = new RepositoryBroker(
+export const mongodbRepository = new MongodbRepository(
   messageRepository,
   chatRepository,
   contactRepository,
@@ -99,13 +96,15 @@ export const repository = new RepositoryBroker(
   sqsRepository,
   typebotRepository,
   proxyRepository,
-  chamaaiRepository,
   integrationRepository,
   authRepository,
   labelRepository,
   configService,
-  dbserver?.getClient(),
+  mongodbServer.getClient(),
+  prismaServer,
 );
+
+export const prismaRepository = new PrismaRepository(configService);
 
 export const cache = new CacheService(new CacheEngine(configService, 'instance').getEngine());
 const chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
@@ -115,14 +114,15 @@ const providerFiles = new ProviderFiles(configService);
 export const waMonitor = new WAMonitoringService(
   eventEmitter,
   configService,
-  repository,
+  mongodbRepository,
+  prismaRepository,
   cache,
   chatwootCache,
   baileysCache,
   providerFiles,
 );
 
-const authService = new AuthService(configService, waMonitor, repository);
+const authService = new AuthService(waMonitor, mongodbRepository, prismaRepository);
 
 const typebotService = new TypebotService(waMonitor, configService, eventEmitter);
 export const typebotController = new TypebotController(typebotService);
@@ -136,9 +136,6 @@ export const websocketController = new WebsocketController(websocketService);
 const proxyService = new ProxyService(waMonitor);
 export const proxyController = new ProxyController(proxyService, waMonitor);
 
-const chamaaiService = new ChamaaiService(waMonitor, configService);
-export const chamaaiController = new ChamaaiController(chamaaiService);
-
 const rabbitmqService = new RabbitmqService(waMonitor);
 export const rabbitmqController = new RabbitmqController(rabbitmqService);
 
@@ -147,8 +144,19 @@ export const sqsController = new SqsController(sqsService);
 
 const integrationService = new IntegrationService(waMonitor);
 
-const chatwootService = new ChatwootService(waMonitor, configService, repository, chatwootCache);
-export const chatwootController = new ChatwootController(chatwootService, configService, repository);
+const chatwootService = new ChatwootService(
+  waMonitor,
+  configService,
+  mongodbRepository,
+  prismaRepository,
+  chatwootCache,
+);
+export const chatwootController = new ChatwootController(
+  chatwootService,
+  configService,
+  mongodbRepository,
+  prismaRepository,
+);
 
 const settingsService = new SettingsService(waMonitor);
 export const settingsController = new SettingsController(settingsService);
@@ -156,7 +164,8 @@ export const settingsController = new SettingsController(settingsService);
 export const instanceController = new InstanceController(
   waMonitor,
   configService,
-  repository,
+  mongodbRepository,
+  prismaRepository,
   eventEmitter,
   authService,
   webhookService,

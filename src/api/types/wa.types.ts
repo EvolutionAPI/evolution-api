@@ -27,7 +27,6 @@ export enum Events {
   CALL = 'call',
   TYPEBOT_START = 'typebot.start',
   TYPEBOT_CHANGE_STATUS = 'typebot.change-status',
-  CHAMA_AI_ACTION = 'chama-ai.action',
   LABELS_EDIT = 'labels.edit',
   LABELS_ASSOCIATION = 'labels.association',
   CREDS_UPDATE = 'creds.update',
@@ -129,14 +128,6 @@ export declare namespace wa {
   export type LocalProxy = {
     enabled?: boolean;
     proxy?: Proxy;
-  };
-
-  export type LocalChamaai = {
-    enabled?: boolean;
-    url?: string;
-    token?: string;
-    waNumber?: string;
-    answerByAudio?: boolean;
   };
 
   export type LocalIntegration = {

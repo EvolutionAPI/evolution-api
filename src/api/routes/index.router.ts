@@ -1,10 +1,9 @@
 import { Router } from 'express';
 import fs from 'fs';
 
-import { Auth, configService } from '../../config/env.config';
+import { configService } from '../../config/env.config';
 import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
-import { ChamaaiRouter } from '../integrations/chamaai/routes/chamaai.router';
 import { ChatwootRouter } from '../integrations/chatwoot/routes/chatwoot.router';
 import { RabbitmqRouter } from '../integrations/rabbitmq/routes/rabbitmq.router';
 import { SqsRouter } from '../integrations/sqs/routes/sqs.router';
@@ -31,9 +30,8 @@ enum HttpStatus {
 }
 
 const router = Router();
-const authType = configService.get<Auth>('AUTHENTICATION').TYPE;
 const serverConfig = configService.get('SERVER');
-const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard[authType]];
+const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard['apikey']];
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
@@ -45,7 +43,6 @@ router
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
       version: packageJson.version,
-      swagger: !serverConfig.DISABLE_DOCS ? `${req.protocol}://${req.get('host')}/docs` : undefined,
       manager: !serverConfig.DISABLE_MANAGER ? `${req.protocol}://${req.get('host')}/manager` : undefined,
       documentation: `https://doc.evolution-api.com`,
     });
@@ -62,7 +59,6 @@ router
   .use('/sqs', new SqsRouter(...guards).router)
   .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
-  .use('/chamaai', new ChamaaiRouter(...guards).router)
   .use('/label', new LabelRouter(...guards).router);
 
 export { HttpStatus, router };

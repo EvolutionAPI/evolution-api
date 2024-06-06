@@ -19,7 +19,6 @@ import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
 import {
   AuthModel,
-  ChamaaiModel,
   ChatwootModel,
   ContactModel,
   LabelModel,
@@ -31,7 +30,8 @@ import {
   WebsocketModel,
 } from '../models';
 import { ProviderFiles } from '../provider/sessions';
-import { RepositoryBroker } from '../repository/repository.manager';
+import { MongodbRepository } from '../repository/mongodb/repository.manager';
+import { PrismaRepository } from '../repository/prisma/repository.service';
 import { Integration } from '../types/wa.types';
 import { CacheService } from './cache.service';
 import { BaileysStartupService } from './channels/whatsapp.baileys.service';
@@ -41,7 +41,8 @@ export class WAMonitoringService {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
-    private readonly repository: RepositoryBroker,
+    private readonly monogodbRepository: MongodbRepository,
+    private readonly primaRepository: PrismaRepository,
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
     private readonly baileysCache: CacheService,
@@ -56,7 +57,7 @@ export class WAMonitoringService {
     Object.assign(this.redis, configService.get<CacheConf>('CACHE'));
 
     this.dbInstance = this.db.ENABLED
-      ? this.repository.dbServer?.db(this.db.CONNECTION.DB_PREFIX_NAME + '-instances')
+      ? this.monogodbRepository.mongodbServer?.db(this.db.CONNECTION.DB_PREFIX_NAME + '-instances')
       : undefined;
   }
 
@@ -135,7 +136,7 @@ export class WAMonitoringService {
           const instanceData = {
             instance: {
               instanceName: key,
-              instanceId: (await this.repository.auth.find(key))?.instanceId,
+              instanceId: (await this.monogodbRepository.auth.find(key))?.instanceId,
               owner: value.wuid,
               profileName: (await value.getProfileName()) || 'not loaded',
               profilePictureUrl: value.profilePictureUrl,
@@ -147,7 +148,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
+            instanceData.instance['apikey'] = (await this.monogodbRepository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
 
@@ -161,7 +162,7 @@ export class WAMonitoringService {
           const instanceData = {
             instance: {
               instanceName: key,
-              instanceId: (await this.repository.auth.find(key))?.instanceId,
+              instanceId: (await this.monogodbRepository.auth.find(key))?.instanceId,
               status: value.connectionStatus.state,
             },
           };
@@ -169,7 +170,7 @@ export class WAMonitoringService {
           if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (await this.repository.auth.find(key))?.apikey;
+            instanceData.instance['apikey'] = (await this.monogodbRepository.auth.find(key))?.apikey;
 
             instanceData.instance['chatwoot'] = chatwoot;
 
@@ -193,12 +194,12 @@ export class WAMonitoringService {
     this.logger.verbose('get instance info');
     let instanceName: string;
     if (instanceId) {
-      instanceName = await this.repository.auth.findInstanceNameById(instanceId);
+      instanceName = await this.monogodbRepository.auth.findInstanceNameById(instanceId);
       if (!instanceName) {
         throw new NotFoundException(`Instance "${instanceId}" not found`);
       }
     } else if (number) {
-      instanceName = await this.repository.auth.findInstanceNameByNumber(number);
+      instanceName = await this.monogodbRepository.auth.findInstanceNameByNumber(number);
       if (!instanceName) {
         throw new NotFoundException(`Instance "${number}" not found`);
       }
@@ -254,7 +255,7 @@ export class WAMonitoringService {
 
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       this.logger.verbose('cleaning up instance in database: ' + instanceName);
-      await this.repository.dbServer.connect();
+      await this.monogodbRepository.mongodbServer.connect();
       const collections: any[] = await this.dbInstance.collections();
       if (collections.length > 0) {
         await this.dbInstance.dropCollection(instanceName);
@@ -291,7 +292,6 @@ export class WAMonitoringService {
       execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'chamaai', instanceName + '*')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'proxy', instanceName + '*')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'rabbitmq', instanceName + '*')}`);
       execSync(`rm -rf ${join(STORE_DIR, 'typebot', instanceName + '*')}`);
@@ -307,7 +307,6 @@ export class WAMonitoringService {
     await AuthModel.deleteMany({ _id: instanceName });
     await WebhookModel.deleteMany({ _id: instanceName });
     await ChatwootModel.deleteMany({ _id: instanceName });
-    await ChamaaiModel.deleteMany({ _id: instanceName });
     await ProxyModel.deleteMany({ _id: instanceName });
     await RabbitmqModel.deleteMany({ _id: instanceName });
     await TypebotModel.deleteMany({ _id: instanceName });
@@ -328,7 +327,8 @@ export class WAMonitoringService {
       } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
         await this.loadInstancesFromRedis();
       } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
-        await this.loadInstancesFromDatabase();
+        if (this.db.PROVIDER === 'mongodb') await this.loadInstancesFromDatabaseMongoDB();
+        else if (this.db.PROVIDER === 'postgresql') await this.loadInstancesFromDatabasePostgres();
       } else {
         await this.loadInstancesFromFiles();
       }
@@ -343,7 +343,7 @@ export class WAMonitoringService {
     try {
       const msgParsed = JSON.parse(JSON.stringify(data));
       if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
-        await this.repository.dbServer.connect();
+        await this.monogodbRepository.mongodbServer.connect();
         await this.dbInstance.collection(data.instanceName).replaceOne({ _id: 'integration' }, msgParsed, {
           upsert: true,
         });
@@ -358,14 +358,15 @@ export class WAMonitoringService {
   }
 
   private async setInstance(name: string) {
-    const integration = await this.repository.integration.find(name);
+    const integration = await this.monogodbRepository.integration.find(name);
 
     let instance: BaileysStartupService | BusinessStartupService;
     if (integration && integration.integration === Integration.WHATSAPP_BUSINESS) {
       instance = new BusinessStartupService(
         this.configService,
         this.eventEmitter,
-        this.repository,
+        this.monogodbRepository,
+        this.primaRepository,
         this.cache,
         this.chatwootCache,
         this.baileysCache,
@@ -377,7 +378,8 @@ export class WAMonitoringService {
       instance = new BaileysStartupService(
         this.configService,
         this.eventEmitter,
-        this.repository,
+        this.monogodbRepository,
+        this.primaRepository,
         this.cache,
         this.chatwootCache,
         this.baileysCache,
@@ -410,9 +412,9 @@ export class WAMonitoringService {
     }
   }
 
-  private async loadInstancesFromDatabase() {
+  private async loadInstancesFromDatabaseMongoDB() {
     this.logger.verbose('Database enabled');
-    await this.repository.dbServer.connect();
+    await this.monogodbRepository.mongodbServer.connect();
     const collections: any[] = await this.dbInstance.collections();
     await this.deleteTempInstances(collections);
     if (collections.length > 0) {
@@ -421,6 +423,20 @@ export class WAMonitoringService {
     } else {
       this.logger.verbose('No collections found');
     }
+  }
+
+  private async loadInstancesFromDatabasePostgres() {
+    this.logger.verbose('Database enabled');
+    await this.primaRepository.onModuleInit();
+
+    const instances = await this.primaRepository.instance.findMany();
+
+    if (instances.length === 0) {
+      this.logger.verbose('No instances found');
+      return;
+    }
+
+    await Promise.all(instances.map(async (instance) => this.setInstance(instance.name)));
   }
 
   private async loadInstancesFromProvider() {
@@ -523,7 +539,7 @@ export class WAMonitoringService {
       return;
     }
     this.logger.verbose('Cleaning up temp instances');
-    const auths = await this.repository.auth.list();
+    const auths = await this.monogodbRepository.auth.list();
     if (auths.length === 0) {
       this.logger.verbose('No temp instances found');
       return;

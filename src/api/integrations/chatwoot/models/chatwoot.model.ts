@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../../../libs/db.connect';
+import { mongodbServer } from '../../../../libs/mongodb.connect';
 
 export class ChatwootRaw {
   _id?: string;
@@ -38,5 +38,5 @@ const chatwootSchema = new Schema<ChatwootRaw>({
   days_limit_import_messages: { type: Number, required: true },
 });
 
-export const ChatwootModel = dbserver?.model(ChatwootRaw.name, chatwootSchema, 'chatwoot');
+export const ChatwootModel = mongodbServer?.model(ChatwootRaw.name, chatwootSchema, 'chatwoot');
 export type IChatwootModel = typeof ChatwootModel;

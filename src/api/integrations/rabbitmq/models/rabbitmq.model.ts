@@ -1,6 +1,6 @@
 import { Schema } from 'mongoose';
 
-import { dbserver } from '../../../../libs/db.connect';
+import { mongodbServer } from '../../../../libs/mongodb.connect';
 
 export class RabbitmqRaw {
   _id?: string;
@@ -14,5 +14,5 @@ const rabbitmqSchema = new Schema<RabbitmqRaw>({
   events: { type: [String], required: true },
 });
 
-export const RabbitmqModel = dbserver?.model(RabbitmqRaw.name, rabbitmqSchema, 'rabbitmq');
+export const RabbitmqModel = mongodbServer?.model(RabbitmqRaw.name, rabbitmqSchema, 'rabbitmq');
 export type IRabbitmqModel = typeof RabbitmqModel;
