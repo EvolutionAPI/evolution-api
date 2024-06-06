@@ -11,7 +11,6 @@ export class IntegrationService {
   private readonly logger = new Logger(IntegrationService.name);
 
   public create(instance: InstanceDto, data: IntegrationDto) {
-    this.logger.verbose('create integration: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setIntegration(data);
 
     return { integration: { ...instance, integration: data } };
@@ -19,7 +18,6 @@ export class IntegrationService {
 
   public async find(instance: InstanceDto): Promise<Integration> {
     try {
-      this.logger.verbose('find integration: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findIntegration();
 
       if (Object.keys(result).length === 0) {

@@ -26,7 +26,6 @@ export class TypebotService {
   private readonly logger = new Logger(TypebotService.name);
 
   public create(instance: InstanceDto, data: TypebotDto) {
-    this.logger.verbose('create typebot: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setTypebot(data);
 
     return { typebot: { ...instance, typebot: data } };
@@ -34,7 +33,6 @@ export class TypebotService {
 
   public async find(instance: InstanceDto): Promise<TypebotDto> {
     try {
-      this.logger.verbose('find typebot: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findTypebot();
 
       if (Object.keys(result).length === 0) {
@@ -270,7 +268,6 @@ export class TypebotService {
   }
 
   private getTypeMessage(msg: any) {
-    this.logger.verbose('get type message');
     const types = {
       conversation: msg.conversation,
       extendedTextMessage: msg.extendedTextMessage?.text,
@@ -290,128 +287,89 @@ export class TypebotService {
 
     const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';
 
-    this.logger.verbose('Type message: ' + JSON.stringify(types));
     return { ...types, messageType };
   }
 
   private getMessageContent(types: any) {
-    this.logger.verbose('get message content');
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
 
     const result = typeKey ? types[typeKey] : undefined;
-
-    this.logger.verbose('message content: ' + result);
 
     return result;
   }
 
   private getConversationMessage(msg: any) {
-    this.logger.verbose('get conversation message');
-
     const types = this.getTypeMessage(msg);
 
     const messageContent = this.getMessageContent(types);
-
-    this.logger.verbose('conversation message: ' + messageContent);
 
     return messageContent;
   }
 
   private getAudioMessageContent(msg: any) {
-    this.logger.verbose('get audio message content');
-
     const types = this.getTypeMessage(msg);
 
     const audioContent = types.audioMessage;
-
-    this.logger.verbose('audio message URL: ' + audioContent);
 
     return audioContent;
   }
 
   private getImageMessageContent(msg: any) {
-    this.logger.verbose('get image message content');
-
     const types = this.getTypeMessage(msg);
 
     const imageContent = types.imageMessage;
-
-    this.logger.verbose('image message URL: ' + imageContent);
 
     return imageContent;
   }
 
   private getVideoMessageContent(msg: any) {
-    this.logger.verbose('get video message content');
-
     const types = this.getTypeMessage(msg);
 
     const videoContent = types.videoMessage;
-
-    this.logger.verbose('video message URL: ' + videoContent);
 
     return videoContent;
   }
 
   private getDocumentMessageContent(msg: any) {
-    this.logger.verbose('get document message content');
-
     const types = this.getTypeMessage(msg);
 
     const documentContent = types.documentMessage;
-
-    this.logger.verbose('document message fileName: ' + documentContent);
 
     return documentContent;
   }
 
   private getContactMessageContent(msg: any) {
-    this.logger.verbose('get contact message content');
-
     const types = this.getTypeMessage(msg);
 
     const contactContent = types.contactMessage;
-
-    this.logger.verbose('contact message displayName: ' + contactContent);
 
     return contactContent;
   }
 
   private getLocationMessageContent(msg: any) {
-    this.logger.verbose('get location message content');
-
     const types = this.getTypeMessage(msg);
 
     const locationContent = types.locationMessage;
-
-    this.logger.verbose('location message degreesLatitude: ' + locationContent);
 
     return locationContent;
   }
 
   private getViewOnceMessageV2Content(msg: any) {
-    this.logger.verbose('get viewOnceMessageV2 content');
-
     const types = this.getTypeMessage(msg);
 
     const viewOnceContent = types.viewOnceMessageV2;
-
-    this.logger.verbose('viewOnceMessageV2 URL: ' + viewOnceContent);
 
     return viewOnceContent;
   }
 
   private getListResponseMessageContent(msg: any) {
-    this.logger.verbose('get listResponseMessage content');
-
     const types = this.getTypeMessage(msg);
 
     const listResponseContent = types.listResponseMessage || types.responseRowId;
 
-    this.logger.verbose('listResponseMessage selectedRowId: ' + listResponseContent);
-
     return listResponseContent;
   }
+
   public async createNewSession(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
     const id = Math.floor(Math.random() * 10000000000).toString();

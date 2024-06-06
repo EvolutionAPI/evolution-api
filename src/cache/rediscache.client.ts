@@ -41,10 +41,8 @@ class Redis {
       });
 
       try {
-        this.logger.verbose('connecting new redis client');
         this.client.connect();
         this.connected = true;
-        this.logger.verbose('connected to new redis client');
       } catch (e) {
         this.connected = false;
         this.logger.error('redis connect exception caught: ' + e);

@@ -1,6 +1,5 @@
 import { RequestHandler, Router } from 'express';
 
-import { Logger } from '../../../../config/logger.config';
 import { chatwootSchema, instanceNameSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
@@ -8,19 +7,11 @@ import { HttpStatus } from '../../../routes/index.router';
 import { chatwootController } from '../../../server.module';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 
-const logger = new Logger('ChatwootRouter');
-
 export class ChatwootRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('set'), ...guards, async (req, res) => {
-        logger.verbose('request received in setChatwoot');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.dataValidate<ChatwootDto>({
           request: req,
           schema: chatwootSchema,
@@ -31,12 +22,6 @@ export class ChatwootRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .get(this.routerPath('find'), ...guards, async (req, res) => {
-        logger.verbose('request received in findChatwoot');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,
@@ -47,12 +32,6 @@ export class ChatwootRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('webhook'), async (req, res) => {
-        logger.verbose('request received in findChatwoot');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,

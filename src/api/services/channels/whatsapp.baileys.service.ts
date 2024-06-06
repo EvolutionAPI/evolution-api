@@ -140,7 +140,6 @@ export class BaileysStartupService extends ChannelStartupService {
     private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
-    this.logger.verbose('BaileysStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
     this.recoveringMessages();
@@ -194,7 +193,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async forceUpdateGroupMetadataCache() {
-    this.logger.verbose('Forcing update group metadata cache');
     const groups = await this.fetchAllGroups({ getParticipants: 'false' });
 
     for (const group of groups) {
@@ -203,38 +201,28 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public get connectionStatus() {
-    this.logger.verbose('Getting connection status');
     return this.stateConnection;
   }
 
   public async logoutInstance() {
-    this.logger.verbose('logging out instance: ' + this.instanceName);
     await this.client?.logout('Log out instance: ' + this.instanceName);
 
-    this.logger.verbose('close connection instance: ' + this.instanceName);
     this.client?.ws?.close();
   }
 
   public async getProfileName() {
-    this.logger.verbose('Getting profile name');
-
     let profileName = this.client.user?.name ?? this.client.user?.verifiedName;
     if (!profileName) {
-      this.logger.verbose('Profile name not found, trying to get from database');
       if (this.configService.get<Database>('DATABASE').ENABLED) {
-        this.logger.verbose('Database enabled, trying to get from database');
-
         const data = await this.prismaRepository.session.findUnique({
           where: { sessionId: this.instanceId },
         });
 
         if (data) {
-          this.logger.verbose('Profile name found in database');
           const creds = JSON.parse(JSON.stringify(data.creds), BufferJSON.reviver);
           profileName = creds.me?.name || creds.me?.verifiedName;
         }
       } else if (existsSync(join(INSTANCE_DIR, this.instanceName, 'creds.json'))) {
-        this.logger.verbose('Profile name found in file');
         const creds = JSON.parse(
           readFileSync(join(INSTANCE_DIR, this.instanceName, 'creds.json'), {
             encoding: 'utf-8',
@@ -244,26 +232,20 @@ export class BaileysStartupService extends ChannelStartupService {
       }
     }
 
-    this.logger.verbose(`Profile name: ${profileName}`);
     return profileName;
   }
 
   public async getProfileStatus() {
-    this.logger.verbose('Getting profile status');
     const status = await this.client.fetchStatus(this.instance.wuid);
 
-    this.logger.verbose(`Profile status: ${status.status}`);
     return status.status;
   }
 
   public get profilePictureUrl() {
-    this.logger.verbose('Getting profile picture url');
     return this.instance.profilePictureUrl;
   }
 
   public get qrCode(): wa.QrCode {
-    this.logger.verbose('Getting qrcode');
-
     return {
       pairingCode: this.instance.qrcode?.pairingCode,
       code: this.instance.qrcode?.code,
@@ -273,13 +255,8 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async connectionUpdate({ qr, connection, lastDisconnect }: Partial<ConnectionState>) {
-    this.logger.verbose('Connection update');
     if (qr) {
-      this.logger.verbose('QR code found');
       if (this.instance.qrcode.count === this.configService.get<QrCode>('QRCODE').LIMIT) {
-        this.logger.verbose('QR code limit reached');
-
-        this.logger.verbose('Sending data to webhook in event QRCODE_UPDATED');
         this.sendDataWebhook(Events.QRCODE_UPDATED, {
           message: 'QR code limit reached, please login again',
           statusCode: DisconnectReason.badSession,
@@ -296,21 +273,17 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
 
-        this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
         this.sendDataWebhook(Events.CONNECTION_UPDATE, {
           instance: this.instance.name,
           state: 'refused',
           statusReason: DisconnectReason.connectionClosed,
         });
 
-        this.logger.verbose('endSession defined as true');
         this.endSession = true;
 
-        this.logger.verbose('Emmiting event logout.instance');
         return this.eventEmitter.emit('no.connection', this.instance.name);
       }
 
-      this.logger.verbose('Incrementing QR code count');
       this.instance.qrcode.count++;
 
       const color = this.configService.get<QrCode>('QRCODE').COLOR;
@@ -329,7 +302,6 @@ export class BaileysStartupService extends ChannelStartupService {
         this.instance.qrcode.pairingCode = null;
       }
 
-      this.logger.verbose('Generating QR code');
       qrcode.toDataURL(qr, optsQrcode, (error, base64) => {
         if (error) {
           this.logger.error('Qrcode generate failed:' + error.toString());
@@ -364,7 +336,6 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       });
 
-      this.logger.verbose('Generating QR code in terminal');
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
@@ -374,13 +345,11 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection) {
-      this.logger.verbose('Connection found');
       this.stateConnection = {
         state: connection,
         statusReason: (lastDisconnect?.error as Boom)?.output?.statusCode ?? 200,
       };
 
-      this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
       this.sendDataWebhook(Events.CONNECTION_UPDATE, {
         instance: this.instance.name,
         ...this.stateConnection,
@@ -388,14 +357,10 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'close') {
-      this.logger.verbose('Connection closed');
       const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
       if (shouldReconnect) {
-        this.logger.verbose('Reconnecting to whatsapp');
         await this.connectToWhatsapp();
       } else {
-        this.logger.verbose('Do not reconnect to whatsapp');
-        this.logger.verbose('Sending data to webhook in event STATUS_INSTANCE');
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
           status: 'closed',
@@ -412,16 +377,13 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
 
-        this.logger.verbose('Emittin event logout.instance');
         this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
-        this.logger.verbose('Connection closed');
       }
     }
 
     if (connection === 'open') {
-      this.logger.verbose('Connection opened');
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       this.instance.profilePictureUrl = (await this.profilePicture(this.instance.wuid)).profilePictureUrl;
       const formattedWuid = this.instance.wuid.split('@')[0].padEnd(30, ' ');
@@ -453,7 +415,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async getMessage(key: proto.IMessageKey, full = false) {
-    this.logger.verbose('Getting message with key: ' + JSON.stringify(key));
     try {
       const webMessageInfo = (await this.prismaRepository.message.findFirst({
         where: {
@@ -465,11 +426,9 @@ export class BaileysStartupService extends ChannelStartupService {
         },
       })) as unknown as proto.IWebMessageInfo[];
       if (full) {
-        this.logger.verbose('Returning full message');
         return webMessageInfo[0];
       }
       if (webMessageInfo[0].message?.pollCreationMessage) {
-        this.logger.verbose('Returning poll message');
         const messageSecretBase64 = webMessageInfo[0].message?.messageContextInfo?.messageSecret;
 
         if (typeof messageSecretBase64 === 'string') {
@@ -486,7 +445,6 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      this.logger.verbose('Returning message');
       return webMessageInfo[0].message;
     } catch (error) {
       return { conversation: '' };
@@ -494,7 +452,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async defineAuthState() {
-    this.logger.verbose('Defining auth state');
     const db = this.configService.get<Database>('DATABASE');
     const cache = this.configService.get<CacheConf>('CACHE');
 
@@ -510,16 +467,13 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {
-      this.logger.verbose('Database enabled');
       return await useMultiFileAuthStatePrisma(this.instanceId);
     }
 
-    this.logger.verbose('Store file enabled');
     return await useMultiFileAuthState(join(INSTANCE_DIR, this.instance.name));
   }
 
   public async connectToWhatsapp(number?: string): Promise<WASocket> {
-    this.logger.verbose('Connecting to whatsapp');
     try {
       this.loadWebhook();
       this.loadChatwoot();
@@ -534,7 +488,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-      this.logger.verbose('Browser: ' + JSON.stringify(browser));
 
       let version;
       let log;
@@ -642,15 +595,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.endSession = false;
 
-      this.logger.verbose('Creating socket');
-
       this.client = makeWASocket(socketConfig);
 
-      this.logger.verbose('Socket created');
-
       this.eventHandler();
-
-      this.logger.verbose('Socket event handler initialized');
 
       this.phoneNumber = number;
 
@@ -783,9 +730,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[]) => {
-      this.logger.verbose('Event received: chats.upsert');
-
-      this.logger.verbose('Finding existing chat IDs in the database');
       const existingChatIds = await this.prismaRepository.chat.findMany({
         where: { instanceId: this.instanceId },
         select: { remoteJid: true },
@@ -793,16 +737,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const existingChatIdSet = new Set(existingChatIds.map((chat) => chat.remoteJid));
 
-      this.logger.verbose('Verifying if chats exist in the database to insert');
       const chatsToInsert = chats
         .filter((chat) => !existingChatIdSet.has(chat.id))
         .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId }));
 
-      this.logger.verbose('Sending data to webhook in event CHATS_UPSERT');
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
 
       if (chatsToInsert.length > 0) {
-        this.logger.verbose('Inserting new chats in the database');
         await this.prismaRepository.chat.createMany({
           data: chatsToInsert,
         });
@@ -818,15 +759,11 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       >[],
     ) => {
-      this.logger.verbose('Event received: chats.update');
       const chatsRaw = chats.map((chat) => {
         return { remoteJid: chat.id, instanceId: this.instanceId };
       });
 
-      this.logger.verbose('Sending data to webhook in event CHATS_UPDATE');
       this.sendDataWebhook(Events.CHATS_UPDATE, chatsRaw);
-
-      this.logger.verbose('Updating chats in the database');
 
       for (const chat of chats) {
         await this.prismaRepository.chat.updateMany({
@@ -842,9 +779,6 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'chats.delete': async (chats: string[]) => {
-      this.logger.verbose('Event received: chats.delete');
-
-      this.logger.verbose('Deleting chats in database');
       chats.forEach(
         async (chat) =>
           await this.prismaRepository.chat.deleteMany({
@@ -852,7 +786,6 @@ export class BaileysStartupService extends ChannelStartupService {
           }),
       );
 
-      this.logger.verbose('Sending data to webhook in event CHATS_DELETE');
       this.sendDataWebhook(Events.CHATS_DELETE, [...chats]);
     },
   };
@@ -860,8 +793,6 @@ export class BaileysStartupService extends ChannelStartupService {
   private readonly contactHandle = {
     'contacts.upsert': async (contacts: Contact[]) => {
       try {
-        this.logger.verbose('Event received: contacts.upsert');
-
         const contactsRaw: any = contacts.map((contact) => ({
           remoteJid: contact.id,
           pushName: contact?.name || contact?.verifiedName || contact.id.split('@')[0],
@@ -869,10 +800,8 @@ export class BaileysStartupService extends ChannelStartupService {
           instanceId: this.instanceId,
         }));
 
-        this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
         if (contactsRaw.length > 0) this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
-        this.logger.verbose('Inserting contacts in database');
         if (contactsRaw.length > 0) {
           await this.prismaRepository.contact.createMany({
             data: contactsRaw,
@@ -890,7 +819,6 @@ export class BaileysStartupService extends ChannelStartupService {
           chatwootImport.importHistoryContacts({ instanceName: this.instance.name }, this.localChatwoot);
         }
 
-        this.logger.verbose('Updating profile pictures');
         const updatedContacts = await Promise.all(
           contacts.map(async (contact) => ({
             remoteJid: contact.id,
@@ -900,10 +828,8 @@ export class BaileysStartupService extends ChannelStartupService {
           })),
         );
 
-        this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
         if (updatedContacts.length > 0) this.sendDataWebhook(Events.CONTACTS_UPDATE, updatedContacts);
 
-        this.logger.verbose('Updating contacts in database');
         if (updatedContacts.length > 0) {
           await Promise.all(
             updatedContacts.map((contact) =>
@@ -922,9 +848,6 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'contacts.update': async (contacts: Partial<Contact>[]) => {
-      this.logger.verbose('Event received: contacts.update');
-
-      this.logger.verbose('Verifying if contacts exists in database to update');
       const contactsRaw: any = [];
       for await (const contact of contacts) {
         contactsRaw.push({
@@ -935,10 +858,8 @@ export class BaileysStartupService extends ChannelStartupService {
         });
       }
 
-      this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
-      this.logger.verbose('Updating contacts in database');
       this.prismaRepository.contact.updateMany({
         where: { instanceId: this.instanceId },
         data: contactsRaw,
@@ -958,15 +879,12 @@ export class BaileysStartupService extends ChannelStartupService {
       isLatest: boolean;
     }) => {
       try {
-        this.logger.verbose('Event received: messaging-history.set');
-
         const instance: InstanceDto = { instanceName: this.instance.name };
 
         const daysLimitToImport =
           this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled
             ? this.localChatwoot.daysLimitImportMessages
             : 1000;
-        this.logger.verbose(`Param days limit import messages is: ${daysLimitToImport}`);
 
         const date = new Date();
         const timestampLimitToImport = new Date(date.setDate(date.getDate() - daysLimitToImport)).getTime() / 1000;
@@ -976,7 +894,6 @@ export class BaileysStartupService extends ChannelStartupService {
         const processBatch = maxBatchTimestamp >= timestampLimitToImport;
 
         if (!processBatch) {
-          this.logger.verbose('Batch ignored by maxTimestamp in this batch');
           return;
         }
 
@@ -1001,10 +918,8 @@ export class BaileysStartupService extends ChannelStartupService {
           });
         }
 
-        this.logger.verbose('Sending data to webhook in event CHATS_SET');
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
-        this.logger.verbose('Inserting chats in database');
         this.prismaRepository.chat.createMany({
           data: chatsRaw,
           skipDuplicates: true,
@@ -1073,10 +988,8 @@ export class BaileysStartupService extends ChannelStartupService {
           });
         }
 
-        this.logger.verbose('Sending data to webhook in event MESSAGES_SET');
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
-        this.logger.verbose('Inserting messages in database');
         this.prismaRepository.message.createMany({
           data: messagesRaw,
           skipDuplicates: true,
@@ -1122,7 +1035,6 @@ export class BaileysStartupService extends ChannelStartupService {
       settings: any,
     ) => {
       try {
-        this.logger.verbose('Event received: messages.upsert');
         for (const received of messages) {
           if (
             this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
@@ -1156,7 +1068,6 @@ export class BaileysStartupService extends ChannelStartupService {
             received.message?.pollUpdateMessage ||
             !received?.message
           ) {
-            this.logger.verbose('message rejected');
             return;
           }
 
@@ -1165,7 +1076,6 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (settings?.groupsIgnore && received.key.remoteJid.includes('@g.us')) {
-            this.logger.verbose('group ignored');
             return;
           }
 
@@ -1227,7 +1137,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.logger.log(messageRaw);
 
-          this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
           if (
@@ -1267,12 +1176,10 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          this.logger.verbose('Inserting message in database');
           await this.prismaRepository.message.create({
             data: messageRaw,
           });
 
-          this.logger.verbose('Verifying contact from message');
           const contact = await this.prismaRepository.contact.findFirst({
             where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
           });
@@ -1285,12 +1192,10 @@ export class BaileysStartupService extends ChannelStartupService {
           };
 
           if (contactRaw.id === 'status@broadcast') {
-            this.logger.verbose('Contact is status@broadcast');
             return;
           }
 
           if (contact) {
-            this.logger.verbose('Contact found in database');
             const contactRaw: any = {
               remoteJid: received.key.remoteJid,
               pushName: contact.pushName,
@@ -1298,7 +1203,6 @@ export class BaileysStartupService extends ChannelStartupService {
               instanceId: this.instanceId,
             };
 
-            this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
             this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
@@ -1309,7 +1213,6 @@ export class BaileysStartupService extends ChannelStartupService {
               );
             }
 
-            this.logger.verbose('Updating contact in database');
             this.prismaRepository.contact.updateMany({
               where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
               data: contactRaw,
@@ -1317,12 +1220,8 @@ export class BaileysStartupService extends ChannelStartupService {
             return;
           }
 
-          this.logger.verbose('Contact not found in database');
-
-          this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
-          this.logger.verbose('Inserting contact in database');
           await this.prismaRepository.contact.create({
             data: contactRaw,
           });
@@ -1333,7 +1232,6 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], settings: any) => {
-      this.logger.verbose('Event received: messages.update');
       const status: Record<number, wa.StatusMessage> = {
         0: 'ERROR',
         1: 'PENDING',
@@ -1344,7 +1242,6 @@ export class BaileysStartupService extends ChannelStartupService {
       };
       for await (const { key, update } of args) {
         if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
-          this.logger.verbose('group ignored');
           return;
         }
 
@@ -1355,18 +1252,11 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (key.remoteJid !== 'status@broadcast') {
-          this.logger.verbose('Message update is valid');
-
           let pollUpdates: any;
           if (update.pollUpdates) {
-            this.logger.verbose('Poll update found');
-
-            this.logger.verbose('Getting poll message');
             const pollCreation = await this.getMessage(key);
-            this.logger.verbose(pollCreation);
 
             if (pollCreation) {
-              this.logger.verbose('Getting aggregate votes in poll message');
               pollUpdates = getAggregateVotesInPollMessage({
                 message: pollCreation as proto.IMessage,
                 pollUpdates: update.pollUpdates,
@@ -1385,16 +1275,12 @@ export class BaileysStartupService extends ChannelStartupService {
           });
 
           if (!findMessage) {
-            this.logger.verbose('Message not found in database');
             return;
           }
 
           if (status[update.status] === 'READ' && !key.fromMe) return;
 
           if (update.message === null && update.status === undefined) {
-            this.logger.verbose('Message deleted');
-
-            this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
             this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
             const message: any = {
@@ -1408,9 +1294,6 @@ export class BaileysStartupService extends ChannelStartupService {
               instanceId: this.instanceId,
             };
 
-            this.logger.verbose(message);
-
-            this.logger.verbose('Inserting message in database');
             await this.prismaRepository.messageUpdate.create({
               data: message,
             });
@@ -1438,12 +1321,8 @@ export class BaileysStartupService extends ChannelStartupService {
             instanceId: this.instanceId,
           };
 
-          this.logger.verbose(message);
-
-          this.logger.verbose('Sending data to webhook in event MESSAGES_UPDATE');
           this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
-          this.logger.verbose('Inserting message in database');
           await this.prismaRepository.messageUpdate.create({
             data: message,
           });
@@ -1454,16 +1333,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly groupHandler = {
     'groups.upsert': (groupMetadata: GroupMetadata[]) => {
-      this.logger.verbose('Event received: groups.upsert');
-
-      this.logger.verbose('Sending data to webhook in event GROUPS_UPSERT');
       this.sendDataWebhook(Events.GROUPS_UPSERT, groupMetadata);
     },
 
     'groups.update': (groupMetadataUpdate: Partial<GroupMetadata>[]) => {
-      this.logger.verbose('Event received: groups.update');
-
-      this.logger.verbose('Sending data to webhook in event GROUPS_UPDATE');
       this.sendDataWebhook(Events.GROUPS_UPDATE, groupMetadataUpdate);
 
       groupMetadataUpdate.forEach((group) => {
@@ -1478,24 +1351,18 @@ export class BaileysStartupService extends ChannelStartupService {
       participants: string[];
       action: ParticipantAction;
     }) => {
-      this.logger.verbose('Event received: group-participants.update');
-
-      this.logger.verbose('Sending data to webhook in event GROUP_PARTICIPANTS_UPDATE');
       this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
     },
   };
 
   private readonly labelHandle = {
     [Events.LABELS_EDIT]: async (label: Label) => {
-      this.logger.verbose('Event received: labels.edit');
-      this.logger.verbose('Finding labels in database');
       const labelsRepository = await this.prismaRepository.label.findMany({
         where: { instanceId: this.instanceId },
       });
 
       const savedLabel = labelsRepository.find((l) => l.labelId === label.id);
       if (label.deleted && savedLabel) {
-        this.logger.verbose('Sending data to webhook in event LABELS_EDIT');
         await this.prismaRepository.label.delete({
           where: { instanceId: this.instanceId, labelId: label.id },
         });
@@ -1505,7 +1372,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const labelName = label.name.replace(/[^\x20-\x7E]/g, '');
       if (!savedLabel || savedLabel.color !== `${label.color}` || savedLabel.name !== labelName) {
-        this.logger.verbose('Sending data to webhook in event LABELS_EDIT');
         await this.prismaRepository.label.create({
           data: {
             color: `${label.color}`,
@@ -1523,9 +1389,6 @@ export class BaileysStartupService extends ChannelStartupService {
       data: { association: LabelAssociation; type: 'remove' | 'add' },
       database: Database,
     ) => {
-      this.logger.verbose('Sending data to webhook in event LABELS_ASSOCIATION');
-
-      // Atualiza labels nos chats
       if (database.ENABLED && database.SAVE_DATA.CHATS) {
         const chats = await this.prismaRepository.chat.findMany({
           where: { instanceId: this.instanceId },
@@ -1560,73 +1423,59 @@ export class BaileysStartupService extends ChannelStartupService {
   };
 
   private eventHandler() {
-    this.logger.verbose('Initializing event handler');
     this.client.ev.process(async (events) => {
       if (!this.endSession) {
-        this.logger.verbose(`Event received: ${Object.keys(events).join(', ')}`);
         const database = this.configService.get<Database>('DATABASE');
         const settings = await this.findSettings();
 
         if (events.call) {
-          this.logger.verbose('Listening event: call');
           const call = events.call[0];
 
           if (settings?.rejectCall && call.status == 'offer') {
-            this.logger.verbose('Rejecting call');
             this.client.rejectCall(call.id, call.from);
           }
 
           if (settings?.msgCall?.trim().length > 0 && call.status == 'offer') {
-            this.logger.verbose('Sending message in call');
             const msg = await this.client.sendMessage(call.from, {
               text: settings.msgCall,
             });
 
-            this.logger.verbose('Sending data to event messages.upsert');
             this.client.ev.emit('messages.upsert', {
               messages: [msg],
               type: 'notify',
             });
           }
 
-          this.logger.verbose('Sending data to webhook in event CALL');
           this.sendDataWebhook(Events.CALL, call);
         }
 
         if (events['connection.update']) {
-          this.logger.verbose('Listening event: connection.update');
           this.connectionUpdate(events['connection.update']);
         }
 
         if (events['creds.update']) {
-          this.logger.verbose('Listening event: creds.update');
           this.instance.authState.saveCreds();
         }
 
         if (events['messaging-history.set']) {
-          this.logger.verbose('Listening event: messaging-history.set');
           const payload = events['messaging-history.set'];
           this.messageHandle['messaging-history.set'](payload);
         }
 
         if (events['messages.upsert']) {
-          this.logger.verbose('Listening event: messages.upsert');
           const payload = events['messages.upsert'];
           this.messageHandle['messages.upsert'](payload, settings);
         }
 
         if (events['messages.update']) {
-          this.logger.verbose('Listening event: messages.update');
           const payload = events['messages.update'];
           this.messageHandle['messages.update'](payload, settings);
         }
 
         if (events['presence.update']) {
-          this.logger.verbose('Listening event: presence.update');
           const payload = events['presence.update'];
 
           if (settings.groupsIgnore && payload.id.includes('@g.us')) {
-            this.logger.verbose('group ignored');
             return;
           }
           this.sendDataWebhook(Events.PRESENCE_UPDATE, payload);
@@ -1634,63 +1483,53 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (!settings?.groupsIgnore) {
           if (events['groups.upsert']) {
-            this.logger.verbose('Listening event: groups.upsert');
             const payload = events['groups.upsert'];
             this.groupHandler['groups.upsert'](payload);
           }
 
           if (events['groups.update']) {
-            this.logger.verbose('Listening event: groups.update');
             const payload = events['groups.update'];
             this.groupHandler['groups.update'](payload);
           }
 
           if (events['group-participants.update']) {
-            this.logger.verbose('Listening event: group-participants.update');
             const payload = events['group-participants.update'];
             this.groupHandler['group-participants.update'](payload);
           }
         }
 
         if (events['chats.upsert']) {
-          this.logger.verbose('Listening event: chats.upsert');
           const payload = events['chats.upsert'];
           this.chatHandle['chats.upsert'](payload);
         }
 
         if (events['chats.update']) {
-          this.logger.verbose('Listening event: chats.update');
           const payload = events['chats.update'];
           this.chatHandle['chats.update'](payload);
         }
 
         if (events['chats.delete']) {
-          this.logger.verbose('Listening event: chats.delete');
           const payload = events['chats.delete'];
           this.chatHandle['chats.delete'](payload);
         }
 
         if (events['contacts.upsert']) {
-          this.logger.verbose('Listening event: contacts.upsert');
           const payload = events['contacts.upsert'];
           this.contactHandle['contacts.upsert'](payload);
         }
 
         if (events['contacts.update']) {
-          this.logger.verbose('Listening event: contacts.update');
           const payload = events['contacts.update'];
           this.contactHandle['contacts.update'](payload);
         }
 
         if (events[Events.LABELS_ASSOCIATION]) {
-          this.logger.verbose('Listening event: labels.association');
           const payload = events[Events.LABELS_ASSOCIATION];
           this.labelHandle[Events.LABELS_ASSOCIATION](payload, database);
           return;
         }
 
         if (events[Events.LABELS_EDIT]) {
-          this.logger.verbose('Listening event: labels.edit');
           const payload = events[Events.LABELS_EDIT];
           this.labelHandle[Events.LABELS_EDIT](payload);
           return;
@@ -1732,15 +1571,12 @@ export class BaileysStartupService extends ChannelStartupService {
   public async profilePicture(number: string) {
     const jid = this.createJid(number);
 
-    this.logger.verbose('Getting profile picture with jid: ' + jid);
     try {
-      this.logger.verbose('Getting profile picture url');
       return {
         wuid: jid,
         profilePictureUrl: await this.client.profilePictureUrl(jid, 'image'),
       };
     } catch (error) {
-      this.logger.verbose('Profile picture not found');
       return {
         wuid: jid,
         profilePictureUrl: null,
@@ -1751,15 +1587,12 @@ export class BaileysStartupService extends ChannelStartupService {
   public async getStatus(number: string) {
     const jid = this.createJid(number);
 
-    this.logger.verbose('Getting profile status with jid:' + jid);
     try {
-      this.logger.verbose('Getting status');
       return {
         wuid: jid,
         status: (await this.client.fetchStatus(jid))?.status,
       };
     } catch (error) {
-      this.logger.verbose('Status not found');
       return {
         wuid: jid,
         status: null,
@@ -1776,10 +1609,7 @@ export class BaileysStartupService extends ChannelStartupService {
       throw new BadRequestException(onWhatsapp);
     }
 
-    this.logger.verbose('Getting profile with jid: ' + jid);
     try {
-      this.logger.verbose('Getting profile info');
-
       if (number) {
         const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
         const picture = await this.profilePicture(info?.jid);
@@ -1814,7 +1644,6 @@ export class BaileysStartupService extends ChannelStartupService {
         };
       }
     } catch (error) {
-      this.logger.verbose('Profile not found');
       return {
         wuid: jid,
         name: null,
@@ -1832,12 +1661,7 @@ export class BaileysStartupService extends ChannelStartupService {
     options?: Options,
     isChatwoot = false,
   ) {
-    this.logger.verbose('Sending message with typing');
-
-    this.logger.verbose(`Check if number "${number}" is WhatsApp`);
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
-
-    this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
@@ -1854,8 +1678,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
     try {
       if (options?.delay) {
-        this.logger.verbose('Delaying message');
-
         if (options.delay > 20000) {
           let remainingDelay = options.delay;
           while (remainingDelay > 20000) {
@@ -1900,7 +1722,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (msg) {
           quoted = msg;
-          this.logger.verbose('Quoted message');
         }
       }
 
@@ -1918,16 +1739,9 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (options?.mentions) {
-            this.logger.verbose('Mentions defined');
-
             if (options.mentions?.everyOne) {
-              this.logger.verbose('Mentions everyone');
-
-              this.logger.verbose('Getting group metadata');
               mentions = group.participants.map((participant) => participant.id);
-              this.logger.verbose('Getting group metadata for mentions');
             } else if (options.mentions?.mentioned?.length) {
-              this.logger.verbose('Mentions manually defined');
               mentions = options.mentions.mentioned.map((mention) => {
                 const jid = this.createJid(mention);
                 if (isJidGroup(jid)) {
@@ -1955,7 +1769,6 @@ export class BaileysStartupService extends ChannelStartupService {
           sender !== 'status@broadcast'
         ) {
           if (message['reactionMessage']) {
-            this.logger.verbose('Sending reaction');
             return await this.client.sendMessage(
               sender,
               {
@@ -1976,7 +1789,6 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         }
         if (message['conversation']) {
-          this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
             {
@@ -1996,7 +1808,6 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (!message['audio'] && !message['poll'] && sender != 'status@broadcast') {
-          this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
             {
@@ -2018,7 +1829,6 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (sender === 'status@broadcast') {
-          this.logger.verbose('Sending message');
           return await this.client.sendMessage(
             sender,
             message['status'].content as unknown as AnyMessageContent,
@@ -2030,7 +1840,6 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
 
-        this.logger.verbose('Sending message');
         return await this.client.sendMessage(
           sender,
           message as unknown as AnyMessageContent,
@@ -2060,14 +1869,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.logger.log(messageRaw);
 
-      this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isChatwoot) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
       }
 
-      this.logger.verbose('Inserting message in database');
       await this.prismaRepository.message.create({
         data: messageRaw,
       });
@@ -2084,10 +1891,8 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const { number } = data;
 
-      this.logger.verbose(`Check if number "${number}" is WhatsApp`);
       const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
-      this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
       if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
         throw new BadRequestException(isWA);
       }
@@ -2135,7 +1940,6 @@ export class BaileysStartupService extends ChannelStartupService {
   public async setPresence(data: SetPresenceDto) {
     try {
       await this.client.sendPresenceUpdate(data.presence);
-      this.logger.verbose('Sending presence update: ' + data.presence);
     } catch (error) {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
@@ -2144,7 +1948,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
   // Send Message Controller
   public async textMessage(data: SendTextDto, isChatwoot = false) {
-    this.logger.verbose('Sending text message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -2156,7 +1959,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async pollMessage(data: SendPollDto) {
-    this.logger.verbose('Sending poll message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -2171,8 +1973,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async formatStatusMessage(status: StatusMessage) {
-    this.logger.verbose('Formatting status message');
-
     if (!status.type) {
       throw new BadRequestException('Type is required');
     }
@@ -2182,9 +1982,6 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (status.allContacts) {
-      this.logger.verbose('All contacts defined as true');
-
-      this.logger.verbose('Getting contacts from database');
       const contacts = await this.prismaRepository.contact.findMany({
         where: { instanceId: this.instanceId },
       });
@@ -2193,10 +1990,7 @@ export class BaileysStartupService extends ChannelStartupService {
         throw new BadRequestException('Contacts not found');
       }
 
-      this.logger.verbose('Getting contacts with push name');
       status.statusJidList = contacts.filter((contact) => contact.pushName).map((contact) => contact.remoteJid);
-
-      this.logger.verbose(status.statusJidList);
     }
 
     if (!status.statusJidList?.length && !status.allContacts) {
@@ -2204,8 +1998,6 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (status.type === 'text') {
-      this.logger.verbose('Type defined as text');
-
       if (!status.backgroundColor) {
         throw new BadRequestException('Background color is required');
       }
@@ -2226,8 +2018,6 @@ export class BaileysStartupService extends ChannelStartupService {
       };
     }
     if (status.type === 'image') {
-      this.logger.verbose('Type defined as image');
-
       return {
         content: {
           image: {
@@ -2241,8 +2031,6 @@ export class BaileysStartupService extends ChannelStartupService {
       };
     }
     if (status.type === 'video') {
-      this.logger.verbose('Type defined as video');
-
       return {
         content: {
           video: {
@@ -2256,12 +2044,8 @@ export class BaileysStartupService extends ChannelStartupService {
       };
     }
     if (status.type === 'audio') {
-      this.logger.verbose('Type defined as audio');
-
-      this.logger.verbose('Processing audio');
       const convert = await this.processAudio(status.content, 'status@broadcast');
       if (typeof convert === 'string') {
-        this.logger.verbose('Audio processed');
         const audio = fs.readFileSync(convert).toString('base64');
 
         const result = {
@@ -2287,7 +2071,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async statusMessage(data: SendStatusDto) {
-    this.logger.verbose('Sending status message');
     const status = await this.formatStatusMessage(data.statusMessage);
 
     return await this.sendMessageWithTyping('status@broadcast', {
@@ -2297,7 +2080,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async prepareMediaMessage(mediaMessage: MediaMessage) {
     try {
-      this.logger.verbose('Preparing media message');
       const prepareMedia = await prepareWAMessageMedia(
         {
           [mediaMessage.mediatype]: isURL(mediaMessage.media)
@@ -2308,14 +2090,11 @@ export class BaileysStartupService extends ChannelStartupService {
       );
 
       const mediaType = mediaMessage.mediatype + 'Message';
-      this.logger.verbose('Media type: ' + mediaType);
 
       if (mediaMessage.mediatype === 'document' && !mediaMessage.fileName) {
-        this.logger.verbose('If media type is document and file name is not defined then');
         const regex = new RegExp(/.*\/(.+?)\./);
         const arrayMatch = regex.exec(mediaMessage.media);
         mediaMessage.fileName = arrayMatch[1];
-        this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
@@ -2357,21 +2136,17 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      this.logger.verbose('Mimetype: ' + mimetype);
-
       prepareMedia[mediaType].caption = mediaMessage?.caption;
       prepareMedia[mediaType].mimetype = mimetype;
       prepareMedia[mediaType].fileName = mediaMessage.fileName;
 
       if (mediaMessage.mediatype === 'video') {
-        this.logger.verbose('Is media type video then set gif playback as false');
         prepareMedia[mediaType].jpegThumbnail = Uint8Array.from(
           readFileSync(join(process.cwd(), 'public', 'images', 'video-cover.png')),
         );
         prepareMedia[mediaType].gifPlayback = false;
       }
 
-      this.logger.verbose('Generating wa message from content');
       return generateWAMessageFromContent(
         '',
         { [mediaType]: { ...prepareMedia[mediaType] } },
@@ -2385,31 +2160,20 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async convertToWebP(image: string, number: string) {
     try {
-      this.logger.verbose('Converting image to WebP to sticker');
-
       let imagePath: string;
       const hash = `${number}-${new Date().getTime()}`;
-      this.logger.verbose('Hash to image name: ' + hash);
 
       const outputPath = `${join(this.storePath, 'temp', `${hash}.webp`)}`;
-      this.logger.verbose('Output path: ' + outputPath);
 
       if (isBase64(image)) {
-        this.logger.verbose('Image is base64');
-
         const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
         imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
-        this.logger.verbose('Image path: ' + imagePath);
 
         await sharp(imageBuffer).toFile(imagePath);
-        this.logger.verbose('Image created');
       } else {
-        this.logger.verbose('Image is url');
-
         const timestamp = new Date().getTime();
         const url = `${image}?timestamp=${timestamp}`;
-        this.logger.verbose('including timestamp in url: ' + url);
 
         let config: any = {
           responseType: 'arraybuffer',
@@ -2429,21 +2193,16 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         const response = await axios.get(url, config);
-        this.logger.verbose('Getting image from url');
 
         const imageBuffer = Buffer.from(response.data, 'binary');
         imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
-        this.logger.verbose('Image path: ' + imagePath);
 
         await sharp(imageBuffer).toFile(imagePath);
-        this.logger.verbose('Image created');
       }
 
       await sharp(imagePath).webp().toFile(outputPath);
-      this.logger.verbose('Image converted to WebP');
 
       fs.unlinkSync(imagePath);
-      this.logger.verbose('Temp image deleted');
 
       return outputPath;
     } catch (error) {
@@ -2452,7 +2211,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async mediaSticker(data: SendStickerDto) {
-    this.logger.verbose('Sending media sticker');
     const convert = await this.convertToWebP(data.stickerMessage.image, data.number);
     const result = await this.sendMessageWithTyping(
       data.number,
@@ -2463,76 +2221,53 @@ export class BaileysStartupService extends ChannelStartupService {
     );
 
     fs.unlinkSync(convert);
-    this.logger.verbose('Converted image deleted');
 
     return result;
   }
 
   public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
-    this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
     return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
   }
 
   public async processAudio(audio: string, number: string) {
-    this.logger.verbose('Processing audio');
     let tempAudioPath: string;
     let outputAudio: string;
 
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
-    this.logger.verbose('Hash to audio name: ' + hash);
 
     if (isURL(audio)) {
-      this.logger.verbose('Audio is url');
-
       outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
-
-      this.logger.verbose('Output audio path: ' + outputAudio);
-      this.logger.verbose('Temp audio path: ' + tempAudioPath);
 
       const timestamp = new Date().getTime();
       const url = `${audio}?timestamp=${timestamp}`;
 
-      this.logger.verbose('Including timestamp in url: ' + url);
-
       const response = await axios.get(url, { responseType: 'arraybuffer' });
-      this.logger.verbose('Getting audio from url');
 
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
-      this.logger.verbose('Audio is base64');
-
       outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
-      this.logger.verbose('Output audio path: ' + outputAudio);
-      this.logger.verbose('Temp audio path: ' + tempAudioPath);
-
       const audioBuffer = Buffer.from(audio, 'base64');
       fs.writeFileSync(tempAudioPath, audioBuffer);
-      this.logger.verbose('Temp audio created');
     }
 
-    this.logger.verbose('Converting audio to mp4');
     return new Promise((resolve, reject) => {
       exec(`${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`, (error) => {
         fs.unlinkSync(tempAudioPath);
-        this.logger.verbose('Temp audio deleted');
 
         if (error) reject(error);
 
-        this.logger.verbose('Audio converted to mp4');
         resolve(outputAudio);
       });
     });
   }
 
   public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
-    this.logger.verbose('Sending audio whatsapp');
-
     if (!data.options?.encoding && data.options?.encoding !== false) {
       data.options.encoding = true;
     }
@@ -2553,7 +2288,6 @@ export class BaileysStartupService extends ChannelStartupService {
         );
 
         fs.unlinkSync(convert);
-        this.logger.verbose('Converted audio deleted');
 
         return result;
       } else {
@@ -2580,7 +2314,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async locationMessage(data: SendLocationDto) {
-    this.logger.verbose('Sending location message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -2596,7 +2329,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async listMessage(data: SendListDto) {
-    this.logger.verbose('Sending list message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -2614,36 +2346,29 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async contactMessage(data: SendContactDto) {
-    this.logger.verbose('Sending contact message');
     const message: proto.IMessage = {};
 
     const vcard = (contact: ContactMessage) => {
-      this.logger.verbose('Creating vcard');
       let result = 'BEGIN:VCARD\n' + 'VERSION:3.0\n' + `N:${contact.fullName}\n` + `FN:${contact.fullName}\n`;
 
       if (contact.organization) {
-        this.logger.verbose('Organization defined');
         result += `ORG:${contact.organization};\n`;
       }
 
       if (contact.email) {
-        this.logger.verbose('Email defined');
         result += `EMAIL:${contact.email}\n`;
       }
 
       if (contact.url) {
-        this.logger.verbose('Url defined');
         result += `URL:${contact.url}\n`;
       }
 
       if (!contact.wuid) {
-        this.logger.verbose('Wuid defined');
         contact.wuid = this.createJid(contact.phoneNumber);
       }
 
       result += `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` + 'item1.X-ABLabel:Celular\n' + 'END:VCARD';
 
-      this.logger.verbose('Vcard created');
       return result;
     };
 
@@ -2668,7 +2393,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async reactionMessage(data: SendReactionDto) {
-    this.logger.verbose('Sending reaction message');
     return await this.sendMessageWithTyping(data.reactionMessage.key.remoteJid, {
       reactionMessage: {
         key: data.reactionMessage.key,
@@ -2679,8 +2403,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
   // Chat Controller
   public async whatsappNumber(data: WhatsAppNumberDto) {
-    this.logger.verbose('Getting whatsapp number');
-
     const jids: {
       groups: { number: string; jid: string }[];
       broadcast: { number: string; jid: string }[];
@@ -2795,8 +2517,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async markMessageAsRead(data: ReadMessageDto) {
-    this.logger.verbose('Marking message as read');
-
     try {
       const keys: proto.IMessageKey[] = [];
       data.read_messages.forEach((read) => {
@@ -2837,7 +2557,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async archiveChat(data: ArchiveChatDto) {
-    this.logger.verbose('Archiving chat');
     try {
       let last_message = data.lastMessage;
       let number = data.chat;
@@ -2875,8 +2594,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async markChatUnread(data: MarkChatUnreadDto) {
-    this.logger.verbose('Marking chat as unread');
-
     try {
       let last_message = data.lastMessage;
       let number = data.chat;
@@ -2914,7 +2631,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async deleteMessage(del: DeleteMessage) {
-    this.logger.verbose('Deleting message');
     try {
       return await this.client.sendMessage(del.remoteJid, { delete: del });
     } catch (error) {
@@ -2923,7 +2639,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto) {
-    this.logger.verbose('Getting base64 from media message');
     try {
       const m = data?.message;
       const convertToMp4 = data?.convertToMp4 ?? false;
@@ -2959,7 +2674,6 @@ export class BaileysStartupService extends ChannelStartupService {
         msg.message = JSON.parse(JSON.stringify(msg.message));
       }
 
-      this.logger.verbose('Downloading media message');
       const buffer = await downloadMediaMessage(
         { key: msg?.key, message: msg?.message },
         'buffer',
@@ -2972,13 +2686,11 @@ export class BaileysStartupService extends ChannelStartupService {
       const typeMessage = getContentType(msg.message);
 
       if (convertToMp4 && typeMessage === 'audioMessage') {
-        this.logger.verbose('Converting audio to mp4');
         const number = msg.key.remoteJid.split('@')[0];
         const convert = await this.processAudio(buffer.toString('base64'), number);
 
         if (typeof convert === 'string') {
           const audio = fs.readFileSync(convert).toString('base64');
-          this.logger.verbose('Audio converted to mp4');
 
           const result = {
             mediaType,
@@ -2994,14 +2706,11 @@ export class BaileysStartupService extends ChannelStartupService {
           };
 
           fs.unlinkSync(convert);
-          this.logger.verbose('Converted audio deleted');
 
-          this.logger.verbose('Media message downloaded');
           return result;
         }
       }
 
-      this.logger.verbose('Media message downloaded');
       return {
         mediaType,
         fileName: mediaMessage['fileName'],
@@ -3021,7 +2730,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchPrivacySettings() {
-    this.logger.verbose('Fetching privacy settings');
     const privacy = await this.client.fetchPrivacySettings();
 
     return {
@@ -3035,25 +2743,13 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updatePrivacySettings(settings: PrivacySettingDto) {
-    this.logger.verbose('Updating privacy settings');
     try {
       await this.client.updateReadReceiptsPrivacy(settings.privacySettings.readreceipts);
-      this.logger.verbose('Read receipts privacy updated');
-
       await this.client.updateProfilePicturePrivacy(settings.privacySettings.profile);
-      this.logger.verbose('Profile picture privacy updated');
-
       await this.client.updateStatusPrivacy(settings.privacySettings.status);
-      this.logger.verbose('Status privacy updated');
-
       await this.client.updateOnlinePrivacy(settings.privacySettings.online);
-      this.logger.verbose('Online privacy updated');
-
       await this.client.updateLastSeenPrivacy(settings.privacySettings.last);
-      this.logger.verbose('Last seen privacy updated');
-
       await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
-      this.logger.verbose('Groups add privacy updated');
 
       this.reloadConnection();
 
@@ -3074,12 +2770,10 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchBusinessProfile(number: string): Promise<NumberBusiness> {
-    this.logger.verbose('Fetching business profile');
     try {
       const jid = number ? this.createJid(number) : this.instance.wuid;
 
       const profile = await this.client.getBusinessProfile(jid);
-      this.logger.verbose('Trying to get business profile');
 
       if (!profile) {
         const info = await this.whatsappNumber({ numbers: [jid] });
@@ -3091,7 +2785,6 @@ export class BaileysStartupService extends ChannelStartupService {
         };
       }
 
-      this.logger.verbose('Business profile fetched');
       return {
         isBusiness: true,
         ...profile,
@@ -3102,7 +2795,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateProfileName(name: string) {
-    this.logger.verbose('Updating profile name to ' + name);
     try {
       await this.client.updateProfileName(name);
 
@@ -3113,7 +2805,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateProfileStatus(status: string) {
-    this.logger.verbose('Updating profile status to: ' + status);
     try {
       await this.client.updateProfileStatus(status);
 
@@ -3124,15 +2815,11 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateProfilePicture(picture: string) {
-    this.logger.verbose('Updating profile picture');
     try {
       let pic: WAMediaUpload;
       if (isURL(picture)) {
-        this.logger.verbose('Picture is url');
-
         const timestamp = new Date().getTime();
         const url = `${picture}?timestamp=${timestamp}`;
-        this.logger.verbose('Including timestamp in url: ' + url);
 
         let config: any = {
           responseType: 'arraybuffer',
@@ -3152,17 +2839,13 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         pic = (await axios.get(url, config)).data;
-        this.logger.verbose('Getting picture from url');
       } else if (isBase64(picture)) {
-        this.logger.verbose('Picture is base64');
         pic = Buffer.from(picture, 'base64');
-        this.logger.verbose('Getting picture from base64');
       } else {
         throw new BadRequestException('"profilePicture" must be a url or a base64');
       }
 
       await this.client.updateProfilePicture(this.instance.wuid, pic);
-      this.logger.verbose('Profile picture updated');
 
       this.reloadConnection();
 
@@ -3173,7 +2856,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async removeProfilePicture() {
-    this.logger.verbose('Removing profile picture');
     try {
       await this.client.removeProfilePicture(this.instance.wuid);
 
@@ -3186,14 +2868,11 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async blockUser(data: BlockUserDto) {
-    this.logger.verbose('Blocking user: ' + data.number);
     try {
       const { number } = data;
 
-      this.logger.verbose(`Check if number "${number}" is WhatsApp`);
       const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
-      this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
       if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
         throw new BadRequestException(isWA);
       }
@@ -3212,7 +2891,6 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const jid = this.createJid(data.number);
 
-      this.logger.verbose('Updating message');
       return await this.client.sendMessage(jid, {
         text: data.text,
         edit: data.key,
@@ -3224,7 +2902,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchLabels(): Promise<LabelDto[]> {
-    this.logger.verbose('Fetching labels');
     const labels = await this.prismaRepository.label.findMany({
       where: {
         instanceId: this.instanceId,
@@ -3240,7 +2917,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async handleLabel(data: HandleLabelDto) {
-    this.logger.verbose('Adding label');
     const whatsappContact = await this.whatsappNumber({ numbers: [data.number] });
     if (whatsappContact.length === 0) {
       throw new NotFoundException('Number not found');
@@ -3299,21 +2975,17 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async createGroup(create: CreateGroupDto) {
-    this.logger.verbose('Creating group: ' + create.subject);
     try {
       const participants = (await this.whatsappNumber({ numbers: create.participants }))
         .filter((participant) => participant.exists)
         .map((participant) => participant.jid);
       const { id } = await this.client.groupCreate(create.subject, participants);
-      this.logger.verbose('Group created: ' + id);
 
       if (create?.description) {
-        this.logger.verbose('Updating group description: ' + create.description);
         await this.client.groupUpdateDescription(id, create.description);
       }
 
       if (create?.promoteParticipants) {
-        this.logger.verbose('Prometing group participants: ' + participants);
         await this.updateGParticipant({
           groupJid: id,
           action: 'promote',
@@ -3321,7 +2993,6 @@ export class BaileysStartupService extends ChannelStartupService {
         });
       }
 
-      this.logger.verbose('Getting group metadata');
       const group = await this.client.groupMetadata(id);
 
       return group;
@@ -3332,15 +3003,11 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateGroupPicture(picture: GroupPictureDto) {
-    this.logger.verbose('Updating group picture');
     try {
       let pic: WAMediaUpload;
       if (isURL(picture.image)) {
-        this.logger.verbose('Picture is url');
-
         const timestamp = new Date().getTime();
         const url = `${picture.image}?timestamp=${timestamp}`;
-        this.logger.verbose('Including timestamp in url: ' + url);
 
         let config: any = {
           responseType: 'arraybuffer',
@@ -3360,16 +3027,12 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         pic = (await axios.get(url, config)).data;
-        this.logger.verbose('Getting picture from url');
       } else if (isBase64(picture.image)) {
-        this.logger.verbose('Picture is base64');
         pic = Buffer.from(picture.image, 'base64');
-        this.logger.verbose('Getting picture from base64');
       } else {
         throw new BadRequestException('"profilePicture" must be a url or a base64');
       }
       await this.client.updateProfilePicture(picture.groupJid, pic);
-      this.logger.verbose('Group picture updated');
 
       return { update: 'success' };
     } catch (error) {
@@ -3378,7 +3041,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateGroupSubject(data: GroupSubjectDto) {
-    this.logger.verbose('Updating group subject to: ' + data.subject);
     try {
       await this.client.groupUpdateSubject(data.groupJid, data.subject);
 
@@ -3389,7 +3051,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateGroupDescription(data: GroupDescriptionDto) {
-    this.logger.verbose('Updating group description to: ' + data.description);
     try {
       await this.client.groupUpdateDescription(data.groupJid, data.description);
 
@@ -3400,7 +3061,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
-    this.logger.verbose('Fetching group');
     try {
       const group = await this.client.groupMetadata(id.groupJid);
 
@@ -3430,7 +3090,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchAllGroups(getParticipants: GetParticipant) {
-    this.logger.verbose('Fetching all groups');
     try {
       const fetch = Object.values(await this.client.groupFetchAllParticipating());
       let groups = [];
@@ -3466,7 +3125,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async inviteCode(id: GroupJid) {
-    this.logger.verbose('Fetching invite code for group: ' + id.groupJid);
     try {
       const code = await this.client.groupInviteCode(id.groupJid);
       return { inviteUrl: `https://chat.whatsapp.com/${code}`, inviteCode: code };
@@ -3476,7 +3134,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async inviteInfo(id: GroupInvite) {
-    this.logger.verbose('Fetching invite info for code: ' + id.inviteCode);
     try {
       return await this.client.groupGetInviteInfo(id.inviteCode);
     } catch (error) {
@@ -3485,13 +3142,10 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async sendInvite(id: GroupSendInvite) {
-    this.logger.verbose('Sending invite for group: ' + id.groupJid);
     try {
       const inviteCode = await this.inviteCode({ groupJid: id.groupJid });
-      this.logger.verbose('Getting invite code: ' + inviteCode.inviteCode);
 
       const inviteUrl = inviteCode.inviteUrl;
-      this.logger.verbose('Invite url: ' + inviteUrl);
 
       const numbers = id.numbers.map((number) => this.createJid(number));
       const description = id.description ?? '';
@@ -3506,8 +3160,6 @@ export class BaileysStartupService extends ChannelStartupService {
         await this.sendMessageWithTyping(number, message);
       }
 
-      this.logger.verbose('Invite sent for numbers: ' + numbers.join(', '));
-
       return { send: true, inviteUrl };
     } catch (error) {
       throw new NotFoundException('No send invite');
@@ -3515,7 +3167,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async acceptInviteCode(id: AcceptGroupInvite) {
-    this.logger.verbose('Joining the group by invitation code: ' + id.inviteCode);
     try {
       const groupJid = await this.client.groupAcceptInvite(id.inviteCode);
       return { accepted: true, groupJid: groupJid };
@@ -3525,7 +3176,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async revokeInviteCode(id: GroupJid) {
-    this.logger.verbose('Revoking invite code for group: ' + id.groupJid);
     try {
       const inviteCode = await this.client.groupRevokeInvite(id.groupJid);
       return { revoked: true, inviteCode };
@@ -3535,7 +3185,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async findParticipants(id: GroupJid) {
-    this.logger.verbose('Fetching participants for group: ' + id.groupJid);
     try {
       const participants = (await this.client.groupMetadata(id.groupJid)).participants;
       const contacts = await this.prismaRepository.contact.findMany({
@@ -3561,7 +3210,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateGParticipant(update: GroupUpdateParticipantDto) {
-    this.logger.verbose('Updating participants');
     try {
       const participants = update.participants.map((p) => this.createJid(p));
       const updateParticipants = await this.client.groupParticipantsUpdate(
@@ -3576,7 +3224,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateGSetting(update: GroupUpdateSettingDto) {
-    this.logger.verbose('Updating setting for group: ' + update.groupJid);
     try {
       const updateSetting = await this.client.groupSettingUpdate(update.groupJid, update.action);
       return { updateSetting: updateSetting };
@@ -3586,7 +3233,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async toggleEphemeral(update: GroupToggleEphemeralDto) {
-    this.logger.verbose('Toggling ephemeral for group: ' + update.groupJid);
     try {
       await this.client.groupToggleEphemeral(update.groupJid, update.expiration);
       return { success: true };
@@ -3596,7 +3242,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async leaveGroup(id: GroupJid) {
-    this.logger.verbose('Leaving group: ' + id.groupJid);
     try {
       await this.client.groupLeave(id.groupJid);
       return { groupJid: id.groupJid, leave: true };

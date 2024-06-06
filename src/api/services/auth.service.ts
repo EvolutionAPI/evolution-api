@@ -19,8 +19,6 @@ export class AuthService {
   private async apikey(instance: InstanceDto, token?: string) {
     const apikey = token ? token : v4().toUpperCase();
 
-    this.logger.verbose(token ? 'APIKEY defined: ' + apikey : 'APIKEY created: ' + apikey);
-
     const db = this.configService.get('DATABASE');
 
     if (db.ENABLED) {
@@ -31,8 +29,6 @@ export class AuthService {
             instanceId: instance.instanceId,
           },
         });
-
-        this.logger.verbose('APIKEY saved in database');
 
         return { apikey };
       } catch (error) {
@@ -48,22 +44,16 @@ export class AuthService {
   public async checkDuplicateToken(token: string) {
     const instances = await this.waMonitor.instanceInfo();
 
-    this.logger.verbose('checking duplicate token');
-
     const instance = instances.find((instance) => instance.instance.apikey === token);
 
     if (instance) {
       throw new BadRequestException('Token already exists');
     }
 
-    this.logger.verbose('available token');
-
     return true;
   }
 
   public async generateHash(instance: InstanceDto, token?: string) {
-    this.logger.verbose('generating hash apiKey to instance: ' + instance.instanceName);
-
     return (await this.apikey(instance, token)) as { apikey: string };
   }
 }

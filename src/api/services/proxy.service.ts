@@ -11,7 +11,6 @@ export class ProxyService {
   private readonly logger = new Logger(ProxyService.name);
 
   public create(instance: InstanceDto, data: ProxyDto) {
-    this.logger.verbose('create proxy: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setProxy(data);
 
     return { proxy: { ...instance, proxy: data } };
@@ -19,7 +18,6 @@ export class ProxyService {
 
   public async find(instance: InstanceDto): Promise<Proxy> {
     try {
-      this.logger.verbose('find proxy: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findProxy();
 
       if (Object.keys(result).length === 0) {

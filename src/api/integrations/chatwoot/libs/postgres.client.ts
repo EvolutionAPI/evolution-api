@@ -27,7 +27,6 @@ class Postgres {
       });
 
       try {
-        this.logger.verbose('connecting new postgres');
         this.connected = true;
       } catch (e) {
         this.connected = false;

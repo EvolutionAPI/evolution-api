@@ -1,6 +1,5 @@
 import { RequestHandler, Router } from 'express';
 
-import { Logger } from '../../../../config/logger.config';
 import { instanceNameSchema, rabbitmqSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
@@ -8,19 +7,11 @@ import { HttpStatus } from '../../../routes/index.router';
 import { rabbitmqController } from '../../../server.module';
 import { RabbitmqDto } from '../dto/rabbitmq.dto';
 
-const logger = new Logger('RabbitmqRouter');
-
 export class RabbitmqRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('set'), ...guards, async (req, res) => {
-        logger.verbose('request received in setRabbitmq');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.dataValidate<RabbitmqDto>({
           request: req,
           schema: rabbitmqSchema,
@@ -31,12 +22,6 @@ export class RabbitmqRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .get(this.routerPath('find'), ...guards, async (req, res) => {
-        logger.verbose('request received in findRabbitmq');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceNameSchema,

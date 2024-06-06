@@ -39,7 +39,6 @@ export class BusinessStartupService extends ChannelStartupService {
     private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
-    this.logger.verbose('BusinessStartupService initialized');
     this.cleanStore();
   }
 
@@ -49,7 +48,6 @@ export class BusinessStartupService extends ChannelStartupService {
   public mobile: boolean;
 
   public get connectionStatus() {
-    this.logger.verbose('Getting connection status');
     return this.stateConnection;
   }
 
@@ -58,8 +56,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public get qrCode(): wa.QrCode {
-    this.logger.verbose('Getting qrcode');
-
     return {
       pairingCode: this.instance.qrcode?.pairingCode,
       code: this.instance.qrcode?.code,
@@ -69,7 +65,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async logoutInstance() {
-    this.logger.verbose('Logging out instance');
     await this.closeClient();
   }
 
@@ -92,15 +87,12 @@ export class BusinessStartupService extends ChannelStartupService {
   public async profilePicture(number: string) {
     const jid = this.createJid(number);
 
-    this.logger.verbose('Getting profile picture with jid: ' + jid);
     try {
-      this.logger.verbose('Getting profile picture url');
       return {
         wuid: jid,
         profilePictureUrl: await this.client.profilePictureUrl(jid, 'image'),
       };
     } catch (error) {
-      this.logger.verbose('Profile picture not found');
       return {
         wuid: jid,
         profilePictureUrl: null,
@@ -121,7 +113,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async setWhatsappBusinessProfile(data: NumberBusiness): Promise<any> {
-    this.logger.verbose('set profile');
     const content = {
       messaging_product: 'whatsapp',
       about: data.about,
@@ -146,13 +137,7 @@ export class BusinessStartupService extends ChannelStartupService {
       this.loadSqs();
       this.loadTypebot();
 
-      this.logger.verbose('Creating socket');
-
-      this.logger.verbose('Socket created');
-
       this.eventHandler(content);
-
-      this.logger.verbose('Socket event handler initialized');
 
       this.phoneNumber = this.createJid(
         content.messages ? content.messages[0].from : content.statuses[0]?.recipient_id,
@@ -229,7 +214,6 @@ export class BusinessStartupService extends ChannelStartupService {
     let content: any = {};
 
     const vcard = (contact: any) => {
-      this.logger.verbose('Creating vcard');
       let result =
         'BEGIN:VCARD\n' +
         'VERSION:3.0\n' +
@@ -237,22 +221,18 @@ export class BusinessStartupService extends ChannelStartupService {
         `FN:${contact.name.formatted_name}\n`;
 
       if (contact.org) {
-        this.logger.verbose('Organization defined');
         result += `ORG:${contact.org.company};\n`;
       }
 
       if (contact.emails) {
-        this.logger.verbose('Email defined');
         result += `EMAIL:${contact.emails[0].email}\n`;
       }
 
       if (contact.urls) {
-        this.logger.verbose('Url defined');
         result += `URL:${contact.urls[0].url}\n`;
       }
 
       if (!contact.phones[0]?.wa_id) {
-        this.logger.verbose('Wuid defined');
         contact.phones[0].wa_id = this.createJid(contact.phones[0].phone);
       }
 
@@ -261,7 +241,6 @@ export class BusinessStartupService extends ChannelStartupService {
         'item1.X-ABLabel:Celular\n' +
         'END:VCARD';
 
-      this.logger.verbose('Vcard created');
       return result;
     };
 
@@ -405,8 +384,6 @@ export class BusinessStartupService extends ChannelStartupService {
 
         this.logger.log(messageRaw);
 
-        this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
-
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
@@ -442,12 +419,10 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        this.logger.verbose('Inserting message in database');
         await this.prismaRepository.message.create({
           data: messageRaw,
         });
 
-        this.logger.verbose('Verifying contact from message');
         const contact = await this.prismaRepository.contact.findFirst({
           where: { instanceId: this.instanceId, remoteJid: key.remoteJid },
         });
@@ -460,12 +435,10 @@ export class BusinessStartupService extends ChannelStartupService {
         };
 
         if (contactRaw.remoteJid === 'status@broadcast') {
-          this.logger.verbose('Contact is status@broadcast');
           return;
         }
 
         if (contact) {
-          this.logger.verbose('Contact found in database');
           const contactRaw: any = {
             remoteJid: received.contacts[0].profile.phone,
             pushName,
@@ -473,7 +446,6 @@ export class BusinessStartupService extends ChannelStartupService {
             instanceId: this.instanceId,
           };
 
-          this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
           this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
@@ -484,7 +456,6 @@ export class BusinessStartupService extends ChannelStartupService {
             );
           }
 
-          this.logger.verbose('Updating contact in database');
           await this.prismaRepository.contact.updateMany({
             where: { remoteJid: contact.remoteJid },
             data: contactRaw,
@@ -492,17 +463,12 @@ export class BusinessStartupService extends ChannelStartupService {
           return;
         }
 
-        this.logger.verbose('Contact not found in database');
-
-        this.logger.verbose('Sending data to webhook in event CONTACTS_UPSERT');
         this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
-        this.logger.verbose('Inserting contact in database');
         this.prismaRepository.contact.create({
           data: contactRaw,
         });
       }
-      this.logger.verbose('Event received: messages.update');
       if (received.statuses) {
         for await (const item of received.statuses) {
           const key = {
@@ -511,12 +477,9 @@ export class BusinessStartupService extends ChannelStartupService {
             fromMe: this.phoneNumber === received.metadata.phone_number_id,
           };
           if (settings?.groups_ignore && key.remoteJid.includes('@g.us')) {
-            this.logger.verbose('group ignored');
             return;
           }
           if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
-            this.logger.verbose('Message update is valid');
-
             if (item.status === 'read' && !key.fromMe) return;
 
             const findMessage = await this.prismaRepository.message.findFirst({
@@ -530,9 +493,6 @@ export class BusinessStartupService extends ChannelStartupService {
             });
 
             if (item.message === null && item.status === undefined) {
-              this.logger.verbose('Message deleted');
-
-              this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
               this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
               const message: any = {
@@ -546,9 +506,6 @@ export class BusinessStartupService extends ChannelStartupService {
                 instanceId: this.instanceId,
               };
 
-              this.logger.verbose(message);
-
-              this.logger.verbose('Inserting message in database');
               await this.prismaRepository.messageUpdate.create({
                 data: message,
               });
@@ -575,12 +532,8 @@ export class BusinessStartupService extends ChannelStartupService {
               instanceId: this.instanceId,
             };
 
-            this.logger.verbose(message);
-
-            this.logger.verbose('Sending data to webhook in event MESSAGES_UPDATE');
             this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
-            this.logger.verbose('Inserting message in database');
             await this.prismaRepository.messageUpdate.create({
               data: message,
             });
@@ -661,16 +614,13 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   protected async eventHandler(content: any) {
-    this.logger.verbose('Initializing event handler');
     const database = this.configService.get<Database>('DATABASE');
     const settings = await this.findSettings();
 
-    this.logger.verbose('Listening event: messages.statuses');
     this.messageHandle(content, database, settings);
   }
 
   protected async sendMessageWithTyping(number: string, message: any, options?: Options, isChatwoot = false) {
-    this.logger.verbose('Sending message with typing');
     try {
       let quoted: any;
       const linkPreview = options?.linkPreview != false ? undefined : false;
@@ -684,13 +634,11 @@ export class BusinessStartupService extends ChannelStartupService {
         }
 
         quoted = msg;
-        this.logger.verbose('Quoted message');
       }
 
       let content: any;
       const messageSent = await (async () => {
         if (message['reactionMessage']) {
-          this.logger.verbose('Sending reaction');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -705,7 +653,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['locationMessage']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -722,7 +669,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['contacts']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -735,7 +681,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['conversation']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -750,7 +695,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['media']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -766,7 +710,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['audio']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -780,7 +723,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['buttons']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -805,7 +747,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['sections']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -841,7 +782,6 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['template']) {
-          this.logger.verbose('Sending message');
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -880,14 +820,12 @@ export class BusinessStartupService extends ChannelStartupService {
 
       this.logger.log(messageRaw);
 
-      this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isChatwoot) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
       }
 
-      this.logger.verbose('Inserting message in database');
       await this.prismaRepository.message.create({
         data: messageRaw,
       });
@@ -901,7 +839,6 @@ export class BusinessStartupService extends ChannelStartupService {
 
   // Send Message Controller
   public async textMessage(data: SendTextDto, isChatwoot = false) {
-    this.logger.verbose('Sending text message');
     const res = await this.sendMessageWithTyping(
       data.number,
       {
@@ -935,17 +872,10 @@ export class BusinessStartupService extends ChannelStartupService {
 
   protected async prepareMediaMessage(mediaMessage: MediaMessage) {
     try {
-      this.logger.verbose('Preparing media message');
-
-      const mediaType = mediaMessage.mediatype + 'Message';
-      this.logger.verbose('Media type: ' + mediaType);
-
       if (mediaMessage.mediatype === 'document' && !mediaMessage.fileName) {
-        this.logger.verbose('If media type is document and file name is not defined then');
         const regex = new RegExp(/.*\/(.+?)\./);
         const arrayMatch = regex.exec(mediaMessage.media);
         mediaMessage.fileName = arrayMatch[1];
-        this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
@@ -983,7 +913,6 @@ export class BusinessStartupService extends ChannelStartupService {
 
       prepareMedia.mimetype = mimetype;
 
-      this.logger.verbose('Generating wa message from content');
       return prepareMedia;
     } catch (error) {
       this.logger.error(error);
@@ -992,18 +921,14 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
-    this.logger.verbose('Sending media message');
     const message = await this.prepareMediaMessage(data.mediaMessage);
 
     return await this.sendMessageWithTyping(data.number, { ...message }, data?.options, isChatwoot);
   }
 
   public async processAudio(audio: string, number: string) {
-    this.logger.verbose('Processing audio');
-
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
-    this.logger.verbose('Hash to audio name: ' + hash);
 
     let mimetype: string;
 
@@ -1030,15 +955,12 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
-    this.logger.verbose('Sending audio whatsapp');
-
     const message = await this.processAudio(data.audioMessage.audio, data.number);
 
     return await this.sendMessageWithTyping(data.number, { ...message }, data?.options, isChatwoot);
   }
 
   public async buttonMessage(data: SendButtonDto) {
-    this.logger.verbose('Sending button message');
     const embeddedMedia: any = {};
     let mediatype = 'TEXT';
 
@@ -1079,7 +1001,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async locationMessage(data: SendLocationDto) {
-    this.logger.verbose('Sending location message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1095,7 +1016,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async listMessage(data: SendListDto) {
-    this.logger.verbose('Sending list message');
     const sectionsItems = {
       title: data.listMessage.sections.map((list) => list.title),
     };
@@ -1129,7 +1049,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async templateMessage(data: SendTemplateDto, isChatwoot = false) {
-    this.logger.verbose('Sending text message');
     const res = await this.sendMessageWithTyping(
       data.number,
       {
@@ -1146,36 +1065,29 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async contactMessage(data: SendContactDto) {
-    this.logger.verbose('Sending contact message');
     const message: any = {};
 
     const vcard = (contact: ContactMessage) => {
-      this.logger.verbose('Creating vcard');
       let result = 'BEGIN:VCARD\n' + 'VERSION:3.0\n' + `N:${contact.fullName}\n` + `FN:${contact.fullName}\n`;
 
       if (contact.organization) {
-        this.logger.verbose('Organization defined');
         result += `ORG:${contact.organization};\n`;
       }
 
       if (contact.email) {
-        this.logger.verbose('Email defined');
         result += `EMAIL:${contact.email}\n`;
       }
 
       if (contact.url) {
-        this.logger.verbose('Url defined');
         result += `URL:${contact.url}\n`;
       }
 
       if (!contact.wuid) {
-        this.logger.verbose('Wuid defined');
         contact.wuid = this.createJid(contact.phoneNumber);
       }
 
       result += `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` + 'item1.X-ABLabel:Celular\n' + 'END:VCARD';
 
-      this.logger.verbose('Vcard created');
       return result;
     };
 
@@ -1214,7 +1126,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async reactionMessage(data: SendReactionDto) {
-    this.logger.verbose('Sending reaction message');
     return await this.sendMessageWithTyping(data.reactionMessage.key.remoteJid, {
       reactionMessage: {
         key: data.reactionMessage.key,
@@ -1226,11 +1137,9 @@ export class BusinessStartupService extends ChannelStartupService {
   public async getBase64FromMediaMessage(data: any) {
     try {
       const msg = data.message;
-      this.logger.verbose('Getting base64 from media message');
       const messageType = msg.messageType + 'Message';
       const mediaMessage = msg.message[messageType];
 
-      this.logger.verbose('Media message downloaded');
       return {
         mediaType: msg.messageType,
         fileName: mediaMessage?.fileName,

@@ -1,7 +1,6 @@
 import { Contact, Message, MessageUpdate } from '@prisma/client';
 import { RequestHandler, Router } from 'express';
 
-import { Logger } from '../../config/logger.config';
 import {
   archiveChatSchema,
   blockUserSchema,
@@ -42,20 +41,11 @@ import { Query } from '../repository/repository.service';
 import { chatController } from '../server.module';
 import { HttpStatus } from './index.router';
 
-const logger = new Logger('ChatRouter');
-
 export class ChatRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('whatsappNumbers'), ...guards, async (req, res) => {
-        logger.verbose('request received in whatsappNumbers');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<WhatsAppNumberDto>({
           request: req,
           schema: whatsappNumberSchema,
@@ -66,13 +56,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .put(this.routerPath('markMessageAsRead'), ...guards, async (req, res) => {
-        logger.verbose('request received in markMessageAsRead');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<ReadMessageDto>({
           request: req,
           schema: readMessageSchema,
@@ -83,13 +66,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('archiveChat'), ...guards, async (req, res) => {
-        logger.verbose('request received in archiveChat');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<ArchiveChatDto>({
           request: req,
           schema: archiveChatSchema,
@@ -100,13 +76,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('markChatUnread'), ...guards, async (req, res) => {
-        logger.verbose('request received in markChatUnread');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<MarkChatUnreadDto>({
           request: req,
           schema: markChatUnreadSchema,
@@ -117,13 +86,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .delete(this.routerPath('deleteMessageForEveryone'), ...guards, async (req, res) => {
-        logger.verbose('request received in deleteMessageForEveryone');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<DeleteMessage>({
           request: req,
           schema: deleteMessageSchema,
@@ -134,13 +96,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('fetchProfilePictureUrl'), ...guards, async (req, res) => {
-        logger.verbose('request received in fetchProfilePictureUrl');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<NumberDto>({
           request: req,
           schema: profilePictureSchema,
@@ -151,13 +106,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('fetchProfile'), ...guards, async (req, res) => {
-        logger.verbose('request received in fetchProfile');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<NumberDto>({
           request: req,
           schema: profileSchema,
@@ -168,13 +116,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('findContacts'), ...guards, async (req, res) => {
-        logger.verbose('request received in findContacts');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<Query<Contact>>({
           request: req,
           schema: contactValidateSchema,
@@ -185,13 +126,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('getBase64FromMediaMessage'), ...guards, async (req, res) => {
-        logger.verbose('request received in getBase64FromMediaMessage');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<getBase64FromMediaMessageDto>({
           request: req,
           schema: null,
@@ -202,13 +136,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('findMessages'), ...guards, async (req, res) => {
-        logger.verbose('request received in findMessages');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<Query<Message>>({
           request: req,
           schema: messageValidateSchema,
@@ -219,13 +146,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('findStatusMessage'), ...guards, async (req, res) => {
-        logger.verbose('request received in findStatusMessage');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<Query<MessageUpdate>>({
           request: req,
           schema: messageUpSchema,
@@ -236,13 +156,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('findChats'), ...guards, async (req, res) => {
-        logger.verbose('request received in findChats');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: null,
@@ -253,12 +166,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('sendPresence'), ...guards, async (req, res) => {
-        logger.verbose('request received in sendPresence');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.dataValidate<null>({
           request: req,
           schema: presenceSchema,
@@ -270,13 +177,6 @@ export class ChatRouter extends RouterBroker {
       })
       // Profile routes
       .get(this.routerPath('fetchPrivacySettings'), ...guards, async (req, res) => {
-        logger.verbose('request received in fetchPrivacySettings');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: null,
@@ -287,13 +187,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .put(this.routerPath('updatePrivacySettings'), ...guards, async (req, res) => {
-        logger.verbose('request received in updatePrivacySettings');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<PrivacySettingDto>({
           request: req,
           schema: privacySettingsSchema,
@@ -304,13 +197,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('fetchBusinessProfile'), ...guards, async (req, res) => {
-        logger.verbose('request received in fetchBusinessProfile');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
           schema: profilePictureSchema,
@@ -321,13 +207,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('updateProfileName'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateProfileName');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<ProfileNameDto>({
           request: req,
           schema: profileNameSchema,
@@ -338,13 +217,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('updateProfileStatus'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateProfileStatus');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<ProfileStatusDto>({
           request: req,
           schema: profileStatusSchema,
@@ -355,13 +227,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .put(this.routerPath('updateProfilePicture'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateProfilePicture');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
           schema: profilePictureSchema,
@@ -372,13 +237,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .delete(this.routerPath('removeProfilePicture'), ...guards, async (req, res) => {
-        logger.verbose('request received in removeProfilePicture');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
           schema: profilePictureSchema,
@@ -389,13 +247,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .put(this.routerPath('updateMessage'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateMessage');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<UpdateMessageDto>({
           request: req,
           schema: updateMessageSchema,
@@ -406,13 +257,6 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .put(this.routerPath('updateBlockStatus'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateBlockStatus');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.dataValidate<BlockUserDto>({
           request: req,
           schema: blockUserSchema,

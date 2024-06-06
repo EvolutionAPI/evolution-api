@@ -33,8 +33,6 @@ export const initIO = (httpServer: Server) => {
 };
 
 export const getIO = (): SocketIO => {
-  logger.verbose('Getting Socket.io');
-
   if (!io) {
     logger.error('Socket.io not initialized');
     throw new Error('Socket.io not initialized');

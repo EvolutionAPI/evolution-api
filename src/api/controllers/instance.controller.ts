@@ -94,16 +94,12 @@ export class InstanceController {
     proxy,
   }: InstanceDto) {
     try {
-      this.logger.verbose('requested createInstance from ' + instanceName + ' instance');
-
-      this.logger.verbose('checking duplicate token');
       await this.authService.checkDuplicateToken(token);
 
       if (!token && integration === Integration.WHATSAPP_BUSINESS) {
         throw new BadRequestException('token is required');
       }
 
-      this.logger.verbose('creating instance');
       let instance: BaileysStartupService | BusinessStartupService;
       if (integration === Integration.WHATSAPP_BUSINESS) {
         instance = new BusinessStartupService(
@@ -139,12 +135,9 @@ export class InstanceController {
         instanceId: instanceId,
       });
 
-      this.logger.verbose('instance: ' + instance.instanceName + ' created');
-
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
-      this.logger.verbose('generating hash');
       const hash = await this.authService.generateHash(
         {
           instanceName: instance.instanceName,
@@ -153,8 +146,6 @@ export class InstanceController {
         token,
       );
 
-      this.logger.verbose('hash: ' + hash + ' generated');
-
       let getWebhookEvents: string[];
 
       if (webhook) {
@@ -162,7 +153,6 @@ export class InstanceController {
           throw new BadRequestException('Invalid "url" property in webhook');
         }
 
-        this.logger.verbose('creating webhook');
         try {
           let newEvents: string[] = [];
           if (webhookEvents.length === 0) {
@@ -214,7 +204,6 @@ export class InstanceController {
       let getWebsocketEvents: string[];
 
       if (websocketEnabled) {
-        this.logger.verbose('creating websocket');
         try {
           let newEvents: string[] = [];
           if (websocketEvents.length === 0) {
@@ -254,7 +243,6 @@ export class InstanceController {
 
           const websocketEventsJson: JsonValue = (await this.websocketService.find(instance)).events;
 
-          // websocketEvents = (await this.websocketService.find(instance)).events;
           getWebsocketEvents = Array.isArray(websocketEventsJson)
             ? websocketEventsJson.map((event) => String(event))
             : [];
@@ -266,7 +254,6 @@ export class InstanceController {
       let getRabbitmqEvents: string[];
 
       if (rabbitmqEnabled) {
-        this.logger.verbose('creating rabbitmq');
         try {
           let newEvents: string[] = [];
           if (rabbitmqEvents.length === 0) {
@@ -317,7 +304,6 @@ export class InstanceController {
       let getSqsEvents: string[];
 
       if (sqsEnabled) {
-        this.logger.verbose('creating sqs');
         try {
           let newEvents: string[] = [];
           if (sqsEvents.length === 0) {
@@ -387,8 +373,6 @@ export class InstanceController {
             throw new BadRequestException('Invalid "url" property in typebotUrl');
           }
 
-          this.logger.verbose('creating typebot');
-
           this.typebotService.create(instance, {
             enabled: true,
             url: typebotUrl,
@@ -404,7 +388,6 @@ export class InstanceController {
         }
       }
 
-      this.logger.verbose('creating settings');
       const settings: wa.LocalSettings = {
         rejectCall: rejectCall || false,
         msgCall: msgCall || '',
@@ -414,8 +397,6 @@ export class InstanceController {
         readStatus: readStatus || false,
         syncFullHistory: syncFullHistory ?? false,
       };
-
-      this.logger.verbose('settings: ' + JSON.stringify(settings));
 
       this.settingsService.create(instance, settings);
 
@@ -440,7 +421,6 @@ export class InstanceController {
         let getQrcode: wa.QrCode;
 
         if (qrcode) {
-          this.logger.verbose('creating qrcode');
           await instance.connectToWhatsapp(number);
           await delay(5000);
           getQrcode = instance.qrCode;
@@ -487,9 +467,6 @@ export class InstanceController {
           settings,
           qrcode: getQrcode,
         };
-
-        this.logger.verbose('instance created');
-        this.logger.verbose(result);
 
         return result;
       }
@@ -612,12 +589,8 @@ export class InstanceController {
 
   public async connectToWhatsapp({ instanceName, number = null }: InstanceDto) {
     try {
-      this.logger.verbose('requested connectToWhatsapp from ' + instanceName + ' instance');
-
       const instance = this.waMonitor.waInstances[instanceName];
       const state = instance?.connectionStatus?.state;
-
-      this.logger.verbose('state: ' + state);
 
       if (!state) {
         throw new BadRequestException('The "' + instanceName + '" instance does not exist');
@@ -632,7 +605,6 @@ export class InstanceController {
       }
 
       if (state == 'close') {
-        this.logger.verbose('connecting');
         await instance.connectToWhatsapp(number);
 
         await delay(5000);
@@ -653,14 +625,11 @@ export class InstanceController {
 
   public async restartInstance({ instanceName }: InstanceDto) {
     try {
-      this.logger.verbose('requested restartInstance from ' + instanceName + ' instance');
-
       const instance = this.waMonitor.waInstances[instanceName];
       const state = instance?.connectionStatus?.state;
 
       switch (state) {
         case 'open':
-          this.logger.verbose('logging out instance: ' + instanceName);
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instance.clearCacheChatwoot();
           await instance.reloadConnection();
           await delay(2000);
@@ -675,7 +644,6 @@ export class InstanceController {
   }
 
   public async connectionState({ instanceName }: InstanceDto) {
-    this.logger.verbose('requested connectionState from ' + instanceName + ' instance');
     return {
       instance: {
         instanceName: instanceName,
@@ -709,24 +677,19 @@ export class InstanceController {
     }
 
     if (name) {
-      this.logger.verbose('requested fetchInstances from ' + name + ' instance');
-      this.logger.verbose('instanceName: ' + name);
       return this.waMonitor.instanceInfo(name, arrayReturn);
     } else if (instanceId || number) {
       return this.waMonitor.instanceInfoById(instanceId, number);
     }
 
-    this.logger.verbose('requested fetchInstances (all instances)');
     return this.waMonitor.instanceInfo();
   }
 
   public async setPresence({ instanceName }: InstanceDto, data: SetPresenceDto) {
-    this.logger.verbose('requested sendPresence from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].setPresence(data);
   }
 
   public async logout({ instanceName }: InstanceDto) {
-    this.logger.verbose('requested logout from ' + instanceName + ' instance');
     const { instance } = await this.connectionState({ instanceName });
 
     if (instance.state === 'close') {
@@ -743,7 +706,6 @@ export class InstanceController {
   }
 
   public async deleteInstance({ instanceName }: InstanceDto) {
-    this.logger.verbose('requested deleteInstance from ' + instanceName + ' instance');
     const { instance } = await this.connectionState({ instanceName });
 
     if (instance.state === 'open') {
@@ -755,12 +717,8 @@ export class InstanceController {
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) waInstances?.clearCacheChatwoot();
 
       if (instance.state === 'connecting') {
-        this.logger.verbose('logging out instance: ' + instanceName);
-
         await this.logout({ instanceName });
       }
-
-      this.logger.verbose('deleting instance: ' + instanceName);
 
       try {
         waInstances?.sendDataWebhook(Events.INSTANCE_DELETE, {

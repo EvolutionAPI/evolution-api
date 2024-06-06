@@ -1,6 +1,5 @@
 import { RequestHandler, Router } from 'express';
 
-import { Logger } from '../../config/logger.config';
 import {
   AcceptGroupInviteSchema,
   createGroupSchema,
@@ -33,19 +32,11 @@ import {
 import { groupController } from '../server.module';
 import { HttpStatus } from './index.router';
 
-const logger = new Logger('GroupRouter');
-
 export class GroupRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('create'), ...guards, async (req, res) => {
-        logger.verbose('request received in createGroup');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.dataValidate<CreateGroupDto>({
           request: req,
           schema: createGroupSchema,
@@ -56,13 +47,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('updateGroupSubject'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateGroupSubject');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-
         const response = await this.groupValidate<GroupSubjectDto>({
           request: req,
           schema: updateGroupSubjectSchema,
@@ -73,12 +57,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('updateGroupPicture'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateGroupPicture');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupPictureDto>({
           request: req,
           schema: updateGroupPictureSchema,
@@ -89,12 +67,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('updateGroupDescription'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateGroupDescription');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupDescriptionDto>({
           request: req,
           schema: updateGroupDescriptionSchema,
@@ -105,12 +77,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .get(this.routerPath('findGroupInfos'), ...guards, async (req, res) => {
-        logger.verbose('request received in findGroupInfos');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupJid>({
           request: req,
           schema: groupJidSchema,
@@ -121,12 +87,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('fetchAllGroups'), ...guards, async (req, res) => {
-        logger.verbose('request received in fetchAllGroups');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.getParticipantsValidate<GetParticipant>({
           request: req,
           schema: getParticipantsSchema,
@@ -137,12 +97,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('participants'), ...guards, async (req, res) => {
-        logger.verbose('request received in participants');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupJid>({
           request: req,
           schema: groupJidSchema,
@@ -153,12 +107,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('inviteCode'), ...guards, async (req, res) => {
-        logger.verbose('request received in inviteCode');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupJid>({
           request: req,
           schema: groupJidSchema,
@@ -169,12 +117,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('inviteInfo'), ...guards, async (req, res) => {
-        logger.verbose('request received in inviteInfo');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.inviteCodeValidate<GroupInvite>({
           request: req,
           schema: groupInviteSchema,
@@ -185,12 +127,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('acceptInviteCode'), ...guards, async (req, res) => {
-        logger.verbose('request received in acceptInviteCode');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.inviteCodeValidate<AcceptGroupInvite>({
           request: req,
           schema: AcceptGroupInviteSchema,
@@ -201,12 +137,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('sendInvite'), ...guards, async (req, res) => {
-        logger.verbose('request received in sendInvite');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupNoValidate<GroupSendInvite>({
           request: req,
           schema: groupSendInviteSchema,
@@ -217,12 +147,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .put(this.routerPath('revokeInviteCode'), ...guards, async (req, res) => {
-        logger.verbose('request received in revokeInviteCode');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupJid>({
           request: req,
           schema: groupJidSchema,
@@ -233,12 +157,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('updateParticipant'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateParticipant');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupUpdateParticipantDto>({
           request: req,
           schema: updateParticipantsSchema,
@@ -249,12 +167,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('updateSetting'), ...guards, async (req, res) => {
-        logger.verbose('request received in updateSetting');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupUpdateSettingDto>({
           request: req,
           schema: updateSettingsSchema,
@@ -265,12 +177,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .put(this.routerPath('toggleEphemeral'), ...guards, async (req, res) => {
-        logger.verbose('request received in toggleEphemeral');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupToggleEphemeralDto>({
           request: req,
           schema: toggleEphemeralSchema,
@@ -281,12 +187,6 @@ export class GroupRouter extends RouterBroker {
         res.status(HttpStatus.CREATED).json(response);
       })
       .delete(this.routerPath('leaveGroup'), ...guards, async (req, res) => {
-        logger.verbose('request received in leaveGroup');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
         const response = await this.groupValidate<GroupJid>({
           request: req,
           schema: {},

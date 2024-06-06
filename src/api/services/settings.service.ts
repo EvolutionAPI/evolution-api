@@ -9,7 +9,6 @@ export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
 
   public create(instance: InstanceDto, data: SettingsDto) {
-    this.logger.verbose('create settings: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setSettings(data);
 
     return { settings: { ...instance, settings: data } };
@@ -17,7 +16,6 @@ export class SettingsService {
 
   public async find(instance: InstanceDto): Promise<SettingsDto> {
     try {
-      this.logger.verbose('find settings: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findSettings();
 
       if (Object.keys(result).length === 0) {

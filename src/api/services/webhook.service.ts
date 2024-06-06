@@ -11,7 +11,6 @@ export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
 
   public create(instance: InstanceDto, data: WebhookDto) {
-    this.logger.verbose('create webhook: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setWebhook(data);
 
     return { webhook: { ...instance, webhook: data } };
@@ -19,7 +18,6 @@ export class WebhookService {
 
   public async find(instance: InstanceDto): Promise<Webhook> {
     try {
-      this.logger.verbose('find webhook: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findWebhook();
 
       if (Object.keys(result).length === 0) {

@@ -12,8 +12,6 @@ export const prismaServer = (() => {
     logger.verbose('connecting');
     const db = new PrismaClient();
 
-    logger.verbose('connected in ' + db.$connect);
-
     process.on('beforeExit', () => {
       logger.verbose('instance destroyed');
       db.$disconnect();

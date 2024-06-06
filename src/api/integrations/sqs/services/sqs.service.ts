@@ -12,7 +12,6 @@ export class SqsService {
   private readonly logger = new Logger(SqsService.name);
 
   public create(instance: InstanceDto, data: SqsDto) {
-    this.logger.verbose('create sqs: ' + instance.instanceName);
     this.waMonitor.waInstances[instance.instanceName].setSqs(data);
 
     initQueues(instance.instanceName, data.events);
@@ -21,7 +20,6 @@ export class SqsService {
 
   public async find(instance: InstanceDto): Promise<Sqs> {
     try {
-      this.logger.verbose('find sqs: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findSqs();
 
       if (Object.keys(result).length === 0) {

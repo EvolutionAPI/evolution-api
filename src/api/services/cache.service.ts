@@ -8,9 +8,9 @@ export class CacheService {
 
   constructor(private readonly cache: ICache) {
     if (cache) {
-      this.logger.verbose(`cacheservice created using cache engine: ${cache.constructor?.name}`);
+      this.logger.info(`cacheservice created using cache engine: ${cache.constructor?.name}`);
     } else {
-      this.logger.verbose(`cacheservice disabled`);
+      this.logger.info(`cacheservice disabled`);
     }
   }
 
@@ -18,7 +18,6 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
-    this.logger.verbose(`cacheservice getting key: ${key}`);
     return this.cache.get(key);
   }
 
@@ -41,7 +40,6 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
-    this.logger.verbose(`cacheservice setting key: ${key}`);
     this.cache.set(key, value);
   }
 
@@ -59,7 +57,6 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
-    this.logger.verbose(`cacheservice has key: ${key}`);
     return this.cache.has(key);
   }
 
@@ -67,7 +64,6 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
-    this.logger.verbose(`cacheservice deleting key: ${key}`);
     return this.cache.delete(key);
   }
 
@@ -85,7 +81,6 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
-    this.logger.verbose(`cacheservice deleting all keys`);
     return this.cache.deleteAll(appendCriteria);
   }
 
@@ -93,7 +88,6 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
-    this.logger.verbose(`cacheservice getting all keys`);
     return this.cache.keys(appendCriteria);
   }
 }

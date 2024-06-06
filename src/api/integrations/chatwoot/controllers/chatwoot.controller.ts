@@ -2,7 +2,6 @@ import { isURL } from 'class-validator';
 
 import { CacheEngine } from '../../../../cache/cacheengine';
 import { Chatwoot, ConfigService, HttpServer } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
 import { BadRequestException } from '../../../../exceptions';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
@@ -10,8 +9,6 @@ import { waMonitor } from '../../../server.module';
 import { CacheService } from '../../../services/cache.service';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { ChatwootService } from '../services/chatwoot.service';
-
-const logger = new Logger('ChatwootController');
 
 export class ChatwootController {
   constructor(
@@ -22,8 +19,6 @@ export class ChatwootController {
 
   public async createChatwoot(instance: InstanceDto, data: ChatwootDto) {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
-
-    logger.verbose('requested createChatwoot from ' + instance.instanceName + ' instance');
 
     if (data.enabled) {
       if (!isURL(data.url, { require_tld: false })) {
@@ -45,7 +40,6 @@ export class ChatwootController {
     }
 
     if (!data.enabled) {
-      logger.verbose('chatwoot disabled');
       data.accountId = '';
       data.token = '';
       data.url = '';
@@ -80,7 +74,6 @@ export class ChatwootController {
   public async findChatwoot(instance: InstanceDto) {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
 
-    logger.verbose('requested findChatwoot from ' + instance.instanceName + ' instance');
     const result = await this.chatwootService.find(instance);
 
     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
@@ -107,8 +100,6 @@ export class ChatwootController {
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
-
-    logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
 
     const chatwootCache = new CacheService(new CacheEngine(this.configService, ChatwootService.name).getEngine());
     const chatwootService = new ChatwootService(waMonitor, this.configService, this.prismaRepository, chatwootCache);
