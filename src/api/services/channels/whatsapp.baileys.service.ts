@@ -55,9 +55,11 @@ import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 
+import { CacheEngine } from '../../../cache/cacheengine';
 import {
   CacheConf,
   ConfigService,
+  configService,
   ConfigSessionPhone,
   Database,
   Log,
@@ -130,6 +132,8 @@ import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.typ
 import { CacheService } from './../cache.service';
 import { ChannelStartupService } from './../channel.service';
 
+const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
+
 export class BaileysStartupService extends ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
@@ -190,7 +194,7 @@ export class BaileysStartupService extends ChannelStartupService {
       for (const group of groups) {
         await this.updateGroupMetadataCache(group.id);
       }
-    }, 60000);
+    }, 3600000);
   }
 
   public get connectionStatus() {
@@ -660,11 +664,7 @@ export class BaileysStartupService extends ChannelStartupService {
       return;
     }
 
-    console.log('phoneNumber', phoneNumber);
-
     const parsedPhoneNumber = parsePhoneNumber(phoneNumber);
-
-    console.log('parsedPhoneNumber', parsedPhoneNumber);
 
     if (!parsedPhoneNumber?.isValid()) {
       this.logger.error('Phone number invalid');
@@ -687,7 +687,6 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const response = await this.client.requestRegistrationCode(registration);
 
-      console.log('response', response);
       if (['ok', 'sent'].includes(response?.status)) {
         this.logger.verbose('Registration code sent successfully');
 
@@ -701,9 +700,8 @@ export class BaileysStartupService extends ChannelStartupService {
   public async receiveMobileCode(code: string) {
     await this.client
       .register(code.replace(/["']/g, '').trim().toLowerCase())
-      .then(async (response) => {
+      .then(async () => {
         this.logger.verbose('Registration code received successfully');
-        console.log(response);
       })
       .catch((error) => {
         this.logger.error(error);
@@ -3199,8 +3197,7 @@ export class BaileysStartupService extends ChannelStartupService {
   private async updateGroupMetadataCache(groupJid: string) {
     try {
       const meta = await this.client.groupMetadata(groupJid);
-      console.log('updateGroupMetadataCache', groupJid);
-      await this.baileysCache.set(`group-metadata-${groupJid}`, {
+      await groupMetadataCache.set(groupJid, {
         timestamp: Date.now(),
         data: meta,
       });
@@ -3214,16 +3211,13 @@ export class BaileysStartupService extends ChannelStartupService {
   private async getGroupMetadataCache(groupJid: string) {
     if (!isJidGroup(groupJid)) return null;
 
-    console.log('getGroupMetadataCache', groupJid);
-    if (this.baileysCache.has(`group-metadata-${groupJid}`)) {
-      console.log('has cache');
-      const meta = await this.baileysCache.get(`group-metadata-${groupJid}`);
+    if (await groupMetadataCache.has(groupJid)) {
+      const meta = await groupMetadataCache.get(groupJid);
 
-      if (Date.now() - meta.timestamp > 60000) {
+      if (Date.now() - meta.timestamp > 3600000) {
         await this.updateGroupMetadataCache(groupJid);
       }
 
-      console.log('meta.data', meta.data);
       return meta.data;
     }
 
