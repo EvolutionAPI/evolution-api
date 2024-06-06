@@ -1,4 +1,6 @@
+import { configService, Sqs } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
+import { BadRequestException } from '../../../../exceptions';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { SqsDto } from '../dto/sqs.dto';
 import { SqsService } from '../services/sqs.service';
@@ -9,6 +11,7 @@ export class SqsController {
   constructor(private readonly sqsService: SqsService) {}
 
   public async createSqs(instance: InstanceDto, data: SqsDto) {
+    if (!configService.get<Sqs>('SQS').ENABLED) throw new BadRequestException('Sqs is disabled');
     logger.verbose('requested createSqs from ' + instance.instanceName + ' instance');
 
     if (!data.enabled) {

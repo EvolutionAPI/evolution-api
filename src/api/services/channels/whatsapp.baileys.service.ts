@@ -553,11 +553,11 @@ export class BaileysStartupService extends ChannelStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
+        this.logger.info('Proxy enabled: ' + this.localProxy?.host);
 
-        if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
+        if (this.localProxy?.host?.includes('proxyscrape')) {
           try {
-            const response = await axios.get(this.localProxy.proxy?.host);
+            const response = await axios.get(this.localProxy?.host);
             const text = response.data;
             const proxyUrls = text.split('\r\n');
             const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
@@ -571,8 +571,20 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         } else {
           options = {
-            agent: makeProxyAgent(this.localProxy.proxy),
-            fetchAgent: makeProxyAgent(this.localProxy.proxy),
+            agent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
+            fetchAgent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
           };
         }
       }
@@ -673,11 +685,11 @@ export class BaileysStartupService extends ChannelStartupService {
       let options;
 
       if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
+        this.logger.info('Proxy enabled: ' + this.localProxy?.host);
 
-        if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
+        if (this.localProxy?.host?.includes('proxyscrape')) {
           try {
-            const response = await axios.get(this.localProxy.proxy?.host);
+            const response = await axios.get(this.localProxy?.host);
             const text = response.data;
             const proxyUrls = text.split('\r\n');
             const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
@@ -691,8 +703,20 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         } else {
           options = {
-            agent: makeProxyAgent(this.localProxy.proxy),
-            fetchAgent: makeProxyAgent(this.localProxy.proxy),
+            agent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
+            fetchAgent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
           };
         }
       }
@@ -2317,7 +2341,13 @@ export class BaileysStartupService extends ChannelStartupService {
           if (this.localProxy.enabled) {
             config = {
               ...config,
-              httpsAgent: makeProxyAgent(this.localProxy.proxy),
+              httpsAgent: makeProxyAgent({
+                host: this.localProxy.host,
+                port: this.localProxy.port,
+                protocol: this.localProxy.protocol,
+                username: this.localProxy.username,
+                password: this.localProxy.password,
+              }),
             };
           }
 
@@ -2388,7 +2418,13 @@ export class BaileysStartupService extends ChannelStartupService {
         if (this.localProxy.enabled) {
           config = {
             ...config,
-            httpsAgent: makeProxyAgent(this.localProxy.proxy),
+            httpsAgent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
           };
         }
 
@@ -3105,7 +3141,13 @@ export class BaileysStartupService extends ChannelStartupService {
         if (this.localProxy.enabled) {
           config = {
             ...config,
-            httpsAgent: makeProxyAgent(this.localProxy.proxy),
+            httpsAgent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
           };
         }
 
@@ -3307,7 +3349,13 @@ export class BaileysStartupService extends ChannelStartupService {
         if (this.localProxy.enabled) {
           config = {
             ...config,
-            httpsAgent: makeProxyAgent(this.localProxy.proxy),
+            httpsAgent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
           };
         }
 

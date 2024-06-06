@@ -1050,21 +1050,14 @@ export const proxySchema: JSONSchema7 = {
   type: 'object',
   properties: {
     enabled: { type: 'boolean', enum: [true, false] },
-    proxy: {
-      type: 'object',
-      properties: {
-        host: { type: 'string' },
-        port: { type: 'string' },
-        protocol: { type: 'string' },
-        username: { type: 'string' },
-        password: { type: 'string' },
-      },
-      required: ['host', 'port', 'protocol'],
-      ...isNotEmpty('host', 'port', 'protocol'),
-    },
+    host: { type: 'string' },
+    port: { type: 'string' },
+    protocol: { type: 'string' },
+    username: { type: 'string' },
+    password: { type: 'string' },
   },
-  required: ['enabled', 'proxy'],
-  ...isNotEmpty('enabled', 'proxy'),
+  required: ['enabled', 'host', 'port', 'protocol'],
+  ...isNotEmpty('enabled', 'host', 'port', 'protocol'),
 };
 
 export const handleLabelSchema: JSONSchema7 = {

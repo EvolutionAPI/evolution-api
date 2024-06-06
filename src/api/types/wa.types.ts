@@ -121,17 +121,13 @@ export declare namespace wa {
     sessions?: TypebotSession[];
   };
 
-  type Proxy = {
+  export type LocalProxy = {
+    enabled?: boolean;
     host?: string;
     port?: string;
     protocol?: string;
     username?: string;
     password?: string;
-  };
-
-  export type LocalProxy = {
-    enabled?: boolean;
-    proxy?: Proxy;
   };
 
   export type LocalIntegration = {

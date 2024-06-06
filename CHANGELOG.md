@@ -3,6 +3,8 @@
 ### Feature
 * New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
 * Added prism orm, connection to postgres and mysql
+* Added chatwoot integration activation
+* Added typebot integration activation
 
 ### Fixed
 *

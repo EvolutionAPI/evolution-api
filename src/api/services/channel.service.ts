@@ -240,8 +240,20 @@ export class ChannelStartupService {
 
   public async setSettings(data: SettingsDto) {
     this.logger.verbose('Setting settings');
-    await this.prismaRepository.setting.create({
-      data: {
+    await this.prismaRepository.setting.upsert({
+      where: {
+        instanceId: this.instanceId,
+      },
+      update: {
+        rejectCall: data.rejectCall,
+        msgCall: data.msgCall,
+        groupsIgnore: data.groupsIgnore,
+        alwaysOnline: data.alwaysOnline,
+        readMessages: data.readMessages,
+        readStatus: data.readStatus,
+        syncFullHistory: data.syncFullHistory,
+      },
+      create: {
         rejectCall: data.rejectCall,
         msgCall: data.msgCall,
         groupsIgnore: data.groupsIgnore,
@@ -805,15 +817,20 @@ export class ChannelStartupService {
     this.localProxy.enabled = data?.enabled;
     this.logger.verbose(`Proxy enabled: ${this.localProxy.enabled}`);
 
-    this.localProxy.proxy = {
-      host: data?.host,
-      port: `${data?.port}`,
-      protocol: data?.protocol,
-      username: data?.username,
-      password: data?.password,
-    };
+    this.localProxy.host = data?.host;
+    this.logger.verbose(`Proxy host: ${this.localProxy.host}`);
 
-    this.logger.verbose(`Proxy proxy: ${this.localProxy.proxy?.host}`);
+    this.localProxy.port = data?.port;
+    this.logger.verbose(`Proxy port: ${this.localProxy.port}`);
+
+    this.localProxy.protocol = data?.protocol;
+    this.logger.verbose(`Proxy protocol: ${this.localProxy.protocol}`);
+
+    this.localProxy.username = data?.username;
+    this.logger.verbose(`Proxy username: ${this.localProxy.username}`);
+
+    this.localProxy.password = data?.password;
+    this.logger.verbose(`Proxy password: ${this.localProxy.password}`);
 
     this.logger.verbose('Proxy loaded');
   }
