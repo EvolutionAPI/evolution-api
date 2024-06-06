@@ -195,12 +195,14 @@ export class WAMonitoringService {
 
   public async cleaningUp(instanceName: string) {
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
-      await this.prismaRepository.instance.update({
+      const instance = await this.prismaRepository.instance.update({
         where: { name: instanceName },
         data: { connectionStatus: 'close' },
       });
 
-      await this.prismaRepository.session.deleteMany({ where: { sessionId: instanceName } });
+      if (!instance) this.logger.error('Instance not found');
+
+      await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
       return;
     }
 
@@ -239,26 +241,31 @@ export class WAMonitoringService {
 
       return;
     }
+    const instance = await this.prismaRepository.instance.findFirst({
+      where: { name: instanceName },
+    });
 
-    await this.prismaRepository.session.deleteMany({ where: { sessionId: instanceName } });
+    rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
 
-    await this.prismaRepository.chat.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.contact.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.messageUpdate.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.message.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
 
-    await this.prismaRepository.integration.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.auth.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.webhook.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.chatwoot.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.proxy.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.rabbitmq.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.sqs.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.typebotSession.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.typebot.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.websocket.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.setting.deleteMany({ where: { instanceId: instanceName } });
-    await this.prismaRepository.label.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.chat.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.contact.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.messageUpdate.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.message.deleteMany({ where: { instanceId: instance.id } });
+
+    await this.prismaRepository.integration.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.auth.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.webhook.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.chatwoot.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.proxy.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.rabbitmq.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.sqs.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.typebotSession.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.typebot.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.websocket.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.setting.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.label.deleteMany({ where: { instanceId: instance.id } });
 
     await this.prismaRepository.instance.delete({ where: { name: instanceName } });
   }

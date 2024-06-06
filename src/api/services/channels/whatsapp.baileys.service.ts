@@ -185,8 +185,6 @@ export class BaileysStartupService extends ChannelStartupService {
     )
       return;
 
-    await this.forceUpdateGroupMetadataCache();
-
     setInterval(async () => {
       await this.forceUpdateGroupMetadataCache();
     }, 3600000);
@@ -208,6 +206,12 @@ export class BaileysStartupService extends ChannelStartupService {
     await this.client?.logout('Log out instance: ' + this.instanceName);
 
     this.client?.ws?.close();
+
+    await this.prismaRepository.session.delete({
+      where: {
+        sessionId: this.instanceId,
+      },
+    });
   }
 
   public async getProfileName() {
@@ -730,6 +734,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[]) => {
+      console.log('chats.upsert', chats);
       const existingChatIds = await this.prismaRepository.chat.findMany({
         where: { instanceId: this.instanceId },
         select: { remoteJid: true },
@@ -3091,7 +3096,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async fetchAllGroups(getParticipants: GetParticipant) {
     try {
-      const fetch = Object.values(await this.client.groupFetchAllParticipating());
+      const fetch = Object.values(await this?.client?.groupFetchAllParticipating());
       let groups = [];
       for (const group of fetch) {
         const picture = await this.profilePicture(group.id);
