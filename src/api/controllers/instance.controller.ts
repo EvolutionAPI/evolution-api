@@ -4,7 +4,7 @@ import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
-import { Auth, ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
+import { Auth, Chatwoot, ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '../../exceptions';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
@@ -494,6 +494,9 @@ export class InstanceController {
         return result;
       }
 
+      if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED)
+        throw new BadRequestException('Chatwoot is not enabled');
+
       if (!chatwootAccountId) {
         throw new BadRequestException('accountId is required');
       }
@@ -658,7 +661,7 @@ export class InstanceController {
       switch (state) {
         case 'open':
           this.logger.verbose('logging out instance: ' + instanceName);
-          instance.clearCacheChatwoot();
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instance.clearCacheChatwoot();
           await instance.reloadConnection();
           await delay(2000);
 
@@ -749,7 +752,7 @@ export class InstanceController {
     try {
       const waInstances = this.waMonitor.waInstances[instanceName];
       waInstances?.removeRabbitmqQueues();
-      waInstances?.clearCacheChatwoot();
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) waInstances?.clearCacheChatwoot();
 
       if (instance.state === 'connecting') {
         this.logger.verbose('logging out instance: ' + instanceName);

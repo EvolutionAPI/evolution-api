@@ -5,7 +5,7 @@ import FormData from 'form-data';
 import fs from 'fs/promises';
 import { getMIMEType } from 'node-mime-types';
 
-import { ConfigService, Database, WaBusiness } from '../../../config/env.config';
+import { Chatwoot, ConfigService, Database, WaBusiness } from '../../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
 import { NumberBusiness } from '../../dto/chat.dto';
 import {
@@ -409,7 +409,7 @@ export class BusinessStartupService extends ChannelStartupService {
 
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
-        if (this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
             Events.MESSAGES_UPSERT,
             { instanceName: this.instance.name },
@@ -474,7 +474,7 @@ export class BusinessStartupService extends ChannelStartupService {
           this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
           this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
-          if (this.localChatwoot.enabled) {
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
             await this.chatwootService.eventWhatsapp(
               Events.CONTACTS_UPDATE,
               { instanceName: this.instance.name },
@@ -551,7 +551,7 @@ export class BusinessStartupService extends ChannelStartupService {
                 data: message,
               });
 
-              if (this.localChatwoot.enabled) {
+              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
                 this.chatwootService.eventWhatsapp(
                   Events.MESSAGES_DELETE,
                   { instanceName: this.instance.name },
@@ -881,7 +881,7 @@ export class BusinessStartupService extends ChannelStartupService {
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.localChatwoot.enabled && !isChatwoot) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isChatwoot) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
       }
 

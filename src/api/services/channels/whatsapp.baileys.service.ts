@@ -56,6 +56,7 @@ import sharp from 'sharp';
 import { CacheEngine } from '../../../cache/cacheengine';
 import {
   CacheConf,
+  Chatwoot,
   ConfigService,
   configService,
   ConfigSessionPhone,
@@ -283,7 +284,7 @@ export class BaileysStartupService extends ChannelStartupService {
           statusCode: DisconnectReason.badSession,
         });
 
-        if (this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name },
@@ -346,7 +347,7 @@ export class BaileysStartupService extends ChannelStartupService {
           },
         });
 
-        if (this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name },
@@ -399,7 +400,7 @@ export class BaileysStartupService extends ChannelStartupService {
           status: 'closed',
         });
 
-        if (this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.STATUS_INSTANCE,
             { instanceName: this.instance.name },
@@ -437,7 +438,7 @@ export class BaileysStartupService extends ChannelStartupService {
       `,
       );
 
-      if (this.localChatwoot.enabled) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
         this.chatwootService.eventWhatsapp(
           Events.CONNECTION_UPDATE,
           { instanceName: this.instance.name },
@@ -854,7 +855,12 @@ export class BaileysStartupService extends ChannelStartupService {
           });
         }
 
-        if (this.localChatwoot.enabled && this.localChatwoot.importContacts && contactsRaw.length) {
+        if (
+          this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
+          this.localChatwoot.enabled &&
+          this.localChatwoot.importContacts &&
+          contactsRaw.length
+        ) {
           this.chatwootService.addHistoryContacts({ instanceName: this.instance.name }, contactsRaw);
           chatwootImport.importHistoryContacts({ instanceName: this.instance.name }, this.localChatwoot);
         }
@@ -931,7 +937,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const instance: InstanceDto = { instanceName: this.instance.name };
 
-        const daysLimitToImport = this.localChatwoot.enabled ? this.localChatwoot.daysLimitImportMessages : 1000;
+        const daysLimitToImport =
+          this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled
+            ? this.localChatwoot.daysLimitImportMessages
+            : 1000;
         this.logger.verbose(`Param days limit import messages is: ${daysLimitToImport}`);
 
         const date = new Date();
@@ -977,6 +986,7 @@ export class BaileysStartupService extends ChannelStartupService {
         });
 
         const messagesRaw: any[] = [];
+
         const messagesRepository = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
             (
@@ -993,7 +1003,10 @@ export class BaileysStartupService extends ChannelStartupService {
             }),
         );
 
-        if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
+        if (
+          this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
+          chatwootImport.getRepositoryMessagesCache(instance) === null
+        ) {
           chatwootImport.setRepositoryMessagesCache(instance, messagesRepository);
         }
 
@@ -1044,7 +1057,12 @@ export class BaileysStartupService extends ChannelStartupService {
           skipDuplicates: true,
         });
 
-        if (this.localChatwoot.enabled && this.localChatwoot.importMessages && messagesRaw.length > 0) {
+        if (
+          this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
+          this.localChatwoot.enabled &&
+          this.localChatwoot.importMessages &&
+          messagesRaw.length > 0
+        ) {
           this.chatwootService.addHistoryMessages(
             instance,
             messagesRaw.filter((msg) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid)),
@@ -1082,6 +1100,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.logger.verbose('Event received: messages.upsert');
         for (const received of messages) {
           if (
+            this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
             this.localChatwoot.enabled &&
             (received.message?.protocolMessage?.editedMessage || received.message?.editedMessage?.message)
           ) {
@@ -1186,7 +1205,11 @@ export class BaileysStartupService extends ChannelStartupService {
           this.logger.verbose('Sending data to webhook in event MESSAGES_UPSERT');
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
-          if (this.localChatwoot.enabled && !received.key.id.includes('@broadcast')) {
+          if (
+            this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
+            this.localChatwoot.enabled &&
+            !received.key.id.includes('@broadcast')
+          ) {
             const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
               Events.MESSAGES_UPSERT,
               { instanceName: this.instance.name },
@@ -1251,7 +1274,7 @@ export class BaileysStartupService extends ChannelStartupService {
             this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
             this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
-            if (this.localChatwoot.enabled) {
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
               await this.chatwootService.eventWhatsapp(
                 Events.CONTACTS_UPDATE,
                 { instanceName: this.instance.name },
@@ -1299,7 +1322,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (status[update.status] === 'READ' && key.fromMe) {
-          if (this.localChatwoot.enabled) {
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
             this.chatwootService.eventWhatsapp('messages.read', { instanceName: this.instance.name }, { key: key });
           }
         }
@@ -1365,7 +1388,7 @@ export class BaileysStartupService extends ChannelStartupService {
               data: message,
             });
 
-            if (this.localChatwoot.enabled) {
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
               this.chatwootService.eventWhatsapp(
                 Events.MESSAGES_DELETE,
                 { instanceName: this.instance.name },
@@ -1653,6 +1676,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const instance: InstanceDto = { instanceName: this.instance.name };
 
     if (
+      this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
       this.localChatwoot.enabled &&
       this.localChatwoot.importMessages &&
       this.isSyncNotificationFromUsedSyncType(msg)
@@ -1789,7 +1813,7 @@ export class BaileysStartupService extends ChannelStartupService {
     this.logger.verbose(`Exists: "${isWA.exists}" | jid: ${isWA.jid}`);
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
-      if (this.localChatwoot.enabled) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
         const body = {
           key: { remoteJid: isWA.jid },
         };
@@ -2012,7 +2036,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Sending data to webhook in event SEND_MESSAGE');
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.localChatwoot.enabled && !isChatwoot) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isChatwoot) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
       }
 

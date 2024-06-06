@@ -8,6 +8,7 @@ import { v4 } from 'uuid';
 
 import {
   Auth,
+  Chatwoot,
   CleanStoreConf,
   ConfigService,
   Database,
@@ -91,7 +92,7 @@ export class ChannelStartupService {
       status: 'created',
     });
 
-    if (this.localChatwoot.enabled) {
+    if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
       this.chatwootService.eventWhatsapp(
         Events.STATUS_INSTANCE,
         { instanceName: this.instance.name },
@@ -358,6 +359,10 @@ export class ChannelStartupService {
   }
 
   public async loadChatwoot() {
+    if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      return;
+    }
+
     this.logger.verbose('Loading chatwoot');
     const data = await this.prismaRepository.chatwoot.findUnique({
       where: {
@@ -411,6 +416,11 @@ export class ChannelStartupService {
   }
 
   public async setChatwoot(data: ChatwootDto) {
+    if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      this.logger.verbose('Chatwoot is not enabled');
+      return;
+    }
+
     this.logger.verbose('Setting chatwoot');
     await this.prismaRepository.chatwoot.create({
       data: {
@@ -452,6 +462,11 @@ export class ChannelStartupService {
   }
 
   public async findChatwoot() {
+    if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      this.logger.verbose('Chatwoot is not enabled');
+      return null;
+    }
+
     this.logger.verbose('Finding chatwoot');
     const data = await this.prismaRepository.chatwoot.findUnique({
       where: {
@@ -781,6 +796,7 @@ export class ChannelStartupService {
     this.localProxy.proxy = {
       host: data?.host,
       port: `${data?.port}`,
+      protocol: data?.protocol,
       username: data?.username,
       password: data?.password,
     };
@@ -797,6 +813,7 @@ export class ChannelStartupService {
         enabled: data.enabled,
         host: data.host,
         port: data.port,
+        protocol: data.protocol,
         username: data.username,
         password: data.password,
         instanceId: this.instanceId,

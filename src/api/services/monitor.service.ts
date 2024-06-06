@@ -6,6 +6,7 @@ import { join } from 'path';
 import {
   Auth,
   CacheConf,
+  Chatwoot,
   ConfigService,
   Database,
   DelInstance,
@@ -86,16 +87,17 @@ export class WAMonitoringService {
       if (value) {
         this.logger.verbose('get instance info: ' + key);
         let chatwoot: any;
-
         const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
-        const findChatwoot = await this.waInstances[key].findChatwoot();
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+          const findChatwoot = await this.waInstances[key].findChatwoot();
 
-        if (findChatwoot && findChatwoot.enabled) {
-          chatwoot = {
-            ...findChatwoot,
-            webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
-          };
+          if (findChatwoot && findChatwoot.enabled) {
+            chatwoot = {
+              ...findChatwoot,
+              webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
+            };
+          }
         }
 
         const findIntegration = await this.waInstances[key].findIntegration();
@@ -132,7 +134,7 @@ export class WAMonitoringService {
               })
             )?.apikey;
 
-            instanceData.instance['chatwoot'] = chatwoot;
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
 
             instanceData.instance['integration'] = integration;
           }
@@ -158,7 +160,7 @@ export class WAMonitoringService {
               })
             )?.apikey;
 
-            instanceData.instance['chatwoot'] = chatwoot;
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
 
             instanceData.instance['integration'] = integration;
           }
@@ -459,7 +461,7 @@ export class WAMonitoringService {
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       this.logger.verbose('logout instance: ' + instanceName);
       try {
-        this.waInstances[instanceName]?.clearCacheChatwoot();
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) this.waInstances[instanceName]?.clearCacheChatwoot();
         this.logger.verbose('request cleaning up instance: ' + instanceName);
         this.cleaningUp(instanceName);
       } finally {

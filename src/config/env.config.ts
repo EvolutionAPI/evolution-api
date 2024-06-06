@@ -190,8 +190,9 @@ export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string; VERSION: string };
 export type QrCode = { LIMIT: number; COLOR: string };
-export type Typebot = { API_VERSION: string; KEEP_OPEN: boolean };
+export type Typebot = { ENABLED: boolean; API_VERSION: string; KEEP_OPEN: boolean };
 export type Chatwoot = {
+  ENABLED: boolean;
   MESSAGE_DELETE: boolean;
   MESSAGE_READ: boolean;
   IMPORT: {
@@ -430,10 +431,12 @@ export class ConfigService {
         COLOR: process.env.QRCODE_COLOR || '#198754',
       },
       TYPEBOT: {
+        ENABLED: process.env?.TYPEBOT_ENABLED === 'true',
         API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
         KEEP_OPEN: process.env.TYPEBOT_KEEP_OPEN === 'true',
       },
       CHATWOOT: {
+        ENABLED: process.env?.CHATWOOT_ENABLED === 'true',
         MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'false',
         MESSAGE_READ: process.env.CHATWOOT_MESSAGE_READ === 'false',
         IMPORT: {

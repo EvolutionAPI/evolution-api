@@ -196,11 +196,12 @@ model Label {
 
 model Proxy {
   id         Int       @id @default(autoincrement())
-  enabled    Boolean?  @default(true) @db.Boolean
-  host       String?   @db.VarChar(100)
-  port       String?   @db.VarChar(100)
-  username   String?   @db.VarChar(100)
-  password   String?   @db.VarChar(100)
+  enabled    Boolean   @default(false) @db.Boolean
+  host       String    @db.VarChar(100)
+  port       String    @db.VarChar(100)
+  protocol   String    @db.VarChar(100)
+  username   String    @db.VarChar(100)
+  password   String    @db.VarChar(100)
   createdAt  DateTime? @default(now()) @db.Date
   updatedAt  DateTime  @updatedAt @db.Date
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
@@ -209,13 +210,13 @@ model Proxy {
 
 model Setting {
   id              Int       @id @default(autoincrement())
-  rejectCall      Boolean?  @default(false) @db.Boolean
+  rejectCall      Boolean   @default(false) @db.Boolean
   msgCall         String?   @db.VarChar(100)
-  groupsIgnore    Boolean?  @default(false) @db.Boolean
-  alwaysOnline    Boolean?  @default(false) @db.Boolean
-  readMessages    Boolean?  @default(false) @db.Boolean
-  readStatus      Boolean?  @default(false) @db.Boolean
-  syncFullHistory Boolean?  @default(false) @db.Boolean
+  groupsIgnore    Boolean   @default(false) @db.Boolean
+  alwaysOnline    Boolean   @default(false) @db.Boolean
+  readMessages    Boolean   @default(false) @db.Boolean
+  readStatus      Boolean   @default(false) @db.Boolean
+  syncFullHistory Boolean   @default(false) @db.Boolean
   createdAt       DateTime? @default(now()) @db.Date
   updatedAt       DateTime  @updatedAt @db.Date
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
@@ -224,8 +225,8 @@ model Setting {
 
 model Rabbitmq {
   id         Int       @id @default(autoincrement())
-  enabled    Boolean?  @default(false) @db.Boolean
-  events     Json?     @db.JsonB
+  enabled    Boolean   @default(false) @db.Boolean
+  events     Json      @db.JsonB
   createdAt  DateTime? @default(now()) @db.Date
   updatedAt  DateTime  @updatedAt @db.Date
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
@@ -234,8 +235,8 @@ model Rabbitmq {
 
 model Sqs {
   id         Int       @id @default(autoincrement())
-  enabled    Boolean?  @default(false) @db.Boolean
-  events     Json?     @db.JsonB
+  enabled    Boolean   @default(false) @db.Boolean
+  events     Json      @db.JsonB
   createdAt  DateTime? @default(now()) @db.Date
   updatedAt  DateTime  @updatedAt @db.Date
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
@@ -244,8 +245,8 @@ model Sqs {
 
 model Websocket {
   id         Int       @id @default(autoincrement())
-  enabled    Boolean?  @default(false) @db.Boolean
-  events     Json?     @db.JsonB
+  enabled    Boolean   @default(false) @db.Boolean
+  events     Json      @db.JsonB
   createdAt  DateTime? @default(now()) @db.Date
   updatedAt  DateTime  @updatedAt @db.Date
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
@@ -254,14 +255,14 @@ model Websocket {
 
 model Typebot {
   id              Int              @id @default(autoincrement())
-  enabled         Boolean?         @default(true) @db.Boolean
+  enabled         Boolean          @default(true) @db.Boolean
   url             String           @db.VarChar(500)
   typebot         String           @db.VarChar(100)
-  expire          Int?             @db.Integer
+  expire          Int              @default(0) @db.Integer
   keywordFinish   String?          @db.VarChar(100)
   delayMessage    Int?             @db.Integer
   unknownMessage  String?          @db.VarChar(100)
-  listeningFromMe Boolean?         @default(false) @db.Boolean
+  listeningFromMe Boolean          @default(false) @db.Boolean
   createdAt       DateTime?        @default(now()) @db.Date
   updatedAt       DateTime?        @updatedAt @db.Date
   Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)

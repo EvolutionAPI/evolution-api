@@ -1,7 +1,7 @@
 import { isURL } from 'class-validator';
 
 import { CacheEngine } from '../../../../cache/cacheengine';
-import { ConfigService, HttpServer } from '../../../../config/env.config';
+import { Chatwoot, ConfigService, HttpServer } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { BadRequestException } from '../../../../exceptions';
 import { InstanceDto } from '../../../dto/instance.dto';
@@ -21,6 +21,8 @@ export class ChatwootController {
   ) {}
 
   public async createChatwoot(instance: InstanceDto, data: ChatwootDto) {
+    if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
+
     logger.verbose('requested createChatwoot from ' + instance.instanceName + ' instance');
 
     if (data.enabled) {
@@ -76,6 +78,8 @@ export class ChatwootController {
   }
 
   public async findChatwoot(instance: InstanceDto) {
+    if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
+
     logger.verbose('requested findChatwoot from ' + instance.instanceName + ' instance');
     const result = await this.chatwootService.find(instance);
 
@@ -102,6 +106,8 @@ export class ChatwootController {
   }
 
   public async receiveWebhook(instance: InstanceDto, data: any) {
+    if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
+
     logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
 
     const chatwootCache = new CacheService(new CacheEngine(this.configService, ChatwootService.name).getEngine());

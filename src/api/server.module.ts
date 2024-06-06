@@ -1,5 +1,5 @@
 import { CacheEngine } from '../cache/cacheengine';
-import { configService } from '../config/env.config';
+import { Chatwoot, configService } from '../config/env.config';
 import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
 import { ChatController } from './controllers/chat.controller';
@@ -32,8 +32,12 @@ import { WebhookService } from './services/webhook.service';
 
 const logger = new Logger('WA MODULE');
 
+let chatwootCache: CacheService = null;
+if (configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+  chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
+}
+
 export const cache = new CacheService(new CacheEngine(configService, 'instance').getEngine());
-const chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
 const baileysCache = new CacheService(new CacheEngine(configService, 'baileys').getEngine());
 
 const providerFiles = new ProviderFiles(configService);
