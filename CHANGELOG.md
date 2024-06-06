@@ -7,7 +7,7 @@
 * Added typebot integration activation
 
 ### Fixed
-*
+* Removed excessive verbose logs
 
 ### Break changes
 * jwt authentication removed
