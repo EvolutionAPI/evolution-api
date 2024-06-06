@@ -304,18 +304,20 @@ export class WAMonitoringService {
 
     this.logger.verbose('cleaning store database instance: ' + instanceName);
 
-    await AuthModel.deleteMany({ _id: instanceName });
-    await WebhookModel.deleteMany({ _id: instanceName });
-    await ChatwootModel.deleteMany({ _id: instanceName });
-    await ProxyModel.deleteMany({ _id: instanceName });
-    await RabbitmqModel.deleteMany({ _id: instanceName });
-    await TypebotModel.deleteMany({ _id: instanceName });
-    await WebsocketModel.deleteMany({ _id: instanceName });
-    await SettingsModel.deleteMany({ _id: instanceName });
-    await LabelModel.deleteMany({ owner: instanceName });
-    await ContactModel.deleteMany({ owner: instanceName });
+    if (this.db.PROVIDER === 'mongodb') {
+      await AuthModel.deleteMany({ _id: instanceName });
+      await WebhookModel.deleteMany({ _id: instanceName });
+      await ChatwootModel.deleteMany({ _id: instanceName });
+      await ProxyModel.deleteMany({ _id: instanceName });
+      await RabbitmqModel.deleteMany({ _id: instanceName });
+      await TypebotModel.deleteMany({ _id: instanceName });
+      await WebsocketModel.deleteMany({ _id: instanceName });
+      await SettingsModel.deleteMany({ _id: instanceName });
+      await LabelModel.deleteMany({ owner: instanceName });
+      await ContactModel.deleteMany({ owner: instanceName });
 
-    return;
+      return;
+    }
   }
 
   public async loadInstance() {
