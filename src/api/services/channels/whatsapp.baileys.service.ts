@@ -187,6 +187,12 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async forceUpdateGroupMetadataCache() {
+    if (
+      !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+      !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+    )
+      return;
+
     setInterval(async () => {
       this.logger.verbose('Forcing update group metadata cache');
       const groups = await this.fetchAllGroups({ getParticipants: 'false' });
@@ -1874,8 +1880,11 @@ export class BaileysStartupService extends ChannelStartupService {
       let mentions: string[];
       if (isJidGroup(sender)) {
         try {
-          // const group = await this.findGroup({ groupJid: sender }, 'inner');
-          const group = await this.getGroupMetadataCache(sender);
+          let group;
+
+          const cache = this.configService.get<CacheConf>('CACHE');
+          if (!cache.REDIS.ENABLED && !cache.LOCAL.ENABLED) group = await this.findGroup({ groupJid: sender }, 'inner');
+          else group = await this.getGroupMetadataCache(sender);
 
           if (!group) {
             throw new NotFoundException('Group not found');
@@ -1930,7 +1939,11 @@ export class BaileysStartupService extends ChannelStartupService {
               } as unknown as AnyMessageContent,
               {
                 ...option,
-                cachedGroupMetadata: this.getGroupMetadataCache,
+                cachedGroupMetadata:
+                  !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                  !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                    ? null
+                    : this.getGroupMetadataCache,
               } as unknown as MiscMessageGenerationOptions,
             );
           }
@@ -1946,7 +1959,11 @@ export class BaileysStartupService extends ChannelStartupService {
             } as unknown as AnyMessageContent,
             {
               ...option,
-              cachedGroupMetadata: this.getGroupMetadataCache,
+              cachedGroupMetadata:
+                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                  ? null
+                  : this.getGroupMetadataCache,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1964,7 +1981,11 @@ export class BaileysStartupService extends ChannelStartupService {
             },
             {
               ...option,
-              cachedGroupMetadata: this.getGroupMetadataCache,
+              cachedGroupMetadata:
+                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                  ? null
+                  : this.getGroupMetadataCache,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1988,7 +2009,11 @@ export class BaileysStartupService extends ChannelStartupService {
           message as unknown as AnyMessageContent,
           {
             ...option,
-            cachedGroupMetadata: this.getGroupMetadataCache,
+            cachedGroupMetadata:
+              !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+              !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                ? null
+                : this.getGroupMetadataCache,
           } as unknown as MiscMessageGenerationOptions,
         );
       })();
@@ -3205,6 +3230,7 @@ export class BaileysStartupService extends ChannelStartupService {
       return meta;
     } catch (error) {
       this.logger.error(error);
+      return null;
     }
   }
 
@@ -3212,6 +3238,7 @@ export class BaileysStartupService extends ChannelStartupService {
     if (!isJidGroup(groupJid)) return null;
 
     if (await groupMetadataCache.has(groupJid)) {
+      console.log('Has cache for group: ' + groupJid);
       const meta = await groupMetadataCache.get(groupJid);
 
       if (Date.now() - meta.timestamp > 3600000) {
