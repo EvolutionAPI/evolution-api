@@ -109,7 +109,7 @@ export const repository = new RepositoryBroker(
 
 export const cache = new CacheService(new CacheEngine(configService, 'instance').getEngine());
 const chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
-const messagesLostCache = new CacheService(new CacheEngine(configService, 'baileys').getEngine());
+const baileysCache = new CacheService(new CacheEngine(configService, 'baileys').getEngine());
 const providerFiles = new ProviderFiles(configService);
 
 export const waMonitor = new WAMonitoringService(
@@ -118,7 +118,7 @@ export const waMonitor = new WAMonitoringService(
   repository,
   cache,
   chatwootCache,
-  messagesLostCache,
+  baileysCache,
   providerFiles,
 );
 
@@ -170,7 +170,7 @@ export const instanceController = new InstanceController(
   proxyController,
   cache,
   chatwootCache,
-  messagesLostCache,
+  baileysCache,
   providerFiles,
 );
 export const sendMessageController = new SendMessageController(waMonitor);

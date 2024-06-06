@@ -43,7 +43,7 @@ export class InstanceController {
     private readonly proxyService: ProxyController,
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
-    private readonly messagesLostCache: CacheService,
+    private readonly baileysCache: CacheService,
     private readonly providerFiles: ProviderFiles,
   ) {}
 
@@ -112,7 +112,7 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
-          this.messagesLostCache,
+          this.baileysCache,
           this.providerFiles,
         );
       } else {
@@ -122,7 +122,7 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
-          this.messagesLostCache,
+          this.baileysCache,
           this.providerFiles,
         );
       }

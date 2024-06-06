@@ -36,7 +36,7 @@ export class BusinessStartupService extends ChannelStartupService {
     public readonly repository: RepositoryBroker,
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
-    public readonly messagesLostCache: CacheService,
+    public readonly baileysCache: CacheService,
     private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);

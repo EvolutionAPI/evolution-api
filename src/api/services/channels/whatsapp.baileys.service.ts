@@ -137,7 +137,7 @@ export class BaileysStartupService extends ChannelStartupService {
     public readonly repository: RepositoryBroker,
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
-    public readonly messagesLostCache: CacheService,
+    public readonly baileysCache: CacheService,
     private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
@@ -146,6 +146,8 @@ export class BaileysStartupService extends ChannelStartupService {
     this.instance.qrcode = { count: 0 };
     this.mobile = false;
     this.recoveringMessages();
+    this.forceUpdateGroupMetadataCache();
+
     this.authStateProvider = new AuthStateProvider(this.providerFiles);
   }
 
@@ -166,9 +168,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
       setInterval(async () => {
-        this.messagesLostCache.keys().then((keys) => {
+        this.baileysCache.keys().then((keys) => {
           keys.forEach(async (key) => {
-            const message = await this.messagesLostCache.get(key.split(':')[2]);
+            const message = await this.baileysCache.get(key.split(':')[2]);
 
             if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
               this.logger.info('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
@@ -178,6 +180,17 @@ export class BaileysStartupService extends ChannelStartupService {
         });
       }, 30000);
     }
+  }
+
+  private async forceUpdateGroupMetadataCache() {
+    setInterval(async () => {
+      this.logger.verbose('Forcing update group metadata cache');
+      const groups = await this.fetchAllGroups({ getParticipants: 'false' });
+
+      for (const group of groups) {
+        await this.updateGroupMetadataCache(group.id);
+      }
+    }, 60000);
   }
 
   public get connectionStatus() {
@@ -1124,15 +1137,15 @@ export class BaileysStartupService extends ChannelStartupService {
           if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
             this.logger.info('Recovering message lost');
 
-            await this.messagesLostCache.set(received.key.id, received);
+            await this.baileysCache.set(received.key.id, received);
             continue;
           }
 
-          const retryCache = (await this.messagesLostCache.get(received.key.id)) || null;
+          const retryCache = (await this.baileysCache.get(received.key.id)) || null;
 
           if (retryCache) {
             this.logger.info('Recovered message lost');
-            await this.messagesLostCache.delete(received.key.id);
+            await this.baileysCache.delete(received.key.id);
           }
 
           if (
@@ -1421,6 +1434,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.logger.verbose('Sending data to webhook in event GROUPS_UPDATE');
       this.sendDataWebhook(Events.GROUPS_UPDATE, groupMetadataUpdate);
+
+      groupMetadataUpdate.forEach((group) => {
+        if (isJidGroup(group.id)) {
+          this.updateGroupMetadataCache(group.id);
+        }
+      });
     },
 
     'group-participants.update': (participantsUpdate: {
@@ -1857,7 +1876,8 @@ export class BaileysStartupService extends ChannelStartupService {
       let mentions: string[];
       if (isJidGroup(sender)) {
         try {
-          const group = await this.findGroup({ groupJid: sender }, 'inner');
+          // const group = await this.findGroup({ groupJid: sender }, 'inner');
+          const group = await this.getGroupMetadataCache(sender);
 
           if (!group) {
             throw new NotFoundException('Group not found');
@@ -1910,7 +1930,10 @@ export class BaileysStartupService extends ChannelStartupService {
                   key: message['reactionMessage']['key'],
                 },
               } as unknown as AnyMessageContent,
-              option as unknown as MiscMessageGenerationOptions,
+              {
+                ...option,
+                cachedGroupMetadata: this.getGroupMetadataCache,
+              } as unknown as MiscMessageGenerationOptions,
             );
           }
         }
@@ -1923,7 +1946,10 @@ export class BaileysStartupService extends ChannelStartupService {
               mentions,
               linkPreview: linkPreview,
             } as unknown as AnyMessageContent,
-            option as unknown as MiscMessageGenerationOptions,
+            {
+              ...option,
+              cachedGroupMetadata: this.getGroupMetadataCache,
+            } as unknown as MiscMessageGenerationOptions,
           );
         }
 
@@ -1938,7 +1964,10 @@ export class BaileysStartupService extends ChannelStartupService {
               },
               mentions,
             },
-            option as unknown as MiscMessageGenerationOptions,
+            {
+              ...option,
+              cachedGroupMetadata: this.getGroupMetadataCache,
+            } as unknown as MiscMessageGenerationOptions,
           );
         }
 
@@ -1959,7 +1988,10 @@ export class BaileysStartupService extends ChannelStartupService {
         return await this.client.sendMessage(
           sender,
           message as unknown as AnyMessageContent,
-          option as unknown as MiscMessageGenerationOptions,
+          {
+            ...option,
+            cachedGroupMetadata: this.getGroupMetadataCache,
+          } as unknown as MiscMessageGenerationOptions,
         );
       })();
 
@@ -3164,6 +3196,40 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   // Group
+  private async updateGroupMetadataCache(groupJid: string) {
+    try {
+      const meta = await this.client.groupMetadata(groupJid);
+      console.log('updateGroupMetadataCache', groupJid);
+      await this.baileysCache.set(`group-metadata-${groupJid}`, {
+        timestamp: Date.now(),
+        data: meta,
+      });
+
+      return meta;
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  private async getGroupMetadataCache(groupJid: string) {
+    if (!isJidGroup(groupJid)) return null;
+
+    console.log('getGroupMetadataCache', groupJid);
+    if (this.baileysCache.has(`group-metadata-${groupJid}`)) {
+      console.log('has cache');
+      const meta = await this.baileysCache.get(`group-metadata-${groupJid}`);
+
+      if (Date.now() - meta.timestamp > 60000) {
+        await this.updateGroupMetadataCache(groupJid);
+      }
+
+      console.log('meta.data', meta.data);
+      return meta.data;
+    }
+
+    return await this.updateGroupMetadataCache(groupJid);
+  }
+
   public async createGroup(create: CreateGroupDto) {
     this.logger.verbose('Creating group: ' + create.subject);
     try {

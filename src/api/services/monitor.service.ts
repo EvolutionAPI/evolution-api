@@ -44,7 +44,7 @@ export class WAMonitoringService {
     private readonly repository: RepositoryBroker,
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
-    private readonly messagesLostCache: CacheService,
+    private readonly baileysCache: CacheService,
     private readonly providerFiles: ProviderFiles,
   ) {
     this.logger.verbose('instance created');
@@ -368,7 +368,7 @@ export class WAMonitoringService {
         this.repository,
         this.cache,
         this.chatwootCache,
-        this.messagesLostCache,
+        this.baileysCache,
         this.providerFiles,
       );
 
@@ -380,7 +380,7 @@ export class WAMonitoringService {
         this.repository,
         this.cache,
         this.chatwootCache,
-        this.messagesLostCache,
+        this.baileysCache,
         this.providerFiles,
       );
 
