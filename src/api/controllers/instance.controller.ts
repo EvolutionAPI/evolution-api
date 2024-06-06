@@ -58,7 +58,6 @@ export class InstanceController {
     webhookEvents,
     qrcode,
     number,
-    mobile,
     integration,
     token,
     chatwootAccountId,
@@ -130,7 +129,7 @@ export class InstanceController {
 
       const instanceId = v4();
 
-      await this.waMonitor.saveInstance({ instanceId, integration, instanceName, token, number, mobile });
+      await this.waMonitor.saveInstance({ instanceId, integration, instanceName, token, number });
 
       instance.instanceName = instanceName;
       instance.instanceId = instanceId;
@@ -442,7 +441,7 @@ export class InstanceController {
 
         if (qrcode) {
           this.logger.verbose('creating qrcode');
-          await instance.connectToWhatsapp(number, mobile);
+          await instance.connectToWhatsapp(number);
           await delay(5000);
           getQrcode = instance.qrCode;
         }
@@ -608,7 +607,7 @@ export class InstanceController {
     }
   }
 
-  public async connectToWhatsapp({ instanceName, number = null, mobile = null }: InstanceDto) {
+  public async connectToWhatsapp({ instanceName, number = null }: InstanceDto) {
     try {
       this.logger.verbose('requested connectToWhatsapp from ' + instanceName + ' instance');
 
@@ -631,7 +630,7 @@ export class InstanceController {
 
       if (state == 'close') {
         this.logger.verbose('connecting');
-        await instance.connectToWhatsapp(number, mobile);
+        await instance.connectToWhatsapp(number);
 
         await delay(5000);
         return instance.qrCode;
@@ -667,20 +666,6 @@ export class InstanceController {
         default:
           return await this.connectionState({ instanceName });
       }
-    } catch (error) {
-      this.logger.error(error);
-    }
-  }
-
-  public async registerMobileCode({ instanceName }: InstanceDto, { mobileCode }: any) {
-    try {
-      this.logger.verbose('requested registerMobileCode from ' + instanceName + ' instance');
-
-      const instance = this.waMonitor.waInstances[instanceName];
-
-      console.log('mobileCode', mobileCode);
-      await instance.receiveMobileCode(mobileCode);
-      return { status: 'SUCCESS', error: false, response: { message: 'Mobile code registered' } };
     } catch (error) {
       this.logger.error(error);
     }

@@ -12,6 +12,8 @@
 * Connection to mongodb removed
 * Standardized all request bodies to use camelCase
 * Change in webhook information from owner to instanceId
+* Changed the .env file configuration, removed the yml version and added .env to the repository root
+* Removed the mobile type connection with Baileys
 
 # 1.8.0 (2024-05-27 16:10)
 

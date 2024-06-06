@@ -209,7 +209,12 @@ export class WAMonitoringService {
 
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       this.logger.verbose('cleaning up instance in database: ' + instanceName);
-      // TODO: deleta instancia
+      await this.prismaRepository.instance.update({
+        where: { name: instanceName },
+        data: { connectionStatus: 'close' },
+      });
+
+      await this.prismaRepository.session.deleteMany({ where: { sessionId: instanceName } });
       return;
     }
 
@@ -254,7 +259,27 @@ export class WAMonitoringService {
 
     this.logger.verbose('cleaning store database instance: ' + instanceName);
 
-    // TODO: deleta dados da instancia
+    await this.prismaRepository.session.deleteMany({ where: { sessionId: instanceName } });
+
+    await this.prismaRepository.chat.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.contact.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.messageUpdate.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.message.deleteMany({ where: { instanceId: instanceName } });
+
+    await this.prismaRepository.integration.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.auth.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.webhook.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.chatwoot.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.proxy.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.rabbitmq.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.sqs.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.typebotSession.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.typebot.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.websocket.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.setting.deleteMany({ where: { instanceId: instanceName } });
+    await this.prismaRepository.label.deleteMany({ where: { instanceId: instanceName } });
+
+    await this.prismaRepository.instance.delete({ where: { name: instanceName } });
   }
 
   public async loadInstance() {
@@ -276,8 +301,6 @@ export class WAMonitoringService {
   }
 
   public async saveInstance(data: any) {
-    this.logger.verbose('Save instance');
-
     try {
       const msgParsed = JSON.parse(JSON.stringify(data));
       if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
@@ -289,7 +312,6 @@ export class WAMonitoringService {
           },
         });
 
-        console.log('saveInstance');
         await this.prismaRepository.integration.create({
           data: {
             instanceId: data.instanceId,
@@ -309,7 +331,6 @@ export class WAMonitoringService {
   }
 
   private async setInstance(id: string, name: string) {
-    console.log('setInstance', name);
     const integration = await this.prismaRepository.integration.findUnique({
       where: { instanceId: id },
     });
@@ -355,7 +376,6 @@ export class WAMonitoringService {
   }
 
   private async loadInstancesFromRedis() {
-    console.log('loadInstancesFromRedis');
     this.logger.verbose('Redis enabled');
     const keys = await this.cache.keys();
 
@@ -368,11 +388,9 @@ export class WAMonitoringService {
   }
 
   private async loadInstancesFromDatabasePostgres() {
-    console.log('loadInstancesFromDatabasePostgres');
     this.logger.verbose('Database enabled');
     const instances = await this.prismaRepository.instance.findMany();
 
-    console.log('instances', instances);
     if (instances.length === 0) {
       this.logger.verbose('No instances found');
       return;
@@ -382,7 +400,6 @@ export class WAMonitoringService {
   }
 
   private async loadInstancesFromProvider() {
-    console.log('loadInstancesFromProvider');
     this.logger.verbose('Provider in files enabled');
     const [instances] = await this.providerFiles.allInstances();
 
@@ -395,7 +412,6 @@ export class WAMonitoringService {
   }
 
   private async loadInstancesFromFiles() {
-    console.log('loadInstancesFromFiles');
     this.logger.verbose('Store in files enabled');
     const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
     const instanceDirs = [];

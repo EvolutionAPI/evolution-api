@@ -7,7 +7,6 @@ export class InstanceDto {
   instanceId?: string;
   qrcode?: boolean;
   number?: string;
-  mobile?: boolean;
   integration?: string;
   token?: string;
   webhook?: string;

@@ -47,22 +47,6 @@ export class InstanceRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .post(this.routerPath('registerMobileCode'), ...guards, async (req, res) => {
-        logger.verbose('request received in registerMobileCode');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
-
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-        const response = await this.dataValidate<null>({
-          request: req,
-          schema: instanceNameSchema,
-          ClassRef: SetPresenceDto,
-          execute: (instance, data) => instanceController.registerMobileCode(instance, data),
-        });
-
-        return res.status(HttpStatus.OK).json(response);
-      })
       .get(this.routerPath('connect'), ...guards, async (req, res) => {
         logger.verbose('request received in connectInstance');
         logger.verbose('request body: ');

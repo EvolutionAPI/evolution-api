@@ -541,6 +541,7 @@ export class BusinessStartupService extends ChannelStartupService {
                 participant: key?.remoteJid,
                 status: 'DELETED',
                 dateTime: Date.now(),
+                instanceId: this.instanceId,
               };
 
               this.logger.verbose(message);
@@ -569,6 +570,7 @@ export class BusinessStartupService extends ChannelStartupService {
               participant: key?.remoteJid,
               status: item.status.toUpperCase(),
               dateTime: Date.now(),
+              instanceId: this.instanceId,
             };
 
             this.logger.verbose(message);

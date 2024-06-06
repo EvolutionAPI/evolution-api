@@ -24,7 +24,6 @@ import makeWASocket, {
   MessageUpsertType,
   MiscMessageGenerationOptions,
   ParticipantAction,
-  PHONENUMBER_MCC,
   prepareWAMessageMedia,
   proto,
   useMultiFileAuthState,
@@ -44,7 +43,6 @@ import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 // import ffmpeg from 'fluent-ffmpeg';
 import fs, { existsSync, readFileSync } from 'fs';
-import { parsePhoneNumber } from 'libphonenumber-js';
 import Long from 'long';
 import NodeCache from 'node-cache';
 import { getMIMEType } from 'node-mime-types';
@@ -143,7 +141,6 @@ export class BaileysStartupService extends ChannelStartupService {
     this.logger.verbose('BaileysStartupService initialized');
     this.cleanStore();
     this.instance.qrcode = { count: 0 };
-    this.mobile = false;
     this.recoveringMessages();
     this.cronForceUpdateGroupMetadataCache();
 
@@ -159,7 +156,6 @@ export class BaileysStartupService extends ChannelStartupService {
   public stateConnection: wa.StateConnection = { state: 'close' };
 
   public phoneNumber: string;
-  public mobile: boolean;
 
   private async recoveringMessages() {
     this.logger.info('Recovering messages lost');
@@ -452,13 +448,8 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
     }
-
-    if (connection === 'connecting') {
-      if (this.mobile) this.sendMobileCode();
-    }
   }
 
-  // TODO: Refactor this method for prisma
   private async getMessage(key: proto.IMessageKey, full = false) {
     this.logger.verbose('Getting message with key: ' + JSON.stringify(key));
     try {
@@ -525,7 +516,7 @@ export class BaileysStartupService extends ChannelStartupService {
     return await useMultiFileAuthState(join(INSTANCE_DIR, this.instance.name));
   }
 
-  public async connectToWhatsapp(number?: string, mobile?: boolean): Promise<WASocket> {
+  public async connectToWhatsapp(number?: string): Promise<WASocket> {
     this.logger.verbose('Connecting to whatsapp');
     try {
       this.loadWebhook();
@@ -538,12 +529,6 @@ export class BaileysStartupService extends ChannelStartupService {
       this.loadProxy();
 
       this.instance.authState = await this.defineAuthState();
-
-      if (!mobile) {
-        this.mobile = false;
-      } else {
-        this.mobile = mobile;
-      }
 
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
       const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
@@ -598,7 +583,6 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
-        mobile,
         browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
         version,
         markOnlineOnConnect: this.localSettings.alwaysOnline,
@@ -661,64 +645,6 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
     }
-  }
-
-  private async sendMobileCode() {
-    const { registration } = this.client.authState.creds || null;
-
-    let phoneNumber = registration.phoneNumber || this.phoneNumber;
-
-    if (!phoneNumber.startsWith('+')) {
-      phoneNumber = '+' + phoneNumber;
-    }
-
-    if (!phoneNumber) {
-      this.logger.error('Phone number not found');
-      return;
-    }
-
-    const parsedPhoneNumber = parsePhoneNumber(phoneNumber);
-
-    if (!parsedPhoneNumber?.isValid()) {
-      this.logger.error('Phone number invalid');
-      return;
-    }
-
-    registration.phoneNumber = parsedPhoneNumber.format('E.164');
-    registration.phoneNumberCountryCode = parsedPhoneNumber.countryCallingCode;
-    registration.phoneNumberNationalNumber = parsedPhoneNumber.nationalNumber;
-
-    const mcc = await PHONENUMBER_MCC[parsedPhoneNumber.countryCallingCode];
-    if (!mcc) {
-      this.logger.error('MCC not found');
-      return;
-    }
-
-    registration.phoneNumberMobileCountryCode = mcc;
-    registration.method = 'sms';
-
-    try {
-      const response = await this.client.requestRegistrationCode(registration);
-
-      if (['ok', 'sent'].includes(response?.status)) {
-        this.logger.verbose('Registration code sent successfully');
-
-        return response;
-      }
-    } catch (error) {
-      this.logger.error(error);
-    }
-  }
-
-  public async receiveMobileCode(code: string) {
-    await this.client
-      .register(code.replace(/["']/g, '').trim().toLowerCase())
-      .then(async () => {
-        this.logger.verbose('Registration code received successfully');
-      })
-      .catch((error) => {
-        this.logger.error(error);
-      });
   }
 
   public async reloadConnection(): Promise<WASocket> {
@@ -1429,6 +1355,7 @@ export class BaileysStartupService extends ChannelStartupService {
               participant: key?.remoteJid,
               status: 'DELETED',
               dateTime: Date.now(),
+              instanceId: this.instanceId,
             };
 
             this.logger.verbose(message);
@@ -1458,6 +1385,7 @@ export class BaileysStartupService extends ChannelStartupService {
             status: status[update.status],
             dateTime: Date.now(),
             pollUpdates,
+            instanceId: this.instanceId,
           };
 
           this.logger.verbose(message);
@@ -3289,7 +3217,6 @@ export class BaileysStartupService extends ChannelStartupService {
     if (!isJidGroup(groupJid)) return null;
 
     if (await groupMetadataCache.has(groupJid)) {
-      console.log('Has cache for group: ' + groupJid);
       const meta = await groupMetadataCache.get(groupJid);
 
       if (Date.now() - meta.timestamp > 3600000) {

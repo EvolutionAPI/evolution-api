@@ -165,10 +165,10 @@ class ChatwootImport {
           remoteJid: string;
         };
 
-        return (
-          parseInt(aKey.remoteJid) - parseInt(bKey.remoteJid) ||
-          (a.messageTimestamp as number) - (b.messageTimestamp as number)
-        );
+        const aMessageTimestamp = a.messageTimestamp as any as number;
+        const bMessageTimestamp = b.messageTimestamp as any as number;
+
+        return parseInt(aKey.remoteJid) - parseInt(bKey.remoteJid) || aMessageTimestamp - bMessageTimestamp;
       });
 
       const allMessagesMappedByPhoneNumber = this.createMessagesMapByPhoneNumber(messagesOrdered);
@@ -176,8 +176,8 @@ class ChatwootImport {
       const phoneNumbersWithTimestamp = new Map<string, firstLastTimestamp>();
       allMessagesMappedByPhoneNumber.forEach((messages: Message[], phoneNumber: string) => {
         phoneNumbersWithTimestamp.set(phoneNumber, {
-          first: messages[0]?.messageTimestamp as number,
-          last: messages[messages.length - 1]?.messageTimestamp as number,
+          first: messages[0]?.messageTimestamp as any as number,
+          last: messages[messages.length - 1]?.messageTimestamp as any as number,
         });
       });
 

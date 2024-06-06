@@ -56,6 +56,8 @@ model Instance {
   Websocket        Websocket?
   Typebot          Typebot?
   Session          Session?
+  MessageUpdate    MessageUpdate[]
+  TypebotSession   TypebotSession[]
 }
 
 model Session {
@@ -130,6 +132,8 @@ model MessageUpdate {
   status      String   @db.VarChar(30)
   Message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
   messageId   Int
+  Instance    Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId  String
 }
 
 model Webhook {
@@ -277,4 +281,6 @@ model TypebotSession {
   Typebot            Typebot   @relation(fields: [typebotId], references: [id], onDelete: Cascade)
   typebotId          Int
   Message            Message[]
+  Instance           Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId         String
 }
