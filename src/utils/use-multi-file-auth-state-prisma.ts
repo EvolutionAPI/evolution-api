@@ -1,9 +1,11 @@
-import { PrismaClient } from '@prisma/client';
 import { BufferJSON, initAuthCreds, WAProto as proto } from '@whiskeysockets/baileys';
 import fs from 'fs/promises';
 import path from 'path';
 
-const prisma = new PrismaClient();
+import { INSTANCE_DIR } from '../config/path.config';
+import { prismaServer } from '../libs/prisma.connect';
+
+const prisma = prismaServer;
 
 const fixFileName = (file) => {
   if (!file) {
@@ -28,8 +30,16 @@ export async function saveKey(sessionId, keyJson) {
   const jaExiste = await keyExists(sessionId);
   try {
     if (!jaExiste)
-      return await prisma.session.create({ data: { sessionId: sessionId, creds: JSON.stringify(keyJson) } as any });
-    await prisma.session.update({ where: { sessionId: sessionId }, data: { creds: JSON.stringify(keyJson) } });
+      return await prisma.session.create({
+        data: {
+          sessionId: sessionId,
+          creds: JSON.stringify(keyJson),
+        },
+      });
+    await prisma.session.update({
+      where: { sessionId: sessionId },
+      data: { creds: JSON.stringify(keyJson) },
+    });
   } catch (error) {
     console.log(`${error}`);
     return null;
@@ -68,7 +78,7 @@ async function fileExists(file) {
 }
 
 export default async function useMultiFileAuthStatePrisma(sessionId) {
-  const localFolder = path.join(process.cwd(), 'sessions', sessionId);
+  const localFolder = path.join(INSTANCE_DIR, sessionId);
   const localFile = (key) => path.join(localFolder, fixFileName(key) + '.json');
   await fs.mkdir(localFolder, { recursive: true });
 

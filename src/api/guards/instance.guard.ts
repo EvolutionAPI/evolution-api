@@ -10,7 +10,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '../../exceptions';
-import { mongodbServer } from '../../libs/mongodb.connect';
+import { prismaServer } from '../../libs/prisma.connect';
 import { InstanceDto } from '../dto/instance.dto';
 import { cache, waMonitor } from '../server.module';
 
@@ -28,11 +28,9 @@ async function getInstance(instanceName: string) {
     }
 
     if (db.ENABLED) {
-      const collection = mongodbServer
-        .getClient()
-        .db(db.CONNECTION.DB_PREFIX_NAME + '-instances')
-        .collection(instanceName);
-      return exists || (await collection.find({}).toArray()).length > 0;
+      const prisma = prismaServer;
+
+      return exists || (await prisma.instance.findMany({ where: { name: instanceName } })).length > 0;
     }
 
     return exists || existsSync(join(INSTANCE_DIR, instanceName));

@@ -1,3 +1,4 @@
+import { Contact, Message, MessageUpdate } from '@prisma/client';
 import { RequestHandler, Router } from 'express';
 
 import { Logger } from '../../config/logger.config';
@@ -37,9 +38,7 @@ import {
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
-import { ContactQuery } from '../repository/mongodb/contact.repository';
-import { MessageQuery } from '../repository/mongodb/message.repository';
-import { MessageUpQuery } from '../repository/mongodb/messageUp.repository';
+import { Query } from '../repository/repository.service';
 import { chatController } from '../server.module';
 import { HttpStatus } from './index.router';
 
@@ -176,10 +175,10 @@ export class ChatRouter extends RouterBroker {
         logger.verbose('request query: ');
         logger.verbose(req.query);
 
-        const response = await this.dataValidate<ContactQuery>({
+        const response = await this.dataValidate<Query<Contact>>({
           request: req,
           schema: contactValidateSchema,
-          ClassRef: ContactQuery,
+          ClassRef: Query<Contact>,
           execute: (instance, data) => chatController.fetchContacts(instance, data),
         });
 
@@ -210,10 +209,10 @@ export class ChatRouter extends RouterBroker {
         logger.verbose('request query: ');
         logger.verbose(req.query);
 
-        const response = await this.dataValidate<MessageQuery>({
+        const response = await this.dataValidate<Query<Message>>({
           request: req,
           schema: messageValidateSchema,
-          ClassRef: MessageQuery,
+          ClassRef: Query<Message>,
           execute: (instance, data) => chatController.fetchMessages(instance, data),
         });
 
@@ -227,10 +226,10 @@ export class ChatRouter extends RouterBroker {
         logger.verbose('request query: ');
         logger.verbose(req.query);
 
-        const response = await this.dataValidate<MessageUpQuery>({
+        const response = await this.dataValidate<Query<MessageUpdate>>({
           request: req,
           schema: messageUpSchema,
-          ClassRef: MessageUpQuery,
+          ClassRef: Query<MessageUpdate>,
           execute: (instance, data) => chatController.fetchStatusMessage(instance, data),
         });
 

@@ -1,16 +1,16 @@
 import { v4 } from 'uuid';
 
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
-import { MongodbRepository } from '../repository/mongodb/repository.manager';
-import { PrismaRepository } from '../repository/prisma/repository.service';
+import { PrismaRepository } from '../repository/repository.service';
 import { WAMonitoringService } from './monitor.service';
 
 export class AuthService {
   constructor(
     private readonly waMonitor: WAMonitoringService,
-    private readonly mongodbRepository: MongodbRepository,
+    private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
   ) {}
 
@@ -21,22 +21,28 @@ export class AuthService {
 
     this.logger.verbose(token ? 'APIKEY defined: ' + apikey : 'APIKEY created: ' + apikey);
 
-    const auth = await this.mongodbRepository.auth.create(
-      { apikey, instanceId: instance.instanceId },
-      instance.instanceName,
-    );
+    const db = this.configService.get('DATABASE');
 
-    this.logger.verbose('APIKEY saved in database');
+    if (db.ENABLED) {
+      try {
+        await this.prismaRepository.auth.create({
+          data: {
+            apikey: apikey,
+            instanceId: instance.instanceId,
+          },
+        });
 
-    if (auth['error']) {
-      this.logger.error({
-        localError: AuthService.name + '.apikey',
-        error: auth['error'],
-      });
-      throw new BadRequestException('Authentication error', auth['error']?.toString());
+        this.logger.verbose('APIKEY saved in database');
+
+        return { apikey };
+      } catch (error) {
+        this.logger.error({
+          localError: AuthService.name + '.apikey',
+          error: error,
+        });
+        throw new BadRequestException('Authentication error', error?.toString());
+      }
     }
-
-    return { apikey };
   }
 
   public async checkDuplicateToken(token: string) {

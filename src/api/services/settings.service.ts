@@ -26,7 +26,7 @@ export class SettingsService {
 
       return result;
     } catch (error) {
-      return { reject_call: false, msg_call: '', groups_ignore: true };
+      return null;
     }
   }
 }

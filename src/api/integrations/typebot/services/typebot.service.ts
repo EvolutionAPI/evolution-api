@@ -1,13 +1,13 @@
+import { Message } from '@prisma/client';
 import axios from 'axios';
 import EventEmitter2 from 'eventemitter2';
 
 import { ConfigService, Typebot } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { MessageRaw } from '../../../models';
 import { WAMonitoringService } from '../../../services/monitor.service';
 import { Events } from '../../../types/wa.types';
-import { Session, TypebotDto } from '../dto/typebot.dto';
+import { TypebotDto } from '../dto/typebot.dto';
 
 export class TypebotService {
   constructor(
@@ -64,10 +64,10 @@ export class TypebotService {
           url: findData.url,
           typebot: findData.typebot,
           expire: findData.expire,
-          keyword_finish: findData.keyword_finish,
-          delay_message: findData.delay_message,
-          unknown_message: findData.unknown_message,
-          listening_from_me: findData.listening_from_me,
+          keywordFinish: findData.keywordFinish,
+          delayMessage: findData.delayMessage,
+          unknownMessage: findData.unknownMessage,
+          listeningFromMe: findData.listeningFromMe,
           sessions: findData.sessions,
         };
 
@@ -82,19 +82,19 @@ export class TypebotService {
         }
       });
     } else if (status === 'paused') {
-      const session: Session = {
-        remoteJid: remoteJid,
-        sessionId: Math.floor(Math.random() * 10000000000).toString(),
-        status: status,
-        createdAt: Date.now(),
-        updateAt: Date.now(),
-        prefilledVariables: {
-          remoteJid: remoteJid,
-          pushName: '',
-          additionalData: {},
-        },
-      };
-      findData.sessions.push(session);
+      // const session: Session = {
+      //   remoteJid: remoteJid,
+      //   sessionId: Math.floor(Math.random() * 10000000000).toString(),
+      //   status: status,
+      //   createdAt: Date.now(),
+      //   updateAt: Date.now(),
+      //   prefilledVariables: {
+      //     remoteJid: remoteJid,
+      //     pushName: '',
+      //     additionalData: {},
+      //   },
+      // };
+      // findData.sessions.push(session);
     }
 
     const typebotData = {
@@ -102,10 +102,10 @@ export class TypebotService {
       url: findData.url,
       typebot: findData.typebot,
       expire: findData.expire,
-      keyword_finish: findData.keyword_finish,
-      delay_message: findData.delay_message,
-      unknown_message: findData.unknown_message,
-      listening_from_me: findData.listening_from_me,
+      keywordFinish: findData.keywordFinish,
+      delayMessage: findData.delayMessage,
+      unknownMessage: findData.unknownMessage,
+      listeningFromMe: findData.listeningFromMe,
       sessions: findData.sessions,
     };
 
@@ -124,7 +124,8 @@ export class TypebotService {
 
   public async clearSessions(instance: InstanceDto, remoteJid: string) {
     const findTypebot = await this.find(instance);
-    const sessions = (findTypebot.sessions as Session[]) ?? [];
+    const sessions = [];
+    // const sessions = (findTypebot.sessions as Session[]) ?? [];
 
     const sessionWithRemoteJid = sessions.filter((session) => session.remoteJid === remoteJid);
 
@@ -138,10 +139,10 @@ export class TypebotService {
         url: findTypebot.url,
         typebot: findTypebot.typebot,
         expire: findTypebot.expire,
-        keyword_finish: findTypebot.keyword_finish,
-        delay_message: findTypebot.delay_message,
-        unknown_message: findTypebot.unknown_message,
-        listening_from_me: findTypebot.listening_from_me,
+        keywordFinish: findTypebot.keywordFinish,
+        delayMessage: findTypebot.delayMessage,
+        unknownMessage: findTypebot.unknownMessage,
+        listeningFromMe: findTypebot.listeningFromMe,
         sessions,
       };
 
@@ -163,10 +164,10 @@ export class TypebotService {
     const variables = data.variables;
     const findTypebot = await this.find(instance);
     const expire = findTypebot.expire;
-    const keyword_finish = findTypebot.keyword_finish;
-    const delay_message = findTypebot.delay_message;
-    const unknown_message = findTypebot.unknown_message;
-    const listening_from_me = findTypebot.listening_from_me;
+    const keywordFinish = findTypebot.keywordFinish;
+    const delayMessage = findTypebot.delayMessage;
+    const unknownMessage = findTypebot.unknownMessage;
+    const listeningFromMe = findTypebot.listeningFromMe;
 
     const prefilledVariables = {
       remoteJid: remoteJid,
@@ -188,10 +189,10 @@ export class TypebotService {
         typebot: typebot,
         remoteJid: remoteJid,
         expire: expire,
-        keyword_finish: keyword_finish,
-        delay_message: delay_message,
-        unknown_message: unknown_message,
-        listening_from_me: listening_from_me,
+        keywordFinish: keywordFinish,
+        delayMessage: delayMessage,
+        unknownMessage: unknownMessage,
+        listeningFromMe: listeningFromMe,
         sessions: newSessions,
         prefilledVariables: prefilledVariables,
       });
@@ -467,10 +468,10 @@ export class TypebotService {
           url: data.url,
           typebot: data.typebot,
           expire: data.expire,
-          keyword_finish: data.keyword_finish,
-          delay_message: data.delay_message,
-          unknown_message: data.unknown_message,
-          listening_from_me: data.listening_from_me,
+          keywordFinish: data.keywordFinish,
+          delayMessage: data.delayMessage,
+          unknownMessage: data.unknownMessage,
+          listeningFromMe: data.listeningFromMe,
           sessions: data.sessions,
         };
 
@@ -585,7 +586,7 @@ export class TypebotService {
           await instance.textMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: instance.localTypebot.delayMessage || 1000,
               presence: 'composing',
             },
             textMessage: {
@@ -598,7 +599,7 @@ export class TypebotService {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: instance.localTypebot.delayMessage || 1000,
               presence: 'composing',
             },
             mediaMessage: {
@@ -612,7 +613,7 @@ export class TypebotService {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: instance.localTypebot.delayMessage || 1000,
               presence: 'composing',
             },
             mediaMessage: {
@@ -626,7 +627,7 @@ export class TypebotService {
           await instance.audioWhatsapp({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: instance.localTypebot.delayMessage || 1000,
               presence: 'recording',
               encoding: true,
             },
@@ -658,7 +659,7 @@ export class TypebotService {
           await instance.textMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: instance.localTypebot.delay_message || 1000,
+              delay: instance.localTypebot.delayMessage || 1000,
               presence: 'composing',
             },
             textMessage: {
@@ -675,16 +676,17 @@ export class TypebotService {
     }
   }
 
-  public async sendTypebot(instance: InstanceDto, remoteJid: string, msg: MessageRaw) {
+  public async sendTypebot(instance: InstanceDto, remoteJid: string, msg: Message) {
     const findTypebot = await this.find(instance);
     const url = findTypebot.url;
     const typebot = findTypebot.typebot;
-    const sessions = (findTypebot.sessions as Session[]) ?? [];
+    // const sessions = (findTypebot.sessions as Session[]) ?? [];
+    const sessions = [];
     const expire = findTypebot.expire;
-    const keyword_finish = findTypebot.keyword_finish;
-    const delay_message = findTypebot.delay_message;
-    const unknown_message = findTypebot.unknown_message;
-    const listening_from_me = findTypebot.listening_from_me;
+    const keywordFinish = findTypebot.keywordFinish;
+    const delayMessage = findTypebot.delayMessage;
+    const unknownMessage = findTypebot.unknownMessage;
+    const listeningFromMe = findTypebot.listeningFromMe;
     const messageType = this.getTypeMessage(msg.message).messageType;
 
     const session = sessions.find((session) => session.remoteJid === remoteJid);
@@ -705,10 +707,10 @@ export class TypebotService {
             url: url,
             typebot: typebot,
             expire: expire,
-            keyword_finish: keyword_finish,
-            delay_message: delay_message,
-            unknown_message: unknown_message,
-            listening_from_me: listening_from_me,
+            keywordFinish: keywordFinish,
+            delayMessage: delayMessage,
+            unknownMessage: unknownMessage,
+            listeningFromMe: listeningFromMe,
             sessions: newSessions,
             remoteJid: remoteJid,
             pushName: msg.pushName,
@@ -720,22 +722,22 @@ export class TypebotService {
             const content = this.getConversationMessage(msg.message);
 
             if (!content) {
-              if (unknown_message) {
+              if (unknownMessage) {
                 this.waMonitor.waInstances[instance.instanceName].textMessage({
                   number: remoteJid.split('@')[0],
                   options: {
-                    delay: delay_message || 1000,
+                    delay: delayMessage || 1000,
                     presence: 'composing',
                   },
                   textMessage: {
-                    text: unknown_message,
+                    text: unknownMessage,
                   },
                 });
               }
               return;
             }
 
-            if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+            if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
               const newSessions = await this.clearSessions(instance, remoteJid);
 
               const typebotData = {
@@ -743,10 +745,10 @@ export class TypebotService {
                 url: url,
                 typebot: typebot,
                 expire: expire,
-                keyword_finish: keyword_finish,
-                delay_message: delay_message,
-                unknown_message: unknown_message,
-                listening_from_me: listening_from_me,
+                keywordFinish: keywordFinish,
+                delayMessage: delayMessage,
+                unknownMessage: unknownMessage,
+                listeningFromMe: listeningFromMe,
                 sessions: newSessions,
               };
 
@@ -801,10 +803,10 @@ export class TypebotService {
           url: url,
           typebot: typebot,
           expire: expire,
-          keyword_finish: keyword_finish,
-          delay_message: delay_message,
-          unknown_message: unknown_message,
-          listening_from_me: listening_from_me,
+          keywordFinish: keywordFinish,
+          delayMessage: delayMessage,
+          unknownMessage: unknownMessage,
+          listeningFromMe: listeningFromMe,
           sessions: sessions,
           remoteJid: remoteJid,
           pushName: msg.pushName,
@@ -819,22 +821,22 @@ export class TypebotService {
           const content = this.getConversationMessage(msg.message);
 
           if (!content) {
-            if (unknown_message) {
+            if (unknownMessage) {
               this.waMonitor.waInstances[instance.instanceName].textMessage({
                 number: remoteJid.split('@')[0],
                 options: {
-                  delay: delay_message || 1000,
+                  delay: delayMessage || 1000,
                   presence: 'composing',
                 },
                 textMessage: {
-                  text: unknown_message,
+                  text: unknownMessage,
                 },
               });
             }
             return;
           }
 
-          if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+          if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
             const newSessions = await this.clearSessions(instance, remoteJid);
 
             const typebotData = {
@@ -842,10 +844,10 @@ export class TypebotService {
               url: url,
               typebot: typebot,
               expire: expire,
-              keyword_finish: keyword_finish,
-              delay_message: delay_message,
-              unknown_message: unknown_message,
-              listening_from_me: listening_from_me,
+              keywordFinish: keywordFinish,
+              delayMessage: delayMessage,
+              unknownMessage: unknownMessage,
+              listeningFromMe: listeningFromMe,
               sessions: newSessions,
             };
 
@@ -899,10 +901,10 @@ export class TypebotService {
         url: url,
         typebot: typebot,
         expire: expire,
-        keyword_finish: keyword_finish,
-        delay_message: delay_message,
-        unknown_message: unknown_message,
-        listening_from_me: listening_from_me,
+        keywordFinish: keywordFinish,
+        delayMessage: delayMessage,
+        unknownMessage: unknownMessage,
+        listeningFromMe: listeningFromMe,
         sessions,
       };
 
@@ -911,22 +913,22 @@ export class TypebotService {
       const content = this.getConversationMessage(msg.message);
 
       if (!content) {
-        if (unknown_message) {
+        if (unknownMessage) {
           this.waMonitor.waInstances[instance.instanceName].textMessage({
             number: remoteJid.split('@')[0],
             options: {
-              delay: delay_message || 1000,
+              delay: delayMessage || 1000,
               presence: 'composing',
             },
             textMessage: {
-              text: unknown_message,
+              text: unknownMessage,
             },
           });
         }
         return;
       }
 
-      if (keyword_finish && content.toLowerCase() === keyword_finish.toLowerCase()) {
+      if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
         const newSessions = await this.clearSessions(instance, remoteJid);
 
         const typebotData = {
@@ -934,10 +936,10 @@ export class TypebotService {
           url: url,
           typebot: typebot,
           expire: expire,
-          keyword_finish: keyword_finish,
-          delay_message: delay_message,
-          unknown_message: unknown_message,
-          listening_from_me: listening_from_me,
+          keywordFinish: keywordFinish,
+          delayMessage: delayMessage,
+          unknownMessage: unknownMessage,
+          listeningFromMe: listeningFromMe,
           sessions: newSessions,
         };
 

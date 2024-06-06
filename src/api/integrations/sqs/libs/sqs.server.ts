@@ -1,4 +1,5 @@
 import { SQS } from '@aws-sdk/client-sqs';
+import { JsonValue } from '@prisma/client/runtime/library';
 
 import { configService, Sqs } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
@@ -59,12 +60,13 @@ export const initQueues = (instanceName: string, events: string[]) => {
   });
 };
 
-export const removeQueues = (instanceName: string, events: string[]) => {
-  if (!events || !events.length) return;
+export const removeQueues = (instanceName: string, events: JsonValue) => {
+  const eventsArray = Array.isArray(events) ? events.map((event) => String(event)) : [];
+  if (!events || !eventsArray.length) return;
 
   const sqs = getSQS();
 
-  const queues = events.map((event) => {
+  const queues = eventsArray.map((event) => {
     return `${event.replace(/_/g, '_').toLowerCase()}`;
   });
 

@@ -301,7 +301,7 @@ export class ConfigService {
           DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME || 'evolution',
         },
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
-        PROVIDER: process.env.DATABASE_PROVIDER || 'mongodb',
+        PROVIDER: process.env.DATABASE_PROVIDER || 'postgresql',
         SAVE_DATA: {
           INSTANCE: process.env?.DATABASE_SAVE_DATA_INSTANCE === 'true',
           NEW_MESSAGE: process.env?.DATABASE_SAVE_DATA_NEW_MESSAGE === 'true',

@@ -10,6 +10,7 @@ import { initAMQP, initGlobalQueues } from './api/integrations/rabbitmq/libs/amq
 import { initSQS } from './api/integrations/sqs/libs/sqs.server';
 import { initIO } from './api/integrations/websocket/libs/socket.server';
 import { ProviderFiles } from './api/provider/sessions';
+import { PrismaRepository } from './api/repository/repository.service';
 import { HttpStatus, router } from './api/routes/index.router';
 import { waMonitor } from './api/server.module';
 import { Auth, configService, Cors, HttpServer, Rabbitmq, Sqs, Webhook } from './config/env.config';
@@ -29,6 +30,8 @@ async function bootstrap() {
   const providerFiles = new ProviderFiles(configService);
   await providerFiles.onModuleInit();
   logger.info('Provider:Files - ON');
+  const prismaRepository = new PrismaRepository(configService);
+  await prismaRepository.onModuleInit();
 
   app.use(
     cors({

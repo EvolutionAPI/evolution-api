@@ -1,3 +1,5 @@
+import { Webhook } from '@prisma/client';
+
 import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { WebhookDto } from '../dto/webhook.dto';
@@ -15,7 +17,7 @@ export class WebhookService {
     return { webhook: { ...instance, webhook: data } };
   }
 
-  public async find(instance: InstanceDto): Promise<WebhookDto> {
+  public async find(instance: InstanceDto): Promise<Webhook> {
     try {
       this.logger.verbose('find webhook: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findWebhook();
@@ -26,7 +28,7 @@ export class WebhookService {
 
       return result;
     } catch (error) {
-      return { enabled: false, url: '', events: [], webhook_by_events: false, webhook_base64: false };
+      return null;
     }
   }
 }

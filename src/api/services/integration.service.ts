@@ -1,7 +1,8 @@
+import { Integration } from '@prisma/client';
+
 import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
 import { IntegrationDto } from '../dto/integration.dto';
-import { IntegrationRaw } from '../models';
 import { WAMonitoringService } from './monitor.service';
 
 export class IntegrationService {
@@ -16,19 +17,19 @@ export class IntegrationService {
     return { integration: { ...instance, integration: data } };
   }
 
-  public async find(instance: InstanceDto): Promise<IntegrationRaw> {
+  public async find(instance: InstanceDto): Promise<Integration> {
     try {
       this.logger.verbose('find integration: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findIntegration();
 
       if (Object.keys(result).length === 0) {
         this.create(instance, { integration: 'WHATSAPP-BAILEYS', number: '', token: '' });
-        return { integration: 'WHATSAPP-BAILEYS', number: '', token: '' };
+        return null;
       }
 
       return result;
     } catch (error) {
-      return { integration: '', number: '', token: '' };
+      return null;
     }
   }
 }

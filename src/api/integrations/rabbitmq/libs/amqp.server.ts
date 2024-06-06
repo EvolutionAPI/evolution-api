@@ -1,3 +1,4 @@
+import { JsonValue } from '@prisma/client/runtime/library';
 import * as amqp from 'amqplib/callback_api';
 
 import { configService, Rabbitmq } from '../../../../config/env.config';
@@ -107,12 +108,14 @@ export const initQueues = (instanceName: string, events: string[]) => {
   });
 };
 
-export const removeQueues = (instanceName: string, events: string[]) => {
-  if (!events || !events.length) return;
+export const removeQueues = (instanceName: string, events: JsonValue) => {
+  const eventsArray = Array.isArray(events) ? events.map((event) => String(event)) : [];
+
+  if (!events || !eventsArray.length) return;
 
   const channel = getAMQP();
 
-  const queues = events.map((event) => {
+  const queues = eventsArray.map((event) => {
     return `${event.replace(/_/g, '.').toLowerCase()}`;
   });
 

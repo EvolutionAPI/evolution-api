@@ -4,7 +4,7 @@ import { Auth, configService, Database } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { ForbiddenException, UnauthorizedException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
-import { mongodbRepository } from '../server.module';
+import { prismaRepository } from '../server.module';
 
 const logger = new Logger('GUARD');
 
@@ -28,13 +28,18 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
 
   try {
     if (param?.instanceName) {
-      const instanceKey = await mongodbRepository.auth.find(param.instanceName);
-      if (instanceKey?.apikey === key) {
+      const instance = await prismaRepository.instance.findUnique({
+        where: { name: param.instanceName },
+        include: { Auth: true },
+      });
+      if (instance.Auth?.apikey === key) {
         return next();
       }
     } else {
       if (req.originalUrl.includes('/instance/fetchInstances') && db.ENABLED) {
-        const instanceByKey = await mongodbRepository.auth.findByKey(key);
+        const instanceByKey = await prismaRepository.auth.findFirst({
+          where: { apikey: key },
+        });
         if (instanceByKey) {
           return next();
         }

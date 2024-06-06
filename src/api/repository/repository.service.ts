@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
-import { ConfigService } from '../../../config/env.config';
-import { Logger } from '../../../config/logger.config';
+import { ConfigService } from '../../config/env.config';
+import { Logger } from '../../config/logger.config';
 
 export class Query<T> {
   where?: T;

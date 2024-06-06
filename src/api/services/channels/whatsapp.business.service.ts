@@ -22,10 +22,8 @@ import {
   SendTemplateDto,
   SendTextDto,
 } from '../../dto/sendMessage.dto';
-import { ContactRaw, MessageRaw, MessageUpdateRaw, SettingsRaw } from '../../models';
 import { ProviderFiles } from '../../provider/sessions';
-import { MongodbRepository } from '../../repository/mongodb/repository.manager';
-import { PrismaRepository } from '../../repository/prisma/repository.service';
+import { PrismaRepository } from '../../repository/repository.service';
 import { Events, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
 import { ChannelStartupService } from './../channel.service';
@@ -34,14 +32,13 @@ export class BusinessStartupService extends ChannelStartupService {
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
-    public readonly mongodbRepository: MongodbRepository,
     public readonly prismaRepository: PrismaRepository,
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
     public readonly baileysCache: CacheService,
     private readonly providerFiles: ProviderFiles,
   ) {
-    super(configService, eventEmitter, mongodbRepository, prismaRepository, chatwootCache);
+    super(configService, eventEmitter, prismaRepository, chatwootCache);
     this.logger.verbose('BusinessStartupService initialized');
     this.cleanStore();
   }
@@ -318,9 +315,9 @@ export class BusinessStartupService extends ChannelStartupService {
     return messageType;
   }
 
-  protected async messageHandle(received: any, database: Database, settings: SettingsRaw) {
+  protected async messageHandle(received: any, database: Database, settings: any) {
     try {
-      let messageRaw: MessageRaw;
+      let messageRaw: any;
       let pushName: any;
 
       if (received.contacts) pushName = received.contacts[0].profile.name;
@@ -398,11 +395,11 @@ export class BusinessStartupService extends ChannelStartupService {
           };
         }
 
-        if (this.localSettings.read_messages && received.key.id !== 'status@broadcast') {
+        if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
           // await this.client.readMessages([received.key]);
         }
 
-        if (this.localSettings.read_status && received.key.id === 'status@broadcast') {
+        if (this.localSettings.readStatus && received.key.id === 'status@broadcast') {
           // await this.client.readMessages([received.key]);
         }
 
@@ -433,7 +430,7 @@ export class BusinessStartupService extends ChannelStartupService {
         );
 
         if (this.localTypebot.enabled || typebotSessionRemoteJid) {
-          if (!(this.localTypebot.listening_from_me === false && key.fromMe === true)) {
+          if (!(this.localTypebot.listeningFromMe === false && key.fromMe === true)) {
             if (messageRaw.messageType !== 'reactionMessage')
               await this.typebotService.sendTypebot(
                 { instanceName: this.instance.name },
@@ -444,32 +441,34 @@ export class BusinessStartupService extends ChannelStartupService {
         }
 
         this.logger.verbose('Inserting message in database');
-        await this.mongodbRepository.message.insert([messageRaw], this.instance.name, database.SAVE_DATA.NEW_MESSAGE);
-
-        this.logger.verbose('Verifying contact from message');
-        const contact = await this.mongodbRepository.contact.find({
-          where: { owner: this.instance.name, id: key.remoteJid },
+        await this.prismaRepository.message.create({
+          data: messageRaw,
         });
 
-        const contactRaw: ContactRaw = {
-          id: received.contacts[0].profile.phone,
+        this.logger.verbose('Verifying contact from message');
+        const contact = await this.prismaRepository.contact.findFirst({
+          where: { instanceId: this.instanceId, remoteJid: key.remoteJid },
+        });
+
+        const contactRaw: any = {
+          remoteJid: received.contacts[0].profile.phone,
           pushName,
-          //profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
-          owner: this.instance.name,
+          // profilePicUrl: '',
+          instanceId: this.instanceId,
         };
 
-        if (contactRaw.id === 'status@broadcast') {
+        if (contactRaw.remoteJid === 'status@broadcast') {
           this.logger.verbose('Contact is status@broadcast');
           return;
         }
 
-        if (contact?.length) {
+        if (contact) {
           this.logger.verbose('Contact found in database');
-          const contactRaw: ContactRaw = {
-            id: received.contacts[0].profile.phone,
+          const contactRaw: any = {
+            remoteJid: received.contacts[0].profile.phone,
             pushName,
-            //profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
-            owner: this.instance.name,
+            // profilePicUrl: '',
+            instanceId: this.instanceId,
           };
 
           this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
@@ -484,7 +483,10 @@ export class BusinessStartupService extends ChannelStartupService {
           }
 
           this.logger.verbose('Updating contact in database');
-          await this.mongodbRepository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+          await this.prismaRepository.contact.updateMany({
+            where: { remoteJid: contact.remoteJid },
+            data: contactRaw,
+          });
           return;
         }
 
@@ -494,7 +496,9 @@ export class BusinessStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
         this.logger.verbose('Inserting contact in database');
-        this.mongodbRepository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+        this.prismaRepository.contact.create({
+          data: contactRaw,
+        });
       }
       this.logger.verbose('Event received: messages.update');
       if (received.statuses) {
@@ -513,27 +517,38 @@ export class BusinessStartupService extends ChannelStartupService {
 
             if (item.status === 'read' && !key.fromMe) return;
 
+            const findMessage = await this.prismaRepository.message.findFirst({
+              where: {
+                instanceId: this.instanceId,
+                key: {
+                  path: ['id'],
+                  equals: key.id,
+                },
+              },
+            });
+
             if (item.message === null && item.status === undefined) {
               this.logger.verbose('Message deleted');
 
               this.logger.verbose('Sending data to webhook in event MESSAGE_DELETE');
               this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
-              const message: MessageUpdateRaw = {
-                ...key,
+              const message: any = {
+                messageId: findMessage.id,
+                keyId: key.id,
+                remoteJid: key.remoteJid,
+                fromMe: key.fromMe,
+                participant: key?.remoteJid,
                 status: 'DELETED',
-                datetime: Date.now(),
-                owner: this.instance.name,
+                dateTime: Date.now(),
               };
 
               this.logger.verbose(message);
 
               this.logger.verbose('Inserting message in database');
-              await this.mongodbRepository.messageUpdate.insert(
-                [message],
-                this.instance.name,
-                database.SAVE_DATA.MESSAGE_UPDATE,
-              );
+              await this.prismaRepository.messageUpdate.create({
+                data: message,
+              });
 
               if (this.localChatwoot.enabled) {
                 this.chatwootService.eventWhatsapp(
@@ -546,11 +561,14 @@ export class BusinessStartupService extends ChannelStartupService {
               return;
             }
 
-            const message: MessageUpdateRaw = {
-              ...key,
+            const message: any = {
+              messageId: findMessage.id,
+              keyId: key.id,
+              remoteJid: key.remoteJid,
+              fromMe: key.fromMe,
+              participant: key?.remoteJid,
               status: item.status.toUpperCase(),
-              datetime: Date.now(),
-              owner: this.instance.name,
+              dateTime: Date.now(),
             };
 
             this.logger.verbose(message);
@@ -559,11 +577,9 @@ export class BusinessStartupService extends ChannelStartupService {
             this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
             this.logger.verbose('Inserting message in database');
-            this.mongodbRepository.messageUpdate.insert(
-              [message],
-              this.instance.name,
-              database.SAVE_DATA.MESSAGE_UPDATE,
-            );
+            await this.prismaRepository.messageUpdate.create({
+              data: message,
+            });
           }
         }
       }
@@ -848,13 +864,13 @@ export class BusinessStartupService extends ChannelStartupService {
 
       console.log(content);
 
-      const messageRaw: MessageRaw = {
+      const messageRaw: any = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
         //pushName: messageSent.pushName,
         message: this.convertMessageToRaw(message, content),
         messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
-        owner: this.instance.name,
+        instanceId: this.instanceId,
         //ource: getDevice(messageSent.key.id),
       };
 
@@ -868,11 +884,9 @@ export class BusinessStartupService extends ChannelStartupService {
       }
 
       this.logger.verbose('Inserting message in database');
-      await this.mongodbRepository.message.insert(
-        [messageRaw],
-        this.instance.name,
-        this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE,
-      );
+      await this.prismaRepository.message.create({
+        data: messageRaw,
+      });
 
       return messageRaw;
     } catch (error) {

@@ -8,11 +8,12 @@ import ChatwootClient, {
   inbox,
 } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
-import { proto } from '@whiskeysockets/baileys';
+import { Chatwoot as ChatwootModel, Contact as ContactModel, Message as MessageModel } from '@prisma/client';
 import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
+import Long from 'long';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
@@ -22,13 +23,19 @@ import i18next from '../../../../utils/i18n';
 import { ICache } from '../../../abstract/abstract.cache';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../../../dto/sendMessage.dto';
-import { ChatwootRaw, ContactRaw, MessageRaw } from '../../../models';
-import { MongodbRepository } from '../../../repository/mongodb/repository.manager';
-import { PrismaRepository } from '../../../repository/prisma/repository.service';
+import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
 import { Events } from '../../../types/wa.types';
 import { ChatwootDto } from '../dto/chatwoot.dto';
 import { chatwootImport } from '../utils/chatwoot-import-helper';
+
+interface ChatwootMessage {
+  messageId?: number;
+  inboxId?: number;
+  conversationId?: number;
+  contactInboxSourceId?: string;
+  isRead?: boolean;
+}
 
 export class ChatwootService {
   private readonly logger = new Logger(ChatwootService.name);
@@ -38,7 +45,6 @@ export class ChatwootService {
   constructor(
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
-    private readonly mongodbRepository: MongodbRepository,
     private readonly prismaRepository: PrismaRepository,
     private readonly cache: ICache,
   ) {}
@@ -46,7 +52,7 @@ export class ChatwootService {
   private async getProvider(instance: InstanceDto) {
     const cacheKey = `${instance.instanceName}:getProvider`;
     if (await this.cache.has(cacheKey)) {
-      return (await this.cache.get(cacheKey)) as ChatwootRaw;
+      return (await this.cache.get(cacheKey)) as ChatwootModel;
     }
 
     this.logger.verbose('get provider to instance: ' + instance.instanceName);
@@ -110,12 +116,12 @@ export class ChatwootService {
 
     this.logger.verbose('chatwoot created');
 
-    if (data.auto_create) {
+    if (data.autoCreate) {
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       await this.initInstanceChatwoot(
         instance,
-        data.name_inbox ?? instance.instanceName.split('-cwId-')[0],
+        data.nameInbox ?? instance.instanceName.split('-cwId-')[0],
         `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         true,
         data.number,
@@ -1195,26 +1201,22 @@ export class ChatwootService {
 
       this.logger.verbose('check if is a message deletion');
       if (body.event === 'message_updated' && body.content_attributes?.deleted) {
-        const message = await this.mongodbRepository.message.find({
+        const message = await this.prismaRepository.message.findFirst({
           where: {
-            owner: instance.instanceName,
-            chatwoot: {
-              messageId: body.id,
-            },
+            chatwootMessageId: body.id,
+            instanceId: instance.instanceId,
           },
-          limit: 1,
         });
-        if (message.length && message[0].key?.id) {
+
+        if (message) {
           this.logger.verbose('deleting message in whatsapp. Message id: ' + message[0].key.id);
           await waInstance?.client.sendMessage(message[0].key.remoteJid, { delete: message[0].key });
 
           this.logger.verbose('deleting message in repository. Message id: ' + message[0].key.id);
-          this.mongodbRepository.message.delete({
+          this.prismaRepository.message.deleteMany({
             where: {
-              owner: instance.instanceName,
-              chatwoot: {
-                messageId: body.id,
-              },
+              instanceId: instance.instanceId,
+              chatwootMessageId: body.id,
             },
           });
         }
@@ -1368,9 +1370,7 @@ export class ChatwootService {
                   messageId: body.id,
                   inboxId: body.inbox?.id,
                   conversationId: body.conversation?.id,
-                  contactInbox: {
-                    sourceId: body.conversation?.contact_inbox?.source_id,
-                  },
+                  contactInboxSourceId: body.conversation?.contact_inbox?.source_id,
                 },
                 instance,
               );
@@ -1391,25 +1391,27 @@ export class ChatwootService {
               },
             };
 
-            let messageSent: MessageRaw | proto.WebMessageInfo;
+            let messageSent: any;
             try {
               messageSent = await waInstance?.textMessage(data, true);
               if (!messageSent) {
                 throw new Error('Message not sent');
               }
 
+              if (Long.isLong(messageSent?.messageTimestamp)) {
+                messageSent.messageTimestamp = messageSent.messageTimestamp?.toNumber();
+              }
+
               this.updateChatwootMessageId(
                 {
                   ...messageSent,
-                  owner: instance.instanceName,
+                  instanceId: instance.instanceId,
                 },
                 {
                   messageId: body.id,
                   inboxId: body.inbox?.id,
                   conversationId: body.conversation?.id,
-                  contactInbox: {
-                    sourceId: body.conversation?.contact_inbox?.source_id,
-                  },
+                  contactInboxSourceId: body.conversation?.contact_inbox?.source_id,
                 },
                 instance,
               );
@@ -1424,32 +1426,72 @@ export class ChatwootService {
 
         const chatwootRead = this.configService.get<Chatwoot>('CHATWOOT').MESSAGE_READ;
         if (chatwootRead) {
-          const lastMessage = await this.mongodbRepository.message.find({
+          const lastMessage = await this.prismaRepository.message.findFirst({
             where: {
               key: {
-                fromMe: false,
+                path: ['fromMe'],
+                equals: false,
               },
-              owner: instance.instanceName,
+              instanceId: instance.instanceId,
             },
-            limit: 1,
           });
-          if (lastMessage.length > 0 && !lastMessage[0].chatwoot?.isRead) {
+          if (lastMessage && !lastMessage.chatwootIsRead) {
+            const key = lastMessage.key as {
+              id: string;
+              fromMe: boolean;
+              remoteJid: string;
+              participant?: string;
+            };
+
             waInstance?.markMessageAsRead({
-              read_messages: lastMessage.map((msg) => ({
-                id: msg.key?.id,
-                fromMe: msg.key?.fromMe,
-                remoteJid: msg.key?.remoteJid,
-              })),
+              read_messages: [
+                {
+                  id: key.id,
+                  fromMe: key.fromMe,
+                  remoteJid: key.remoteJid,
+                },
+              ],
             });
-            const updateMessage = lastMessage.map((msg) => ({
-              key: msg.key,
-              owner: msg.owner,
-              chatwoot: {
-                ...msg.chatwoot,
-                isRead: true,
+            const updateMessage = {
+              chatwootMessageId: lastMessage.chatwootMessageId,
+              chatwootConversationId: lastMessage.chatwootConversationId,
+              chatwootInboxId: lastMessage.chatwootInboxId,
+              chatwootContactInboxSourceId: lastMessage.chatwootContactInboxSourceId,
+              chatwootIsRead: true,
+            };
+
+            await this.prismaRepository.message.updateMany({
+              where: {
+                instanceId: instance.instanceId,
+                AND: [
+                  {
+                    key: {
+                      path: ['id'],
+                      equals: key.id,
+                    },
+                  },
+                  {
+                    key: {
+                      path: ['remoteJid'],
+                      equals: key.remoteJid,
+                    },
+                  },
+                  {
+                    key: {
+                      path: ['fromMe'],
+                      equals: key.fromMe,
+                    },
+                  },
+                  {
+                    key: {
+                      path: ['participant'],
+                      equals: key.participant,
+                    },
+                  },
+                ],
               },
-            }));
-            this.mongodbRepository.message.update(updateMessage, instance.instanceName, true);
+              data: updateMessage,
+            });
           }
         }
       }
@@ -1481,31 +1523,48 @@ export class ChatwootService {
     }
   }
 
-  private updateChatwootMessageId(
-    message: MessageRaw,
-    chatwootMessageIds: MessageRaw['chatwoot'],
-    instance: InstanceDto,
-  ) {
-    if (!chatwootMessageIds.messageId || !message?.key?.id) {
+  private updateChatwootMessageId(message: MessageModel, chatwootMessageIds: ChatwootMessage, instance: InstanceDto) {
+    const key = message.key as {
+      id: string;
+      fromMe: boolean;
+      remoteJid: string;
+      participant?: string;
+    };
+
+    if (!chatwootMessageIds.messageId || !key?.id) {
       return;
     }
 
-    message.chatwoot = chatwootMessageIds;
-    this.mongodbRepository.message.update([message], instance.instanceName, true);
-  }
-
-  private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageRaw> {
-    const messages = await this.mongodbRepository.message.find({
+    this.prismaRepository.message.updateMany({
       where: {
         key: {
-          id: keyId,
+          path: ['id'],
+          equals: key.id,
         },
-        owner: instance.instanceName,
+        instanceId: instance.instanceId,
       },
-      limit: 1,
+      data: {
+        chatwootMessageId: chatwootMessageIds.messageId,
+        chatwootConversationId: chatwootMessageIds.conversationId,
+        chatwootInboxId: chatwootMessageIds.inboxId,
+        chatwootContactInboxSourceId: chatwootMessageIds.contactInboxSourceId,
+        chatwootIsRead: chatwootMessageIds.isRead,
+      },
+    });
+  }
+
+  private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageModel> {
+    const messages = await this.prismaRepository.message.findFirst({
+      where: {
+        key: {
+          path: ['id'],
+          equals: keyId,
+        },
+        instanceId: instance.instanceId,
+      },
     });
 
-    return messages.length ? messages[0] : null;
+    return messages || null;
   }
 
   private async getReplyToIds(
@@ -1519,8 +1578,8 @@ export class ChatwootService {
       inReplyToExternalId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
       if (inReplyToExternalId) {
         const message = await this.getMessageByKeyId(instance, inReplyToExternalId);
-        if (message?.chatwoot?.messageId) {
-          inReplyTo = message.chatwoot.messageId;
+        if (message?.chatwootMessageId) {
+          inReplyTo = message.chatwootMessageId;
         }
       }
     }
@@ -1533,16 +1592,21 @@ export class ChatwootService {
 
   private async getQuotedMessage(msg: any, instance: InstanceDto): Promise<Quoted> {
     if (msg?.content_attributes?.in_reply_to) {
-      const message = await this.mongodbRepository.message.find({
+      const message = await this.prismaRepository.message.findFirst({
         where: {
-          chatwoot: {
-            messageId: msg?.content_attributes?.in_reply_to,
-          },
-          owner: instance.instanceName,
+          chatwootMessageId: msg?.content_attributes?.in_reply_to,
+          instanceId: instance.instanceId,
         },
-        limit: 1,
       });
-      if (message.length && message[0]?.key?.id) {
+
+      const key = message.key as {
+        id: string;
+        fromMe: boolean;
+        remoteJid: string;
+        participant?: string;
+      };
+
+      if (message && key?.id) {
         return {
           key: message[0].key,
           message: message[0].message,
@@ -1588,7 +1652,12 @@ export class ChatwootService {
 
   private getReactionMessage(msg: any) {
     interface ReactionMessage {
-      key: MessageRaw['key'];
+      key: {
+        id: string;
+        fromMe: boolean;
+        remoteJid: string;
+        participant?: string;
+      };
       text: string;
     }
     const reactionMessage: ReactionMessage | undefined = msg?.reactionMessage;
@@ -2131,22 +2200,23 @@ export class ChatwootService {
           }
 
           const message = await this.getMessageByKeyId(instance, body.key.id);
-          if (message?.chatwoot?.messageId && message?.chatwoot?.conversationId) {
+          if (message?.chatwootMessageId && message?.chatwootConversationId) {
             this.logger.verbose('deleting message in repository. Message id: ' + body.key.id);
-            this.mongodbRepository.message.delete({
+            this.prismaRepository.message.deleteMany({
               where: {
                 key: {
-                  id: body.key.id,
+                  path: ['id'],
+                  equals: body.key.id,
                 },
-                owner: instance.instanceName,
+                instanceId: instance.instanceId,
               },
             });
 
             this.logger.verbose('deleting message in chatwoot. Message id: ' + body.key.id);
             return await client.messages.delete({
               accountId: this.provider.account_id,
-              conversationId: message.chatwoot.conversationId,
-              messageId: message.chatwoot.messageId,
+              conversationId: message.chatwootConversationId,
+              messageId: message.chatwootMessageId,
             });
           }
         }
@@ -2157,18 +2227,25 @@ export class ChatwootService {
           body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
         }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;
         const message = await this.getMessageByKeyId(instance, body?.key?.id);
-        const messageType = message.key?.fromMe ? 'outgoing' : 'incoming';
+        const key = message.key as {
+          id: string;
+          fromMe: boolean;
+          remoteJid: string;
+          participant?: string;
+        };
 
-        if (message && message.chatwoot?.conversationId) {
+        const messageType = key?.fromMe ? 'outgoing' : 'incoming';
+
+        if (message && message.chatwootConversationId) {
           const send = await this.createMessage(
             instance,
-            message.chatwoot.conversationId,
+            message.chatwootConversationId,
             editedText,
             messageType,
             false,
             [],
             {
-              message: { extendedTextMessage: { contextInfo: { stanzaId: message.key.id } } },
+              message: { extendedTextMessage: { contextInfo: { stanzaId: key.id } } },
             },
             'WAID:' + body.key.id,
           );
@@ -2189,9 +2266,11 @@ export class ChatwootService {
         }
 
         const message = await this.getMessageByKeyId(instance, body.key.id);
-        const { conversationId, contactInbox } = message?.chatwoot || {};
+        const conversationId = message?.chatwootConversationId;
+        const contactInboxSourceId = message?.chatwootContactInboxSourceId;
+
         if (conversationId) {
-          let sourceId = contactInbox?.sourceId;
+          let sourceId = contactInboxSourceId;
           const inbox = (await this.getInbox(instance)) as inbox & {
             inbox_identifier?: string;
           };
@@ -2317,7 +2396,7 @@ export class ChatwootService {
   /* We can't proccess messages exactly in batch because Chatwoot use message id to order
      messages in frontend and we are receiving the messages mixed between the batches.
      Because this, we need to put all batches together and order after */
-  public addHistoryMessages(instance: InstanceDto, messagesRaw: MessageRaw[]) {
+  public addHistoryMessages(instance: InstanceDto, messagesRaw: MessageModel[]) {
     if (!this.isImportHistoryAvailable()) {
       return;
     }
@@ -2325,7 +2404,7 @@ export class ChatwootService {
     chatwootImport.addHistoryMessages(instance, messagesRaw);
   }
 
-  public addHistoryContacts(instance: InstanceDto, contactsRaw: ContactRaw[]) {
+  public addHistoryContacts(instance: InstanceDto, contactsRaw: ContactModel[]) {
     if (!this.isImportHistoryAvailable()) {
       return;
     }
@@ -2382,16 +2461,18 @@ export class ChatwootService {
       );
 
       const contactsWithProfilePicture = (
-        await this.mongodbRepository.contact.find({
+        await this.prismaRepository.contact.findMany({
           where: {
-            owner: instance.instanceName,
+            instanceId: instance.instanceId,
             id: {
-              $in: recentContacts.map((contact) => contact.identifier),
+              in: recentContacts.map((contact) => Number(contact.identifier)),
             },
-            profilePictureUrl: { $ne: null },
+            profilePicUrl: {
+              not: null,
+            },
           },
-        } as any)
-      ).reduce((acc: Map<string, ContactRaw>, contact: ContactRaw) => acc.set(contact.id, contact), new Map());
+        })
+      ).reduce((acc: Map<number, ContactModel>, contact: ContactModel) => acc.set(contact.id, contact), new Map());
 
       recentContacts.forEach(async (contact) => {
         if (contactsWithProfilePicture.has(contact.identifier)) {

@@ -5,8 +5,7 @@ import { ConfigService, HttpServer } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { BadRequestException } from '../../../../exceptions';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { MongodbRepository } from '../../../repository/mongodb/repository.manager';
-import { PrismaRepository } from '../../../repository/prisma/repository.service';
+import { PrismaRepository } from '../../../repository/repository.service';
 import { waMonitor } from '../../../server.module';
 import { CacheService } from '../../../services/cache.service';
 import { ChatwootDto } from '../dto/chatwoot.dto';
@@ -18,7 +17,6 @@ export class ChatwootController {
   constructor(
     private readonly chatwootService: ChatwootService,
     private readonly configService: ConfigService,
-    private readonly mongodbRepository: MongodbRepository,
     private readonly prismaRepository: PrismaRepository,
   ) {}
 
@@ -30,39 +28,39 @@ export class ChatwootController {
         throw new BadRequestException('url is not valid');
       }
 
-      if (!data.account_id) {
-        throw new BadRequestException('account_id is required');
+      if (!data.accountId) {
+        throw new BadRequestException('accountId is required');
       }
 
       if (!data.token) {
         throw new BadRequestException('token is required');
       }
 
-      if (data.sign_msg !== true && data.sign_msg !== false) {
-        throw new BadRequestException('sign_msg is required');
+      if (data.signMsg !== true && data.signMsg !== false) {
+        throw new BadRequestException('signMsg is required');
       }
-      if (data.sign_msg === false) data.sign_delimiter = null;
+      if (data.signMsg === false) data.signDelimiter = null;
     }
 
     if (!data.enabled) {
       logger.verbose('chatwoot disabled');
-      data.account_id = '';
+      data.accountId = '';
       data.token = '';
       data.url = '';
-      data.sign_msg = false;
-      data.sign_delimiter = null;
-      data.reopen_conversation = false;
-      data.conversation_pending = false;
-      data.import_contacts = false;
-      data.import_messages = false;
-      data.merge_brazil_contacts = false;
-      data.days_limit_import_messages = 0;
-      data.auto_create = false;
-      data.name_inbox = '';
+      data.signMsg = false;
+      data.signDelimiter = null;
+      data.reopenConversation = false;
+      data.conversationPending = false;
+      data.importContacts = false;
+      data.importMessages = false;
+      data.mergeBrazilContacts = false;
+      data.daysLimitImportMessages = 0;
+      data.autoCreate = false;
+      data.nameInbox = '';
     }
 
-    if (!data.name_inbox || data.name_inbox === '') {
-      data.name_inbox = instance.instanceName;
+    if (!data.nameInbox || data.nameInbox === '') {
+      data.nameInbox = instance.instanceName;
     }
 
     const result = await this.chatwootService.create(instance, data);
@@ -87,10 +85,10 @@ export class ChatwootController {
       return {
         enabled: false,
         url: '',
-        account_id: '',
+        accountId: '',
         token: '',
-        sign_msg: false,
-        name_inbox: '',
+        signMsg: false,
+        nameInbox: '',
         webhook_url: '',
       };
     }
@@ -107,13 +105,7 @@ export class ChatwootController {
     logger.verbose('requested receiveWebhook from ' + instance.instanceName + ' instance');
 
     const chatwootCache = new CacheService(new CacheEngine(this.configService, ChatwootService.name).getEngine());
-    const chatwootService = new ChatwootService(
-      waMonitor,
-      this.configService,
-      this.mongodbRepository,
-      this.prismaRepository,
-      chatwootCache,
-    );
+    const chatwootService = new ChatwootService(waMonitor, this.configService, this.prismaRepository, chatwootCache);
 
     return chatwootService.receiveWebhook(instance, data);
   }

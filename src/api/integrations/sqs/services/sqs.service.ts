@@ -1,6 +1,7 @@
+import { Sqs } from '@prisma/client';
+
 import { Logger } from '../../../../config/logger.config';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { SqsRaw } from '../../../models';
 import { WAMonitoringService } from '../../../services/monitor.service';
 import { SqsDto } from '../dto/sqs.dto';
 import { initQueues } from '../libs/sqs.server';
@@ -18,7 +19,7 @@ export class SqsService {
     return { sqs: { ...instance, sqs: data } };
   }
 
-  public async find(instance: InstanceDto): Promise<SqsRaw> {
+  public async find(instance: InstanceDto): Promise<Sqs> {
     try {
       this.logger.verbose('find sqs: ' + instance.instanceName);
       const result = await this.waMonitor.waInstances[instance.instanceName].findSqs();
@@ -29,7 +30,7 @@ export class SqsService {
 
       return result;
     } catch (error) {
-      return { enabled: false, events: [] };
+      return null;
     }
   }
 }

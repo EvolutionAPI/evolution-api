@@ -1,8 +1,7 @@
 import { RequestHandler, Router } from 'express';
 
-import { ConfigService, Database } from '../../config/env.config';
+import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
-import { mongodbServer } from '../../libs/mongodb.connect';
 import { instanceNameSchema, presenceOnlySchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
@@ -162,28 +161,6 @@ export class InstanceRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       });
-
-    this.router.delete('/deleteDatabase', async (req, res) => {
-      logger.verbose('request received in deleteDatabase');
-      logger.verbose('request body: ');
-      logger.verbose(req.body);
-
-      logger.verbose('request query: ');
-      logger.verbose(req.query);
-      const db = this.configService.get<Database>('DATABASE');
-      if (db.ENABLED) {
-        try {
-          await mongodbServer.dropDatabase();
-          return res
-            .status(HttpStatus.CREATED)
-            .json({ status: 'SUCCESS', error: false, response: { message: 'database deleted' } });
-        } catch (error) {
-          return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: true, message: error.message });
-        }
-      }
-
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: true, message: 'Database is not enabled' });
-    });
   }
 
   public readonly router = Router();

@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-namespace */
+import { TypebotSession } from '@prisma/client';
+import { JsonValue } from '@prisma/client/runtime/library';
 import { AuthenticationState, WAConnectionState } from '@whiskeysockets/baileys';
 
 export enum Events {
@@ -41,6 +43,7 @@ export declare namespace wa {
     code?: string;
   };
   export type Instance = {
+    id?: string;
     qrcode?: QrCode;
     pairingCode?: string;
     authState?: { state: AuthenticationState; saveCreds: () => void };
@@ -53,50 +56,51 @@ export declare namespace wa {
   export type LocalWebHook = {
     enabled?: boolean;
     url?: string;
-    events?: string[];
-    webhook_by_events?: boolean;
-    webhook_base64?: boolean;
+    events?: JsonValue;
+    webhookByEvents?: boolean;
+    webhookBase64?: boolean;
   };
 
   export type LocalChatwoot = {
     enabled?: boolean;
-    account_id?: string;
+    accountId?: string;
     token?: string;
     url?: string;
-    name_inbox?: string;
-    sign_msg?: boolean;
+    nameInbox?: string;
+    signMsg?: boolean;
+    signDelimiter?: string;
     number?: string;
-    reopen_conversation?: boolean;
-    conversation_pending?: boolean;
-    merge_brazil_contacts?: boolean;
-    import_contacts?: boolean;
-    import_messages?: boolean;
-    days_limit_import_messages?: number;
+    reopenConversation?: boolean;
+    conversationPending?: boolean;
+    mergeBrazilContacts?: boolean;
+    importContacts?: boolean;
+    importMessages?: boolean;
+    daysLimitImportMessages?: number;
   };
 
   export type LocalSettings = {
-    reject_call?: boolean;
-    msg_call?: string;
-    groups_ignore?: boolean;
-    always_online?: boolean;
-    read_messages?: boolean;
-    read_status?: boolean;
-    sync_full_history?: boolean;
+    rejectCall?: boolean;
+    msgCall?: string;
+    groupsIgnore?: boolean;
+    alwaysOnline?: boolean;
+    readMessages?: boolean;
+    readStatus?: boolean;
+    syncFullHistory?: boolean;
   };
 
   export type LocalWebsocket = {
     enabled?: boolean;
-    events?: string[];
+    events?: JsonValue;
   };
 
   export type LocalRabbitmq = {
     enabled?: boolean;
-    events?: string[];
+    events?: JsonValue;
   };
 
   export type LocalSqs = {
     enabled?: boolean;
-    events?: string[];
+    events?: JsonValue;
   };
 
   type Session = {
@@ -110,11 +114,11 @@ export declare namespace wa {
     url?: string;
     typebot?: string;
     expire?: number;
-    keyword_finish?: string;
-    delay_message?: number;
-    unknown_message?: string;
-    listening_from_me?: boolean;
-    sessions?: Session[];
+    keywordFinish?: string;
+    delayMessage?: number;
+    unknownMessage?: string;
+    listeningFromMe?: boolean;
+    sessions?: TypebotSession[];
   };
 
   type Proxy = {

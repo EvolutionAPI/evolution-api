@@ -22,11 +22,15 @@ export class ProxyController {
 
     if (!data.enabled) {
       logger.verbose('proxy disabled');
-      data.proxy = null;
+      data.host = '';
+      data.port = '';
+      data.protocol = '';
+      data.username = '';
+      data.password = '';
     }
 
-    if (data.proxy) {
-      const testProxy = await this.testProxy(data.proxy);
+    if (data.host) {
+      const testProxy = await this.testProxy(data);
       if (!testProxy) {
         throw new BadRequestException('Invalid proxy');
       }
@@ -46,7 +50,7 @@ export class ProxyController {
     return this.proxyService.find(instance);
   }
 
-  public async testProxy(proxy: ProxyDto['proxy']) {
+  public async testProxy(proxy: ProxyDto) {
     logger.verbose('requested testProxy');
     try {
       const serverIp = await axios.get('https://icanhazip.com/');

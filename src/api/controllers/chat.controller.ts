@@ -1,3 +1,5 @@
+import { Contact, Message, MessageUpdate } from '@prisma/client';
+
 import { Logger } from '../../config/logger.config';
 import {
   ArchiveChatDto,
@@ -16,9 +18,7 @@ import {
   WhatsAppNumberDto,
 } from '../dto/chat.dto';
 import { InstanceDto } from '../dto/instance.dto';
-import { ContactQuery } from '../repository/mongodb/contact.repository';
-import { MessageQuery } from '../repository/mongodb/message.repository';
-import { MessageUpQuery } from '../repository/mongodb/messageUp.repository';
+import { Query } from '../repository/repository.service';
 import { WAMonitoringService } from '../services/monitor.service';
 
 const logger = new Logger('ChatController');
@@ -61,7 +61,7 @@ export class ChatController {
     return await this.waMonitor.waInstances[instanceName].fetchProfile(instanceName, data.number);
   }
 
-  public async fetchContacts({ instanceName }: InstanceDto, query: ContactQuery) {
+  public async fetchContacts({ instanceName }: InstanceDto, query: Query<Contact>) {
     logger.verbose('requested fetchContacts from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].fetchContacts(query);
   }
@@ -71,12 +71,12 @@ export class ChatController {
     return await this.waMonitor.waInstances[instanceName].getBase64FromMediaMessage(data);
   }
 
-  public async fetchMessages({ instanceName }: InstanceDto, query: MessageQuery) {
+  public async fetchMessages({ instanceName }: InstanceDto, query: Query<Message>) {
     logger.verbose('requested fetchMessages from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].fetchMessages(query);
   }
 
-  public async fetchStatusMessage({ instanceName }: InstanceDto, query: MessageUpQuery) {
+  public async fetchStatusMessage({ instanceName }: InstanceDto, query: Query<MessageUpdate>) {
     logger.verbose('requested fetchStatusMessage from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].fetchStatusMessage(query);
   }

@@ -74,7 +74,6 @@
     "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.10.39",
     "link-preview-js": "^3.0.4",
-    "mongoose": "^6.10.5",
     "node-cache": "^5.1.2",
     "node-mime-types": "^1.1.0",
     "node-windows": "^1.0.0-beta.8",

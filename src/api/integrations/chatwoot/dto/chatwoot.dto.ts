@@ -1,17 +1,17 @@
 export class ChatwootDto {
   enabled?: boolean;
-  account_id?: string;
+  accountId?: string;
   token?: string;
   url?: string;
-  name_inbox?: string;
-  sign_msg?: boolean;
-  sign_delimiter?: string;
+  nameInbox?: string;
+  signMsg?: boolean;
+  signDelimiter?: string;
   number?: string;
-  reopen_conversation?: boolean;
-  conversation_pending?: boolean;
-  merge_brazil_contacts?: boolean;
-  import_contacts?: boolean;
-  import_messages?: boolean;
-  days_limit_import_messages?: number;
-  auto_create?: boolean;
+  reopenConversation?: boolean;
+  conversationPending?: boolean;
+  mergeBrazilContacts?: boolean;
+  importContacts?: boolean;
+  importMessages?: boolean;
+  daysLimitImportMessages?: number;
+  autoCreate?: boolean;
 }
