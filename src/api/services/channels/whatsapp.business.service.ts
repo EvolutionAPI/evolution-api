@@ -5,7 +5,7 @@ import FormData from 'form-data';
 import fs from 'fs/promises';
 import { getMIMEType } from 'node-mime-types';
 
-import { Chatwoot, ConfigService, Database, WaBusiness } from '../../../config/env.config';
+import { Chatwoot, ConfigService, Database, Typebot, WaBusiness } from '../../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
 import { NumberBusiness } from '../../dto/chat.dto';
 import {
@@ -425,18 +425,20 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
-          (session) => session.remoteJid === key.remoteJid,
-        );
+        if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
+          const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
+            (session) => session.remoteJid === key.remoteJid,
+          );
 
-        if (this.localTypebot.enabled || typebotSessionRemoteJid) {
-          if (!(this.localTypebot.listeningFromMe === false && key.fromMe === true)) {
-            if (messageRaw.messageType !== 'reactionMessage')
-              await this.typebotService.sendTypebot(
-                { instanceName: this.instance.name },
-                messageRaw.key.remoteJid,
-                messageRaw,
-              );
+          if (this.localTypebot.enabled || typebotSessionRemoteJid) {
+            if (!(this.localTypebot.listeningFromMe === false && key.fromMe === true)) {
+              if (messageRaw.messageType !== 'reactionMessage')
+                await this.typebotService.sendTypebot(
+                  { instanceName: this.instance.name },
+                  messageRaw.key.remoteJid,
+                  messageRaw,
+                );
+            }
           }
         }
 

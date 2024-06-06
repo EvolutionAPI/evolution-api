@@ -64,6 +64,7 @@ import {
   Log,
   ProviderSession,
   QrCode,
+  Typebot,
 } from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
@@ -1225,18 +1226,20 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
-            (session) => session.remoteJid === received.key.remoteJid,
-          );
+          if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
+            const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
+              (session) => session.remoteJid === received.key.remoteJid,
+            );
 
-          if ((this.localTypebot.enabled && type === 'notify') || typebotSessionRemoteJid) {
-            if (!(this.localTypebot.listeningFromMe === false && messageRaw.key.fromMe === true)) {
-              if (messageRaw.messageType !== 'reactionMessage')
-                await this.typebotService.sendTypebot(
-                  { instanceName: this.instance.name },
-                  messageRaw.key.remoteJid,
-                  messageRaw,
-                );
+            if ((this.localTypebot.enabled && type === 'notify') || typebotSessionRemoteJid) {
+              if (!(this.localTypebot.listeningFromMe === false && messageRaw.key.fromMe === true)) {
+                if (messageRaw.messageType !== 'reactionMessage')
+                  await this.typebotService.sendTypebot(
+                    { instanceName: this.instance.name },
+                    messageRaw.key.remoteJid,
+                    messageRaw,
+                  );
+              }
             }
           }
 

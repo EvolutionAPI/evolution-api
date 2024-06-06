@@ -16,6 +16,7 @@ import {
   Log,
   Rabbitmq,
   Sqs,
+  Typebot,
   Webhook,
   Websocket,
 } from '../../config/env.config';
@@ -681,6 +682,9 @@ export class ChannelStartupService {
   }
 
   public async loadTypebot() {
+    if (!this.configService.get<Typebot>('TYPEBOT').ENABLED) {
+      return;
+    }
     this.logger.verbose('Loading typebot');
     const data = await this.prismaRepository.typebot.findUnique({
       where: {
@@ -721,6 +725,10 @@ export class ChannelStartupService {
   }
 
   public async setTypebot(data: TypebotDto) {
+    if (!this.configService.get<Typebot>('TYPEBOT').ENABLED) {
+      this.logger.verbose('Typebot is not enabled');
+      return;
+    }
     this.logger.verbose('Setting typebot');
 
     const typebot = await this.prismaRepository.typebot.create({
@@ -754,6 +762,10 @@ export class ChannelStartupService {
   }
 
   public async findTypebot() {
+    if (!this.configService.get<Typebot>('TYPEBOT').ENABLED) {
+      this.logger.verbose('Typebot is not enabled');
+      return;
+    }
     this.logger.verbose('Finding typebot');
     const data = await this.prismaRepository.typebot.findUnique({
       where: {

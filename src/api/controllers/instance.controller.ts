@@ -4,7 +4,7 @@ import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
-import { Auth, Chatwoot, ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
+import { Auth, Chatwoot, ConfigService, HttpServer, Typebot, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '../../exceptions';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
@@ -381,7 +381,7 @@ export class InstanceController {
         });
       }
 
-      if (typebotUrl) {
+      if (this.configService.get<Typebot>('TYPEBOT').ENABLED && typebotUrl) {
         try {
           if (!isURL(typebotUrl, { require_tld: false })) {
             throw new BadRequestException('Invalid "url" property in typebotUrl');
