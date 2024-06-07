@@ -21,47 +21,40 @@ import { WAMonitoringService } from '../services/monitor.service';
 export class SendMessageController {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
-  public async sendText({ instanceName }: InstanceDto, data: SendTextDto) {
-    return await this.waMonitor.waInstances[instanceName].textMessage(data);
-  }
-
   public async sendTemplate({ instanceName }: InstanceDto, data: SendTemplateDto) {
     return await this.waMonitor.waInstances[instanceName].templateMessage(data);
   }
 
+  public async sendText({ instanceName }: InstanceDto, data: SendTextDto) {
+    return await this.waMonitor.waInstances[instanceName].textMessage(data);
+  }
+
   public async sendMedia({ instanceName }: InstanceDto, data: SendMediaDto) {
-    if (
-      isBase64(data?.mediaMessage?.media) &&
-      !data?.mediaMessage?.fileName &&
-      data?.mediaMessage?.mediatype === 'document'
-    ) {
+    if (isBase64(data?.media) && !data?.fileName && data?.mediatype === 'document') {
       throw new BadRequestException('For base64 the file name must be informed.');
     }
 
-    if (isURL(data?.mediaMessage?.media) || isBase64(data?.mediaMessage?.media)) {
+    if (isURL(data?.media) || isBase64(data?.media)) {
       return await this.waMonitor.waInstances[instanceName].mediaMessage(data);
     }
     throw new BadRequestException('Owned media must be a url or base64');
   }
 
   public async sendSticker({ instanceName }: InstanceDto, data: SendStickerDto) {
-    if (isURL(data.stickerMessage.image) || isBase64(data.stickerMessage.image)) {
+    if (isURL(data.sticker) || isBase64(data.sticker)) {
       return await this.waMonitor.waInstances[instanceName].mediaSticker(data);
     }
     throw new BadRequestException('Owned media must be a url or base64');
   }
 
   public async sendWhatsAppAudio({ instanceName }: InstanceDto, data: SendAudioDto) {
-    if (isURL(data.audioMessage.audio) || isBase64(data.audioMessage.audio)) {
+    if (isURL(data.audio) || isBase64(data.audio)) {
       return await this.waMonitor.waInstances[instanceName].audioWhatsapp(data);
     }
     throw new BadRequestException('Owned media must be a url or base64');
   }
 
   public async sendButtons({ instanceName }: InstanceDto, data: SendButtonDto) {
-    if (isBase64(data.buttonMessage.mediaMessage?.media) && !data.buttonMessage.mediaMessage?.fileName) {
-      throw new BadRequestException('For bse64 the file name must be informed.');
-    }
     return await this.waMonitor.waInstances[instanceName].buttonMessage(data);
   }
 
@@ -78,7 +71,7 @@ export class SendMessageController {
   }
 
   public async sendReaction({ instanceName }: InstanceDto, data: SendReactionDto) {
-    if (!data.reactionMessage.reaction.match(/[^()\w\sà-ú"-+]+/)) {
+    if (!data.reaction.match(/[^()\w\sà-ú"-+]+/)) {
       throw new BadRequestException('"reaction" must be an emoji');
     }
     return await this.waMonitor.waInstances[instanceName].reactionMessage(data);

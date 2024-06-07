@@ -1047,9 +1047,9 @@ export class BusinessStartupService extends ChannelStartupService {
       data.number,
       {
         template: {
-          name: data.templateMessage.name,
-          language: data.templateMessage.language,
-          components: data.templateMessage.components,
+          name: data.name,
+          language: data.language,
+          components: data.components,
         },
       },
       data?.options,

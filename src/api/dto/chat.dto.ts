@@ -109,10 +109,8 @@ export class Metadata extends OptionsMessage {
 }
 
 export class SendPresenceDto extends Metadata {
-  options: {
-    presence: WAPresence;
-    delay: number;
-  };
+  presence: WAPresence;
+  delay: number;
 }
 
 export class UpdateMessageDto extends Metadata {

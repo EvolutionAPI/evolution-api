@@ -2,7 +2,6 @@ import { RequestHandler, Router } from 'express';
 
 import {
   audioMessageSchema,
-  buttonMessageSchema,
   contactMessageSchema,
   listMessageSchema,
   locationMessageSchema,
@@ -17,7 +16,6 @@ import {
 import { RouterBroker } from '../abstract/abstract.router';
 import {
   SendAudioDto,
-  SendButtonDto,
   SendContactDto,
   SendListDto,
   SendLocationDto,
@@ -36,6 +34,16 @@ export class MessageRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
+      .post(this.routerPath('sendTemplate'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<SendTemplateDto>({
+          request: req,
+          schema: templateMessageSchema,
+          ClassRef: SendTemplateDto,
+          execute: (instance, data) => sendMessageController.sendTemplate(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
       .post(this.routerPath('sendText'), ...guards, async (req, res) => {
         const response = await this.dataValidate<SendTextDto>({
           request: req,
@@ -66,22 +74,22 @@ export class MessageRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .post(this.routerPath('sendTemplate'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<SendTemplateDto>({
+      .post(this.routerPath('sendStatus'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<SendStatusDto>({
           request: req,
-          schema: templateMessageSchema,
-          ClassRef: SendTemplateDto,
-          execute: (instance, data) => sendMessageController.sendTemplate(instance, data),
+          schema: statusMessageSchema,
+          ClassRef: SendStatusDto,
+          execute: (instance, data) => sendMessageController.sendStatus(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .post(this.routerPath('sendButtons'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<SendButtonDto>({
+      .post(this.routerPath('sendSticker'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<SendStickerDto>({
           request: req,
-          schema: buttonMessageSchema,
-          ClassRef: SendButtonDto,
-          execute: (instance, data) => sendMessageController.sendButtons(instance, data),
+          schema: stickerMessageSchema,
+          ClassRef: SendStickerDto,
+          execute: (instance, data) => sendMessageController.sendSticker(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
@@ -92,16 +100,6 @@ export class MessageRouter extends RouterBroker {
           schema: locationMessageSchema,
           ClassRef: SendLocationDto,
           execute: (instance, data) => sendMessageController.sendLocation(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
-      .post(this.routerPath('sendList'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<SendListDto>({
-          request: req,
-          schema: listMessageSchema,
-          ClassRef: SendListDto,
-          execute: (instance, data) => sendMessageController.sendList(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
@@ -136,26 +134,26 @@ export class MessageRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .post(this.routerPath('sendStatus'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<SendStatusDto>({
+      .post(this.routerPath('sendList'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<SendListDto>({
           request: req,
-          schema: statusMessageSchema,
-          ClassRef: SendStatusDto,
-          execute: (instance, data) => sendMessageController.sendStatus(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
-      .post(this.routerPath('sendSticker'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<SendStickerDto>({
-          request: req,
-          schema: stickerMessageSchema,
-          ClassRef: SendStickerDto,
-          execute: (instance, data) => sendMessageController.sendSticker(instance, data),
+          schema: listMessageSchema,
+          ClassRef: SendListDto,
+          execute: (instance, data) => sendMessageController.sendList(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
       });
+    // .post(this.routerPath('sendButtons'), ...guards, async (req, res) => {
+    //   const response = await this.dataValidate<SendButtonDto>({
+    //     request: req,
+    //     schema: buttonMessageSchema,
+    //     ClassRef: SendButtonDto,
+    //     execute: (instance, data) => sendMessageController.sendButtons(instance, data),
+    //   });
+
+    //   return res.status(HttpStatus.CREATED).json(response);
+    // })
   }
 
   public readonly router = Router();

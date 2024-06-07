@@ -1921,12 +1921,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const sender = isWA.jid;
 
-      if (data?.options?.delay && data?.options?.delay > 20000) {
-        let remainingDelay = data?.options.delay;
+      if (data?.delay && data?.delay > 20000) {
+        let remainingDelay = data?.delay;
         while (remainingDelay > 20000) {
           await this.client.presenceSubscribe(sender);
 
-          await this.client.sendPresenceUpdate((data?.options?.presence as WAPresence) ?? 'composing', sender);
+          await this.client.sendPresenceUpdate((data?.presence as WAPresence) ?? 'composing', sender);
 
           await delay(20000);
 
@@ -1937,7 +1937,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (remainingDelay > 0) {
           await this.client.presenceSubscribe(sender);
 
-          await this.client.sendPresenceUpdate((data?.options?.presence as WAPresence) ?? 'composing', sender);
+          await this.client.sendPresenceUpdate((data?.presence as WAPresence) ?? 'composing', sender);
 
           await delay(remainingDelay);
 
@@ -1946,9 +1946,9 @@ export class BaileysStartupService extends ChannelStartupService {
       } else {
         await this.client.presenceSubscribe(sender);
 
-        await this.client.sendPresenceUpdate((data?.options?.presence as WAPresence) ?? 'composing', sender);
+        await this.client.sendPresenceUpdate((data?.presence as WAPresence) ?? 'composing', sender);
 
-        await delay(data?.options?.delay);
+        await delay(data?.delay);
 
         await this.client.sendPresenceUpdate('paused', sender);
       }
@@ -1973,9 +1973,18 @@ export class BaileysStartupService extends ChannelStartupService {
     return await this.sendMessageWithTyping(
       data.number,
       {
-        conversation: data.textMessage.text,
+        conversation: data.text,
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
       isChatwoot,
     );
   }
@@ -1985,12 +1994,21 @@ export class BaileysStartupService extends ChannelStartupService {
       data.number,
       {
         poll: {
-          name: data.pollMessage.name,
-          selectableCount: data.pollMessage.selectableCount,
-          values: data.pollMessage.values,
+          name: data.name,
+          selectableCount: data.selectableCount,
+          values: data.values,
         },
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
   }
 
@@ -2093,7 +2111,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async statusMessage(data: SendStatusDto) {
-    const status = await this.formatStatusMessage(data.statusMessage);
+    const status = await this.formatStatusMessage(data);
 
     return await this.sendMessageWithTyping('status@broadcast', {
       status,
@@ -2233,13 +2251,21 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async mediaSticker(data: SendStickerDto) {
-    const convert = await this.convertToWebP(data.stickerMessage.image, data.number);
+    const convert = await this.convertToWebP(data.sticker, data.number);
     const result = await this.sendMessageWithTyping(
       data.number,
       {
         sticker: { url: convert },
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
 
     fs.unlinkSync(convert);
@@ -2248,9 +2274,22 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
-    const generate = await this.prepareMediaMessage(data.mediaMessage);
+    const generate = await this.prepareMediaMessage(data);
 
-    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
+    return await this.sendMessageWithTyping(
+      data.number,
+      { ...generate.message },
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
+      isChatwoot,
+    );
   }
 
   public async processAudio(audio: string, number: string) {
@@ -2290,12 +2329,12 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
-    if (!data.options?.encoding && data.options?.encoding !== false) {
-      data.options.encoding = true;
+    if (!data?.encoding && data?.encoding !== false) {
+      data.encoding = true;
     }
 
-    if (data.options?.encoding) {
-      const convert = await this.processAudio(data.audioMessage.audio, data.number);
+    if (data?.encoding) {
+      const convert = await this.processAudio(data.audio, data.number);
       if (typeof convert === 'string') {
         const audio = fs.readFileSync(convert).toString('base64');
         const result = this.sendMessageWithTyping<AnyMessageContent>(
@@ -2305,7 +2344,7 @@ export class BaileysStartupService extends ChannelStartupService {
             ptt: true,
             mimetype: 'audio/mp4',
           },
-          { presence: 'recording', delay: data?.options?.delay },
+          { presence: 'recording', delay: data?.delay },
           isChatwoot,
         );
 
@@ -2320,13 +2359,11 @@ export class BaileysStartupService extends ChannelStartupService {
     return await this.sendMessageWithTyping<AnyMessageContent>(
       data.number,
       {
-        audio: isURL(data.audioMessage.audio)
-          ? { url: data.audioMessage.audio }
-          : Buffer.from(data.audioMessage.audio, 'base64'),
+        audio: isURL(data.audio) ? { url: data.audio } : Buffer.from(data.audio, 'base64'),
         ptt: true,
         mimetype: 'audio/ogg; codecs=opus',
       },
-      { presence: 'recording', delay: data?.options?.delay },
+      { presence: 'recording', delay: data?.delay },
       isChatwoot,
     );
   }
@@ -2340,13 +2377,21 @@ export class BaileysStartupService extends ChannelStartupService {
       data.number,
       {
         locationMessage: {
-          degreesLatitude: data.locationMessage.latitude,
-          degreesLongitude: data.locationMessage.longitude,
-          name: data.locationMessage?.name,
-          address: data.locationMessage?.address,
+          degreesLatitude: data.latitude,
+          degreesLongitude: data.longitude,
+          name: data?.name,
+          address: data?.address,
         },
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
   }
 
@@ -2355,15 +2400,23 @@ export class BaileysStartupService extends ChannelStartupService {
       data.number,
       {
         listMessage: {
-          title: data.listMessage.title,
-          description: data.listMessage.description,
-          buttonText: data.listMessage?.buttonText,
-          footerText: data.listMessage?.footerText,
-          sections: data.listMessage.sections,
+          title: data.title,
+          description: data?.description,
+          buttonText: data?.buttonText,
+          footerText: data?.footerText,
+          sections: data.sections,
           listType: 2,
         },
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
   }
 
@@ -2394,15 +2447,15 @@ export class BaileysStartupService extends ChannelStartupService {
       return result;
     };
 
-    if (data.contactMessage.length === 1) {
+    if (data.contact.length === 1) {
       message.contactMessage = {
-        displayName: data.contactMessage[0].fullName,
-        vcard: vcard(data.contactMessage[0]),
+        displayName: data.contact[0].fullName,
+        vcard: vcard(data.contact[0]),
       };
     } else {
       message.contactsArrayMessage = {
-        displayName: `${data.contactMessage.length} contacts`,
-        contacts: data.contactMessage.map((contact) => {
+        displayName: `${data.contact.length} contacts`,
+        contacts: data.contact.map((contact) => {
           return {
             displayName: contact.fullName,
             vcard: vcard(contact),
@@ -2411,14 +2464,14 @@ export class BaileysStartupService extends ChannelStartupService {
       };
     }
 
-    return await this.sendMessageWithTyping(data.number, { ...message }, data?.options);
+    return await this.sendMessageWithTyping(data.number, { ...message }, {});
   }
 
   public async reactionMessage(data: SendReactionDto) {
-    return await this.sendMessageWithTyping(data.reactionMessage.key.remoteJid, {
+    return await this.sendMessageWithTyping(data.key.remoteJid, {
       reactionMessage: {
-        key: data.reactionMessage.key,
-        text: data.reactionMessage.reaction,
+        key: data.key,
+        text: data.reaction,
       },
     });
   }

@@ -20,7 +20,7 @@ export class LabelRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .put(this.routerPath('handleLabel'), ...guards, async (req, res) => {
+      .post(this.routerPath('handleLabel'), ...guards, async (req, res) => {
         const response = await this.dataValidate<HandleLabelDto>({
           request: req,
           schema: handleLabelSchema,

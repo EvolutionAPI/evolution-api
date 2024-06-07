@@ -55,7 +55,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .put(this.routerPath('markMessageAsRead'), ...guards, async (req, res) => {
+      .post(this.routerPath('markMessageAsRead'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ReadMessageDto>({
           request: req,
           schema: readMessageSchema,
@@ -65,7 +65,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .put(this.routerPath('archiveChat'), ...guards, async (req, res) => {
+      .post(this.routerPath('archiveChat'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ArchiveChatDto>({
           request: req,
           schema: archiveChatSchema,
@@ -75,7 +75,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .put(this.routerPath('markChatUnread'), ...guards, async (req, res) => {
+      .post(this.routerPath('markChatUnread'), ...guards, async (req, res) => {
         const response = await this.dataValidate<MarkChatUnreadDto>({
           request: req,
           schema: markChatUnreadSchema,
@@ -105,15 +105,45 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .post(this.routerPath('fetchProfile'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<NumberDto>({
+      .post(this.routerPath('getBase64FromMediaMessage'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<getBase64FromMediaMessageDto>({
           request: req,
-          schema: profileSchema,
-          ClassRef: NumberDto,
-          execute: (instance, data) => chatController.fetchProfile(instance, data),
+          schema: null,
+          ClassRef: getBase64FromMediaMessageDto,
+          execute: (instance, data) => chatController.getBase64FromMediaMessage(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('updateMessage'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<UpdateMessageDto>({
+          request: req,
+          schema: updateMessageSchema,
+          ClassRef: UpdateMessageDto,
+          execute: (instance, data) => chatController.updateMessage(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('sendPresence'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<null>({
+          request: req,
+          schema: presenceSchema,
+          ClassRef: SendPresenceDto,
+          execute: (instance, data) => chatController.sendPresence(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('updateBlockStatus'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<BlockUserDto>({
+          request: req,
+          schema: blockUserSchema,
+          ClassRef: BlockUserDto,
+          execute: (instance, data) => chatController.blockUser(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('findContacts'), ...guards, async (req, res) => {
         const response = await this.dataValidate<Query<Contact>>({
@@ -124,16 +154,6 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.OK).json(response);
-      })
-      .post(this.routerPath('getBase64FromMediaMessage'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<getBase64FromMediaMessageDto>({
-          request: req,
-          schema: null,
-          ClassRef: getBase64FromMediaMessageDto,
-          execute: (instance, data) => chatController.getBase64FromMediaMessage(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('findMessages'), ...guards, async (req, res) => {
         const response = await this.dataValidate<Query<Message>>({
@@ -165,37 +185,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .post(this.routerPath('sendPresence'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<null>({
-          request: req,
-          schema: presenceSchema,
-          ClassRef: SendPresenceDto,
-          execute: (instance, data) => chatController.sendPresence(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
       // Profile routes
-      .get(this.routerPath('fetchPrivacySettings'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<InstanceDto>({
-          request: req,
-          schema: null,
-          ClassRef: InstanceDto,
-          execute: (instance) => chatController.fetchPrivacySettings(instance),
-        });
-
-        return res.status(HttpStatus.OK).json(response);
-      })
-      .put(this.routerPath('updatePrivacySettings'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<PrivacySettingDto>({
-          request: req,
-          schema: privacySettingsSchema,
-          ClassRef: PrivacySettingDto,
-          execute: (instance, data) => chatController.updatePrivacySettings(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
       .post(this.routerPath('fetchBusinessProfile'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
@@ -206,6 +196,17 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
+      .post(this.routerPath('fetchProfile'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<NumberDto>({
+          request: req,
+          schema: profileSchema,
+          ClassRef: NumberDto,
+          execute: (instance, data) => chatController.fetchProfile(instance, data),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
+
       .post(this.routerPath('updateProfileName'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfileNameDto>({
           request: req,
@@ -246,22 +247,22 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .put(this.routerPath('updateMessage'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<UpdateMessageDto>({
+      .get(this.routerPath('fetchPrivacySettings'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: updateMessageSchema,
-          ClassRef: UpdateMessageDto,
-          execute: (instance, data) => chatController.updateMessage(instance, data),
+          schema: null,
+          ClassRef: InstanceDto,
+          execute: (instance) => chatController.fetchPrivacySettings(instance),
         });
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .put(this.routerPath('updateBlockStatus'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<BlockUserDto>({
+      .post(this.routerPath('updatePrivacySettings'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<PrivacySettingDto>({
           request: req,
-          schema: blockUserSchema,
-          ClassRef: BlockUserDto,
-          execute: (instance, data) => chatController.blockUser(instance, data),
+          schema: privacySettingsSchema,
+          ClassRef: PrivacySettingDto,
+          execute: (instance, data) => chatController.updatePrivacySettings(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

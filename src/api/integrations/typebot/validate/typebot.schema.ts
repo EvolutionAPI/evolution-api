@@ -28,12 +28,12 @@ export const typebotSchema: JSONSchema7 = {
     url: { type: 'string' },
     typebot: { type: 'string' },
     expire: { type: 'integer' },
-    delay_message: { type: 'integer' },
-    unknown_message: { type: 'string' },
-    listening_from_me: { type: 'boolean', enum: [true, false] },
+    delayMessage: { type: 'integer' },
+    unknownMessage: { type: 'string' },
+    listeningFromMe: { type: 'boolean', enum: [true, false] },
   },
-  required: ['enabled', 'url', 'typebot', 'expire', 'delay_message', 'unknown_message', 'listening_from_me'],
-  ...isNotEmpty('enabled', 'url', 'typebot', 'expire', 'delay_message', 'unknown_message', 'listening_from_me'),
+  required: ['enabled', 'url', 'typebot', 'expire', 'delayMessage', 'unknownMessage', 'listeningFromMe'],
+  ...isNotEmpty('enabled', 'url', 'typebot', 'expire', 'delayMessage', 'unknownMessage', 'listeningFromMe'),
 };
 
 export const typebotStatusSchema: JSONSchema7 = {
