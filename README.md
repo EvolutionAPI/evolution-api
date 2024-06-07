@@ -75,13 +75,11 @@ Run one of the commands below for the non-existence of a database.
   - **MySQL or MariaDB**:
 
     ```sh
-    # Set the environment variable DATABASE_PROVIDER=mysql
     npx prisma migrate dev --name init --schema ./prisma/mysql-schema.prisma
     ```
 
   - **PostgreSQL**:
     ```sh
-    # Set the environment variable DATABASE_PROVIDER=postgressql
     npx prisma migrate dev --name init --schema ./prisma/postgresql-schema.prisma
     ```
 
