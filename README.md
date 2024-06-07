@@ -21,6 +21,106 @@ The code allows the creation of multiservice chats, service bots, or any other s
 
 The Evolution API has direct integration with [Typebot](https://github.com/baptisteArno/typebot.io) and [Chatwoot](https://github.com/chatwoot/chatwoot)
 
+# Instalation
+
+### Installing NVM (Node Version Manager)
+
+NVM allows you to install and manage multiple versions of Node.js. This is particularly useful for maintaining compatibility across different projects.
+
+```sh
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+source ~/.bashrc
+
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+```
+
+### Installing Node.js
+
+```sh
+nvm install v20.10.0 && nvm use v20.10.0
+```
+
+### Initializing the Application
+
+Clone the repository:
+
+```sh
+git clone https://github.com/EvolutionAPI/evolution-api.git
+```
+Configure the environment variables in the [.env](./.env.example) file.
+
+### Installing Application Dependencies
+
+```sh
+cd evolution-api
+
+npm install
+
+npm run build
+```
+
+### Env
+> OBS: Rename the [.env.example](./.env.example) file to **.env**
+```sh
+cp .env.example .env
+```
+### Database Setup
+
+The application supports PostgreSQL, MySQL, MariaDB.
+
+Run one of the commands below for the non-existence of a database.
+
+  - **MySQL or MariaDB**:
+
+    ```sh
+    # Set the environment variable DATABASE_PROVIDER=mysql
+    npx prisma migrate dev --name init --schema ./prisma/mysql-schema.prisma
+    ```
+
+  - **PostgreSQL**:
+    ```sh
+    # Set the environment variable DATABASE_PROVIDER=postgressql
+    npx prisma migrate dev --name init --schema ./prisma/postgresql-schema.prisma
+    ```
+
+#### Deploying
+
+> For production environments.
+
+For existing relational databases such as PostgreSQL, MySQL, or MariaDB, the setup involves two essential steps:
+
+1. **Setting the Environment Variable**: Initially, it's imperative to define the `DATABASE_PROVIDER` environment variable in alignment with your relational database type. Use `postgressql` for PostgreSQL, and `mysql` for MySQL or MariaDB. This configuration is crucial as it directs the Prisma ORM regarding the specific relational database in use.
+
+2. **Deploying Schema Changes**: Following this, execute the `npx prisma migrate deploy --schema ./prisma/postgressql-schema.prisma` command. This command serves as a shortcut for the `prisma deploy` command, whose main role is to examine the current schema of the relational database and implement necessary modifications. A key feature of this command is its ability to update the database schema without affecting the existing data. This ensures that your current data remains intact while the database schema is updated to meet the latest requirements of the application.
+
+#### Prisma Studio
+
+- **View your data**
+  ```sh
+  npx prisma studio --schema ./prisma/mysql-schema.prisma
+  # or
+  npx prisma studio --schema ./prisma/postgresql-schema.prisma
+  ```
+
+This will sync your data models to your database, creating tables as needed.
+
+### Running the Application
+
+- **Development Mode**:
+
+  ```sh
+  npm run dev:server
+  ```
+
+- **Production Mode**:
+
+  ```sh
+  npm run build
+  npm run start:prod
+  ```
+
 # Note
 
 This code is in no way affiliated with WhatsApp. Use at your own discretion. Don't spam this.
