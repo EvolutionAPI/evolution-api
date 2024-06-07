@@ -1,6 +1,7 @@
 import { JSONSchema7 } from 'json-schema';
 
 // Integrations Schema
+// TODO: rever todas as integrações e garantir o funcionamento perfeito
 export * from '../api/integrations/chatwoot/validate/chatwoot.schema';
 export * from '../api/integrations/rabbitmq/validate/rabbitmq.schema';
 export * from '../api/integrations/sqs/validate/sqs.schema';

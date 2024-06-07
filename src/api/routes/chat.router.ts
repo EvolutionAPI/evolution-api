@@ -115,6 +115,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
+      // TODO: corrigir updateMessage para medias tambem
       .post(this.routerPath('updateMessage'), ...guards, async (req, res) => {
         const response = await this.dataValidate<UpdateMessageDto>({
           request: req,
@@ -145,6 +146,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
+      // TODO: realizar filtro pelo postgres corretamente
       .post(this.routerPath('findContacts'), ...guards, async (req, res) => {
         const response = await this.dataValidate<Query<Contact>>({
           request: req,
@@ -155,6 +157,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
+      // TODO: realizar filtro pelo postgres corretamente
       .post(this.routerPath('findMessages'), ...guards, async (req, res) => {
         const response = await this.dataValidate<Query<Message>>({
           request: req,
@@ -165,6 +168,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
+      // TODO: realizar filtro pelo postgres corretamente
       .post(this.routerPath('findStatusMessage'), ...guards, async (req, res) => {
         const response = await this.dataValidate<Query<MessageUpdate>>({
           request: req,
@@ -175,6 +179,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
+      // TODO: realizar filtro pelo postgres corretamente
       .get(this.routerPath('findChats'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
