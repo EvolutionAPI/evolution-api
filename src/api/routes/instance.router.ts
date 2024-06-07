@@ -1,7 +1,7 @@
 import { RequestHandler, Router } from 'express';
 
 import { ConfigService } from '../../config/env.config';
-import { instanceNameSchema, presenceOnlySchema } from '../../validate/validate.schema';
+import { instanceSchema, presenceOnlySchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { instanceController } from '../server.module';
@@ -14,7 +14,7 @@ export class InstanceRouter extends RouterBroker {
       .post('/create', ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.createInstance(instance),
         });
@@ -24,7 +24,7 @@ export class InstanceRouter extends RouterBroker {
       .put(this.routerPath('restart'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: null,
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.restartInstance(instance),
         });
@@ -34,7 +34,7 @@ export class InstanceRouter extends RouterBroker {
       .get(this.routerPath('connect'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: null,
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.connectToWhatsapp(instance),
         });
@@ -44,7 +44,7 @@ export class InstanceRouter extends RouterBroker {
       .get(this.routerPath('connectionState'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: null,
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.connectionState(instance),
         });
@@ -76,7 +76,7 @@ export class InstanceRouter extends RouterBroker {
       .delete(this.routerPath('logout'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: null,
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.logout(instance),
         });
@@ -86,7 +86,7 @@ export class InstanceRouter extends RouterBroker {
       .delete(this.routerPath('delete'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: null,
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.deleteInstance(instance),
         });

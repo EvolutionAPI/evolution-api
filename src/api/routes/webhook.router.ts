@@ -1,7 +1,7 @@
 import { RequestHandler, Router } from 'express';
 
 import { ConfigService, WaBusiness } from '../../config/env.config';
-import { instanceNameSchema, webhookSchema } from '../../validate/validate.schema';
+import { instanceSchema, webhookSchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto } from '../dto/instance.dto';
 import { WebhookDto } from '../dto/webhook.dto';
@@ -25,7 +25,7 @@ export class WebhookRouter extends RouterBroker {
       .get(this.routerPath('find'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => webhookController.findWebhook(instance),
         });
@@ -35,7 +35,7 @@ export class WebhookRouter extends RouterBroker {
       .post(this.routerPath('whatsapp'), async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance, data) => webhookController.receiveWebhook(instance, data),
         });

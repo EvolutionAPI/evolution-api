@@ -369,6 +369,15 @@ export class BaileysStartupService extends ChannelStartupService {
           status: 'closed',
         });
 
+        if (this.configService.get<Database>('DATABASE').ENABLED) {
+          await this.prismaRepository.instance.update({
+            where: { id: this.instanceId },
+            data: {
+              connectionStatus: 'close',
+            },
+          });
+        }
+
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.STATUS_INSTANCE,
@@ -403,6 +412,17 @@ export class BaileysStartupService extends ChannelStartupService {
         name: ${formattedName}
       `,
       );
+
+      if (this.configService.get<Database>('DATABASE').ENABLED) {
+        await this.prismaRepository.instance.update({
+          where: { id: this.instanceId },
+          data: {
+            ownerJid: this.instance.wuid,
+            profilePicUrl: this.instance.profilePictureUrl,
+            connectionStatus: 'open',
+          },
+        });
+      }
 
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
         this.chatwootService.eventWhatsapp(

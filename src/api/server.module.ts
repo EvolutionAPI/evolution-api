@@ -52,7 +52,7 @@ export const waMonitor = new WAMonitoringService(
   baileysCache,
 );
 
-const authService = new AuthService(waMonitor, configService, prismaRepository);
+const authService = new AuthService(prismaRepository);
 
 const typebotService = new TypebotService(waMonitor, configService, eventEmitter);
 export const typebotController = new TypebotController(typebotService);

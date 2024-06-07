@@ -1,5 +1,5 @@
 export class ProxyDto {
-  enabled: boolean;
+  enabled?: boolean;
   host: string;
   port: string;
   protocol: string;

@@ -1,6 +1,6 @@
 import { RequestHandler, Router } from 'express';
 
-import { chatwootSchema, instanceNameSchema } from '../../../../validate/validate.schema';
+import { chatwootSchema, instanceSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { HttpStatus } from '../../../routes/index.router';
@@ -24,7 +24,7 @@ export class ChatwootRouter extends RouterBroker {
       .get(this.routerPath('find'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => chatwootController.findChatwoot(instance),
         });
@@ -34,7 +34,7 @@ export class ChatwootRouter extends RouterBroker {
       .post(this.routerPath('webhook'), async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance, data) => chatwootController.receiveWebhook(instance, data),
         });

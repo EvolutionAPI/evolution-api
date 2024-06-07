@@ -1,6 +1,6 @@
 import { RequestHandler, Router } from 'express';
 
-import { instanceNameSchema, sqsSchema } from '../../../../validate/validate.schema';
+import { instanceSchema, sqsSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { HttpStatus } from '../../../routes/index.router';
@@ -24,7 +24,7 @@ export class SqsRouter extends RouterBroker {
       .get(this.routerPath('find'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => sqsController.findSqs(instance),
         });

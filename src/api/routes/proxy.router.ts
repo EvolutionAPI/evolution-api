@@ -1,6 +1,6 @@
 import { RequestHandler, Router } from 'express';
 
-import { instanceNameSchema, proxySchema } from '../../validate/validate.schema';
+import { instanceSchema, proxySchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto } from '../dto/instance.dto';
 import { ProxyDto } from '../dto/proxy.dto';
@@ -24,7 +24,7 @@ export class ProxyRouter extends RouterBroker {
       .get(this.routerPath('find'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => proxyController.findProxy(instance),
         });

@@ -50,14 +50,32 @@ export class InstanceController {
 
   public async createInstance({
     instanceName,
-    webhook,
-    webhookByEvents,
-    webhookBase64,
-    webhookEvents,
     qrcode,
     number,
     integration,
     token,
+    rejectCall,
+    msgCall,
+    groupsIgnore,
+    alwaysOnline,
+    readMessages,
+    readStatus,
+    syncFullHistory,
+    proxyHost,
+    proxyPort,
+    proxyProtocol,
+    proxyUsername,
+    proxyPassword,
+    webhookUrl,
+    webhookByEvents,
+    webhookBase64,
+    webhookEvents,
+    websocketEnabled,
+    websocketEvents,
+    rabbitmqEnabled,
+    rabbitmqEvents,
+    sqsEnabled,
+    sqsEvents,
     chatwootAccountId,
     chatwootToken,
     chatwootUrl,
@@ -69,19 +87,6 @@ export class InstanceController {
     chatwootMergeBrazilContacts,
     chatwootImportMessages,
     chatwootDaysLimitImportMessages,
-    rejectCall,
-    msgCall,
-    groupsIgnore,
-    alwaysOnline,
-    readMessages,
-    readStatus,
-    syncFullHistory,
-    websocketEnabled,
-    websocketEvents,
-    rabbitmqEnabled,
-    rabbitmqEvents,
-    sqsEnabled,
-    sqsEvents,
     typebotUrl,
     typebot,
     typebotExpire,
@@ -89,7 +94,6 @@ export class InstanceController {
     typebotDelayMessage,
     typebotUnknownMessage,
     typebotListeningFromMe,
-    proxy,
   }: InstanceDto) {
     try {
       await this.authService.checkDuplicateToken(token);
@@ -123,7 +127,10 @@ export class InstanceController {
 
       const instanceId = v4();
 
-      const hash = await this.authService.generateHash(token);
+      let hash: string;
+
+      if (!token) hash = v4().toUpperCase();
+      else hash = token;
 
       await this.waMonitor.saveInstance({ instanceId, integration, instanceName, hash, number });
 
@@ -145,8 +152,8 @@ export class InstanceController {
 
       let getWebhookEvents: string[];
 
-      if (webhook) {
-        if (!isURL(webhook, { require_tld: false })) {
+      if (webhookUrl) {
+        if (!isURL(webhookUrl, { require_tld: false })) {
           throw new BadRequestException('Invalid "url" property in webhook');
         }
 
@@ -184,7 +191,7 @@ export class InstanceController {
           }
           this.webhookService.create(instance, {
             enabled: true,
-            url: webhook,
+            url: webhookUrl,
             events: newEvents,
             webhookByEvents,
             webhookBase64,
@@ -348,19 +355,25 @@ export class InstanceController {
         }
       }
 
-      if (proxy) {
-        const testProxy = await this.proxyService.testProxy(proxy);
+      if (proxyHost && proxyPort && proxyProtocol) {
+        const testProxy = await this.proxyService.testProxy({
+          host: proxyHost,
+          port: proxyPort,
+          protocol: proxyProtocol,
+          username: proxyUsername,
+          password: proxyPassword,
+        });
         if (!testProxy) {
           throw new BadRequestException('Invalid proxy');
         }
 
         await this.proxyService.createProxy(instance, {
           enabled: true,
-          host: proxy.host,
-          port: proxy.port,
-          protocol: proxy.protocol,
-          username: proxy.username,
-          password: proxy.password,
+          host: proxyHost,
+          port: proxyPort,
+          protocol: proxyProtocol,
+          username: proxyUsername,
+          password: proxyPassword,
         });
       }
 
@@ -429,7 +442,7 @@ export class InstanceController {
           },
           hash,
           webhook: {
-            webhook,
+            webhookUrl,
             webhookByEvents,
             webhookBase64,
             events: getWebhookEvents,
@@ -528,7 +541,7 @@ export class InstanceController {
         },
         hash,
         webhook: {
-          webhook,
+          webhookUrl,
           webhookByEvents,
           webhookBase64,
           events: getWebhookEvents,

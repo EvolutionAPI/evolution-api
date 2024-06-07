@@ -1,6 +1,8 @@
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import { v4 } from 'uuid';
 
+import { Integration } from '../api/types/wa.types';
+
 // Integrations Schema
 export * from '../api/integrations/chatwoot/validate/chatwoot.schema';
 export * from '../api/integrations/rabbitmq/validate/rabbitmq.schema';
@@ -26,62 +28,127 @@ const isNotEmpty = (...propertyNames: string[]): JSONSchema7 => {
   };
 };
 
+const Events = [
+  'APPLICATION_STARTUP',
+  'QRCODE_UPDATED',
+  'MESSAGES_SET',
+  'MESSAGES_UPSERT',
+  'MESSAGES_UPDATE',
+  'MESSAGES_DELETE',
+  'SEND_MESSAGE',
+  'CONTACTS_SET',
+  'CONTACTS_UPSERT',
+  'CONTACTS_UPDATE',
+  'PRESENCE_UPDATE',
+  'CHATS_SET',
+  'CHATS_UPSERT',
+  'CHATS_UPDATE',
+  'CHATS_DELETE',
+  'GROUPS_UPSERT',
+  'GROUP_UPDATE',
+  'GROUP_PARTICIPANTS_UPDATE',
+  'CONNECTION_UPDATE',
+  'LABELS_EDIT',
+  'LABELS_ASSOCIATION',
+  'CALL',
+  'TYPEBOT_START',
+  'TYPEBOT_CHANGE_STATUS',
+];
+
 // Instance Schema
-export const instanceNameSchema: JSONSchema7 = {
+export const instanceSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
+    // Instance
     instanceName: { type: 'string' },
-    webhook: { type: 'string' },
-    webhook_by_events: { type: 'boolean' },
-    events: {
+    token: { type: 'string' },
+    number: { type: 'string', pattern: '^\\d+[\\.@\\w-]+' },
+    qrcode: { type: 'boolean' },
+    Integration: {
+      type: 'string',
+      enum: Object.values(Integration),
+    },
+    // Settings
+    rejectCall: { type: 'boolean' },
+    msgCall: { type: 'string' },
+    groupsIgnore: { type: 'boolean' },
+    alwaysOnline: { type: 'boolean' },
+    readMessages: { type: 'boolean' },
+    readStatus: { type: 'boolean' },
+    syncFullHistory: { type: 'boolean' },
+    // Proxy
+    proxyHost: { type: 'string' },
+    proxyPort: { type: 'string' },
+    proxyProtocol: { type: 'string' },
+    proxyUsername: { type: 'string' },
+    proxyPassword: { type: 'string' },
+    // Webhook
+    webhookUrl: { type: 'string' },
+    webhookByEvents: { type: 'boolean' },
+    webhookBase64: { type: 'boolean' },
+    webhookEvents: {
       type: 'array',
       minItems: 0,
       items: {
         type: 'string',
-        enum: [
-          'APPLICATION_STARTUP',
-          'QRCODE_UPDATED',
-          'MESSAGES_SET',
-          'MESSAGES_UPSERT',
-          'MESSAGES_UPDATE',
-          'MESSAGES_DELETE',
-          'SEND_MESSAGE',
-          'CONTACTS_SET',
-          'CONTACTS_UPSERT',
-          'CONTACTS_UPDATE',
-          'PRESENCE_UPDATE',
-          'CHATS_SET',
-          'CHATS_UPSERT',
-          'CHATS_UPDATE',
-          'CHATS_DELETE',
-          'GROUPS_UPSERT',
-          'GROUP_UPDATE',
-          'GROUP_PARTICIPANTS_UPDATE',
-          'CONNECTION_UPDATE',
-          'LABELS_EDIT',
-          'LABELS_ASSOCIATION',
-          'CALL',
-          'TYPEBOT_START',
-          'TYPEBOT_CHANGE_STATUS',
-        ],
+        enum: Events,
       },
     },
-    qrcode: { type: 'boolean', enum: [true, false] },
-    number: { type: 'string', pattern: '^\\d+[\\.@\\w-]+' },
-    token: { type: 'string' },
+    // RabbitMQ
+    rabbitmqEnabled: { type: 'boolean' },
+    rabbitmqEvents: {
+      type: 'array',
+      minItems: 0,
+      items: {
+        type: 'string',
+        enum: Events,
+      },
+    },
+    // SQS
+    sqsEnabled: { type: 'boolean' },
+    sqsEvents: {
+      type: 'array',
+      minItems: 0,
+      items: {
+        type: 'string',
+        enum: Events,
+      },
+    },
+    // Chatwoot
+    chatwootAccountId: { type: 'string' },
+    chatwootToken: { type: 'string' },
+    chatwootUrl: { type: 'string' },
+    chatwootSignMsg: { type: 'boolean' },
+    chatwootReopenConversation: { type: 'boolean' },
+    chatwootConversationPending: { type: 'boolean' },
+    chatwootImportContacts: { type: 'boolean' },
+    chatwootNameInbox: { type: 'string' },
+    chatwootMergeBrazilContacts: { type: 'boolean' },
+    chatwootImportMessages: { type: 'boolean' },
+    chatwootDaysLimitImportMessages: { type: 'number' },
+    // Typebot
+    typebotUrl: { type: 'string' },
+    typebot: { type: 'boolean' },
+    typebotExpire: { type: 'number' },
+    typebotKeywordFinish: { type: 'string' },
+    typebotDelayMessage: { type: 'number' },
+    typebotUnknownMessage: { type: 'string' },
+    typebotListeningFromMe: { type: 'boolean' },
   },
   ...isNotEmpty('instanceName'),
 };
 
-export const oldTokenSchema: JSONSchema7 = {
+export const presenceOnlySchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
-    oldToken: { type: 'string' },
+    presence: {
+      type: 'string',
+      enum: ['unavailable', 'available', 'composing', 'recording', 'paused'],
+    },
   },
-  required: ['oldToken'],
-  ...isNotEmpty('oldToken'),
+  required: ['presence'],
 };
 
 const quotedOptionsSchema: JSONSchema7 = {
@@ -163,18 +230,6 @@ export const presenceSchema: JSONSchema7 = {
     options: { ...optionsSchema, required: ['presence', 'delay'] },
   },
   required: ['options', 'number'],
-};
-
-export const presenceOnlySchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    presence: {
-      type: 'string',
-      enum: ['unavailable', 'available', 'composing', 'recording', 'paused'],
-    },
-  },
-  required: ['presence'],
 };
 
 export const pollMessageSchema: JSONSchema7 = {

@@ -8,6 +8,7 @@
 
 ### Fixed
 * Removed excessive verbose logs
+* Optimization in instance registration
 
 ### Break changes
 * jwt authentication removed

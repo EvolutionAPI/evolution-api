@@ -1,6 +1,6 @@
 import { RequestHandler, Router } from 'express';
 
-import { instanceNameSchema, rabbitmqSchema } from '../../../../validate/validate.schema';
+import { instanceSchema, rabbitmqSchema } from '../../../../validate/validate.schema';
 import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { HttpStatus } from '../../../routes/index.router';
@@ -24,7 +24,7 @@ export class RabbitmqRouter extends RouterBroker {
       .get(this.routerPath('find'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => rabbitmqController.findRabbitmq(instance),
         });

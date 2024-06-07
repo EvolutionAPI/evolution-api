@@ -1,7 +1,7 @@
 import { RequestHandler, Router } from 'express';
 
 import {
-  instanceNameSchema,
+  instanceSchema,
   typebotSchema,
   typebotStartSchema,
   typebotStatusSchema,
@@ -29,7 +29,7 @@ export class TypebotRouter extends RouterBroker {
       .get(this.routerPath('find'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: instanceNameSchema,
+          schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => typebotController.findTypebot(instance),
         });
