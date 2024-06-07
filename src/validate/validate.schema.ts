@@ -1,5 +1,3 @@
-import { JSONSchema7 } from 'json-schema';
-
 // Integrations Schema
 // TODO: rever todas as integrações e garantir o funcionamento perfeito
 export * from '../api/integrations/chatwoot/validate/chatwoot.schema';
@@ -17,25 +15,6 @@ export * from './proxy.schema';
 export * from './settings.schema';
 export * from './webhook.schema';
 export * from './websocket.schema';
-
-export const isNotEmpty = (...propertyNames: string[]): JSONSchema7 => {
-  const properties = {};
-  propertyNames.forEach(
-    (property) =>
-      (properties[property] = {
-        minLength: 1,
-        description: `The "${property}" cannot be empty`,
-      }),
-  );
-  return {
-    if: {
-      propertyNames: {
-        enum: [...propertyNames],
-      },
-    },
-    then: { properties },
-  };
-};
 
 export const Events = [
   'APPLICATION_STARTUP',

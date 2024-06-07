@@ -838,9 +838,18 @@ export class BusinessStartupService extends ChannelStartupService {
     const res = await this.sendMessageWithTyping(
       data.number,
       {
-        conversation: data.textMessage.text,
+        conversation: data.text,
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
       isChatwoot,
     );
     return res;
@@ -915,9 +924,23 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
-    const message = await this.prepareMediaMessage(data.mediaMessage);
+    const message = await this.prepareMediaMessage(data);
 
-    return await this.sendMessageWithTyping(data.number, { ...message }, data?.options, isChatwoot);
+    return await this.sendMessageWithTyping(
+      data.number,
+      { ...message },
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
+      isChatwoot,
+    );
   }
 
   public async processAudio(audio: string, number: string) {
@@ -949,22 +972,27 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
-    const message = await this.processAudio(data.audioMessage.audio, data.number);
+    const message = await this.processAudio(data.audio, data.number);
 
-    return await this.sendMessageWithTyping(data.number, { ...message }, data?.options, isChatwoot);
+    return await this.sendMessageWithTyping(
+      data.number,
+      { ...message },
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
+      isChatwoot,
+    );
   }
 
   public async buttonMessage(data: SendButtonDto) {
     const embeddedMedia: any = {};
-    let mediatype = 'TEXT';
-
-    if (data.buttonMessage?.mediaMessage) {
-      mediatype = data.buttonMessage.mediaMessage?.mediatype.toUpperCase() ?? 'TEXT';
-      embeddedMedia.mediaKey = mediatype.toLowerCase() + 'Message';
-      const generate = await this.prepareMediaMessage(data.buttonMessage.mediaMessage);
-      embeddedMedia.message = generate.message[embeddedMedia.mediaKey];
-      embeddedMedia.contentText = `*${data.buttonMessage.title}*\n\n${data.buttonMessage.description}`;
-    }
 
     const btnItems = {
       text: data.buttonMessage.buttons.map((btn) => btn.buttonText),
@@ -990,7 +1018,16 @@ export class BusinessStartupService extends ChannelStartupService {
         }),
         [embeddedMedia?.mediaKey]: embeddedMedia?.message,
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
   }
 
@@ -999,19 +1036,28 @@ export class BusinessStartupService extends ChannelStartupService {
       data.number,
       {
         locationMessage: {
-          degreesLatitude: data.locationMessage.latitude,
-          degreesLongitude: data.locationMessage.longitude,
-          name: data.locationMessage?.name,
-          address: data.locationMessage?.address,
+          degreesLatitude: data.latitude,
+          degreesLongitude: data.longitude,
+          name: data?.name,
+          address: data?.address,
         },
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
   }
 
   public async listMessage(data: SendListDto) {
     const sectionsItems = {
-      title: data.listMessage.sections.map((list) => list.title),
+      title: data.sections.map((list) => list.title),
     };
 
     if (!arrayUnique(sectionsItems.title)) {
@@ -1021,11 +1067,11 @@ export class BusinessStartupService extends ChannelStartupService {
     return await this.sendMessageWithTyping(
       data.number,
       {
-        title: data.listMessage.title,
-        text: data.listMessage.description,
-        footerText: data.listMessage?.footerText,
-        buttonText: data.listMessage?.buttonText,
-        sections: data.listMessage.sections.map((section) => {
+        title: data.title,
+        text: data.description,
+        footerText: data?.footerText,
+        buttonText: data?.buttonText,
+        sections: data.sections.map((section) => {
           return {
             title: section.title,
             rows: section.rows.map((row) => {
@@ -1038,7 +1084,16 @@ export class BusinessStartupService extends ChannelStartupService {
           };
         }),
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
   }
 
@@ -1052,7 +1107,16 @@ export class BusinessStartupService extends ChannelStartupService {
           components: data.components,
         },
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
       isChatwoot,
     );
     return res;
@@ -1085,15 +1149,15 @@ export class BusinessStartupService extends ChannelStartupService {
       return result;
     };
 
-    if (data.contactMessage.length === 1) {
-      message.contactMessage = {
-        displayName: data.contactMessage[0].fullName,
-        vcard: vcard(data.contactMessage[0]),
+    if (data.contact.length === 1) {
+      message.contact = {
+        displayName: data.contact[0].fullName,
+        vcard: vcard(data.contact[0]),
       };
     } else {
       message.contactsArrayMessage = {
-        displayName: `${data.contactMessage.length} contacts`,
-        contacts: data.contactMessage.map((contact) => {
+        displayName: `${data.contact.length} contacts`,
+        contacts: data.contact.map((contact) => {
           return {
             displayName: contact.fullName,
             vcard: vcard(contact),
@@ -1104,7 +1168,7 @@ export class BusinessStartupService extends ChannelStartupService {
     return await this.sendMessageWithTyping(
       data.number,
       {
-        contacts: data.contactMessage.map((contact) => {
+        contacts: data.contact.map((contact) => {
           return {
             name: { formatted_name: contact.fullName, first_name: contact.fullName },
             phones: [{ phone: contact.phoneNumber }],
@@ -1115,15 +1179,24 @@ export class BusinessStartupService extends ChannelStartupService {
         }),
         message,
       },
-      data?.options,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        linkPreview: data?.linkPreview,
+        mentions: {
+          everyOne: data?.everyOne,
+          mentioned: data?.mentioned,
+        },
+      },
     );
   }
 
   public async reactionMessage(data: SendReactionDto) {
-    return await this.sendMessageWithTyping(data.reactionMessage.key.remoteJid, {
+    return await this.sendMessageWithTyping(data.key.remoteJid, {
       reactionMessage: {
-        key: data.reactionMessage.key,
-        text: data.reactionMessage.reaction,
+        key: data.key,
+        text: data.reaction,
       },
     });
   }

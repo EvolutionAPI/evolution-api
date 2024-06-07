@@ -6,8 +6,8 @@ export class Quoted {
 }
 
 export class Mentions {
-  everyOne: boolean;
-  mentioned: string[];
+  everyOne?: boolean;
+  mentioned?: string[];
 }
 
 export class Options {
@@ -44,8 +44,8 @@ export class Metadata {
   delay?: number;
   quoted?: Quoted;
   linkPreview?: boolean;
-  everyOne: boolean;
-  mentioned: string[];
+  everyOne?: boolean;
+  mentioned?: string[];
   encoding?: boolean;
 }
 

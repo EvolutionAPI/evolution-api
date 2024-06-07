@@ -972,14 +972,9 @@ export class ChatwootService {
       if (type === 'audio') {
         const data: SendAudioDto = {
           number: number,
-          audioMessage: {
-            audio: media,
-          },
-          options: {
-            delay: 1200,
-            presence: 'recording',
-            ...options,
-          },
+          audio: media,
+          delay: 1200,
+          quoted: options?.quoted,
         };
 
         const messageSent = await waInstance?.audioWhatsapp(data, true);
@@ -993,20 +988,15 @@ export class ChatwootService {
 
       const data: SendMediaDto = {
         number: number,
-        mediaMessage: {
-          mediatype: type as any,
-          fileName: fileName,
-          media: media,
-        },
-        options: {
-          delay: 1200,
-          presence: 'composing',
-          ...options,
-        },
+        mediatype: type as any,
+        fileName: fileName,
+        media: media,
+        delay: 1200,
+        quoted: options?.quoted,
       };
 
       if (caption) {
-        data.mediaMessage.caption = caption;
+        data.caption = caption;
       }
 
       const messageSent = await waInstance?.mediaMessage(data, true);
@@ -1232,14 +1222,9 @@ export class ChatwootService {
           } else {
             const data: SendTextDto = {
               number: chatId,
-              textMessage: {
-                text: formatText,
-              },
-              options: {
-                delay: 1200,
-                presence: 'composing',
-                quoted: await this.getQuotedMessage(body, instance),
-              },
+              text: formatText,
+              delay: 1200,
+              quoted: await this.getQuotedMessage(body, instance),
             };
 
             let messageSent: any;
@@ -1350,13 +1335,8 @@ export class ChatwootService {
       if (body.message_type === 'template' && body.event === 'message_created') {
         const data: SendTextDto = {
           number: chatId,
-          textMessage: {
-            text: body.content.replace(/\\\r\n|\\\n|\n/g, '\n'),
-          },
-          options: {
-            delay: 1200,
-            presence: 'composing',
-          },
+          text: body.content.replace(/\\\r\n|\\\n|\n/g, '\n'),
+          delay: 1200,
         };
 
         await waInstance?.textMessage(data);

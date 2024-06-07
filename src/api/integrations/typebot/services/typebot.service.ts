@@ -683,13 +683,8 @@ export class TypebotService {
               if (unknownMessage) {
                 this.waMonitor.waInstances[instance.instanceName].textMessage({
                   number: remoteJid.split('@')[0],
-                  options: {
-                    delay: delayMessage || 1000,
-                    presence: 'composing',
-                  },
-                  textMessage: {
-                    text: unknownMessage,
-                  },
+                  delay: delayMessage || 1000,
+                  text: unknownMessage,
                 });
               }
               return;
@@ -782,13 +777,8 @@ export class TypebotService {
             if (unknownMessage) {
               this.waMonitor.waInstances[instance.instanceName].textMessage({
                 number: remoteJid.split('@')[0],
-                options: {
-                  delay: delayMessage || 1000,
-                  presence: 'composing',
-                },
-                textMessage: {
-                  text: unknownMessage,
-                },
+                delay: delayMessage || 1000,
+                text: unknownMessage,
               });
             }
             return;
@@ -874,13 +864,8 @@ export class TypebotService {
         if (unknownMessage) {
           this.waMonitor.waInstances[instance.instanceName].textMessage({
             number: remoteJid.split('@')[0],
-            options: {
-              delay: delayMessage || 1000,
-              presence: 'composing',
-            },
-            textMessage: {
-              text: unknownMessage,
-            },
+            delay: delayMessage || 1000,
+            text: unknownMessage,
           });
         }
         return;
