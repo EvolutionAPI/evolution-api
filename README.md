@@ -14,14 +14,12 @@
   
 <div align="center"><img src="./public/images/cover.png"></div>
 
-## WhatsApp-Api-NodeJs
+## Evolution API - Whatsapp API Node JS
 
 This project is based on the [CodeChat](https://github.com/code-chat-br/whatsapp-api). The original project is an implementation of [Baileys](https://github.com/WhiskeySockets/Baileys), serving as a Restful API service that controls WhatsApp functions.</br> 
 The code allows the creation of multiservice chats, service bots, or any other system that utilizes WhatsApp. The documentation provides instructions on how to set up and use the project, as well as additional information about its features and configuration options.
 
-## SSL
-
-To install the SSL certificate, follow the **[instructions](https://certbot.eff.org/instructions?ws=other&os=ubuntufocal)** below.
+The Evolution API has direct integration with [Typebot](https://github.com/baptisteArno/typebot.io) and [Chatwoot](https://github.com/chatwoot/chatwoot)
 
 # Note
 
