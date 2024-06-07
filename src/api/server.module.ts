@@ -24,7 +24,6 @@ import { ProviderFiles } from './provider/sessions';
 import { PrismaRepository } from './repository/repository.service';
 import { AuthService } from './services/auth.service';
 import { CacheService } from './services/cache.service';
-import { IntegrationService } from './services/integration.service';
 import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { SettingsService } from './services/settings.service';
@@ -73,8 +72,6 @@ export const rabbitmqController = new RabbitmqController(rabbitmqService);
 const sqsService = new SqsService(waMonitor);
 export const sqsController = new SqsController(sqsService);
 
-const integrationService = new IntegrationService(waMonitor);
-
 const chatwootService = new ChatwootService(waMonitor, configService, prismaRepository, chatwootCache);
 export const chatwootController = new ChatwootController(chatwootService, configService, prismaRepository);
 
@@ -94,7 +91,6 @@ export const instanceController = new InstanceController(
   rabbitmqService,
   sqsService,
   typebotService,
-  integrationService,
   proxyController,
   cache,
   chatwootCache,

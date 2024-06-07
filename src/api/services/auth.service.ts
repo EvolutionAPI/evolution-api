@@ -3,7 +3,6 @@ import { v4 } from 'uuid';
 import { ConfigService } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
 import { PrismaRepository } from '../repository/repository.service';
 import { WAMonitoringService } from './monitor.service';
 
@@ -16,35 +15,16 @@ export class AuthService {
 
   private readonly logger = new Logger(AuthService.name);
 
-  private async apikey(instance: InstanceDto, token?: string) {
+  private async apikey(token?: string) {
     const apikey = token ? token : v4().toUpperCase();
 
-    const db = this.configService.get('DATABASE');
-
-    if (db.ENABLED) {
-      try {
-        await this.prismaRepository.auth.create({
-          data: {
-            apikey: apikey,
-            instanceId: instance.instanceId,
-          },
-        });
-
-        return { apikey };
-      } catch (error) {
-        this.logger.error({
-          localError: AuthService.name + '.apikey',
-          error: error,
-        });
-        throw new BadRequestException('Authentication error', error?.toString());
-      }
-    }
+    return apikey;
   }
 
   public async checkDuplicateToken(token: string) {
     const instances = await this.waMonitor.instanceInfo();
 
-    const instance = instances.find((instance) => instance.instance.apikey === token);
+    const instance = instances.find((instance) => instance.instance.token === token);
 
     if (instance) {
       throw new BadRequestException('Token already exists');
@@ -53,7 +33,8 @@ export class AuthService {
     return true;
   }
 
-  public async generateHash(instance: InstanceDto, token?: string) {
-    return (await this.apikey(instance, token)) as { apikey: string };
+  public async generateHash(token?: string) {
+    const hash = await this.apikey(token);
+    return hash;
   }
 }

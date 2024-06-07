@@ -39,15 +39,16 @@ model Instance {
   connectionStatus InstanceConnectionStatus @default(open)
   ownerJid         String?                  @db.VarChar(100)
   profilePicUrl    String?                  @db.VarChar(500)
+  integration      String?                  @db.VarChar(100)
+  number           String?                  @db.VarChar(100)
+  token            String?                  @unique @db.VarChar(255)
   createdAt        DateTime?                @default(now()) @db.Date
   updatedAt        DateTime?                @updatedAt @db.Date
-  Auth             Auth?
   Chat             Chat[]
   Contact          Contact[]
   Message          Message[]
   Webhook          Webhook?
   Chatwoot         Chatwoot?
-  Integration      Integration?
   Label            Label[]
   Proxy            Proxy?
   Setting          Setting?
@@ -66,15 +67,6 @@ model Session {
   creds     String?  @db.Text
   createdAt DateTime @default(now())
   Instance  Instance @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-}
-
-model Auth {
-  id         Int       @id @default(autoincrement())
-  apikey     String    @unique
-  createdAt  DateTime? @default(now()) @db.Date
-  updatedAt  DateTime? @updatedAt @db.Date
-  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId String    @unique
 }
 
 model Chat {
@@ -169,17 +161,6 @@ model Chatwoot {
   updatedAt               DateTime  @updatedAt @db.Date
   Instance                Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId              String    @unique
-}
-
-model Integration {
-  id          Int       @id @default(autoincrement())
-  integration String    @db.VarChar(100)
-  number      String?   @db.VarChar(100)
-  token       String?   @db.VarChar(100)
-  createdAt   DateTime? @default(now()) @db.Date
-  updatedAt   DateTime  @updatedAt @db.Date
-  Instance    Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId  String    @unique
 }
 
 model Label {

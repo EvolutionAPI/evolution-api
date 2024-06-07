@@ -23,7 +23,7 @@ import {
 import { Logger } from '../../config/logger.config';
 import { ROOT_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
-import { IntegrationDto } from '../dto/integration.dto';
+import { InstanceDto } from '../dto/instance.dto';
 import { ProxyDto } from '../dto/proxy.dto';
 import { SettingsDto } from '../dto/settings.dto';
 import { WebhookDto } from '../dto/webhook.dto';
@@ -61,7 +61,6 @@ export class ChannelStartupService {
   public readonly localSqs: wa.LocalSqs = {};
   public readonly localTypebot: wa.LocalTypebot = {};
   public readonly localProxy: wa.LocalProxy = {};
-  public readonly localIntegration: wa.LocalIntegration = {};
   public readonly localSettings: wa.LocalSettings = {};
   public readonly storePath = join(ROOT_DIR, 'store');
 
@@ -74,14 +73,13 @@ export class ChannelStartupService {
 
   public typebotService = new TypebotService(waMonitor, this.configService, this.eventEmitter);
 
-  public set instanceName(name: string) {
-    this.logger.setInstance(name);
+  public setInstance(instance: InstanceDto) {
+    this.instance.name = instance.instanceName;
+    this.instance.id = instance.instanceId;
+    this.instance.integration = instance.integration;
+    this.instance.number = instance.number;
+    this.instance.token = instance.token;
 
-    if (!name) {
-      this.instance.name = v4();
-      return;
-    }
-    this.instance.name = name;
     this.sendDataWebhook(Events.STATUS_INSTANCE, {
       instance: this.instance.name,
       status: 'created',
@@ -97,6 +95,16 @@ export class ChannelStartupService {
         },
       );
     }
+  }
+
+  public set instanceName(name: string) {
+    this.logger.setInstance(name);
+
+    if (!name) {
+      this.instance.name = v4();
+      return;
+    }
+    this.instance.name = name;
   }
 
   public get instanceName() {
@@ -115,68 +123,32 @@ export class ChannelStartupService {
     return this.instance.id;
   }
 
+  public set integration(integration: string) {
+    this.instance.integration = integration;
+  }
+
+  public get integration() {
+    return this.instance.integration;
+  }
+
+  public set number(number: string) {
+    this.instance.number = number;
+  }
+
+  public get number() {
+    return this.instance.number;
+  }
+
+  public set token(token: string) {
+    this.instance.token = token;
+  }
+
+  public get token() {
+    return this.instance.token;
+  }
+
   public get wuid() {
     return this.instance.wuid;
-  }
-
-  public async loadIntegration() {
-    const data = await this.prismaRepository.integration.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    this.localIntegration.integration = data?.integration;
-
-    this.localIntegration.number = data?.number;
-
-    this.localIntegration.token = data?.token;
-  }
-
-  public async setIntegration(data: IntegrationDto) {
-    console.log('setIntegration');
-    await this.prismaRepository.integration.upsert({
-      where: {
-        instanceId: this.instanceId,
-      },
-      update: {
-        integration: data.integration,
-        number: data.number,
-        token: data.token,
-      },
-      create: {
-        integration: data.integration,
-        number: data.number,
-        token: data.token,
-        instanceId: this.instanceId,
-      },
-    });
-
-    Object.assign(this.localIntegration, data);
-  }
-
-  public async findIntegration() {
-    let data;
-
-    data = await this.prismaRepository.integration.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (!data) {
-      await this.prismaRepository.integration.create({
-        data: {
-          integration: 'WHATSAPP-BAILEYS',
-          number: '',
-          token: '',
-          instanceId: this.instanceId,
-        },
-      });
-      data = { integration: 'WHATSAPP-BAILEYS', number: '', token: '' };
-    }
-
-    return data;
   }
 
   public async loadSettings() {
@@ -650,12 +622,8 @@ export class ChannelStartupService {
     const now = localISOTime;
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
-    const tokenStore = await this.prismaRepository.auth.findFirst({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-    const instanceApikey = tokenStore?.apikey || 'Apikey not found';
+
+    const instanceApikey = this.token || 'Apikey not found';
 
     if (rabbitmqEnabled) {
       const amqp = getAMQP();

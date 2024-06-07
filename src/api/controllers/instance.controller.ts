@@ -19,7 +19,6 @@ import { AuthService } from '../services/auth.service';
 import { CacheService } from '../services/cache.service';
 import { BaileysStartupService } from '../services/channels/whatsapp.baileys.service';
 import { BusinessStartupService } from '../services/channels/whatsapp.business.service';
-import { IntegrationService } from '../services/integration.service';
 import { WAMonitoringService } from '../services/monitor.service';
 import { SettingsService } from '../services/settings.service';
 import { WebhookService } from '../services/webhook.service';
@@ -40,7 +39,6 @@ export class InstanceController {
     private readonly rabbitmqService: RabbitmqService,
     private readonly sqsService: SqsService,
     private readonly typebotService: TypebotService,
-    private readonly integrationService: IntegrationService,
     private readonly proxyService: ProxyController,
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
@@ -125,10 +123,17 @@ export class InstanceController {
 
       const instanceId = v4();
 
-      await this.waMonitor.saveInstance({ instanceId, integration, instanceName, token, number });
+      const hash = await this.authService.generateHash(token);
 
-      instance.instanceName = instanceName;
-      instance.instanceId = instanceId;
+      await this.waMonitor.saveInstance({ instanceId, integration, instanceName, hash, number });
+
+      instance.setInstance({
+        instanceName,
+        instanceId,
+        integration,
+        token: hash,
+        number,
+      });
 
       instance.sendDataWebhook(Events.INSTANCE_CREATE, {
         instanceName,
@@ -137,14 +142,6 @@ export class InstanceController {
 
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
-
-      const hash = await this.authService.generateHash(
-        {
-          instanceName: instance.instanceName,
-          instanceId: instanceId,
-        },
-        token,
-      );
 
       let getWebhookEvents: string[];
 
@@ -412,11 +409,6 @@ export class InstanceController {
         accessTokenWaBusiness = this.configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK;
       }
 
-      this.integrationService.create(instance, {
-        integration,
-        number,
-        token,
-      });
       if (!chatwootAccountId || !chatwootToken || !chatwootUrl) {
         let getQrcode: wa.QrCode;
 
@@ -659,17 +651,14 @@ export class InstanceController {
     let arrayReturn = false;
 
     if (env.KEY !== key) {
-      const instanceByKey = await this.prismaRepository.auth.findUnique({
+      const instanceByKey = await this.prismaRepository.instance.findUnique({
         where: {
-          apikey: key,
-        },
-        include: {
-          Instance: true,
+          token: key,
         },
       });
 
       if (instanceByKey) {
-        name = instanceByKey.Instance.name;
+        name = instanceByKey.name;
         arrayReturn = true;
       } else {
         throw new UnauthorizedException();

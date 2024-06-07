@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
-import { existsSync, mkdirSync, opendirSync, readdirSync, rmSync, writeFileSync } from 'fs';
+import { opendirSync, readdirSync, rmSync } from 'fs';
 import { join } from 'path';
 
 import {
@@ -16,6 +16,7 @@ import {
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
+import { InstanceDto } from '../dto/instance.dto';
 import { ProviderFiles } from '../provider/sessions';
 import { PrismaRepository } from '../repository/repository.service';
 import { Integration } from '../types/wa.types';
@@ -54,7 +55,7 @@ export class WAMonitoringService {
       setTimeout(async () => {
         if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
           if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
-            if ((await this.waInstances[instance].findIntegration()).integration === Integration.WHATSAPP_BAILEYS) {
+            if ((await this.waInstances[instance].integration) === Integration.WHATSAPP_BAILEYS) {
               await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
               this.waInstances[instance]?.client?.ws?.close();
               this.waInstances[instance]?.client?.end(undefined);
@@ -94,15 +95,21 @@ export class WAMonitoringService {
           }
         }
 
-        const findIntegration = await this.waInstances[key].findIntegration();
+        const findIntegration = {
+          integration: this.waInstances[key].integration,
+          token: this.waInstances[key].token,
+          number: this.waInstances[key].number,
+        };
 
         let integration: any;
-        if (findIntegration) {
+        if (this.waInstances[key].integration === Integration.WHATSAPP_BUSINESS) {
           integration = {
             ...findIntegration,
             webhookWaBusiness: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
           };
         }
+
+        const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
 
         if (value.connectionStatus.state === 'open') {
           const instanceData = {
@@ -117,14 +124,10 @@ export class WAMonitoringService {
             },
           };
 
-          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+          if (expose) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (
-              await this.prismaRepository.auth.findFirst({
-                where: { instanceId: this.waInstances[key].instanceId },
-              })
-            )?.apikey;
+            instanceData.instance['token'] = this.waInstances[key].token;
 
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
 
@@ -141,14 +144,10 @@ export class WAMonitoringService {
             },
           };
 
-          if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES) {
+          if (expose) {
             instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['apikey'] = (
-              await this.prismaRepository.auth.findFirst({
-                where: { instanceId: this.waInstances[key].instanceId },
-              })
-            )?.apikey;
+            instanceData.instance['token'] = this.waInstances[key].token;
 
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
 
@@ -174,9 +173,7 @@ export class WAMonitoringService {
         throw new NotFoundException(`Instance "${instanceId}" not found`);
       }
     } else if (number) {
-      const id = await this.prismaRepository.integration.findFirst({ where: { number } }).then((r) => r?.instanceId);
-
-      instanceName = await this.prismaRepository.instance.findFirst({ where: { id } }).then((r) => r?.name);
+      instanceName = await this.prismaRepository.instance.findFirst({ where: { number } }).then((r) => r?.name);
       if (!instanceName) {
         throw new NotFoundException(`Instance "${number}" not found`);
       }
@@ -214,33 +211,11 @@ export class WAMonitoringService {
     if (this.providerSession?.ENABLED) {
       await this.providerFiles.removeSession(instanceName);
     }
-    rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
   }
 
-  public async cleaningStoreFiles(instanceName: string) {
-    if (!this.db.ENABLED) {
-      if (this.providerSession?.ENABLED) {
-        await this.providerFiles.removeSession(instanceName);
-      }
-      rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
+  public async cleaningStoreData(instanceName: string) {
+    execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
 
-      execSync(`rm -rf ${join(STORE_DIR, 'chats', instanceName)}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'contacts', instanceName)}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'message-up', instanceName)}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'messages', instanceName)}`);
-
-      execSync(`rm -rf ${join(STORE_DIR, 'auth', 'apikey', instanceName + '.json')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'webhook', instanceName + '.json')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'proxy', instanceName + '*')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'rabbitmq', instanceName + '*')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'typebot', instanceName + '*')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'websocket', instanceName + '*')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'settings', instanceName + '*')}`);
-      execSync(`rm -rf ${join(STORE_DIR, 'labels', instanceName + '*')}`);
-
-      return;
-    }
     const instance = await this.prismaRepository.instance.findFirst({
       where: { name: instanceName },
     });
@@ -254,8 +229,6 @@ export class WAMonitoringService {
     await this.prismaRepository.messageUpdate.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.message.deleteMany({ where: { instanceId: instance.id } });
 
-    await this.prismaRepository.integration.deleteMany({ where: { instanceId: instance.id } });
-    await this.prismaRepository.auth.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.webhook.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.chatwoot.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.proxy.deleteMany({ where: { instanceId: instance.id } });
@@ -274,12 +247,10 @@ export class WAMonitoringService {
     try {
       if (this.providerSession.ENABLED) {
         await this.loadInstancesFromProvider();
-      } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
-        await this.loadInstancesFromRedis();
       } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
         await this.loadInstancesFromDatabasePostgres();
-      } else {
-        await this.loadInstancesFromFiles();
+      } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
+        await this.loadInstancesFromRedis();
       }
     } catch (error) {
       this.logger.error(error);
@@ -288,41 +259,27 @@ export class WAMonitoringService {
 
   public async saveInstance(data: any) {
     try {
-      const msgParsed = JSON.parse(JSON.stringify(data));
-      if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+      if (this.db.ENABLED) {
         await this.prismaRepository.instance.create({
           data: {
             id: data.instanceId,
             name: data.instanceName,
             connectionStatus: 'close',
-          },
-        });
-
-        await this.prismaRepository.integration.create({
-          data: {
-            instanceId: data.instanceId,
-            integration: data.integration,
             number: data.number,
-            token: data.token,
+            integration: data.integration || Integration.WHATSAPP_BAILEYS,
+            token: data.hash,
           },
         });
-      } else {
-        const path = join(INSTANCE_DIR, data.instanceName);
-        if (!existsSync(path)) mkdirSync(path, { recursive: true });
-        writeFileSync(path + '/integration.json', JSON.stringify(msgParsed));
       }
     } catch (error) {
       this.logger.error(error);
     }
   }
 
-  private async setInstance(id: string, name: string) {
-    const integration = await this.prismaRepository.integration.findUnique({
-      where: { instanceId: id },
-    });
-
+  private async setInstance(instanceData: InstanceDto) {
     let instance: BaileysStartupService | BusinessStartupService;
-    if (integration && integration.integration === Integration.WHATSAPP_BUSINESS) {
+
+    if (instanceData.integration && instanceData.integration === Integration.WHATSAPP_BUSINESS) {
       instance = new BusinessStartupService(
         this.configService,
         this.eventEmitter,
@@ -333,8 +290,13 @@ export class WAMonitoringService {
         this.providerFiles,
       );
 
-      instance.instanceName = name;
-      instance.instanceId = id;
+      instance.setInstance({
+        instanceId: instanceData.instanceId,
+        instanceName: instanceData.instanceName,
+        integration: instanceData.integration,
+        token: instanceData.token,
+        number: instanceData.number,
+      });
     } else {
       instance = new BaileysStartupService(
         this.configService,
@@ -346,24 +308,45 @@ export class WAMonitoringService {
         this.providerFiles,
       );
 
-      instance.instanceName = name;
-      instance.instanceId = id;
-
-      if (!integration) {
-        await instance.setIntegration({ integration: Integration.WHATSAPP_BAILEYS, number: '', token: '' });
-      }
+      instance.setInstance({
+        instanceId: instanceData.instanceId,
+        instanceName: instanceData.instanceName,
+        integration: instanceData.integration,
+        token: instanceData.token,
+        number: instanceData.number,
+      });
     }
 
     await instance.connectToWhatsapp();
 
-    this.waInstances[name] = instance;
+    this.waInstances[instanceData.instanceName] = instance;
   }
 
   private async loadInstancesFromRedis() {
     const keys = await this.cache.keys();
 
     if (keys?.length > 0) {
-      await Promise.all(keys.map((k) => this.setInstance(k.split(':')[1], k.split(':')[2])));
+      await Promise.all(
+        keys.map(async (k) => {
+          const instanceData = await this.prismaRepository.instance.findUnique({
+            where: { id: k.split(':')[1] },
+          });
+
+          if (!instanceData) {
+            return;
+          }
+
+          const instance = {
+            instanceId: k.split(':')[1],
+            instanceName: k.split(':')[2],
+            integration: instanceData.integration,
+            token: instanceData.token,
+            number: instanceData.number,
+          };
+
+          this.setInstance(instance);
+        }),
+      );
     }
   }
 
@@ -374,7 +357,17 @@ export class WAMonitoringService {
       return;
     }
 
-    await Promise.all(instances.map(async (instance) => this.setInstance(instance.id, instance.name)));
+    await Promise.all(
+      instances.map(async (instance) => {
+        this.setInstance({
+          instanceId: instance.id,
+          instanceName: instance.name,
+          integration: instance.integration,
+          token: instance.token,
+          number: instance.number,
+        });
+      }),
+    );
   }
 
   private async loadInstancesFromProvider() {
@@ -384,28 +377,18 @@ export class WAMonitoringService {
       return;
     }
 
-    await Promise.all(instances?.data?.map(async (instanceName: string) => this.setInstance('', instanceName)));
-  }
-
-  private async loadInstancesFromFiles() {
-    const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
-    const instanceDirs = [];
-
-    for await (const dirent of dir) {
-      if (dirent.isDirectory()) {
-        instanceDirs.push(dirent.name);
-      }
-    }
-
     await Promise.all(
-      instanceDirs.map(async (instanceName) => {
-        const files = readdirSync(join(INSTANCE_DIR, instanceName), { encoding: 'utf-8' });
+      instances?.data?.map(async (instanceId: string) => {
+        const instance = await this.prismaRepository.instance.findUnique({
+          where: { id: instanceId },
+        });
 
-        if (files.length === 0) {
-          rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
-        } else {
-          await this.setInstance('', instanceName);
-        }
+        this.setInstance({
+          instanceId: instance.id,
+          instanceName: instance.name,
+          integration: instance.integration,
+          token: instance.token,
+        });
       }),
     );
   }
@@ -420,7 +403,7 @@ export class WAMonitoringService {
 
       try {
         this.cleaningUp(instanceName);
-        this.cleaningStoreFiles(instanceName);
+        this.cleaningStoreData(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - REMOVED`);
       }

@@ -42,6 +42,7 @@ export declare namespace wa {
     base64?: string;
     code?: string;
   };
+
   export type Instance = {
     id?: string;
     qrcode?: QrCode;
@@ -51,6 +52,9 @@ export declare namespace wa {
     wuid?: string;
     profileName?: string;
     profilePictureUrl?: string;
+    token?: string;
+    number?: string;
+    integration?: string;
   };
 
   export type LocalWebHook = {
@@ -128,12 +132,6 @@ export declare namespace wa {
     protocol?: string;
     username?: string;
     password?: string;
-  };
-
-  export type LocalIntegration = {
-    integration?: string;
-    number?: string;
-    token?: string;
   };
 
   export type StateConnection = {

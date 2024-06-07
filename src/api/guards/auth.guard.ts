@@ -30,15 +30,14 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
     if (param?.instanceName) {
       const instance = await prismaRepository.instance.findUnique({
         where: { name: param.instanceName },
-        include: { Auth: true },
       });
-      if (instance.Auth?.apikey === key) {
+      if (instance.token === key) {
         return next();
       }
     } else {
       if (req.originalUrl.includes('/instance/fetchInstances') && db.ENABLED) {
-        const instanceByKey = await prismaRepository.auth.findFirst({
-          where: { apikey: key },
+        const instanceByKey = await prismaRepository.instance.findFirst({
+          where: { token: key },
         });
         if (instanceByKey) {
           return next();

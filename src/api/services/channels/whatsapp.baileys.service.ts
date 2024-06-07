@@ -26,7 +26,6 @@ import makeWASocket, {
   ParticipantAction,
   prepareWAMessageMedia,
   proto,
-  useMultiFileAuthState,
   UserFacingSocketConfig,
   WABrowserDescription,
   WAMediaUpload,
@@ -462,19 +461,17 @@ export class BaileysStartupService extends ChannelStartupService {
     const provider = this.configService.get<ProviderSession>('PROVIDER');
 
     if (provider?.ENABLED) {
-      return await this.authStateProvider.authStateProvider(this.instance.name);
+      return await this.authStateProvider.authStateProvider(this.instance.id);
     }
 
     if (cache?.REDIS.ENABLED && cache?.REDIS.SAVE_INSTANCES) {
       this.logger.info('Redis enabled');
-      return await useMultiFileAuthStateRedisDb(this.instance.name, this.cache);
+      return await useMultiFileAuthStateRedisDb(this.instance.id, this.cache);
     }
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {
-      return await useMultiFileAuthStatePrisma(this.instanceId);
+      return await useMultiFileAuthStatePrisma(this.instance.id);
     }
-
-    return await useMultiFileAuthState(join(INSTANCE_DIR, this.instance.name));
   }
 
   public async connectToWhatsapp(number?: string): Promise<WASocket> {

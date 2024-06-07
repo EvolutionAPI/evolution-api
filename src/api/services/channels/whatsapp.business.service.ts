@@ -70,12 +70,10 @@ export class BusinessStartupService extends ChannelStartupService {
 
   private async post(message: any, params: string) {
     try {
-      const integration = await this.findIntegration();
-
       let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
-      urlServer = `${urlServer}/${version}/${integration.number}/${params}`;
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${integration.token}` };
+      urlServer = `${urlServer}/${version}/${this.number}/${params}`;
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
       const result = await axios.post(urlServer, message, { headers });
       return result.data;
     } catch (e) {
@@ -150,13 +148,11 @@ export class BusinessStartupService extends ChannelStartupService {
 
   private async downloadMediaMessage(message: any) {
     try {
-      const integration = await this.findIntegration();
-
       const id = message[message.type].id;
       let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
       urlServer = `${urlServer}/${version}/${id}`;
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${integration.token}` };
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
       let result = await axios.get(urlServer, { headers });
       result = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
       return result.data;
@@ -851,8 +847,6 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   private async getIdMedia(mediaMessage: any) {
-    const integration = await this.findIntegration();
-
     const formData = new FormData();
 
     const fileBuffer = await fs.readFile(mediaMessage.media);
@@ -861,9 +855,9 @@ export class BusinessStartupService extends ChannelStartupService {
     formData.append('file', fileBlob);
     formData.append('typeFile', mediaMessage.mimetype);
     formData.append('messaging_product', 'whatsapp');
-    const headers = { Authorization: `Bearer ${integration.token}` };
+    const headers = { Authorization: `Bearer ${this.token}` };
     const res = await axios.post(
-      process.env.API_URL + '/' + process.env.VERSION + '/' + integration.number + '/media',
+      process.env.API_URL + '/' + process.env.VERSION + '/' + this.number + '/media',
       formData,
       { headers },
     );
