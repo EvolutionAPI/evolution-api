@@ -5,6 +5,7 @@
 * Added prisma orm, connection to postgres and mysql
 * Added chatwoot integration activation
 * Added typebot integration activation
+* Now you can register several typebots with triggers
 
 ### Fixed
 * Removed excessive verbose logs
