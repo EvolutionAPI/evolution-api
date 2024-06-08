@@ -10,19 +10,6 @@ export class TypebotController {
   public async createTypebot(instance: InstanceDto, data: TypebotDto) {
     if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
 
-    if (!data.enabled) {
-      data.url = '';
-      data.typebot = '';
-      data.expire = 0;
-      data.sessions = [];
-    } else {
-      const saveData = await this.typebotService.find(instance);
-
-      if (saveData?.typebot?.enabled) {
-        data.sessions = saveData?.sessions;
-      }
-    }
-
     return this.typebotService.create(instance, data);
   }
 
@@ -32,15 +19,51 @@ export class TypebotController {
     return this.typebotService.find(instance);
   }
 
-  public async changeStatus(instance: InstanceDto, data: any) {
+  public async fetchTypebot(instance: InstanceDto, typebotId: string) {
     if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
 
-    return this.typebotService.changeStatus(instance, data);
+    return this.typebotService.fetch(instance, typebotId);
+  }
+
+  public async updateTypebot(instance: InstanceDto, typebotId: string, data: TypebotDto) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
+
+    return this.typebotService.update(instance, typebotId, data);
+  }
+
+  public async deleteTypebot(instance: InstanceDto, typebotId: string) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
+
+    return this.typebotService.delete(instance, typebotId);
   }
 
   public async startTypebot(instance: InstanceDto, data: any) {
     if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
 
     return this.typebotService.startTypebot(instance, data);
+  }
+
+  public async settings(instance: InstanceDto, data: any) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
+
+    return this.typebotService.setDefaultSettings(instance, data);
+  }
+
+  public async fetchSettings(instance: InstanceDto) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
+
+    return this.typebotService.fetchDefaultSettings(instance);
+  }
+
+  public async changeStatus(instance: InstanceDto, data: any) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
+
+    return this.typebotService.changeStatus(instance, data);
+  }
+
+  public async fetchSessions(instance: InstanceDto, typebotId: string) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
+
+    return this.typebotService.fetchSessions(instance, typebotId);
   }
 }

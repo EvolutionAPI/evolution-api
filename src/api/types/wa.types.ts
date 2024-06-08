@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-namespace */
-import { TypebotSession } from '@prisma/client';
 import { JsonValue } from '@prisma/client/runtime/library';
 import { AuthenticationState, WAConnectionState } from '@whiskeysockets/baileys';
 
@@ -111,18 +110,6 @@ export declare namespace wa {
     remoteJid?: string;
     sessionId?: string;
     createdAt?: number;
-  };
-
-  export type LocalTypebot = {
-    enabled?: boolean;
-    url?: string;
-    typebot?: string;
-    expire?: number;
-    keywordFinish?: string;
-    delayMessage?: number;
-    unknownMessage?: string;
-    listeningFromMe?: boolean;
-    sessions?: TypebotSession[];
   };
 
   export type LocalProxy = {

@@ -50,7 +50,7 @@ ENV CLEAN_STORE_CHATS=true
 
 ENV DATABASE_ENABLED=false
 ENV DATABASE_CONNECTION_URI=mongodb://root:root@mongodb:27017/?authSource=admin&readPreference=primary&ssl=false&directConnection=true
-ENV DATABASE_CONNECTION_DB_PREFIX_NAME=evolution
+ENV DATABASE_CONNECTION_CLIENT_NAME=evolution
 
 ENV DATABASE_SAVE_DATA_INSTANCE=false
 ENV DATABASE_SAVE_DATA_NEW_MESSAGE=false

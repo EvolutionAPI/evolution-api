@@ -62,7 +62,7 @@ export type CleanStoreConf = {
 
 export type DBConnection = {
   URI: string;
-  DB_PREFIX_NAME: string;
+  CLIENT_NAME: string;
 };
 export type Database = {
   CONNECTION: DBConnection;
@@ -190,7 +190,7 @@ export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string; VERSION: string };
 export type QrCode = { LIMIT: number; COLOR: string };
-export type Typebot = { ENABLED: boolean; API_VERSION: string; KEEP_OPEN: boolean };
+export type Typebot = { ENABLED: boolean; API_VERSION: string };
 export type Chatwoot = {
   ENABLED: boolean;
   MESSAGE_DELETE: boolean;
@@ -299,7 +299,7 @@ export class ConfigService {
       DATABASE: {
         CONNECTION: {
           URI: process.env.DATABASE_CONNECTION_URI || '',
-          DB_PREFIX_NAME: process.env.DATABASE_CONNECTION_DB_PREFIX_NAME || 'evolution',
+          CLIENT_NAME: process.env.DATABASE_CONNECTION_CLIENT_NAME || 'evolution',
         },
         ENABLED: process.env?.DATABASE_ENABLED === 'true',
         PROVIDER: process.env.DATABASE_PROVIDER || 'postgresql',
@@ -433,7 +433,6 @@ export class ConfigService {
       TYPEBOT: {
         ENABLED: process.env?.TYPEBOT_ENABLED === 'true',
         API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
-        KEEP_OPEN: process.env.TYPEBOT_KEEP_OPEN === 'true',
       },
       CHATWOOT: {
         ENABLED: process.env?.CHATWOOT_ENABLED === 'true',

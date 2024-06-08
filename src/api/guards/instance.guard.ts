@@ -1,9 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import { existsSync } from 'fs';
-import { join } from 'path';
 
 import { CacheConf, configService, Database } from '../../config/env.config';
-import { INSTANCE_DIR } from '../../config/path.config';
 import {
   BadRequestException,
   ForbiddenException,
@@ -33,7 +30,7 @@ async function getInstance(instanceName: string) {
       return exists || (await prisma.instance.findMany({ where: { name: instanceName } })).length > 0;
     }
 
-    return exists || existsSync(join(INSTANCE_DIR, instanceName));
+    return false;
   } catch (error) {
     throw new InternalServerErrorException(error?.toString());
   }
@@ -65,6 +62,7 @@ export async function instanceLoggedGuard(req: Request, _: Response, next: NextF
 
     if (waMonitor.waInstances[instance.instanceName]) {
       waMonitor.waInstances[instance.instanceName]?.removeRabbitmqQueues();
+      waMonitor.waInstances[instance.instanceName]?.removeSqsQueues();
       delete waMonitor.waInstances[instance.instanceName];
     }
   }

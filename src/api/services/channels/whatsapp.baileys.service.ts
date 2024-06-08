@@ -502,7 +502,6 @@ export class BaileysStartupService extends ChannelStartupService {
       this.loadWebsocket();
       this.loadRabbitmq();
       this.loadSqs();
-      this.loadTypebot();
       this.loadProxy();
 
       this.instance.authState = await this.defineAuthState();
@@ -1182,19 +1181,13 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-            const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
-              (session) => session.remoteJid === received.key.remoteJid,
-            );
-
-            if ((this.localTypebot.enabled && type === 'notify') || typebotSessionRemoteJid) {
-              if (!(this.localTypebot.listeningFromMe === false && messageRaw.key.fromMe === true)) {
-                if (messageRaw.messageType !== 'reactionMessage')
-                  await this.typebotService.sendTypebot(
-                    { instanceName: this.instance.name, instanceId: this.instanceId },
-                    messageRaw.key.remoteJid,
-                    messageRaw,
-                  );
-              }
+            if (type === 'notify') {
+              if (messageRaw.messageType !== 'reactionMessage')
+                await this.typebotService.sendTypebot(
+                  { instanceName: this.instance.name, instanceId: this.instanceId },
+                  messageRaw.key.remoteJid,
+                  messageRaw,
+                );
             }
           }
 

@@ -2198,14 +2198,14 @@ export class ChatwootService {
           where: {
             instanceId: instance.instanceId,
             id: {
-              in: recentContacts.map((contact) => Number(contact.identifier)),
+              in: recentContacts.map((contact) => contact.identifier),
             },
             profilePicUrl: {
               not: null,
             },
           },
         })
-      ).reduce((acc: Map<number, ContactModel>, contact: ContactModel) => acc.set(contact.id, contact), new Map());
+      ).reduce((acc: Map<string, ContactModel>, contact: ContactModel) => acc.set(contact.id, contact), new Map());
 
       recentContacts.forEach(async (contact) => {
         if (contactsWithProfilePicture.has(contact.identifier)) {

@@ -133,7 +133,6 @@ export class BusinessStartupService extends ChannelStartupService {
       this.loadWebsocket();
       this.loadRabbitmq();
       this.loadSqs();
-      this.loadTypebot();
 
       this.eventHandler(content);
 
@@ -399,20 +398,12 @@ export class BusinessStartupService extends ChannelStartupService {
         }
 
         if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-          const typebotSessionRemoteJid = this.localTypebot.sessions?.find(
-            (session) => session.remoteJid === key.remoteJid,
-          );
-
-          if (this.localTypebot.enabled || typebotSessionRemoteJid) {
-            if (!(this.localTypebot.listeningFromMe === false && key.fromMe === true)) {
-              if (messageRaw.messageType !== 'reactionMessage')
-                await this.typebotService.sendTypebot(
-                  { instanceName: this.instance.name },
-                  messageRaw.key.remoteJid,
-                  messageRaw,
-                );
-            }
-          }
+          if (messageRaw.messageType !== 'reactionMessage')
+            await this.typebotService.sendTypebot(
+              { instanceName: this.instance.name },
+              messageRaw.key.remoteJid,
+              messageRaw,
+            );
         }
 
         await this.prismaRepository.message.create({

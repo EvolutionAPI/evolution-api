@@ -27,13 +27,18 @@ export const typebotSchema: JSONSchema7 = {
     enabled: { type: 'boolean' },
     url: { type: 'string' },
     typebot: { type: 'string' },
+    triggerType: { type: 'string', enum: ['all', 'keyword'] },
+    triggerOperator: { type: 'string', enum: ['equals', 'contains', 'startsWith', 'endsWith'] },
+    triggerValue: { type: 'string' },
     expire: { type: 'integer' },
+    keywordFinish: { type: 'string' },
     delayMessage: { type: 'integer' },
     unknownMessage: { type: 'string' },
     listeningFromMe: { type: 'boolean' },
+    stopBotFromMe: { type: 'boolean' },
   },
-  required: ['enabled', 'url', 'typebot', 'expire', 'delayMessage', 'unknownMessage', 'listeningFromMe'],
-  ...isNotEmpty('enabled', 'url', 'typebot', 'expire', 'delayMessage', 'unknownMessage', 'listeningFromMe'),
+  required: ['enabled', 'url', 'typebot', 'triggerType'],
+  ...isNotEmpty('enabled', 'url', 'typebot', 'triggerType'),
 };
 
 export const typebotStatusSchema: JSONSchema7 = {
@@ -57,4 +62,20 @@ export const typebotStartSchema: JSONSchema7 = {
   },
   required: ['remoteJid', 'url', 'typebot'],
   ...isNotEmpty('remoteJid', 'url', 'typebot'),
+};
+
+export const typebotSettingSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    expire: { type: 'integer' },
+    keywordFinish: { type: 'string' },
+    delayMessage: { type: 'integer' },
+    unknownMessage: { type: 'string' },
+    listeningFromMe: { type: 'boolean' },
+    stopBotFromMe: { type: 'boolean' },
+    keepOpen: { type: 'boolean' },
+  },
+  required: ['expire', 'keywordFinish', 'delayMessage', 'unknownMessage', 'listeningFromMe', 'stopBotFromMe'],
+  ...isNotEmpty('expire', 'keywordFinish', 'delayMessage', 'unknownMessage', 'listeningFromMe', 'stopBotFromMe'),
 };

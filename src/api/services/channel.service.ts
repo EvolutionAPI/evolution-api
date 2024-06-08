@@ -16,7 +16,6 @@ import {
   Log,
   Rabbitmq,
   Sqs,
-  Typebot,
   Webhook,
   Websocket,
 } from '../../config/env.config';
@@ -33,7 +32,6 @@ import { RabbitmqDto } from '../integrations/rabbitmq/dto/rabbitmq.dto';
 import { getAMQP, removeQueues } from '../integrations/rabbitmq/libs/amqp.server';
 import { SqsDto } from '../integrations/sqs/dto/sqs.dto';
 import { getSQS, removeQueues as removeQueuesSQS } from '../integrations/sqs/libs/sqs.server';
-import { TypebotDto } from '../integrations/typebot/dto/typebot.dto';
 import { TypebotService } from '../integrations/typebot/services/typebot.service';
 import { WebsocketDto } from '../integrations/websocket/dto/websocket.dto';
 import { getIO } from '../integrations/websocket/libs/socket.server';
@@ -59,7 +57,6 @@ export class ChannelStartupService {
   public readonly localWebsocket: wa.LocalWebsocket = {};
   public readonly localRabbitmq: wa.LocalRabbitmq = {};
   public readonly localSqs: wa.LocalSqs = {};
-  public readonly localTypebot: wa.LocalTypebot = {};
   public readonly localProxy: wa.LocalProxy = {};
   public readonly localSettings: wa.LocalSettings = {};
   public readonly storePath = join(ROOT_DIR, 'store');
@@ -71,7 +68,7 @@ export class ChannelStartupService {
     this.chatwootCache,
   );
 
-  public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository, this.eventEmitter);
+  public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository);
 
   public setInstance(instance: InstanceDto) {
     this.instance.name = instance.instanceName;
@@ -476,78 +473,6 @@ export class ChannelStartupService {
     if (this.localSqs.enabled) {
       removeQueuesSQS(this.instanceName, this.localSqs.events);
     }
-  }
-
-  public async loadTypebot() {
-    if (!this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-      return;
-    }
-    const data = await this.prismaRepository.typebot.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-      include: {
-        sessions: true,
-      },
-    });
-
-    this.localTypebot.enabled = data?.enabled;
-    this.localTypebot.url = data?.url;
-    this.localTypebot.typebot = data?.typebot;
-    this.localTypebot.expire = data?.expire;
-    this.localTypebot.keywordFinish = data?.keywordFinish;
-    this.localTypebot.delayMessage = data?.delayMessage;
-    this.localTypebot.unknownMessage = data?.unknownMessage;
-    this.localTypebot.listeningFromMe = data?.listeningFromMe;
-    this.localTypebot.sessions = data?.sessions;
-  }
-
-  public async setTypebot(data: TypebotDto) {
-    if (!this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-      return;
-    }
-
-    const typebot = await this.prismaRepository.typebot.create({
-      data: {
-        enabled: data.enabled,
-        url: data.url,
-        typebot: data.typebot,
-        expire: data.expire,
-        keywordFinish: data.keywordFinish,
-        delayMessage: data.delayMessage,
-        unknownMessage: data.unknownMessage,
-        listeningFromMe: data.listeningFromMe,
-        instanceId: this.instanceId,
-      },
-    });
-
-    await this.prismaRepository.typebotSession.deleteMany({
-      where: {
-        typebotId: typebot.id,
-      },
-    });
-
-    Object.assign(this.localTypebot, data);
-  }
-
-  public async findTypebot() {
-    if (!this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-      return;
-    }
-    const data = await this.prismaRepository.typebot.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-      include: {
-        sessions: true,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Typebot not found');
-    }
-
-    return data;
   }
 
   public async loadProxy() {

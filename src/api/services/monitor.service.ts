@@ -262,6 +262,7 @@ export class WAMonitoringService {
   public async saveInstance(data: any) {
     try {
       if (this.db.ENABLED) {
+        const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
         await this.prismaRepository.instance.create({
           data: {
             id: data.instanceId,
@@ -270,6 +271,7 @@ export class WAMonitoringService {
             number: data.number,
             integration: data.integration || Integration.WHATSAPP_BAILEYS,
             token: data.hash,
+            clientName: clientName,
           },
         });
       }
