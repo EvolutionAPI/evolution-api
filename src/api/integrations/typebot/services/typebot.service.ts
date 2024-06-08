@@ -309,6 +309,7 @@ export class TypebotService {
               pushName: data.pushName || '',
               instanceName: instance.instanceName,
             },
+            awaitUser: false,
             typebotId: data.typebotId,
             instanceId: instance.instanceId,
           },
@@ -337,6 +338,7 @@ export class TypebotService {
       clientSideActions,
       this.eventEmitter,
       applyFormatting,
+      this.prismaRepository,
     ).catch((err) => {
       console.error('Erro ao processar mensagens:', err);
     });
@@ -420,10 +422,10 @@ export class TypebotService {
       clientSideActions,
       eventEmitter,
       applyFormatting,
+      prismaRepository,
     ) {
       for (const message of messages) {
         if (message.type === 'text') {
-          console.log('message.content.richText', message.content.richText);
           let formattedText = '';
 
           for (const richText of message.content.richText) {
@@ -471,7 +473,6 @@ export class TypebotService {
           });
         }
 
-        console.log(clientSideActions);
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
 
         if (wait) {
@@ -497,6 +498,15 @@ export class TypebotService {
             text: formattedText,
           });
         }
+
+        await prismaRepository.typebotSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            awaitUser: true,
+          },
+        });
       } else {
         eventEmitter.emit('typebot:end', {
           sessionId: session.id,
@@ -521,6 +531,8 @@ export class TypebotService {
         remoteJid: remoteJid,
       },
     });
+
+    if (session && !session.awaitUser) return;
 
     try {
       if (session && expire && expire > 0) {
@@ -712,12 +724,11 @@ export class TypebotService {
         },
         data: {
           status: 'opened',
+          awaitUser: false,
         },
       });
 
       const content = this.getConversationMessage(msg.message);
-
-      console.log('content', content);
 
       if (!content) {
         if (unknownMessage) {
@@ -755,10 +766,7 @@ export class TypebotService {
           sessionId: session.sessionId.split('-')[1],
         };
       }
-      console.log('reqData', reqData);
       const request = await axios.post(urlTypebot, reqData);
-
-      console.log('request', request.data);
 
       await this.sendWAMessage(
         instance,

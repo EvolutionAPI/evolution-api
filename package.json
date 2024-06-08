@@ -9,7 +9,9 @@
     "start:prod": "bash start.sh",
     "dev:server": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./src/main.ts",
     "test": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./test/all.test.ts",
-    "lint": "eslint --fix --ext .ts src"
+    "lint": "eslint --fix --ext .ts src",
+    "db:migrate:postgres": "npx prisma migrate dev --name init --schema ./prisma/postgresql-schema.prisma",
+    "db:migrate:mysql": "npx prisma migrate dev --name init --schema ./prisma/mysql-schema.prisma"
   },
   "repository": {
     "type": "git",

@@ -10,6 +10,7 @@
 * Removed excessive verbose logs
 * Optimization in instance registration
 * Correction of variables breaking lines in typebot
+* Now in typebot we wait until the terminal block to accept the user's message, if it arrives before the block is sent, it is ignored
 
 ### Break changes
 * jwt authentication removed

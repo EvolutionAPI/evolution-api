@@ -70,13 +70,13 @@ model Session {
 }
 
 model Chat {
-  id               Int       @id @default(autoincrement())
-  remoteJid        String    @db.VarChar(100)
-  labels           Json?     @db.JsonB
-  createdAt        DateTime? @default(now()) @db.Timestamp
-  updatedAt        DateTime? @updatedAt @db.Timestamp
-  Instance         Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId       String
+  id         Int       @id @default(autoincrement())
+  remoteJid  String    @db.VarChar(100)
+  labels     Json?     @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime? @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
 }
 
 model Contact {
@@ -256,6 +256,7 @@ model TypebotSession {
   sessionId          String    @db.VarChar(100)
   status             String    @db.VarChar(100)
   prefilledVariables Json?     @db.JsonB
+  awaitUser          Boolean   @default(false) @db.Boolean
   createdAt          DateTime? @default(now()) @db.Timestamp
   updatedAt          DateTime  @updatedAt @db.Timestamp
   Typebot            Typebot   @relation(fields: [typebotId], references: [id], onDelete: Cascade)
