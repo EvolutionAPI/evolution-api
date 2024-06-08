@@ -71,7 +71,7 @@ export class ChannelStartupService {
     this.chatwootCache,
   );
 
-  public typebotService = new TypebotService(waMonitor, this.configService, this.eventEmitter);
+  public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository, this.eventEmitter);
 
   public setInstance(instance: InstanceDto) {
     this.instance.name = instance.instanceName;
@@ -547,17 +547,7 @@ export class ChannelStartupService {
       throw new NotFoundException('Typebot not found');
     }
 
-    return {
-      enabled: data.enabled,
-      url: data.url,
-      typebot: data.typebot,
-      expire: data.expire,
-      keywordFinish: data.keywordFinish,
-      delayMessage: data.delayMessage,
-      unknownMessage: data.unknownMessage,
-      listeningFromMe: data.listeningFromMe,
-      sessions: data.sessions,
-    };
+    return data;
   }
 
   public async loadProxy() {

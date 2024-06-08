@@ -794,7 +794,7 @@ export class BaileysStartupService extends ChannelStartupService {
             remoteJid: chat.id,
           },
           data: {
-            lastMsgTimestamp: Long.fromValue(chat.lastMessageRecvTimestamp).toString(),
+            remoteJid: chat.id,
           },
         });
       }
@@ -936,7 +936,7 @@ export class BaileysStartupService extends ChannelStartupService {
           chatsRaw.push({
             remoteJid: chat.id,
             instanceId: this.instanceId,
-            lastMsgTimestamp: chat.lastMessageRecvTimestamp,
+            lastMsgTimestamp: parseInt(chat.lastMessageRecvTimestamp?.toString()).toString(),
           });
         }
 
@@ -1190,7 +1190,7 @@ export class BaileysStartupService extends ChannelStartupService {
               if (!(this.localTypebot.listeningFromMe === false && messageRaw.key.fromMe === true)) {
                 if (messageRaw.messageType !== 'reactionMessage')
                   await this.typebotService.sendTypebot(
-                    { instanceName: this.instance.name },
+                    { instanceName: this.instance.name, instanceId: this.instanceId },
                     messageRaw.key.remoteJid,
                     messageRaw,
                   );
@@ -1312,7 +1312,7 @@ export class BaileysStartupService extends ChannelStartupService {
               fromMe: key.fromMe,
               participant: key?.remoteJid,
               status: 'DELETED',
-              dateTime: Date.now(),
+              dateTime: parseInt(new Date().getTime().toString()).toString(),
               instanceId: this.instanceId,
             };
 
@@ -1338,7 +1338,7 @@ export class BaileysStartupService extends ChannelStartupService {
             fromMe: key.fromMe,
             participant: key?.remoteJid,
             status: status[update.status],
-            dateTime: Date.now(),
+            dateTime: parseInt(new Date().getTime().toString()).toString(),
             pollUpdates,
             instanceId: this.instanceId,
           };
@@ -1878,13 +1878,17 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const contentMsg = messageSent.message[getContentType(messageSent.message)] as any;
 
+      if (Long.isLong(messageSent?.messageTimestamp)) {
+        messageSent.messageTimestamp = messageSent.messageTimestamp?.toNumber();
+      }
+
       const messageRaw: any = {
         key: messageSent.key,
         pushName: messageSent.pushName,
         message: { ...messageSent.message },
         contextInfo: contentMsg?.contextInfo,
         messageType: getContentType(messageSent.message),
-        messageTimestamp: Long.fromValue(messageSent.messageTimestamp).toString(),
+        messageTimestamp: messageSent.messageTimestamp as number,
         instanceId: this.instanceId,
         source: getDevice(messageSent.key.id),
       };

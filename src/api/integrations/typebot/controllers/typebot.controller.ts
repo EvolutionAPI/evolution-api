@@ -18,8 +18,8 @@ export class TypebotController {
     } else {
       const saveData = await this.typebotService.find(instance);
 
-      if (saveData.enabled) {
-        data.sessions = saveData.sessions;
+      if (saveData?.typebot?.enabled) {
+        data.sessions = saveData?.sessions;
       }
     }
 

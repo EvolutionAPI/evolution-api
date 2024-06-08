@@ -54,7 +54,7 @@ export const waMonitor = new WAMonitoringService(
 
 const authService = new AuthService(prismaRepository);
 
-const typebotService = new TypebotService(waMonitor, configService, eventEmitter);
+const typebotService = new TypebotService(waMonitor, configService, prismaRepository, eventEmitter);
 export const typebotController = new TypebotController(typebotService);
 
 const webhookService = new WebhookService(waMonitor);

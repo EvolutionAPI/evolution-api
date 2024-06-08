@@ -72,7 +72,6 @@ model Session {
 model Chat {
   id               Int       @id @default(autoincrement())
   remoteJid        String    @db.VarChar(100)
-  lastMsgTimestamp String?   @db.VarChar(100)
   labels           Json?     @db.JsonB
   createdAt        DateTime? @default(now()) @db.Date
   updatedAt        DateTime? @updatedAt @db.Date
@@ -100,7 +99,7 @@ model Message {
   message                      Json            @db.JsonB
   contextInfo                  Json?           @db.JsonB
   source                       DeviceMessage
-  messageTimestamp             String          @db.VarChar(100)
+  messageTimestamp             Int             @db.Integer
   chatwootMessageId            Int?            @db.Integer
   chatwootInboxId              Int?            @db.Integer
   chatwootConversationId       Int?            @db.Integer
@@ -119,7 +118,7 @@ model MessageUpdate {
   remoteJid   String   @db.VarChar(100)
   fromMe      Boolean  @db.Boolean
   participant String?  @db.VarChar(100)
-  dateTime    DateTime @db.Date
+  dateTime    Int      @db.Integer
   pollUpdates Json?    @db.JsonB
   status      String   @db.VarChar(30)
   Message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
