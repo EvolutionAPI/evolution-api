@@ -1010,6 +1010,15 @@ export class TypebotService {
               id: session.id,
             },
           });
+        } else {
+          await prismaRepository.typebotSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
         }
       }
     }
