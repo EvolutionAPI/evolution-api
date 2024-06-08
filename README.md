@@ -21,6 +21,16 @@ The code allows the creation of multiservice chats, service bots, or any other s
 
 The Evolution API has direct integration with [Typebot](https://github.com/baptisteArno/typebot.io) and [Chatwoot](https://github.com/chatwoot/chatwoot)
 
+## Evolution Pro Community
+
+Join our Evolution Pro community for expert support and a weekly call to answer questions. Visit the link below to learn more and subscribe:
+
+[Click here to learn more](https://pay.kiwify.com.br/SzPrarM)
+<br>
+<a href="https://pay.kiwify.com.br/SzPrarM">
+  <img src="./public/images/evolution-pro.png" alt="Subscribe" width="600">
+</a>
+
 # Instalation
 
 ### Installing NVM (Node Version Manager)
