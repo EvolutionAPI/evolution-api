@@ -9,6 +9,7 @@
 ### Fixed
 * Removed excessive verbose logs
 * Optimization in instance registration
+* Correction of variables breaking lines in typebot
 
 ### Break changes
 * jwt authentication removed

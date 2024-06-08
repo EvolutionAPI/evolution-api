@@ -199,6 +199,8 @@ export class WAMonitoringService {
 
       if (!instance) this.logger.error('Instance not found');
 
+      rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
+
       await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
       return;
     }

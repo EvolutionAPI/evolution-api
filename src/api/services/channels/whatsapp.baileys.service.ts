@@ -1312,7 +1312,6 @@ export class BaileysStartupService extends ChannelStartupService {
               fromMe: key.fromMe,
               participant: key?.remoteJid,
               status: 'DELETED',
-              dateTime: parseInt(new Date().getTime().toString()).toString(),
               instanceId: this.instanceId,
             };
 
@@ -1338,7 +1337,6 @@ export class BaileysStartupService extends ChannelStartupService {
             fromMe: key.fromMe,
             participant: key?.remoteJid,
             status: status[update.status],
-            dateTime: parseInt(new Date().getTime().toString()).toString(),
             pollUpdates,
             instanceId: this.instanceId,
           };
@@ -1778,6 +1776,8 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
+      console.log('message', message);
+
       const messageSent = await (async () => {
         const option = {
           quoted,
@@ -1974,6 +1974,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
   // Send Message Controller
   public async textMessage(data: SendTextDto, isChatwoot = false) {
+    const text = data.text;
+
+    if (!text || text.trim().length === 0) {
+      throw new BadRequestException('Text is required');
+    }
+
     return await this.sendMessageWithTyping(
       data.number,
       {

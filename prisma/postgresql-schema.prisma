@@ -42,8 +42,8 @@ model Instance {
   integration      String?                  @db.VarChar(100)
   number           String?                  @db.VarChar(100)
   token            String?                  @unique @db.VarChar(255)
-  createdAt        DateTime?                @default(now()) @db.Date
-  updatedAt        DateTime?                @updatedAt @db.Date
+  createdAt        DateTime?                @default(now()) @db.Timestamp
+  updatedAt        DateTime?                @updatedAt @db.Timestamp
   Chat             Chat[]
   Contact          Contact[]
   Message          Message[]
@@ -65,7 +65,7 @@ model Session {
   id        Int      @id @unique @default(autoincrement())
   sessionId String   @unique
   creds     String?  @db.Text
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamp
   Instance  Instance @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
@@ -73,8 +73,8 @@ model Chat {
   id               Int       @id @default(autoincrement())
   remoteJid        String    @db.VarChar(100)
   labels           Json?     @db.JsonB
-  createdAt        DateTime? @default(now()) @db.Date
-  updatedAt        DateTime? @updatedAt @db.Date
+  createdAt        DateTime? @default(now()) @db.Timestamp
+  updatedAt        DateTime? @updatedAt @db.Timestamp
   Instance         Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId       String
 }
@@ -84,8 +84,8 @@ model Contact {
   remoteJid     String    @db.VarChar(100)
   pushName      String?   @db.VarChar(100)
   profilePicUrl String?   @db.VarChar(500)
-  createdAt     DateTime? @default(now()) @db.Date
-  updatedAt     DateTime? @updatedAt @db.Date
+  createdAt     DateTime? @default(now()) @db.Timestamp
+  updatedAt     DateTime? @updatedAt @db.Timestamp
   Instance      Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId    String
 }
@@ -118,7 +118,6 @@ model MessageUpdate {
   remoteJid   String   @db.VarChar(100)
   fromMe      Boolean  @db.Boolean
   participant String?  @db.VarChar(100)
-  dateTime    Int      @db.Integer
   pollUpdates Json?    @db.JsonB
   status      String   @db.VarChar(30)
   Message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
@@ -134,8 +133,8 @@ model Webhook {
   events          Json?     @db.JsonB
   webhookByEvents Boolean?  @default(false) @db.Boolean
   webhookBase64   Boolean?  @default(false) @db.Boolean
-  createdAt       DateTime? @default(now()) @db.Date
-  updatedAt       DateTime  @updatedAt @db.Date
+  createdAt       DateTime? @default(now()) @db.Timestamp
+  updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
 }
@@ -156,8 +155,8 @@ model Chatwoot {
   importContacts          Boolean?  @default(false) @db.Boolean
   importMessages          Boolean?  @default(false) @db.Boolean
   daysLimitImportMessages Int?      @db.Integer
-  createdAt               DateTime? @default(now()) @db.Date
-  updatedAt               DateTime  @updatedAt @db.Date
+  createdAt               DateTime? @default(now()) @db.Timestamp
+  updatedAt               DateTime  @updatedAt @db.Timestamp
   Instance                Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId              String    @unique
 }
@@ -168,8 +167,8 @@ model Label {
   name         String    @db.VarChar(100)
   color        String    @db.VarChar(100)
   predefinedId String?   @db.VarChar(100)
-  createdAt    DateTime? @default(now()) @db.Date
-  updatedAt    DateTime  @updatedAt @db.Date
+  createdAt    DateTime? @default(now()) @db.Timestamp
+  updatedAt    DateTime  @updatedAt @db.Timestamp
   Instance     Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId   String
 }
@@ -182,8 +181,8 @@ model Proxy {
   protocol   String    @db.VarChar(100)
   username   String    @db.VarChar(100)
   password   String    @db.VarChar(100)
-  createdAt  DateTime? @default(now()) @db.Date
-  updatedAt  DateTime  @updatedAt @db.Date
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String    @unique
 }
@@ -197,8 +196,8 @@ model Setting {
   readMessages    Boolean   @default(false) @db.Boolean
   readStatus      Boolean   @default(false) @db.Boolean
   syncFullHistory Boolean   @default(false) @db.Boolean
-  createdAt       DateTime? @default(now()) @db.Date
-  updatedAt       DateTime  @updatedAt @db.Date
+  createdAt       DateTime? @default(now()) @db.Timestamp
+  updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
 }
@@ -207,8 +206,8 @@ model Rabbitmq {
   id         Int       @id @default(autoincrement())
   enabled    Boolean   @default(false) @db.Boolean
   events     Json      @db.JsonB
-  createdAt  DateTime? @default(now()) @db.Date
-  updatedAt  DateTime  @updatedAt @db.Date
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String    @unique
 }
@@ -217,8 +216,8 @@ model Sqs {
   id         Int       @id @default(autoincrement())
   enabled    Boolean   @default(false) @db.Boolean
   events     Json      @db.JsonB
-  createdAt  DateTime? @default(now()) @db.Date
-  updatedAt  DateTime  @updatedAt @db.Date
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String    @unique
 }
@@ -227,8 +226,8 @@ model Websocket {
   id         Int       @id @default(autoincrement())
   enabled    Boolean   @default(false) @db.Boolean
   events     Json      @db.JsonB
-  createdAt  DateTime? @default(now()) @db.Date
-  updatedAt  DateTime  @updatedAt @db.Date
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String    @unique
 }
@@ -243,8 +242,8 @@ model Typebot {
   delayMessage    Int?             @db.Integer
   unknownMessage  String?          @db.VarChar(100)
   listeningFromMe Boolean          @default(false) @db.Boolean
-  createdAt       DateTime?        @default(now()) @db.Date
-  updatedAt       DateTime?        @updatedAt @db.Date
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime?        @updatedAt @db.Timestamp
   Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String           @unique
   sessions        TypebotSession[]
@@ -257,8 +256,8 @@ model TypebotSession {
   sessionId          String    @db.VarChar(100)
   status             String    @db.VarChar(100)
   prefilledVariables Json?     @db.JsonB
-  createdAt          DateTime? @default(now()) @db.Date
-  updatedAt          DateTime  @updatedAt @db.Date
+  createdAt          DateTime? @default(now()) @db.Timestamp
+  updatedAt          DateTime  @updatedAt @db.Timestamp
   Typebot            Typebot   @relation(fields: [typebotId], references: [id], onDelete: Cascade)
   typebotId          Int
   Message            Message[]

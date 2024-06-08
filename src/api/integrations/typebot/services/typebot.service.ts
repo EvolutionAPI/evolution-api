@@ -1,4 +1,4 @@
-import { Message } from '@prisma/client';
+import { Message, TypebotSession } from '@prisma/client';
 import axios from 'axios';
 import EventEmitter2 from 'eventemitter2';
 
@@ -21,7 +21,11 @@ export class TypebotService {
       const keep_open = this.configService.get<Typebot>('TYPEBOT').KEEP_OPEN;
       if (keep_open) return;
 
-      await this.clearSessions(data.instance, data.remoteJid);
+      await this.prismaRepository.typebotSession.deleteMany({
+        where: {
+          id: data.sessionId,
+        },
+      });
     });
   }
 
@@ -85,43 +89,6 @@ export class TypebotService {
     return { typebot: { ...instance, typebot: typebotData } };
   }
 
-  public async clearSessions(instance: InstanceDto, remoteJid: string) {
-    const findTypebot = await this.find(instance);
-    const sessions = await this.prismaRepository.typebotSession.findMany({
-      where: {
-        typebotId: findTypebot?.typebot?.id,
-        remoteJid: remoteJid,
-      },
-    });
-
-    if (sessions.length > 0) {
-      await this.prismaRepository.typebotSession.deleteMany({
-        where: {
-          typebotId: findTypebot?.typebot?.id,
-          remoteJid: remoteJid,
-        },
-      });
-
-      const typebotData = {
-        enabled: findTypebot?.typebot?.enabled,
-        url: findTypebot?.typebot?.url,
-        typebot: findTypebot?.typebot?.typebot,
-        expire: findTypebot?.typebot?.expire,
-        keywordFinish: findTypebot?.typebot?.keywordFinish,
-        delayMessage: findTypebot?.typebot?.delayMessage,
-        unknownMessage: findTypebot?.typebot?.unknownMessage,
-        listeningFromMe: findTypebot?.typebot?.listeningFromMe,
-        sessions,
-      };
-
-      this.create(instance, typebotData);
-
-      return sessions;
-    }
-
-    return sessions;
-  }
-
   public async startTypebot(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
 
@@ -174,7 +141,14 @@ export class TypebotService {
       });
 
       if (response.sessionId) {
-        await this.sendWAMessage(instance, remoteJid, response.messages, response.input, response.clientSideActions);
+        await this.sendWAMessage(
+          instance,
+          response.session,
+          remoteJid,
+          response.messages,
+          response.input,
+          response.clientSideActions,
+        );
 
         this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
           remoteJid: remoteJid,
@@ -213,6 +187,7 @@ export class TypebotService {
 
         await this.sendWAMessage(
           instance,
+          null,
           remoteJid,
           request.data.messages,
           request.data.input,
@@ -320,8 +295,9 @@ export class TypebotService {
       }
       const request = await axios.post(url, reqData);
 
+      let session = null;
       if (request?.data?.sessionId) {
-        await this.prismaRepository.typebotSession.create({
+        session = await this.prismaRepository.typebotSession.create({
           data: {
             remoteJid: data.remoteJid,
             pushName: data.pushName || '',
@@ -338,7 +314,7 @@ export class TypebotService {
           },
         });
       }
-      return request.data;
+      return { ...request.data, session };
     } catch (error) {
       this.logger.error(error);
       return;
@@ -347,6 +323,7 @@ export class TypebotService {
 
   public async sendWAMessage(
     instance: InstanceDto,
+    session: TypebotSession,
     remoteJid: string,
     messages: any[],
     input: any[],
@@ -354,6 +331,7 @@ export class TypebotService {
   ) {
     processMessages(
       this.waMonitor.waInstances[instance.instanceName],
+      session,
       messages,
       input,
       clientSideActions,
@@ -387,8 +365,12 @@ export class TypebotService {
         }
       }
 
-      if (element.type === 'p') {
+      if (element.type === 'p' && element.type !== 'inline-variable') {
         text = text.trim() + '\n';
+      }
+
+      if (element.type === 'inline-variable') {
+        text = text.trim();
       }
 
       if (element.type === 'ol') {
@@ -430,9 +412,18 @@ export class TypebotService {
       return formattedText;
     }
 
-    async function processMessages(instance, messages, input, clientSideActions, eventEmitter, applyFormatting) {
+    async function processMessages(
+      instance,
+      session,
+      messages,
+      input,
+      clientSideActions,
+      eventEmitter,
+      applyFormatting,
+    ) {
       for (const message of messages) {
         if (message.type === 'text') {
+          console.log('message.content.richText', message.content.richText);
           let formattedText = '';
 
           for (const richText of message.content.richText) {
@@ -444,60 +435,43 @@ export class TypebotService {
 
           formattedText = formattedText.replace(/\*\*/g, '').replace(/__/, '').replace(/~~/, '').replace(/\n$/, '');
 
+          formattedText = formattedText.replace(/\n$/, '');
+
           await instance.textMessage({
             number: remoteJid.split('@')[0],
-            options: {
-              delay: instance.localTypebot.delayMessage || 1000,
-              presence: 'composing',
-            },
-            textMessage: {
-              text: formattedText,
-            },
+            delay: instance.localTypebot.delayMessage || 1000,
+            text: formattedText,
           });
         }
 
         if (message.type === 'image') {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
-            options: {
-              delay: instance.localTypebot.delayMessage || 1000,
-              presence: 'composing',
-            },
-            mediaMessage: {
-              mediatype: 'image',
-              media: message.content.url,
-            },
+            delay: instance.localTypebot.delayMessage || 1000,
+            mediatype: 'image',
+            media: message.content.url,
           });
         }
 
         if (message.type === 'video') {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
-            options: {
-              delay: instance.localTypebot.delayMessage || 1000,
-              presence: 'composing',
-            },
-            mediaMessage: {
-              mediatype: 'video',
-              media: message.content.url,
-            },
+            delay: instance.localTypebot.delayMessage || 1000,
+            mediatype: 'video',
+            media: message.content.url,
           });
         }
 
         if (message.type === 'audio') {
           await instance.audioWhatsapp({
             number: remoteJid.split('@')[0],
-            options: {
-              delay: instance.localTypebot.delayMessage || 1000,
-              presence: 'recording',
-              encoding: true,
-            },
-            audioMessage: {
-              audio: message.content.url,
-            },
+            delay: instance.localTypebot.delayMessage || 1000,
+            encoding: true,
+            audio: message.content.url,
           });
         }
 
+        console.log(clientSideActions);
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
 
         if (wait) {
@@ -519,19 +493,13 @@ export class TypebotService {
 
           await instance.textMessage({
             number: remoteJid.split('@')[0],
-            options: {
-              delay: instance.localTypebot.delayMessage || 1000,
-              presence: 'composing',
-            },
-            textMessage: {
-              text: formattedText,
-            },
+            delay: instance.localTypebot.delayMessage || 1000,
+            text: formattedText,
           });
         }
       } else {
         eventEmitter.emit('typebot:end', {
-          instance: instance,
-          remoteJid: remoteJid,
+          sessionId: session.id,
         });
       }
     }
@@ -541,14 +509,18 @@ export class TypebotService {
     const findTypebot = await this.find(instance);
     const url = findTypebot.typebot?.url;
     const typebot = findTypebot.typebot?.typebot;
-    const sessions = findTypebot.sessions;
     const expire = findTypebot.typebot?.expire;
     const keywordFinish = findTypebot.typebot?.keywordFinish;
     const delayMessage = findTypebot.typebot?.delayMessage;
     const unknownMessage = findTypebot.typebot?.unknownMessage;
     const listeningFromMe = findTypebot.typebot?.listeningFromMe;
 
-    const session = sessions.find((session) => session.remoteJid === remoteJid);
+    let session = await this.prismaRepository.typebotSession.findFirst({
+      where: {
+        typebotId: findTypebot.typebot.id,
+        remoteJid: remoteJid,
+      },
+    });
 
     try {
       if (session && expire && expire > 0) {
@@ -582,7 +554,11 @@ export class TypebotService {
             typebotId: findTypebot.typebot.id,
           });
 
-          await this.sendWAMessage(instance, remoteJid, data.messages, data.input, data.clientSideActions);
+          if (data.session) {
+            session = data.session;
+          }
+
+          await this.sendWAMessage(instance, session, remoteJid, data.messages, data.input, data.clientSideActions);
 
           if (data.messages.length === 0) {
             const content = this.getConversationMessage(msg.message);
@@ -629,6 +605,7 @@ export class TypebotService {
 
               await this.sendWAMessage(
                 instance,
+                session,
                 remoteJid,
                 request.data.messages,
                 request.data.input,
@@ -663,7 +640,11 @@ export class TypebotService {
           typebotId: findTypebot.typebot.id,
         });
 
-        await this.sendWAMessage(instance, remoteJid, data?.messages, data?.input, data?.clientSideActions);
+        if (data.session) {
+          session = data.session;
+        }
+
+        await this.sendWAMessage(instance, session, remoteJid, data?.messages, data?.input, data?.clientSideActions);
 
         if (data.messages.length === 0) {
           const content = this.getConversationMessage(msg.message);
@@ -711,6 +692,7 @@ export class TypebotService {
 
             await this.sendWAMessage(
               instance,
+              session,
               remoteJid,
               request.data.messages,
               request.data.input,
@@ -734,6 +716,8 @@ export class TypebotService {
       });
 
       const content = this.getConversationMessage(msg.message);
+
+      console.log('content', content);
 
       if (!content) {
         if (unknownMessage) {
@@ -771,14 +755,18 @@ export class TypebotService {
           sessionId: session.sessionId.split('-')[1],
         };
       }
+      console.log('reqData', reqData);
       const request = await axios.post(urlTypebot, reqData);
+
+      console.log('request', request.data);
 
       await this.sendWAMessage(
         instance,
+        session,
         remoteJid,
-        request.data.messages,
-        request.data.input,
-        request.data.clientSideActions,
+        request?.data?.messages,
+        request?.data?.input,
+        request?.data?.clientSideActions,
       );
 
       return;
