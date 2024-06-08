@@ -935,38 +935,50 @@ export class TypebotService {
 
           formattedText = formattedText.replace(/\n$/, '');
 
-          await instance.textMessage({
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: formattedText,
-          });
+          await instance.textMessage(
+            {
+              number: remoteJid.split('@')[0],
+              delay: settings?.delayMessage || 1000,
+              text: formattedText,
+            },
+            true,
+          );
         }
 
         if (message.type === 'image') {
-          await instance.mediaMessage({
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            mediatype: 'image',
-            media: message.content.url,
-          });
+          await instance.mediaMessage(
+            {
+              number: remoteJid.split('@')[0],
+              delay: settings?.delayMessage || 1000,
+              mediatype: 'image',
+              media: message.content.url,
+            },
+            true,
+          );
         }
 
         if (message.type === 'video') {
-          await instance.mediaMessage({
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            mediatype: 'video',
-            media: message.content.url,
-          });
+          await instance.mediaMessage(
+            {
+              number: remoteJid.split('@')[0],
+              delay: settings?.delayMessage || 1000,
+              mediatype: 'video',
+              media: message.content.url,
+            },
+            true,
+          );
         }
 
         if (message.type === 'audio') {
-          await instance.audioWhatsapp({
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            encoding: true,
-            audio: message.content.url,
-          });
+          await instance.audioWhatsapp(
+            {
+              number: remoteJid.split('@')[0],
+              delay: settings?.delayMessage || 1000,
+              encoding: true,
+              audio: message.content.url,
+            },
+            true,
+          );
         }
 
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
@@ -988,11 +1000,14 @@ export class TypebotService {
 
           formattedText = formattedText.replace(/\n$/, '');
 
-          await instance.textMessage({
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: formattedText,
-          });
+          await instance.textMessage(
+            {
+              number: remoteJid.split('@')[0],
+              delay: settings?.delayMessage || 1000,
+              text: formattedText,
+            },
+            true,
+          );
         }
 
         await prismaRepository.typebotSession.update({
@@ -1240,11 +1255,14 @@ export class TypebotService {
 
             if (!content) {
               if (unknownMessage) {
-                this.waMonitor.waInstances[instance.instanceName].textMessage({
-                  number: remoteJid.split('@')[0],
-                  delay: delayMessage || 1000,
-                  text: unknownMessage,
-                });
+                this.waMonitor.waInstances[instance.instanceName].textMessage(
+                  {
+                    number: remoteJid.split('@')[0],
+                    delay: delayMessage || 1000,
+                    text: unknownMessage,
+                  },
+                  true,
+                );
               }
               return;
             }
@@ -1349,11 +1367,14 @@ export class TypebotService {
         if (data.messages.length === 0) {
           if (!content) {
             if (unknownMessage) {
-              this.waMonitor.waInstances[instance.instanceName].textMessage({
-                number: remoteJid.split('@')[0],
-                delay: delayMessage || 1000,
-                text: unknownMessage,
-              });
+              this.waMonitor.waInstances[instance.instanceName].textMessage(
+                {
+                  number: remoteJid.split('@')[0],
+                  delay: delayMessage || 1000,
+                  text: unknownMessage,
+                },
+                true,
+              );
             }
             return;
           }
@@ -1425,11 +1446,14 @@ export class TypebotService {
 
       if (!content) {
         if (unknownMessage) {
-          this.waMonitor.waInstances[instance.instanceName].textMessage({
-            number: remoteJid.split('@')[0],
-            delay: delayMessage || 1000,
-            text: unknownMessage,
-          });
+          this.waMonitor.waInstances[instance.instanceName].textMessage(
+            {
+              number: remoteJid.split('@')[0],
+              delay: delayMessage || 1000,
+              text: unknownMessage,
+            },
+            true,
+          );
         }
         return;
       }

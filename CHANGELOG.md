@@ -21,6 +21,12 @@
 * Changed the .env file configuration, removed the yml version and added .env to the repository root
 * Removed the mobile type connection with Baileys
 * Simplified payloads and endpoints
+* Improved Typebot
+  - Now you can register several typebots
+  - Start configuration by trigger or for all
+  - Session search by typebot or remoteJid
+  - KeepOpen configuration (keeps the session even when the bot ends, to run once per contact)
+  - StopBotFromMe configuration, allows me to stop the bot if I send a chat message.
 
 # 1.8.0 (2024-05-27 16:10)
 

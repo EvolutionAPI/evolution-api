@@ -1672,7 +1672,7 @@ export class BaileysStartupService extends ChannelStartupService {
     number: string,
     message: T,
     options?: Options,
-    isChatwoot = false,
+    isIntegration = false,
   ) {
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
@@ -1890,8 +1890,17 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isChatwoot) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isIntegration) {
         this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
+      }
+
+      if (this.configService.get<Typebot>('TYPEBOT').ENABLED && !isIntegration) {
+        if (messageRaw.messageType !== 'reactionMessage')
+          await this.typebotService.sendTypebot(
+            { instanceName: this.instance.name, instanceId: this.instanceId },
+            messageRaw.key.remoteJid,
+            messageRaw,
+          );
       }
 
       await this.prismaRepository.message.create({
@@ -1966,7 +1975,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   // Send Message Controller
-  public async textMessage(data: SendTextDto, isChatwoot = false) {
+  public async textMessage(data: SendTextDto, isIntegration = false) {
     const text = data.text;
 
     if (!text || text.trim().length === 0) {
@@ -1988,7 +1997,7 @@ export class BaileysStartupService extends ChannelStartupService {
           mentioned: data?.mentioned,
         },
       },
-      isChatwoot,
+      isIntegration,
     );
   }
 
@@ -2276,7 +2285,7 @@ export class BaileysStartupService extends ChannelStartupService {
     return result;
   }
 
-  public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
+  public async mediaMessage(data: SendMediaDto, isIntegration = false) {
     const generate = await this.prepareMediaMessage(data);
 
     return await this.sendMessageWithTyping(
@@ -2291,7 +2300,7 @@ export class BaileysStartupService extends ChannelStartupService {
           mentioned: data?.mentioned,
         },
       },
-      isChatwoot,
+      isIntegration,
     );
   }
 
@@ -2331,7 +2340,7 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
-  public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
+  public async audioWhatsapp(data: SendAudioDto, isIntegration = false) {
     if (!data?.encoding && data?.encoding !== false) {
       data.encoding = true;
     }
@@ -2348,7 +2357,7 @@ export class BaileysStartupService extends ChannelStartupService {
             mimetype: 'audio/mp4',
           },
           { presence: 'recording', delay: data?.delay },
-          isChatwoot,
+          isIntegration,
         );
 
         fs.unlinkSync(convert);
@@ -2367,7 +2376,7 @@ export class BaileysStartupService extends ChannelStartupService {
         mimetype: 'audio/ogg; codecs=opus',
       },
       { presence: 'recording', delay: data?.delay },
-      isChatwoot,
+      isIntegration,
     );
   }
 

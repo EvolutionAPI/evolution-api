@@ -74,6 +74,7 @@ export class MessageRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
+      // TODO: Revisar funcionamento do envio de Status
       .post(this.routerPath('sendStatus'), ...guards, async (req, res) => {
         const response = await this.dataValidate<SendStatusDto>({
           request: req,
