@@ -155,3 +155,16 @@ This code was produced based on the baileys library and it is still under develo
 </div>
 
 </br>
+
+# Content Creator Partners
+
+We are proud to collaborate with the following content creators who have contributed valuable insights and tutorials about Evolution API:
+
+- [Promovaweb](https://www.youtube.com/@promovaweb)
+- [Comunidade ZDG](https://www.youtube.com/@ComunidadeZDG)
+- [Francis MNO](https://www.youtube.com/@FrancisMNO)
+- [Pablo Cabral](https://youtube.com/@pablocabral)
+- [XPop Digital](https://www.youtube.com/@xpopdigital)
+- [Costar Wagner Dev](https://www.youtube.com/@costarwagnerdev)
+- [Dante Testa](https://youtube.com/@dantetesta_)
+- [Rubén Salazar](https://youtube.com/channel/UCnYGZIE2riiLqaN9sI6riig)

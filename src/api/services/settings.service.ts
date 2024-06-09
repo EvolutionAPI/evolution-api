@@ -8,8 +8,8 @@ export class SettingsService {
 
   private readonly logger = new Logger(SettingsService.name);
 
-  public create(instance: InstanceDto, data: SettingsDto) {
-    this.waMonitor.waInstances[instance.instanceName].setSettings(data);
+  public async create(instance: InstanceDto, data: SettingsDto) {
+    await this.waMonitor.waInstances[instance.instanceName].setSettings(data);
 
     return { settings: { ...instance, settings: data } };
   }

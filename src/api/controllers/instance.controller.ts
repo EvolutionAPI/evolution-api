@@ -1,6 +1,6 @@
 import { JsonValue } from '@prisma/client/runtime/library';
 import { delay } from '@whiskeysockets/baileys';
-import { isURL } from 'class-validator';
+import { isArray, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
@@ -215,8 +215,6 @@ export class InstanceController {
           const rabbitmqEventsJson: JsonValue = (await this.rabbitmqService.find(instance)).events;
 
           getRabbitmqEvents = Array.isArray(rabbitmqEventsJson) ? rabbitmqEventsJson.map((event) => String(event)) : [];
-
-          // rabbitmqEvents = (await this.rabbitmqService.find(instance)).events;
         } catch (error) {
           this.logger.log(error);
         }
@@ -279,7 +277,7 @@ export class InstanceController {
         syncFullHistory: syncFullHistory ?? false,
       };
 
-      this.settingsService.create(instance, settings);
+      await this.settingsService.create(instance, settings);
 
       let webhookWaBusiness = null,
         accessTokenWaBusiness = '';
@@ -296,7 +294,7 @@ export class InstanceController {
       if (!chatwootAccountId || !chatwootToken || !chatwootUrl) {
         let getQrcode: wa.QrCode;
 
-        if (qrcode) {
+        if (qrcode && integration === Integration.WHATSAPP_BAILEYS) {
           await instance.connectToWhatsapp(number);
           await delay(5000);
           getQrcode = instance.qrCode;
@@ -333,6 +331,8 @@ export class InstanceController {
           settings,
           qrcode: getQrcode,
         };
+
+        console.log('log13', result);
 
         return result;
       }
@@ -438,8 +438,8 @@ export class InstanceController {
         },
       };
     } catch (error) {
-      this.logger.error(error.message[0]);
-      throw new BadRequestException(error.message[0]);
+      this.logger.error(isArray(error.message) ? error.message[0] : error.message);
+      throw new BadRequestException(isArray(error.message) ? error.message[0] : error.message);
     }
   }
 

@@ -935,7 +935,7 @@ export class TypebotService {
 
           formattedText = formattedText.replace(/\n$/, '');
 
-        await instance.textMessage(
+          await instance.textMessage(
             {
               number: remoteJid.split('@')[0],
               delay: settings?.delayMessage || 1000,

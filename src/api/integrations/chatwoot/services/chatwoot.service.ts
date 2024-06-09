@@ -721,6 +721,8 @@ export class ChatwootService {
 
     const sourceReplyId = quotedMsg?.chatwootMessageId || null;
 
+    console.log('sourceReplyId', sourceReplyId);
+
     const message = await client.messages.create({
       accountId: this.provider.accountId,
       conversationId: conversationId,
@@ -1734,6 +1736,8 @@ export class ChatwootService {
 
         const quotedId = body.contextInfo?.stanzaId || body.message?.contextInfo?.stanzaId;
 
+        console.log('quotedId', quotedId);
+
         let quotedMsg = null;
 
         if (quotedId)
@@ -1745,6 +1749,8 @@ export class ChatwootService {
               },
             },
           });
+
+        console.log('quotedMsg', quotedMsg);
 
         const isMedia = this.isMediaMessage(body.message);
 
@@ -1968,8 +1974,6 @@ export class ChatwootService {
       if (event === Events.MESSAGES_DELETE) {
         const chatwootDelete = this.configService.get<Chatwoot>('CHATWOOT').MESSAGE_DELETE;
 
-        console.log('chatwootDelete', chatwootDelete);
-
         if (chatwootDelete === true) {
           if (!body?.key?.id) {
             this.logger.warn('message id not found');
@@ -1977,7 +1981,6 @@ export class ChatwootService {
           }
 
           const message = await this.getMessageByKeyId(instance, body.key.id);
-          console.log('message', message);
 
           if (message?.chatwootMessageId && message?.chatwootConversationId) {
             await this.prismaRepository.message.deleteMany({

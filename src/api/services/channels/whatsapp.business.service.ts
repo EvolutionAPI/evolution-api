@@ -126,6 +126,7 @@ export class BusinessStartupService extends ChannelStartupService {
 
   public async connectToWhatsapp(data?: any): Promise<any> {
     if (!data) return;
+
     const content = data.entry[0].changes[0].value;
     try {
       this.loadWebhook();
@@ -316,10 +317,11 @@ export class BusinessStartupService extends ChannelStartupService {
               ...this.messageMediaJson(received),
               base64: buffer ? buffer.toString('base64') : undefined,
             },
+            contextInfo: this.messageTextJson(received)?.contextInfo,
             messageType: this.renderMessageType(received.messages[0].type),
-            messageTimestamp: received.messages[0].timestamp as number,
-            owner: this.instance.name,
-            // source: getDevice(received.key.id),
+            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
           };
         } else if (received?.messages[0].interactive) {
           messageRaw = {
@@ -328,10 +330,11 @@ export class BusinessStartupService extends ChannelStartupService {
             message: {
               ...this.messageInteractiveJson(received),
             },
+            contextInfo: this.messageTextJson(received)?.contextInfo,
             messageType: 'conversation',
-            messageTimestamp: received.messages[0].timestamp as number,
-            owner: this.instance.name,
-            // source: getDevice(received.key.id),
+            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
           };
         } else if (received?.messages[0].reaction) {
           messageRaw = {
@@ -340,10 +343,11 @@ export class BusinessStartupService extends ChannelStartupService {
             message: {
               ...this.messageReactionJson(received),
             },
+            contextInfo: this.messageTextJson(received)?.contextInfo,
             messageType: 'reactionMessage',
-            messageTimestamp: received.messages[0].timestamp as number,
-            owner: this.instance.name,
-            // source: getDevice(received.key.id),
+            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
           };
         } else if (received?.messages[0].contacts) {
           messageRaw = {
@@ -352,20 +356,22 @@ export class BusinessStartupService extends ChannelStartupService {
             message: {
               ...this.messageContactsJson(received),
             },
+            contextInfo: this.messageTextJson(received)?.contextInfo,
             messageType: 'conversation',
-            messageTimestamp: received.messages[0].timestamp as number,
-            owner: this.instance.name,
-            // source: getDevice(received.key.id),
+            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
           };
         } else {
           messageRaw = {
             key,
             pushName,
             message: this.messageTextJson(received),
+            contextInfo: this.messageTextJson(received)?.contextInfo,
             messageType: this.renderMessageType(received.messages[0].type),
-            messageTimestamp: received.messages[0].timestamp as number,
-            owner: this.instance.name,
-            //source: getDevice(received.key.id),
+            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
           };
         }
 
@@ -384,23 +390,21 @@ export class BusinessStartupService extends ChannelStartupService {
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
             Events.MESSAGES_UPSERT,
-            { instanceName: this.instance.name },
+            { instanceName: this.instance.name, instanceId: this.instanceId },
             messageRaw,
           );
 
           if (chatwootSentMessage?.id) {
-            messageRaw.chatwoot = {
-              messageId: chatwootSentMessage.id,
-              inboxId: chatwootSentMessage.inbox_id,
-              conversationId: chatwootSentMessage.conversation_id,
-            };
+            messageRaw.chatwootMessageId = chatwootSentMessage.id;
+            messageRaw.chatwootInboxId = chatwootSentMessage.id;
+            messageRaw.chatwootConversationId = chatwootSentMessage.id;
           }
         }
 
         if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
           if (messageRaw.messageType !== 'reactionMessage')
             await this.typebotService.sendTypebot(
-              { instanceName: this.instance.name },
+              { instanceName: this.instance.name, instanceId: this.instanceId },
               messageRaw.key.remoteJid,
               messageRaw,
             );
@@ -438,7 +442,7 @@ export class BusinessStartupService extends ChannelStartupService {
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
             await this.chatwootService.eventWhatsapp(
               Events.CONTACTS_UPDATE,
-              { instanceName: this.instance.name },
+              { instanceName: this.instance.name, instanceId: this.instanceId },
               contactRaw,
             );
           }
@@ -479,6 +483,10 @@ export class BusinessStartupService extends ChannelStartupService {
               },
             });
 
+            if (!findMessage) {
+              return;
+            }
+
             if (item.message === null && item.status === undefined) {
               this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
@@ -489,7 +497,6 @@ export class BusinessStartupService extends ChannelStartupService {
                 fromMe: key.fromMe,
                 participant: key?.remoteJid,
                 status: 'DELETED',
-                dateTime: Date.now(),
                 instanceId: this.instanceId,
               };
 
@@ -500,7 +507,7 @@ export class BusinessStartupService extends ChannelStartupService {
               if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
                 this.chatwootService.eventWhatsapp(
                   Events.MESSAGES_DELETE,
-                  { instanceName: this.instance.name },
+                  { instanceName: this.instance.name, instanceId: this.instanceId },
                   { key: key },
                 );
               }
@@ -515,7 +522,6 @@ export class BusinessStartupService extends ChannelStartupService {
               fromMe: key.fromMe,
               participant: key?.remoteJid,
               status: item.status.toUpperCase(),
-              dateTime: Date.now(),
               instanceId: this.instanceId,
             };
 
@@ -607,7 +613,7 @@ export class BusinessStartupService extends ChannelStartupService {
     this.messageHandle(content, database, settings);
   }
 
-  protected async sendMessageWithTyping(number: string, message: any, options?: Options, isChatwoot = false) {
+  protected async sendMessageWithTyping(number: string, message: any, options?: Options, isIntegration = false) {
     try {
       let quoted: any;
       const linkPreview = options?.linkPreview != false ? undefined : false;
@@ -793,8 +799,6 @@ export class BusinessStartupService extends ChannelStartupService {
         throw messageSent.error.message.toString();
       }
 
-      console.log(content);
-
       const messageRaw: any = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
         //pushName: messageSent.pushName,
@@ -802,15 +806,28 @@ export class BusinessStartupService extends ChannelStartupService {
         messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
         instanceId: this.instanceId,
-        //ource: getDevice(messageSent.key.id),
+        source: 'unknown',
       };
 
       this.logger.log(messageRaw);
 
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isChatwoot) {
-        this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isIntegration) {
+        this.chatwootService.eventWhatsapp(
+          Events.SEND_MESSAGE,
+          { instanceName: this.instance.name, instanceId: this.instanceId },
+          messageRaw,
+        );
+      }
+
+      if (this.configService.get<Typebot>('TYPEBOT').ENABLED && !isIntegration) {
+        if (messageRaw.messageType !== 'reactionMessage')
+          await this.typebotService.sendTypebot(
+            { instanceName: this.instance.name, instanceId: this.instanceId },
+            messageRaw.key.remoteJid,
+            messageRaw,
+          );
       }
 
       await this.prismaRepository.message.create({
@@ -819,13 +836,14 @@ export class BusinessStartupService extends ChannelStartupService {
 
       return messageRaw;
     } catch (error) {
+      console.log(error.response.data);
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
   }
 
   // Send Message Controller
-  public async textMessage(data: SendTextDto, isChatwoot = false) {
+  public async textMessage(data: SendTextDto, isIntegration = false) {
     const res = await this.sendMessageWithTyping(
       data.number,
       {
@@ -841,7 +859,7 @@ export class BusinessStartupService extends ChannelStartupService {
           mentioned: data?.mentioned,
         },
       },
-      isChatwoot,
+      isIntegration,
     );
     return res;
   }
@@ -890,19 +908,15 @@ export class BusinessStartupService extends ChannelStartupService {
         gifPlayback: false,
       };
 
-      if (mediaMessage.mimetype) {
-        mimetype = mediaMessage.mimetype;
+      if (isURL(mediaMessage.media)) {
+        mimetype = getMIMEType(mediaMessage.media);
+        prepareMedia.id = mediaMessage.media;
+        prepareMedia.type = 'link';
       } else {
-        if (isURL(mediaMessage.media)) {
-          mimetype = getMIMEType(mediaMessage.media);
-          prepareMedia.id = mediaMessage.media;
-          prepareMedia.type = 'link';
-        } else {
-          mimetype = getMIMEType(mediaMessage.fileName);
-          const id = await this.getIdMedia(prepareMedia);
-          prepareMedia.id = id;
-          prepareMedia.type = 'id';
-        }
+        mimetype = getMIMEType(mediaMessage.fileName);
+        const id = await this.getIdMedia(prepareMedia);
+        prepareMedia.id = id;
+        prepareMedia.type = 'id';
       }
 
       prepareMedia.mimetype = mimetype;
@@ -914,7 +928,7 @@ export class BusinessStartupService extends ChannelStartupService {
     }
   }
 
-  public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
+  public async mediaMessage(data: SendMediaDto, isIntegration = false) {
     const message = await this.prepareMediaMessage(data);
 
     return await this.sendMessageWithTyping(
@@ -930,7 +944,7 @@ export class BusinessStartupService extends ChannelStartupService {
           mentioned: data?.mentioned,
         },
       },
-      isChatwoot,
+      isIntegration,
     );
   }
 
@@ -962,7 +976,7 @@ export class BusinessStartupService extends ChannelStartupService {
     return prepareMedia;
   }
 
-  public async audioWhatsapp(data: SendAudioDto, isChatwoot = false) {
+  public async audioWhatsapp(data: SendAudioDto, isIntegration = false) {
     const message = await this.processAudio(data.audio, data.number);
 
     return await this.sendMessageWithTyping(
@@ -978,7 +992,7 @@ export class BusinessStartupService extends ChannelStartupService {
           mentioned: data?.mentioned,
         },
       },
-      isChatwoot,
+      isIntegration,
     );
   }
 
@@ -1088,7 +1102,7 @@ export class BusinessStartupService extends ChannelStartupService {
     );
   }
 
-  public async templateMessage(data: SendTemplateDto, isChatwoot = false) {
+  public async templateMessage(data: SendTemplateDto, isIntegration = false) {
     const res = await this.sendMessageWithTyping(
       data.number,
       {
@@ -1108,7 +1122,7 @@ export class BusinessStartupService extends ChannelStartupService {
           mentioned: data?.mentioned,
         },
       },
-      isChatwoot,
+      isIntegration,
     );
     return res;
   }

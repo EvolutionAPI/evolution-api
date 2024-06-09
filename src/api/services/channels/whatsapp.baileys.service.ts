@@ -268,7 +268,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
-            { instanceName: this.instance.name },
+            { instanceName: this.instance.name, instanceId: this.instanceId },
             {
               message: 'QR code limit reached, please login again',
               statusCode: DisconnectReason.badSession,
@@ -326,7 +326,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
-            { instanceName: this.instance.name },
+            { instanceName: this.instance.name, instanceId: this.instanceId },
             {
               qrcode: {
                 instance: this.instance.name,
@@ -381,7 +381,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.STATUS_INSTANCE,
-            { instanceName: this.instance.name },
+            { instanceName: this.instance.name, instanceId: this.instanceId },
             {
               instance: this.instance.name,
               status: 'closed',
@@ -427,7 +427,7 @@ export class BaileysStartupService extends ChannelStartupService {
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
         this.chatwootService.eventWhatsapp(
           Events.CONNECTION_UPDATE,
-          { instanceName: this.instance.name },
+          { instanceName: this.instance.name, instanceId: this.instanceId },
           {
             instance: this.instance.name,
             status: 'open',
@@ -835,8 +835,14 @@ export class BaileysStartupService extends ChannelStartupService {
           this.localChatwoot.importContacts &&
           contactsRaw.length
         ) {
-          this.chatwootService.addHistoryContacts({ instanceName: this.instance.name }, contactsRaw);
-          chatwootImport.importHistoryContacts({ instanceName: this.instance.name }, this.localChatwoot);
+          this.chatwootService.addHistoryContacts(
+            { instanceName: this.instance.name, instanceId: this.instance.id },
+            contactsRaw,
+          );
+          chatwootImport.importHistoryContacts(
+            { instanceName: this.instance.name, instanceId: this.instance.id },
+            this.localChatwoot,
+          );
         }
 
         const updatedContacts = await Promise.all(
@@ -1061,7 +1067,7 @@ export class BaileysStartupService extends ChannelStartupService {
               if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled)
                 this.chatwootService.eventWhatsapp(
                   'messages.edit',
-                  { instanceName: this.instance.name },
+                  { instanceName: this.instance.name, instanceId: this.instance.id },
                   editedMessage,
                 );
 
@@ -1167,7 +1173,7 @@ export class BaileysStartupService extends ChannelStartupService {
           ) {
             const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
               Events.MESSAGES_UPSERT,
-              { instanceName: this.instance.name },
+              { instanceName: this.instance.name, instanceId: this.instance.id },
               messageRaw,
             );
 
@@ -1221,7 +1227,7 @@ export class BaileysStartupService extends ChannelStartupService {
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
               await this.chatwootService.eventWhatsapp(
                 Events.CONTACTS_UPDATE,
-                { instanceName: this.instance.name },
+                { instanceName: this.instance.name, instanceId: this.instanceId },
                 contactRaw,
               );
             }
@@ -1260,7 +1266,11 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (status[update.status] === 'READ' && key.fromMe) {
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
-            this.chatwootService.eventWhatsapp('messages.read', { instanceName: this.instance.name }, { key: key });
+            this.chatwootService.eventWhatsapp(
+              'messages.read',
+              { instanceName: this.instance.name, instanceId: this.instanceId },
+              { key: key },
+            );
           }
         }
 
@@ -1313,7 +1323,7 @@ export class BaileysStartupService extends ChannelStartupService {
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
               this.chatwootService.eventWhatsapp(
                 Events.MESSAGES_DELETE,
-                { instanceName: this.instance.name },
+                { instanceName: this.instance.name, instanceId: this.instanceId },
                 { key: key },
               );
             }
@@ -1680,7 +1690,11 @@ export class BaileysStartupService extends ChannelStartupService {
           key: { remoteJid: isWA.jid },
         };
 
-        this.chatwootService.eventWhatsapp('contact.is_not_in_wpp', { instanceName: this.instance.name }, body);
+        this.chatwootService.eventWhatsapp(
+          'contact.is_not_in_wpp',
+          { instanceName: this.instance.name, instanceId: this.instance.id },
+          body,
+        );
       }
       throw new BadRequestException(isWA);
     }
@@ -1889,7 +1903,11 @@ export class BaileysStartupService extends ChannelStartupService {
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isIntegration) {
-        this.chatwootService.eventWhatsapp(Events.SEND_MESSAGE, { instanceName: this.instance.name }, messageRaw);
+        this.chatwootService.eventWhatsapp(
+          Events.SEND_MESSAGE,
+          { instanceName: this.instance.name, instanceId: this.instanceId },
+          messageRaw,
+        );
       }
 
       if (this.configService.get<Typebot>('TYPEBOT').ENABLED && !isIntegration) {
