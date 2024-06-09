@@ -332,8 +332,6 @@ export class InstanceController {
           qrcode: getQrcode,
         };
 
-        console.log('log13', result);
-
         return result;
       }
 
