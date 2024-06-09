@@ -23,7 +23,7 @@ COPY ./src ./src
 COPY ./public ./public
 COPY ./prisma ./prisma
 COPY ./views ./views
-COPY ./.env.dev ./.env
+COPY ./.env.example ./.env
 
 COPY ./Docker ./Docker
 
