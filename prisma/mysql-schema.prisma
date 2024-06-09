@@ -33,6 +33,18 @@ enum TypebotSessionStatus {
   paused
 }
 
+enum TriggerType {
+  all
+  keyword
+}
+
+enum TriggerOperator {
+  contains
+  equals
+  startsWith
+  endsWith
+}
+
 model Instance {
   id               String                   @id @default(cuid())
   name             String                   @unique @db.VarChar(255)
@@ -42,8 +54,9 @@ model Instance {
   integration      String?                  @db.VarChar(100)
   number           String?                  @db.VarChar(100)
   token            String?                  @unique @db.VarChar(255)
-  createdAt        DateTime?                @default(now()) @db.Date
-  updatedAt        DateTime?                @updatedAt @db.Date
+  clientName       String?                  @db.VarChar(100)
+  createdAt        DateTime?                @default(now()) @db.Timestamp
+  updatedAt        DateTime?                @updatedAt @db.Timestamp
   Chat             Chat[]
   Contact          Contact[]
   Message          Message[]
@@ -55,14 +68,15 @@ model Instance {
   Rabbitmq         Rabbitmq?
   Sqs              Sqs?
   Websocket        Websocket?
-  Typebot          Typebot?
+  Typebot          Typebot[]
   Session          Session?
   MessageUpdate    MessageUpdate[]
   TypebotSession   TypebotSession[]
+  TypebotSetting   TypebotSetting?
 }
 
 model Session {
-  id        Int      @id @unique @default(autoincrement())
+  id        String   @id @default(cuid())
   sessionId String   @unique
   creds     String?  @db.Text
   createdAt DateTime @default(now())
@@ -70,18 +84,17 @@ model Session {
 }
 
 model Chat {
-  id               Int       @id @default(autoincrement())
-  remoteJid        String    @db.VarChar(100)
-  lastMsgTimestamp String?   @db.VarChar(100)
-  labels           Json?     @db.Json
-  createdAt        DateTime? @default(now()) @db.Date
-  updatedAt        DateTime? @updatedAt @db.Date
-  Instance         Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId       String
+  id         String    @id @default(cuid())
+  remoteJid  String    @db.VarChar(100)
+  labels     Json?     @db.Json
+  createdAt  DateTime? @default(now()) @db.Date
+  updatedAt  DateTime? @updatedAt @db.Date
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
 }
 
 model Contact {
-  id            Int       @id @default(autoincrement())
+  id            String    @id @default(cuid())
   remoteJid     String    @db.VarChar(100)
   pushName      String?   @db.VarChar(100)
   profilePicUrl String?   @db.VarChar(500)
@@ -92,7 +105,7 @@ model Contact {
 }
 
 model Message {
-  id                           Int             @id @default(autoincrement())
+  id                           String          @id @default(cuid())
   key                          Json            @db.Json
   pushName                     String?         @db.VarChar(100)
   participant                  String?         @db.VarChar(100)
@@ -108,13 +121,13 @@ model Message {
   chatwootIsRead               Boolean?
   Instance                     Instance        @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId                   String
-  typebotSessionId             Int?
+  typebotSessionId             String?
   MessageUpdate                MessageUpdate[]
   TypebotSession               TypebotSession? @relation(fields: [typebotSessionId], references: [id])
 }
 
 model MessageUpdate {
-  id          Int      @id @default(autoincrement())
+  id          String   @id @default(cuid())
   keyId       String   @db.VarChar(100)
   remoteJid   String   @db.VarChar(100)
   fromMe      Boolean
@@ -123,13 +136,13 @@ model MessageUpdate {
   pollUpdates Json?    @db.Json
   status      String   @db.VarChar(30)
   Message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  messageId   Int
+  messageId   String
   Instance    Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId  String
 }
 
 model Webhook {
-  id              Int       @id @default(autoincrement())
+  id              String    @id @default(cuid())
   url             String    @db.VarChar(500)
   enabled         Boolean?  @default(false)
   events          Json?     @db.Json
@@ -142,7 +155,7 @@ model Webhook {
 }
 
 model Chatwoot {
-  id                      Int       @id @default(autoincrement())
+  id                      String    @id @default(cuid())
   enabled                 Boolean?  @default(true)
   accountId               String?   @db.VarChar(100)
   token                   String?   @db.VarChar(100)
@@ -164,7 +177,7 @@ model Chatwoot {
 }
 
 model Label {
-  id           Int       @id @default(autoincrement())
+  id           String    @id @default(cuid())
   labelId      String?   @unique @db.VarChar(100)
   name         String    @db.VarChar(100)
   color        String    @db.VarChar(100)
@@ -176,7 +189,7 @@ model Label {
 }
 
 model Proxy {
-  id         Int       @id @default(autoincrement())
+  id         String    @id @default(cuid())
   enabled    Boolean   @default(false)
   host       String    @db.VarChar(100)
   port       String    @db.VarChar(100)
@@ -190,7 +203,7 @@ model Proxy {
 }
 
 model Setting {
-  id              Int       @id @default(autoincrement())
+  id              String    @id @default(cuid())
   rejectCall      Boolean   @default(false)
   msgCall         String?   @db.VarChar(100)
   groupsIgnore    Boolean   @default(false)
@@ -205,7 +218,7 @@ model Setting {
 }
 
 model Rabbitmq {
-  id         Int       @id @default(autoincrement())
+  id         String    @id @default(cuid())
   enabled    Boolean   @default(false)
   events     Json      @db.Json
   createdAt  DateTime? @default(now()) @db.Date
@@ -215,7 +228,7 @@ model Rabbitmq {
 }
 
 model Sqs {
-  id         Int       @id @default(autoincrement())
+  id         String    @id @default(cuid())
   enabled    Boolean   @default(false)
   events     Json      @db.Json
   createdAt  DateTime? @default(now()) @db.Date
@@ -225,7 +238,7 @@ model Sqs {
 }
 
 model Websocket {
-  id         Int       @id @default(autoincrement())
+  id         String    @id @default(cuid())
   enabled    Boolean   @default(false)
   events     Json      @db.Json
   createdAt  DateTime? @default(now()) @db.Date
@@ -235,24 +248,29 @@ model Websocket {
 }
 
 model Typebot {
-  id              Int              @id @default(autoincrement())
+  id              String           @id @default(cuid())
   enabled         Boolean          @default(true)
   url             String           @db.VarChar(500)
   typebot         String           @db.VarChar(100)
-  expire          Int              @default(0) @db.Int
+  expire          Int?             @default(0) @db.Int
   keywordFinish   String?          @db.VarChar(100)
   delayMessage    Int?             @db.Int
   unknownMessage  String?          @db.VarChar(100)
-  listeningFromMe Boolean          @default(false)
+  listeningFromMe Boolean?         @default(false)
+  stopBotFromMe   Boolean?         @default(false)
+  keepOpen        Boolean?         @default(false)
   createdAt       DateTime?        @default(now()) @db.Date
   updatedAt       DateTime?        @updatedAt @db.Date
+  triggerType     TriggerType?
+  triggerOperator TriggerOperator?
+  triggerValue    String?
   Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId      String           @unique
+  instanceId      String
   sessions        TypebotSession[]
 }
 
 model TypebotSession {
-  id                 Int       @id @default(autoincrement())
+  id                 String    @id @default(cuid())
   remoteJid          String    @db.VarChar(100)
   pushName           String?   @db.VarChar(100)
   sessionId          String    @db.VarChar(100)
@@ -261,8 +279,23 @@ model TypebotSession {
   createdAt          DateTime? @default(now()) @db.Date
   updatedAt          DateTime  @updatedAt @db.Date
   Typebot            Typebot   @relation(fields: [typebotId], references: [id], onDelete: Cascade)
-  typebotId          Int       @db.Int
+  typebotId          String
   Message            Message[]
   Instance           Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId         String
+}
+
+model TypebotSetting {
+  id              String    @id @default(cuid())
+  expire          Int?      @default(0) @db.Int
+  keywordFinish   String?   @db.VarChar(100)
+  delayMessage    Int?      @db.Int
+  unknownMessage  String?   @db.VarChar(100)
+  listeningFromMe Boolean?  @default(false)
+  stopBotFromMe   Boolean?  @default(false)
+  keepOpen        Boolean?  @default(false)
+  createdAt       DateTime? @default(now()) @db.Date
+  updatedAt       DateTime  @updatedAt @db.Date
+  Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String    @unique
 }

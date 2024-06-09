@@ -355,7 +355,11 @@ export class WAMonitoringService {
   }
 
   private async loadInstancesFromDatabasePostgres() {
-    const instances = await this.prismaRepository.instance.findMany();
+    const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
+
+    const instances = await this.prismaRepository.instance.findMany({
+      where: { clientName: clientName },
+    });
 
     if (instances.length === 0) {
       return;
