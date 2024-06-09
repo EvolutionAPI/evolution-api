@@ -712,10 +712,10 @@ export class TypebotService {
       listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
       responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
       // Medias
-      audioMessage: `audioMessage:${msg.key.id}`,
-      imageMessage: `imageMessage:${msg.key.id}`,
-      videoMessage: `videoMessage:${msg.key.id}`,
-      documentMessage: `documentMessage:${msg.key.id}`,
+      audioMessage: `audioMessage:${msg?.key?.id}`,
+      imageMessage: `imageMessage:${msg?.key?.id}`,
+      videoMessage: `videoMessage:${msg?.key?.id}`,
+      documentMessage: `documentMessage:${msg?.key?.id}`,
     };
 
     const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';
