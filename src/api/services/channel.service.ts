@@ -290,6 +290,41 @@ export class ChannelStartupService {
       return;
     }
 
+    const chatwoot = await this.prismaRepository.chatwoot.findUnique({
+      where: {
+        instanceId: this.instanceId,
+      },
+    });
+
+    if (chatwoot) {
+      await this.prismaRepository.chatwoot.update({
+        where: {
+          instanceId: this.instanceId,
+        },
+        data: {
+          enabled: data.enabled,
+          accountId: data.accountId,
+          token: data.token,
+          url: data.url,
+          nameInbox: data.nameInbox,
+          signMsg: data.signMsg,
+          signDelimiter: data.signMsg ? data.signDelimiter : null,
+          number: data.number,
+          reopenConversation: data.reopenConversation,
+          conversationPending: data.conversationPending,
+          mergeBrazilContacts: data.mergeBrazilContacts,
+          importContacts: data.importContacts,
+          importMessages: data.importMessages,
+          daysLimitImportMessages: data.daysLimitImportMessages,
+        },
+      });
+
+      Object.assign(this.localChatwoot, { ...data, signDelimiter: data.signMsg ? data.signDelimiter : null });
+
+      this.clearCacheChatwoot();
+      return;
+    }
+
     await this.prismaRepository.chatwoot.create({
       data: {
         enabled: data.enabled,

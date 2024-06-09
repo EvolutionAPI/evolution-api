@@ -750,7 +750,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[]) => {
-      console.log('chats.upsert', chats);
       const existingChatIds = await this.prismaRepository.chat.findMany({
         where: { instanceId: this.instanceId },
         select: { remoteJid: true },
@@ -902,20 +901,21 @@ export class BaileysStartupService extends ChannelStartupService {
       try {
         const instance: InstanceDto = { instanceName: this.instance.name };
 
-        const daysLimitToImport =
-          this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled
-            ? this.localChatwoot.daysLimitImportMessages
-            : 1000;
+        let timestampLimitToImport = null;
 
-        const date = new Date();
-        const timestampLimitToImport = new Date(date.setDate(date.getDate() - daysLimitToImport)).getTime() / 1000;
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+          const daysLimitToImport = this.localChatwoot.enabled ? this.localChatwoot.daysLimitImportMessages : 1000;
 
-        const maxBatchTimestamp = Math.max(...messages.map((message) => message.messageTimestamp as number));
+          const date = new Date();
+          timestampLimitToImport = new Date(date.setDate(date.getDate() - daysLimitToImport)).getTime() / 1000;
 
-        const processBatch = maxBatchTimestamp >= timestampLimitToImport;
+          const maxBatchTimestamp = Math.max(...messages.map((message) => message.messageTimestamp as number));
 
-        if (!processBatch) {
-          return;
+          const processBatch = maxBatchTimestamp >= timestampLimitToImport;
+
+          if (!processBatch) {
+            return;
+          }
         }
 
         const chatsRaw: any[] = [];
@@ -935,16 +935,19 @@ export class BaileysStartupService extends ChannelStartupService {
           chatsRaw.push({
             remoteJid: chat.id,
             instanceId: this.instanceId,
-            lastMsgTimestamp: parseInt(chat.lastMessageRecvTimestamp?.toString()).toString(),
           });
         }
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
-        this.prismaRepository.chat.createMany({
+        console.log('chatsRaw', chatsRaw);
+
+        const chatsSaved = await this.prismaRepository.chat.createMany({
           data: chatsRaw,
           skipDuplicates: true,
         });
+
+        console.log('chatsSaved', chatsSaved);
 
         const messagesRaw: any[] = [];
 
@@ -964,10 +967,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }),
         );
 
-        if (
-          this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-          chatwootImport.getRepositoryMessagesCache(instance) === null
-        ) {
+        if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
           chatwootImport.setRepositoryMessagesCache(instance, messagesRepository);
         }
 
@@ -980,22 +980,15 @@ export class BaileysStartupService extends ChannelStartupService {
             m.messageTimestamp = m.messageTimestamp?.toNumber();
           }
 
-          if (m.messageTimestamp <= timestampLimitToImport) {
-            continue;
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+            if (m.messageTimestamp <= timestampLimitToImport) {
+              continue;
+            }
           }
 
           if (messagesRepository.has(m.key.id)) {
             continue;
           }
-
-          const status: Record<number, wa.StatusMessage> = {
-            0: 'ERROR',
-            1: 'PENDING',
-            2: 'SERVER_ACK',
-            3: 'DELIVERY_ACK',
-            4: 'READ',
-            5: 'PLAYED',
-          };
 
           messagesRaw.push({
             key: m.key,
@@ -1004,17 +997,21 @@ export class BaileysStartupService extends ChannelStartupService {
             message: { ...m.message },
             messageType: getContentType(m.message),
             messageTimestamp: m.messageTimestamp as number,
-            status: m.status ? status[m.status] : null,
             instanceId: this.instanceId,
+            source: getDevice(m.key.id),
           });
         }
 
+        console.log('messagesRaw', messagesRaw);
+
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
-        this.prismaRepository.message.createMany({
+        const messagesSaved = await this.prismaRepository.message.createMany({
           data: messagesRaw,
           skipDuplicates: true,
         });
+
+        console.log('messagesSaved', messagesSaved);
 
         if (
           this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&

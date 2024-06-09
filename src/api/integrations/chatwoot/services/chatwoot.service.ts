@@ -52,7 +52,9 @@ export class ChatwootService {
   private async getProvider(instance: InstanceDto) {
     const cacheKey = `${instance.instanceName}:getProvider`;
     if (await this.cache.has(cacheKey)) {
-      return (await this.cache.get(cacheKey)) as ChatwootModel;
+      const provider = (await this.cache.get(cacheKey)) as ChatwootModel;
+
+      return provider;
     }
 
     const provider = await this.waMonitor.waInstances[instance.instanceName]?.findChatwoot();
@@ -84,14 +86,14 @@ export class ChatwootService {
     return client;
   }
 
-  public getClientCwConfig(): ChatwootAPIConfig & { name_inbox: string; merge_brazil_contacts: boolean } {
+  public getClientCwConfig(): ChatwootAPIConfig & { nameInbox: string; mergeBrazilContacts: boolean } {
     return {
       basePath: this.provider.url,
       with_credentials: true,
       credentials: 'include',
       token: this.provider.token,
-      name_inbox: this.provider.name_inbox,
-      merge_brazil_contacts: this.provider.merge_brazil_contacts,
+      nameInbox: this.provider.nameInbox,
+      mergeBrazilContacts: this.provider.mergeBrazilContacts,
     };
   }
 
@@ -139,7 +141,7 @@ export class ChatwootService {
     }
 
     const contact = await client.contact.getContactable({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
       id,
     });
 
@@ -166,7 +168,7 @@ export class ChatwootService {
     }
 
     const findInbox: any = await client.inboxes.list({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
     });
 
     const checkDuplicate = findInbox.payload.map((inbox) => inbox.name).includes(inboxName);
@@ -180,7 +182,7 @@ export class ChatwootService {
       };
 
       const inbox = await client.inboxes.create({
-        accountId: this.provider.account_id,
+        accountId: this.provider.accountId,
         data: {
           name: inboxName,
           channel: data as any,
@@ -229,7 +231,7 @@ export class ChatwootService {
       };
 
       const conversation = await client.conversations.create({
-        accountId: this.provider.account_id,
+        accountId: this.provider.accountId,
         data,
       });
 
@@ -245,7 +247,7 @@ export class ChatwootService {
       }
 
       const message = await client.messages.create({
-        accountId: this.provider.account_id,
+        accountId: this.provider.accountId,
         conversationId: conversation.id,
         data: {
           content: contentMsg,
@@ -297,7 +299,7 @@ export class ChatwootService {
     }
 
     const contact = await client.contacts.create({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
       data,
     });
 
@@ -324,7 +326,7 @@ export class ChatwootService {
 
     try {
       const contact = await client.contacts.update({
-        accountId: this.provider.account_id,
+        accountId: this.provider.accountId,
         id,
         data,
       });
@@ -356,14 +358,13 @@ export class ChatwootService {
 
     if (isGroup) {
       contact = await client.contacts.search({
-        accountId: this.provider.account_id,
+        accountId: this.provider.accountId,
         q: query,
       });
     } else {
-      // hotfix for: https://github.com/EvolutionAPI/evolution-api/pull/382. waiting fix: https://github.com/figurolatam/chatwoot-sdk/pull/7
       contact = await chatwootRequest(this.getClientCwConfig(), {
         method: 'POST',
-        url: `/api/v1/accounts/${this.provider.account_id}/contacts/filter`,
+        url: `/api/v1/accounts/${this.provider.accountId}/contacts/filter`,
         body: {
           payload: this.getFilterPayload(query),
         },
@@ -386,7 +387,7 @@ export class ChatwootService {
     try {
       const contact = await chatwootRequest(this.getClientCwConfig(), {
         method: 'POST',
-        url: `/api/v1/accounts/${this.provider.account_id}/actions/contact_merge`,
+        url: `/api/v1/accounts/${this.provider.accountId}/actions/contact_merge`,
         body: {
           base_contact_id: contacts.find((contact) => contact.phone_number.length === 14)?.id,
           mergee_contact_id: contacts.find((contact) => contact.phone_number.length === 13)?.id,
@@ -405,7 +406,7 @@ export class ChatwootService {
     const searchableFields = this.getSearchableFields();
 
     // eslint-disable-next-line prettier/prettier
-    if (contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')) {
+    if (contacts.length === 2 && this.getClientCwConfig().mergeBrazilContacts && query.startsWith('+55')) {
       const contact = this.mergeBrazilianContacts(contacts);
       if (contact) {
         return contact;
@@ -488,7 +489,7 @@ export class ChatwootService {
         let conversationExists: conversation | boolean;
         try {
           conversationExists = await client.conversations.get({
-            accountId: this.provider.account_id,
+            accountId: this.provider.accountId,
             conversationId: conversationId,
           });
         } catch (error) {
@@ -597,18 +598,18 @@ export class ChatwootService {
       const contactId = contact?.payload?.id || contact?.payload?.contact?.id || contact?.id;
 
       const contactConversations = (await client.contacts.listConversations({
-        accountId: this.provider.account_id,
+        accountId: this.provider.accountId,
         id: contactId,
       })) as any;
 
       if (contactConversations?.payload?.length) {
         let conversation: any;
-        if (this.provider.reopen_conversation) {
+        if (this.provider.reopenConversation) {
           conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
 
-          if (this.provider.conversation_pending) {
+          if (this.provider.conversationPending) {
             await client.conversations.toggleStatus({
-              accountId: this.provider.account_id,
+              accountId: this.provider.accountId,
               conversationId: conversation.id,
               data: {
                 status: 'pending',
@@ -632,12 +633,12 @@ export class ChatwootService {
         inbox_id: filterInbox.id.toString(),
       };
 
-      if (this.provider.conversation_pending) {
+      if (this.provider.conversationPending) {
         data['status'] = 'pending';
       }
 
       const conversation = await client.conversations.create({
-        accountId: this.provider.account_id,
+        accountId: this.provider.accountId,
         data,
       });
 
@@ -667,7 +668,7 @@ export class ChatwootService {
     }
 
     const inbox = (await client.inboxes.list({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
     })) as any;
 
     if (!inbox) {
@@ -675,7 +676,7 @@ export class ChatwootService {
       return null;
     }
 
-    const findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().name_inbox);
+    const findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().nameInbox);
 
     if (!findByName) {
       this.logger.warn('inbox not found');
@@ -710,7 +711,7 @@ export class ChatwootService {
     const replyToIds = await this.getReplyToIds(messageBody, instance);
 
     const message = await client.messages.create({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
       conversationId: conversationId,
       data: {
         content: content,
@@ -745,7 +746,7 @@ export class ChatwootService {
     }
 
     const conversations = (await client.contacts.listConversations({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
       id: contact.id,
     })) as any;
 
@@ -795,7 +796,7 @@ export class ChatwootService {
     }
 
     const message = await client.messages.create({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
       conversationId: conversation.id,
       data: {
         content: content,
@@ -848,7 +849,7 @@ export class ChatwootService {
     const config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: `${this.provider.url}/api/v1/accounts/${this.provider.account_id}/conversations/${conversationId}/messages`,
+      url: `${this.provider.url}/api/v1/accounts/${this.provider.accountId}/conversations/${conversationId}/messages`,
       headers: {
         api_access_token: this.provider.token,
         ...data.getHeaders(),
@@ -917,7 +918,7 @@ export class ChatwootService {
     const config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: `${this.provider.url}/api/v1/accounts/${this.provider.account_id}/conversations/${conversation.id}/messages`,
+      url: `${this.provider.url}/api/v1/accounts/${this.provider.accountId}/conversations/${conversation.id}/messages`,
       headers: {
         api_access_token: this.provider.token,
         ...data.getHeaders(),
@@ -1015,7 +1016,7 @@ export class ChatwootService {
     }
 
     client.messages.create({
-      accountId: this.provider.account_id,
+      accountId: this.provider.accountId,
       conversationId: conversation,
       data: {
         content: i18next.t('cw.message.notsent', {
@@ -1038,9 +1039,9 @@ export class ChatwootService {
         return null;
       }
 
-      // invalidate the conversation cache if reopen_conversation is false and the conversation was resolved
+      // invalidate the conversation cache if reopenConversation is false and the conversation was resolved
       if (
-        this.provider.reopen_conversation === false &&
+        this.provider.reopenConversation === false &&
         body.event === 'conversation_status_changed' &&
         body.status === 'resolved' &&
         body.meta?.sender?.identifier
@@ -1174,10 +1175,10 @@ export class ChatwootService {
         if (senderName === null || senderName === undefined) {
           formatText = messageReceived;
         } else {
-          const formattedDelimiter = this.provider.sign_delimiter
-            ? this.provider.sign_delimiter.replaceAll('\\n', '\n')
+          const formattedDelimiter = this.provider.signDelimiter
+            ? this.provider.signDelimiter.replaceAll('\\n', '\n')
             : '\n';
-          const textToConcat = this.provider.sign_msg ? [`*${senderName}:*`] : [];
+          const textToConcat = this.provider.signMsg ? [`*${senderName}:*`] : [];
           textToConcat.push(messageReceived);
 
           formatText = textToConcat.join(formattedDelimiter);
@@ -1694,7 +1695,7 @@ export class ChatwootService {
         }
 
         client.messages.create({
-          accountId: this.provider.account_id,
+          accountId: this.provider.accountId,
           conversationId: getConversation,
           data: {
             content: `🚨 ${i18next.t('numbernotinwhatsapp')}`,
@@ -1968,7 +1969,7 @@ export class ChatwootService {
             });
 
             return await client.messages.delete({
-              accountId: this.provider.account_id,
+              accountId: this.provider.accountId,
               conversationId: message.chatwootConversationId,
               messageId: message.chatwootMessageId,
             });
@@ -2029,7 +2030,7 @@ export class ChatwootService {
 
           if (!sourceId && inbox) {
             const conversation = (await client.conversations.get({
-              accountId: this.provider.account_id,
+              accountId: this.provider.accountId,
               conversationId: conversationId,
             })) as conversation_show & {
               last_non_activity_message: { conversation: { contact_inbox: contact_inboxes } };
@@ -2210,7 +2211,7 @@ export class ChatwootService {
       recentContacts.forEach(async (contact) => {
         if (contactsWithProfilePicture.has(contact.identifier)) {
           client.contacts.update({
-            accountId: this.provider.account_id,
+            accountId: this.provider.accountId,
             id: contact.id,
             data: {
               avatar_url: contactsWithProfilePicture.get(contact.identifier).profilePictureUrl || null,
