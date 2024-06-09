@@ -1,3 +1,4 @@
+import { Contact, Message } from '@prisma/client';
 import { WASocket } from '@whiskeysockets/baileys';
 import axios from 'axios';
 import { execSync } from 'child_process';
@@ -35,7 +36,7 @@ import { getSQS, removeQueues as removeQueuesSQS } from '../integrations/sqs/lib
 import { TypebotService } from '../integrations/typebot/services/typebot.service';
 import { WebsocketDto } from '../integrations/websocket/dto/websocket.dto';
 import { getIO } from '../integrations/websocket/libs/socket.server';
-import { PrismaRepository } from '../repository/repository.service';
+import { PrismaRepository, Query } from '../repository/repository.service';
 import { waMonitor } from '../server.module';
 import { Events, wa } from '../types/wa.types';
 import { CacheService } from './cache.service';
@@ -1075,59 +1076,106 @@ export class ChannelStartupService {
     return `${number}@s.whatsapp.net`;
   }
 
-  public async fetchContacts(query: any) {
-    if (query?.where) {
-      query.where.remoteJid = this.instance.name;
-      if (query.where?.remoteJid) {
-        query.where.remoteJid = this.createJid(query.where.remoteJid);
-      }
-    } else {
-      query = {
-        where: {
-          instanceId: this.instanceId,
-        },
-      };
-    }
+  public async fetchContacts(query: Query<Contact>) {
     return await this.prismaRepository.contact.findMany({
-      where: query.where,
+      where: {
+        instanceId: this.instanceId,
+        remoteJid: query.where?.remoteJid,
+      },
     });
   }
 
-  public async fetchMessages(query: any) {
-    if (query?.where) {
-      if (query.where?.key?.remoteJid) {
-        query.where.key.remoteJid = this.createJid(query.where.key.remoteJid);
-      }
-      query.where.instanceId = this.instanceId;
-    } else {
-      query = {
-        where: {
-          instanceId: this.instanceId,
-        },
-        limit: query?.limit,
-      };
+  public async fetchMessages(query: Query<Message>) {
+    const keyFilters = query?.where?.key as {
+      id?: string;
+      fromMe?: boolean;
+      remoteJid?: string;
+      participants?: string;
+    };
+
+    const count = await this.prismaRepository.message.count({
+      where: {
+        instanceId: this.instanceId,
+        id: query?.where?.id,
+        source: query?.where?.source,
+        messageType: query?.where?.messageType,
+        AND: [
+          keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
+          keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
+          keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
+          keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
+        ],
+      },
+    });
+
+    if (!query?.offset) {
+      query.offset = 50;
     }
-    return await this.prismaRepository.message.findMany(query);
+
+    if (!query?.page) {
+      query.page = 1;
+    }
+
+    const messages = await this.prismaRepository.message.findMany({
+      where: {
+        instanceId: this.instanceId,
+        id: query?.where?.id,
+        source: query?.where?.source,
+        messageType: query?.where?.messageType,
+        AND: [
+          keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
+          keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
+          keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
+          keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
+        ],
+      },
+      orderBy: {
+        messageTimestamp: 'desc',
+      },
+      skip: query.offset * (query?.page === 1 ? 0 : (query?.page as number) - 1),
+      take: query.offset,
+      select: {
+        id: true,
+        key: true,
+        pushName: true,
+        messageType: true,
+        message: true,
+        messageTimestamp: true,
+        instanceId: true,
+        source: true,
+        MessageUpdate: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      messages: {
+        total: count,
+        pages: Math.ceil(count / query.offset),
+        currentPage: query.page,
+        records: messages,
+      },
+    };
   }
 
   public async fetchStatusMessage(query: any) {
-    if (query?.where) {
-      if (query.where?.remoteJid) {
-        query.where.remoteJid = this.createJid(query.where.remoteJid);
-      }
-      query.where.instanceId = this.instanceId;
-    } else {
-      query = {
-        where: {
-          instanceId: this.instanceId,
-        },
-        limit: query?.limit,
-      };
-    }
-    return await this.prismaRepository.messageUpdate.findMany(query);
+    return await this.prismaRepository.messageUpdate.findMany({
+      where: {
+        instanceId: this.instanceId,
+        remoteJid: query.where?.remoteJid,
+        messageId: query.where?.id,
+      },
+      skip: query.offset * (query?.page === 1 ? 0 : (query?.page as number) - 1),
+      take: query.offset,
+    });
   }
 
   public async fetchChats() {
-    return await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } });
+    return await this.prismaRepository.chat.findMany({
+      where: { instanceId: this.instanceId },
+    });
   }
 }

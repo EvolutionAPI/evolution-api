@@ -2621,14 +2621,24 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async getLastMessage(number: string) {
-    const messages = await this.fetchMessages({
-      where: {
-        key: {
-          remoteJid: number,
-        },
-        owner: this.instance.name,
+    const where: any = {
+      key: {
+        remoteJid: number,
       },
+      instanceId: this.instance.id,
+    };
+
+    const messages = await this.prismaRepository.message.findMany({
+      where,
+      orderBy: {
+        messageTimestamp: 'desc',
+      },
+      take: 1,
     });
+
+    if (messages.length === 0) {
+      throw new NotFoundException('Messages not found');
+    }
 
     let lastMessage = messages.pop();
 
