@@ -8,8 +8,8 @@ fi
 
 if [[ "$DATABASE_PROVIDER" == "postgresql" || "$DATABASE_PROVIDER" == "mysql" ]]; then
     export DATABASE_URL
-    prisma migrate deploy --schema=prisma/$DATABASE_PROVIDER-schema.prisma
-    prisma generate --schema=prisma/$DATABASE_PROVIDER-schema.prisma
+    ./node_modules/.bin/prisma migrate deploy --schema=prisma/$DATABASE_PROVIDER-schema.prisma
+    ./node_modules/.bin/prisma generate --schema=prisma/$DATABASE_PROVIDER-schema.prisma
 else
     echo "Error: Database provider $DATABASE_PROVIDER invalid."
     exit 1

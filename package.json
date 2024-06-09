@@ -84,6 +84,7 @@
     "parse-bmfont-xml": "^1.1.4",
     "pg": "^8.11.3",
     "pino": "^8.11.0",
+    "prisma": "^5.15.0",
     "qrcode": "^1.5.1",
     "qrcode-terminal": "^0.12.0",
     "redis": "^4.6.5",
