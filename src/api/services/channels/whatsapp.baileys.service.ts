@@ -55,12 +55,23 @@ import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 
-import { CacheConf, ConfigService, ConfigSessionPhone, Database, Log, QrCode } from '../../../config/env.config';
+import { CacheEngine } from '../../../cache/cacheengine';
+import {
+  CacheConf,
+  ConfigService,
+  configService,
+  ConfigSessionPhone,
+  Database,
+  Log,
+  ProviderSession,
+  QrCode,
+} from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
 import { dbserver } from '../../../libs/db.connect';
 import { makeProxyAgent } from '../../../utils/makeProxyAgent';
 import { useMultiFileAuthStateDb } from '../../../utils/use-multi-file-auth-state-db';
+import { AuthStateProvider } from '../../../utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '../../../utils/use-multi-file-auth-state-redis-db';
 import {
   ArchiveChatDto,
@@ -114,11 +125,14 @@ import { SettingsRaw } from '../../models';
 import { ChatRaw } from '../../models/chat.model';
 import { ContactRaw } from '../../models/contact.model';
 import { MessageRaw, MessageUpdateRaw } from '../../models/message.model';
+import { ProviderFiles } from '../../provider/sessions';
 import { RepositoryBroker } from '../../repository/repository.manager';
 import { waMonitor } from '../../server.module';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
 import { ChannelStartupService } from './../channel.service';
+
+const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
 export class BaileysStartupService extends ChannelStartupService {
   constructor(
@@ -127,7 +141,8 @@ export class BaileysStartupService extends ChannelStartupService {
     public readonly repository: RepositoryBroker,
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
-    public readonly messagesLostCache: CacheService,
+    public readonly baileysCache: CacheService,
+    private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BaileysStartupService initialized');
@@ -135,8 +150,12 @@ export class BaileysStartupService extends ChannelStartupService {
     this.instance.qrcode = { count: 0 };
     this.mobile = false;
     this.recoveringMessages();
+    this.forceUpdateGroupMetadataCache();
+
+    this.authStateProvider = new AuthStateProvider(this.providerFiles);
   }
 
+  private authStateProvider: AuthStateProvider;
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache();
   private endSession = false;
@@ -153,9 +172,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
       setInterval(async () => {
-        this.messagesLostCache.keys().then((keys) => {
+        this.baileysCache.keys().then((keys) => {
           keys.forEach(async (key) => {
-            const message = await this.messagesLostCache.get(key.split(':')[2]);
+            const message = await this.baileysCache.get(key.split(':')[2]);
 
             if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
               this.logger.info('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
@@ -165,6 +184,23 @@ export class BaileysStartupService extends ChannelStartupService {
         });
       }, 30000);
     }
+  }
+
+  private async forceUpdateGroupMetadataCache() {
+    if (
+      !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+      !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+    )
+      return;
+
+    setInterval(async () => {
+      this.logger.verbose('Forcing update group metadata cache');
+      const groups = await this.fetchAllGroups({ getParticipants: 'false' });
+
+      for (const group of groups) {
+        await this.updateGroupMetadataCache(group.id);
+      }
+    }, 3600000);
   }
 
   public get connectionStatus() {
@@ -461,6 +497,12 @@ export class BaileysStartupService extends ChannelStartupService {
     const db = this.configService.get<Database>('DATABASE');
     const cache = this.configService.get<CacheConf>('CACHE');
 
+    const provider = this.configService.get<ProviderSession>('PROVIDER');
+
+    if (provider?.ENABLED) {
+      return await this.authStateProvider.authStateProvider(this.instance.name);
+    }
+
     if (cache?.REDIS.ENABLED && cache?.REDIS.SAVE_INSTANCES) {
       this.logger.info('Redis enabled');
       return await useMultiFileAuthStateRedisDb(this.instance.name, this.cache);
@@ -628,11 +670,7 @@ export class BaileysStartupService extends ChannelStartupService {
       return;
     }
 
-    console.log('phoneNumber', phoneNumber);
-
     const parsedPhoneNumber = parsePhoneNumber(phoneNumber);
-
-    console.log('parsedPhoneNumber', parsedPhoneNumber);
 
     if (!parsedPhoneNumber?.isValid()) {
       this.logger.error('Phone number invalid');
@@ -655,7 +693,6 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const response = await this.client.requestRegistrationCode(registration);
 
-      console.log('response', response);
       if (['ok', 'sent'].includes(response?.status)) {
         this.logger.verbose('Registration code sent successfully');
 
@@ -669,9 +706,8 @@ export class BaileysStartupService extends ChannelStartupService {
   public async receiveMobileCode(code: string) {
     await this.client
       .register(code.replace(/["']/g, '').trim().toLowerCase())
-      .then(async (response) => {
+      .then(async () => {
         this.logger.verbose('Registration code received successfully');
-        console.log(response);
       })
       .catch((error) => {
         this.logger.error(error);
@@ -1105,15 +1141,15 @@ export class BaileysStartupService extends ChannelStartupService {
           if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
             this.logger.info('Recovering message lost');
 
-            await this.messagesLostCache.set(received.key.id, received);
+            await this.baileysCache.set(received.key.id, received);
             continue;
           }
 
-          const retryCache = (await this.messagesLostCache.get(received.key.id)) || null;
+          const retryCache = (await this.baileysCache.get(received.key.id)) || null;
 
           if (retryCache) {
             this.logger.info('Recovered message lost');
-            await this.messagesLostCache.delete(received.key.id);
+            await this.baileysCache.delete(received.key.id);
           }
 
           if (
@@ -1402,6 +1438,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.logger.verbose('Sending data to webhook in event GROUPS_UPDATE');
       this.sendDataWebhook(Events.GROUPS_UPDATE, groupMetadataUpdate);
+
+      groupMetadataUpdate.forEach((group) => {
+        if (isJidGroup(group.id)) {
+          this.updateGroupMetadataCache(group.id);
+        }
+      });
     },
 
     'group-participants.update': (participantsUpdate: {
@@ -1459,7 +1501,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Sending data to webhook in event LABELS_ASSOCIATION');
 
       // Atualiza labels nos chats
-      if (database.SAVE_DATA.CHATS) {
+      if (database.ENABLED && database.SAVE_DATA.CHATS) {
         const chats = await this.repository.chat.find({
           where: {
             owner: this.instance.name,
@@ -1838,7 +1880,11 @@ export class BaileysStartupService extends ChannelStartupService {
       let mentions: string[];
       if (isJidGroup(sender)) {
         try {
-          const group = await this.findGroup({ groupJid: sender }, 'inner');
+          let group;
+
+          const cache = this.configService.get<CacheConf>('CACHE');
+          if (!cache.REDIS.ENABLED && !cache.LOCAL.ENABLED) group = await this.findGroup({ groupJid: sender }, 'inner');
+          else group = await this.getGroupMetadataCache(sender);
 
           if (!group) {
             throw new NotFoundException('Group not found');
@@ -1891,7 +1937,14 @@ export class BaileysStartupService extends ChannelStartupService {
                   key: message['reactionMessage']['key'],
                 },
               } as unknown as AnyMessageContent,
-              option as unknown as MiscMessageGenerationOptions,
+              {
+                ...option,
+                cachedGroupMetadata:
+                  !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                  !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                    ? null
+                    : this.getGroupMetadataCache,
+              } as unknown as MiscMessageGenerationOptions,
             );
           }
         }
@@ -1904,7 +1957,14 @@ export class BaileysStartupService extends ChannelStartupService {
               mentions,
               linkPreview: linkPreview,
             } as unknown as AnyMessageContent,
-            option as unknown as MiscMessageGenerationOptions,
+            {
+              ...option,
+              cachedGroupMetadata:
+                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                  ? null
+                  : this.getGroupMetadataCache,
+            } as unknown as MiscMessageGenerationOptions,
           );
         }
 
@@ -1919,7 +1979,14 @@ export class BaileysStartupService extends ChannelStartupService {
               },
               mentions,
             },
-            option as unknown as MiscMessageGenerationOptions,
+            {
+              ...option,
+              cachedGroupMetadata:
+                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                  ? null
+                  : this.getGroupMetadataCache,
+            } as unknown as MiscMessageGenerationOptions,
           );
         }
 
@@ -1940,7 +2007,14 @@ export class BaileysStartupService extends ChannelStartupService {
         return await this.client.sendMessage(
           sender,
           message as unknown as AnyMessageContent,
-          option as unknown as MiscMessageGenerationOptions,
+          {
+            ...option,
+            cachedGroupMetadata:
+              !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+              !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
+                ? null
+                : this.getGroupMetadataCache,
+          } as unknown as MiscMessageGenerationOptions,
         );
       })();
 
@@ -3145,6 +3219,38 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   // Group
+  private async updateGroupMetadataCache(groupJid: string) {
+    try {
+      const meta = await this.client.groupMetadata(groupJid);
+      await groupMetadataCache.set(groupJid, {
+        timestamp: Date.now(),
+        data: meta,
+      });
+
+      return meta;
+    } catch (error) {
+      this.logger.error(error);
+      return null;
+    }
+  }
+
+  private async getGroupMetadataCache(groupJid: string) {
+    if (!isJidGroup(groupJid)) return null;
+
+    if (await groupMetadataCache.has(groupJid)) {
+      console.log('Has cache for group: ' + groupJid);
+      const meta = await groupMetadataCache.get(groupJid);
+
+      if (Date.now() - meta.timestamp > 3600000) {
+        await this.updateGroupMetadataCache(groupJid);
+      }
+
+      return meta.data;
+    }
+
+    return await this.updateGroupMetadataCache(groupJid);
+  }
+
   public async createGroup(create: CreateGroupDto) {
     this.logger.verbose('Creating group: ' + create.subject);
     try {

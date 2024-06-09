@@ -49,6 +49,14 @@ LOG:
 DEL_INSTANCE: false # or false
 DEL_TEMP_INSTANCES: true # Delete instances with status closed on start
 
+# Seesion Files Providers
+# Provider responsible for managing credentials files and WhatsApp sessions.
+PROVIDER:
+  ENABLED: true
+  HOST: 127.0.0.1
+  PORT: 5656
+  PREFIX: evolution
+
 # Temporary data storage
 STORE:
   MESSAGES: true

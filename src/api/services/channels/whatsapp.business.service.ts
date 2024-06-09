@@ -23,6 +23,7 @@ import {
   SendTextDto,
 } from '../../dto/sendMessage.dto';
 import { ContactRaw, MessageRaw, MessageUpdateRaw, SettingsRaw } from '../../models';
+import { ProviderFiles } from '../../provider/sessions';
 import { RepositoryBroker } from '../../repository/repository.manager';
 import { Events, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
@@ -35,7 +36,8 @@ export class BusinessStartupService extends ChannelStartupService {
     public readonly repository: RepositoryBroker,
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
-    public readonly messagesLostCache: CacheService,
+    public readonly baileysCache: CacheService,
+    private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BusinessStartupService initialized');

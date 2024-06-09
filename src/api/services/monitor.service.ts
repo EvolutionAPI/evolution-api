@@ -5,7 +5,15 @@ import { Db } from 'mongodb';
 import { Collection } from 'mongoose';
 import { join } from 'path';
 
-import { Auth, CacheConf, ConfigService, Database, DelInstance, HttpServer } from '../../config/env.config';
+import {
+  Auth,
+  CacheConf,
+  ConfigService,
+  Database,
+  DelInstance,
+  HttpServer,
+  ProviderSession,
+} from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
@@ -22,6 +30,7 @@ import {
   WebhookModel,
   WebsocketModel,
 } from '../models';
+import { ProviderFiles } from '../provider/sessions';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { Integration } from '../types/wa.types';
 import { CacheService } from './cache.service';
@@ -35,7 +44,8 @@ export class WAMonitoringService {
     private readonly repository: RepositoryBroker,
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
-    private readonly messagesLostCache: CacheService,
+    private readonly baileysCache: CacheService,
+    private readonly providerFiles: ProviderFiles,
   ) {
     this.logger.verbose('instance created');
 
@@ -57,6 +67,8 @@ export class WAMonitoringService {
 
   private readonly logger = new Logger(WAMonitoringService.name);
   public readonly waInstances: Record<string, BaileysStartupService | BusinessStartupService> = {};
+
+  private readonly providerSession = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));
 
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
@@ -257,12 +269,18 @@ export class WAMonitoringService {
     }
 
     this.logger.verbose('cleaning up instance in files: ' + instanceName);
+    if (this.providerSession?.ENABLED) {
+      await this.providerFiles.removeSession(instanceName);
+    }
     rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
   }
 
   public async cleaningStoreFiles(instanceName: string) {
     if (!this.db.ENABLED) {
       this.logger.verbose('cleaning store files instance: ' + instanceName);
+      if (this.providerSession?.ENABLED) {
+        await this.providerFiles.removeSession(instanceName);
+      }
       rmSync(join(INSTANCE_DIR, instanceName), { recursive: true, force: true });
 
       execSync(`rm -rf ${join(STORE_DIR, 'chats', instanceName)}`);
@@ -305,7 +323,9 @@ export class WAMonitoringService {
     this.logger.verbose('Loading instances');
 
     try {
-      if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
+      if (this.providerSession.ENABLED) {
+        await this.loadInstancesFromProvider();
+      } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
         await this.loadInstancesFromRedis();
       } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
         await this.loadInstancesFromDatabase();
@@ -348,7 +368,8 @@ export class WAMonitoringService {
         this.repository,
         this.cache,
         this.chatwootCache,
-        this.messagesLostCache,
+        this.baileysCache,
+        this.providerFiles,
       );
 
       instance.instanceName = name;
@@ -359,7 +380,8 @@ export class WAMonitoringService {
         this.repository,
         this.cache,
         this.chatwootCache,
-        this.messagesLostCache,
+        this.baileysCache,
+        this.providerFiles,
       );
 
       instance.instanceName = name;
@@ -399,6 +421,18 @@ export class WAMonitoringService {
     } else {
       this.logger.verbose('No collections found');
     }
+  }
+
+  private async loadInstancesFromProvider() {
+    this.logger.verbose('Provider in files enabled');
+    const [instances] = await this.providerFiles.allInstances();
+
+    if (!instances?.data) {
+      this.logger.verbose('No instances found');
+      return;
+    }
+
+    await Promise.all(instances?.data?.map(async (instanceName: string) => this.setInstance(instanceName)));
   }
 
   private async loadInstancesFromFiles() {

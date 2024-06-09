@@ -12,6 +12,7 @@ import { RabbitmqService } from '../integrations/rabbitmq/services/rabbitmq.serv
 import { SqsService } from '../integrations/sqs/services/sqs.service';
 import { TypebotService } from '../integrations/typebot/services/typebot.service';
 import { WebsocketService } from '../integrations/websocket/services/websocket.service';
+import { ProviderFiles } from '../provider/sessions';
 import { RepositoryBroker } from '../repository/repository.manager';
 import { AuthService, OldToken } from '../services/auth.service';
 import { CacheService } from '../services/cache.service';
@@ -42,7 +43,8 @@ export class InstanceController {
     private readonly proxyService: ProxyController,
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
-    private readonly messagesLostCache: CacheService,
+    private readonly baileysCache: CacheService,
+    private readonly providerFiles: ProviderFiles,
   ) {}
 
   private readonly logger = new Logger(InstanceController.name);
@@ -110,7 +112,8 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
-          this.messagesLostCache,
+          this.baileysCache,
+          this.providerFiles,
         );
       } else {
         instance = new BaileysStartupService(
@@ -119,7 +122,8 @@ export class InstanceController {
           this.repository,
           this.cache,
           this.chatwootCache,
-          this.messagesLostCache,
+          this.baileysCache,
+          this.providerFiles,
         );
       }
 
@@ -749,7 +753,7 @@ export class InstanceController {
       this.logger.verbose('deleting instance: ' + instanceName);
 
       try {
-        this.waMonitor.waInstances[instanceName].sendDataWebhook(Events.INSTANCE_DELETE, {
+        this.waMonitor.waInstances[instanceName]?.sendDataWebhook(Events.INSTANCE_DELETE, {
           instanceName,
           instanceId: (await this.repository.auth.find(instanceName))?.instanceId,
         });

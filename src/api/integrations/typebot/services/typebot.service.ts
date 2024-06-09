@@ -525,8 +525,12 @@ export class TypebotService {
         }
       }
 
-      if (element.type === 'p') {
+      if (element.type === 'p' && element.type !== 'inline-variable') {
         text = text.trim() + '\n';
+      }
+
+      if (element.type === 'inline-variable') {
+        text = text.trim();
       }
 
       if (element.type === 'ol') {
@@ -581,6 +585,8 @@ export class TypebotService {
           }
 
           formattedText = formattedText.replace(/\*\*/g, '').replace(/__/, '').replace(/~~/, '').replace(/\n$/, '');
+
+          formattedText = formattedText.replace(/\n$/, '');
 
           await instance.textMessage({
             number: remoteJid.split('@')[0],

@@ -28,6 +28,13 @@ export type Log = {
   BAILEYS: LogBaileys;
 };
 
+export type ProviderSession = {
+  ENABLED: boolean;
+  HOST: string;
+  PORT: string;
+  PREFIX: string;
+};
+
 export type SaveData = {
   INSTANCE: boolean;
   NEW_MESSAGE: boolean;
@@ -209,6 +216,7 @@ export interface Env {
   SERVER: HttpServer;
   CORS: Cors;
   SSL_CONF: SslConf;
+  PROVIDER: ProviderSession;
   STORE: StoreConf;
   CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
@@ -273,6 +281,12 @@ export class ConfigService {
       SSL_CONF: {
         PRIVKEY: process.env?.SSL_CONF_PRIVKEY || '',
         FULLCHAIN: process.env?.SSL_CONF_FULLCHAIN || '',
+      },
+      PROVIDER: {
+        ENABLED: process.env?.PROVIDER_ENABLED === 'true',
+        HOST: process.env.PROVIDER_HOST,
+        PORT: process.env?.PROVIDER_PORT || '5656',
+        PREFIX: process.env?.PROVIDER_PREFIX || 'evolution',
       },
       STORE: {
         MESSAGES: process.env?.STORE_MESSAGES === 'true',
