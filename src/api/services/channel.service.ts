@@ -1,7 +1,6 @@
 import { Contact, Message } from '@prisma/client';
 import { WASocket } from '@whiskeysockets/baileys';
 import axios from 'axios';
-import { execSync } from 'child_process';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { join } from 'path';
@@ -10,9 +9,7 @@ import { v4 } from 'uuid';
 import {
   Auth,
   Chatwoot,
-  CleanStoreConf,
   ConfigService,
-  Database,
   HttpServer,
   Log,
   Rabbitmq,
@@ -983,26 +980,6 @@ export class ChannelStartupService {
           });
         }
       }
-    }
-  }
-
-  public cleanStore() {
-    const cleanStore = this.configService.get<CleanStoreConf>('CLEAN_STORE');
-    const database = this.configService.get<Database>('DATABASE');
-    if (cleanStore?.CLEANING_INTERVAL && !database.ENABLED) {
-      setInterval(() => {
-        try {
-          for (const [key, value] of Object.entries(cleanStore)) {
-            if (value === true) {
-              execSync(
-                `rm -rf ${join(this.storePath, key.toLowerCase().replace('_', '-'), this.instance.name)}/*.json`,
-              );
-            }
-          }
-        } catch (error) {
-          this.logger.error(error);
-        }
-      }, (cleanStore?.CLEANING_INTERVAL ?? 3600) * 1000);
     }
   }
 

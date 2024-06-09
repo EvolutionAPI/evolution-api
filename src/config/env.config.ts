@@ -44,22 +44,6 @@ export type SaveData = {
   LABELS: boolean;
 };
 
-export type StoreConf = {
-  MESSAGES: boolean;
-  MESSAGE_UP: boolean;
-  CONTACTS: boolean;
-  CHATS: boolean;
-  LABELS: boolean;
-};
-
-export type CleanStoreConf = {
-  CLEANING_INTERVAL: number;
-  MESSAGES: boolean;
-  MESSAGE_UP: boolean;
-  CONTACTS: boolean;
-  CHATS: boolean;
-};
-
 export type DBConnection = {
   URI: string;
   CLIENT_NAME: string;
@@ -215,8 +199,6 @@ export interface Env {
   CORS: Cors;
   SSL_CONF: SslConf;
   PROVIDER: ProviderSession;
-  STORE: StoreConf;
-  CLEAN_STORE: CleanStoreConf;
   DATABASE: Database;
   RABBITMQ: Rabbitmq;
   SQS: Sqs;
@@ -281,22 +263,6 @@ export class ConfigService {
         HOST: process.env.PROVIDER_HOST,
         PORT: process.env?.PROVIDER_PORT || '5656',
         PREFIX: process.env?.PROVIDER_PREFIX || 'evolution',
-      },
-      STORE: {
-        MESSAGES: process.env?.STORE_MESSAGES === 'true',
-        MESSAGE_UP: process.env?.STORE_MESSAGE_UP === 'true',
-        CONTACTS: process.env?.STORE_CONTACTS === 'true',
-        CHATS: process.env?.STORE_CHATS === 'true',
-        LABELS: process.env?.STORE_LABELS === 'true',
-      },
-      CLEAN_STORE: {
-        CLEANING_INTERVAL: Number.isInteger(process.env?.CLEAN_STORE_CLEANING_INTERVAL)
-          ? Number.parseInt(process.env.CLEAN_STORE_CLEANING_INTERVAL)
-          : 7200,
-        MESSAGES: process.env?.CLEAN_STORE_MESSAGES === 'true',
-        MESSAGE_UP: process.env?.CLEAN_STORE_MESSAGE_UP === 'true',
-        CONTACTS: process.env?.CLEAN_STORE_CONTACTS === 'true',
-        CHATS: process.env?.CLEAN_STORE_CHATS === 'true',
       },
       DATABASE: {
         CONNECTION: {

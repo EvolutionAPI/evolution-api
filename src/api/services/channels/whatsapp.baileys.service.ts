@@ -139,7 +139,6 @@ export class BaileysStartupService extends ChannelStartupService {
     private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
-    this.cleanStore();
     this.instance.qrcode = { count: 0 };
     this.recoveringMessages();
     this.cronForceUpdateGroupMetadataCache();

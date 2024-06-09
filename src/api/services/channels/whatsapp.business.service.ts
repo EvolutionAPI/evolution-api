@@ -39,7 +39,6 @@ export class BusinessStartupService extends ChannelStartupService {
     private readonly providerFiles: ProviderFiles,
   ) {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
-    this.cleanStore();
   }
 
   public stateConnection: wa.StateConnection = { state: 'open' };

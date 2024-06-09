@@ -19,13 +19,19 @@ COPY ./package.json ./tsconfig.json ./
 
 RUN npm install
 
-COPY . .
+COPY ./src ./src
+COPY ./public ./public
+COPY ./prisma ./prisma
+COPY ./views ./views
+COPY ./.env.dev ./.env
 
-RUN chmod +x ./deploy_database.sh
+COPY ./Docker ./Docker
+
+RUN chmod +x ./Docker/deploy_database.sh
 
 ENV DATABASE_CONNECTION_URI=postgres://postgres:pass@localhost/evolution
 
-RUN ./deploy_database.sh
+RUN ./Docker/deploy_database.sh
 
 RUN npm run build
 
