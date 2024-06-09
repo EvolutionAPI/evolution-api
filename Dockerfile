@@ -1,22 +1,31 @@
-FROM node:20.7.0-alpine AS builder
+FROM node:20-bullseye-slim AS base
+
+RUN apt-get update -y
+RUN apt-get upgrade -y
+
+RUN apt-get install -y git tzdata ffmpeg wget curl
+
+RUN npm i -g npm@latest
+
+FROM base AS builder
 
 LABEL version="1.8.0" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
-RUN apk update && apk upgrade && \
-    apk add --no-cache git tzdata ffmpeg wget curl
-
 WORKDIR /evolution
 
-COPY ./package.json .
+COPY ./package.json ./tsconfig.json ./
 
 RUN npm install
 
 COPY . .
 
+RUN chmod +x ./deploy_database.sh
+
 ENV DATABASE_CONNECTION_URI=postgres://postgres:pass@localhost/evolution
-RUN npx prisma generate
+
+RUN ./deploy_database.sh
 
 RUN npm run build
 
@@ -26,11 +35,13 @@ ENV TZ=America/Sao_Paulo
 
 WORKDIR /evolution
 
+COPY --from=builder /evolution/package.json ./package.json
+COPY --from=builder /evolution/package-lock.json ./package-lock.json
+
+RUN npm install --omit=dev
+
 COPY --from=builder /evolution .
 
 ENV DOCKER_ENV=true
 
-RUN npx prisma migrate deploy
-RUN npx prisma generate
-
-CMD [ "node", "./dist/src/main.js" ]
+ENTRYPOINT ["/bin/bash", "-c", ". ./scripts/run_database_operation_deploy.sh && npm run start:prod" ]
