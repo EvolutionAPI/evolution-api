@@ -1,7 +1,7 @@
-# 2.0.0 (develop)
+# 2.0.0 (v2.0.0)
 
 ### Feature
-* New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
+
 * Added prisma orm, connection to postgres and mysql
 * Added chatwoot integration activation
 * Added typebot integration activation
@@ -27,6 +27,13 @@
   - Session search by typebot or remoteJid
   - KeepOpen configuration (keeps the session even when the bot ends, to run once per contact)
   - StopBotFromMe configuration, allows me to stop the bot if I send a chat message.
+
+# 1.8.1 (develop)
+
+### Feature
+
+* New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
+* Caching system for group data
 
 # 1.8.0 (2024-05-27 16:10)
 
