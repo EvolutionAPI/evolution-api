@@ -703,10 +703,11 @@ export class TypebotService {
     const types = {
       conversation: msg.conversation,
       extendedTextMessage: msg.extendedTextMessage?.text,
-      audioMessage: msg.audioMessage?.url,
-      imageMessage: msg.imageMessage?.url,
-      videoMessage: msg.videoMessage?.url,
-      documentMessage: msg.documentMessage?.fileName,
+      // Medias
+      audioMessage: `audioMessage:${msg.key.id}`,
+      imageMessage: `imageMessage:${msg.key.id}`,
+      videoMessage: `videoMessage:${msg.key.id}`,
+      documentMessage: `documentMessage:${msg.key.id}`,
       contactMessage: msg.contactMessage?.displayName,
       locationMessage: msg.locationMessage?.degreesLatitude,
       viewOnceMessageV2:

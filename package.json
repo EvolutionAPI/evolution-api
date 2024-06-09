@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "ts-node --files --transpile-only ./src/main.ts",
-    "start:prod": "bash start.sh",
+    "start:prod": "node dist/src/main",
     "dev:server": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./src/main.ts",
     "test": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src",
