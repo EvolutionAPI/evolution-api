@@ -10,7 +10,6 @@
 ### Fixed
 * Removed excessive verbose logs
 * Optimization in instance registration
-* Correction of variables breaking lines in typebot
 * Now in typebot we wait until the terminal block to accept the user's message, if it arrives before the block is sent, it is ignored
 
 ### Break changes
@@ -34,6 +33,10 @@
 
 * New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
 * Caching system for group data
+
+### Fixes
+
+* Correction of variables breaking lines in typebot
 
 # 1.8.0 (2024-05-27 16:10)
 
