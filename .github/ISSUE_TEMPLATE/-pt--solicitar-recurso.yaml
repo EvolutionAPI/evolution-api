@@ -1,0 +1,86 @@
+name: Solicitação de recursos
+description: Sugira ideias para o projeto.
+labels:
+  - enhancement
+  - pt-br
+# Automatically assign the issue to:
+# assignees: DavidsonGomes
+body:
+  - type: checkboxes
+    id: termos
+    attributes:
+      label: Bem-vindo!
+      description: '**NÃO ABRA PARA PERGUNTAS GERAIS DE SUPORTE.**'
+
+      options:
+        - label: Sim, pesquisei solicitações semelhantes no [GitHub](https://github.com/code-chat-br/whatsapp-api/issues) e não encontrei nenhum.
+          required: true
+
+  - type: dropdown
+    attributes:
+      label: Qual tipo de recurso?
+      description: |
+        Como escrever uma boa solicitação de bug?
+
+        - Respeite o modelo de problema tanto quanto possível.
+        - O título deve ser curto e descritivo.
+        - Explique as condições que o levaram a reportar este problema: o contexto.
+        - O contexto deve levar a algo, ideia ou problema que você está enfrentando.
+        - Seja claro e conciso.
+        - Formate suas mensagens para ajudar o leitor a se concentrar no que importa e entender a estrutura da sua mensagem, use [sintaxe Markdown](https://help.github.com/articles/github-flavored-markdown)
+      options:
+        - Integração
+        - Funcionalidade
+        - Endpoint
+        - Ajuste de banco de dados
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Qual a motivação para a solicitação?
+      description: |
+        Qual problema o recurso busca resolver?
+        Descreva claramente e em detalhes a funcionalidade que você deseja que seja implementada.
+        Explique como isso se encaixa no contexto do projeto.
+      placeholder: Descrição detalhada
+    validations:
+      required: true
+  
+  - type: textarea
+    attributes:
+      label: Exemplos de Uso
+      description: |
+        Forneça exemplos específicos de como essa funcionalidade poderia ser utilizada.
+        Isso pode incluir cenários ou casos de uso onde a funcionalidade seria particularmente benéfica.
+      placeholder: texto - imagem - video - fluxogramas
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Como o recurso deve ser desenvolvido?
+      description: |
+        Deve ser inserido diretamente no código?
+        Deve ser construído uma aplicação diferente que atuará como uma extenção da api? 
+        Por exemplo: um `worker`?
+        
+        Discuta como essa nova funcionalidade poderia impactar outras partes do projeto, se aplicável.
+
+        ---
+
+        Se você tem ideias sobre como essa funcionalidade pode ser implementada, por favor, compartilhe-as aqui.
+        Isso não é obrigatório, mas pode ser útil para a equipe de desenvolvimento.
+
+      placeholder: Insira ideias para o recurso
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Notas Adicionais
+      description: Qualquer outra informação que você acredita ser relevante para a sua solicitação.
+      placeholder: Insira aqui as sua observções.
+    validations:
+      required: false
