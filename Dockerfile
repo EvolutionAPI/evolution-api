@@ -29,13 +29,11 @@ COPY ./Docker ./Docker
 
 RUN chmod +x ./Docker/scripts/*
 
-ENV DATABASE_CONNECTION_URI=postgres://postgres:pass@localhost/evolution
-
 RUN ./Docker/scripts/generate_database.sh
 
 RUN npm run build
 
-FROM node:20.7.0-alpine AS final
+FROM base AS final
 
 ENV TZ=America/Sao_Paulo
 
@@ -46,7 +44,12 @@ COPY --from=builder /evolution/package-lock.json ./package-lock.json
 
 RUN npm install --omit=dev
 
-COPY --from=builder /evolution .
+COPY --from=builder /evolution/dist ./dist
+COPY --from=builder /evolution/prisma ./prisma
+COPY --from=builder /evolution/public ./public
+COPY --from=builder /evolution/views ./views
+COPY --from=builder /evolution/.env ./.env
+COPY --from=builder /evolution/Docker ./Docker
 
 ENV DOCKER_ENV=true
 
