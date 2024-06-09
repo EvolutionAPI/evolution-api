@@ -31,7 +31,7 @@ RUN chmod +x ./Docker/scripts/*
 
 ENV DATABASE_CONNECTION_URI=postgres://postgres:pass@localhost/evolution
 
-RUN ./Docker/scripts/deploy_database.sh
+RUN ./Docker/scripts/generate_database.sh
 
 RUN npm run build
 
@@ -50,4 +50,4 @@ COPY --from=builder /evolution .
 
 ENV DOCKER_ENV=true
 
-ENTRYPOINT ["/bin/bash", "-c", ". ./scripts/run_database_operation_deploy.sh && npm run start:prod" ]
+ENTRYPOINT ["/bin/bash", "-c", ". ./Docker/scripts/deploy_database.sh && npm run start:prod" ]
