@@ -35,13 +35,6 @@ export class InstanceDto {
   rabbitmqEvents?: string[];
   sqsEnabled?: boolean;
   sqsEvents?: string[];
-  typebotUrl?: string;
-  typebot?: string;
-  typebotExpire?: number;
-  typebotKeywordFinish?: string;
-  typebotDelayMessage?: number;
-  typebotUnknownMessage?: string;
-  typebotListeningFromMe?: boolean;
   proxyHost?: string;
   proxyPort?: string;
   proxyProtocol?: string;

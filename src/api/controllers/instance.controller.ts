@@ -4,14 +4,14 @@ import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
-import { Auth, Chatwoot, ConfigService, HttpServer, Typebot, WaBusiness } from '../../config/env.config';
+import { Auth, Chatwoot, ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '../../exceptions';
+import { Events as EventsArray } from '../../validate/validate.schema';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
 import { RabbitmqService } from '../integrations/rabbitmq/services/rabbitmq.service';
 import { SqsService } from '../integrations/sqs/services/sqs.service';
-import { TypebotService } from '../integrations/typebot/services/typebot.service';
 import { WebsocketService } from '../integrations/websocket/services/websocket.service';
 import { ProviderFiles } from '../provider/sessions';
 import { PrismaRepository } from '../repository/repository.service';
@@ -38,7 +38,6 @@ export class InstanceController {
     private readonly websocketService: WebsocketService,
     private readonly rabbitmqService: RabbitmqService,
     private readonly sqsService: SqsService,
-    private readonly typebotService: TypebotService,
     private readonly proxyService: ProxyController,
     private readonly cache: CacheService,
     private readonly chatwootCache: CacheService,
@@ -87,13 +86,6 @@ export class InstanceController {
     chatwootMergeBrazilContacts,
     chatwootImportMessages,
     chatwootDaysLimitImportMessages,
-    typebotUrl,
-    typebot,
-    typebotExpire,
-    typebotKeywordFinish,
-    typebotDelayMessage,
-    typebotUnknownMessage,
-    typebotListeningFromMe,
   }: InstanceDto) {
     try {
       await this.authService.checkDuplicateToken(token);
@@ -160,32 +152,7 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (webhookEvents.length === 0) {
-            newEvents = [
-              'APPLICATION_STARTUP',
-              'QRCODE_UPDATED',
-              'MESSAGES_SET',
-              'MESSAGES_UPSERT',
-              'MESSAGES_UPDATE',
-              'MESSAGES_DELETE',
-              'SEND_MESSAGE',
-              'CONTACTS_SET',
-              'CONTACTS_UPSERT',
-              'CONTACTS_UPDATE',
-              'PRESENCE_UPDATE',
-              'CHATS_SET',
-              'CHATS_UPSERT',
-              'CHATS_UPDATE',
-              'CHATS_DELETE',
-              'GROUPS_UPSERT',
-              'GROUP_UPDATE',
-              'GROUP_PARTICIPANTS_UPDATE',
-              'CONNECTION_UPDATE',
-              'LABELS_EDIT',
-              'LABELS_ASSOCIATION',
-              'CALL',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-            ];
+            newEvents = EventsArray;
           } else {
             newEvents = webhookEvents;
           }
@@ -211,32 +178,7 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (websocketEvents.length === 0) {
-            newEvents = [
-              'APPLICATION_STARTUP',
-              'QRCODE_UPDATED',
-              'MESSAGES_SET',
-              'MESSAGES_UPSERT',
-              'MESSAGES_UPDATE',
-              'MESSAGES_DELETE',
-              'SEND_MESSAGE',
-              'CONTACTS_SET',
-              'CONTACTS_UPSERT',
-              'CONTACTS_UPDATE',
-              'PRESENCE_UPDATE',
-              'CHATS_SET',
-              'CHATS_UPSERT',
-              'CHATS_UPDATE',
-              'CHATS_DELETE',
-              'GROUPS_UPSERT',
-              'GROUP_UPDATE',
-              'GROUP_PARTICIPANTS_UPDATE',
-              'CONNECTION_UPDATE',
-              'LABELS_EDIT',
-              'LABELS_ASSOCIATION',
-              'CALL',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-            ];
+            newEvents = EventsArray;
           } else {
             newEvents = websocketEvents;
           }
@@ -261,32 +203,7 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (rabbitmqEvents.length === 0) {
-            newEvents = [
-              'APPLICATION_STARTUP',
-              'QRCODE_UPDATED',
-              'MESSAGES_SET',
-              'MESSAGES_UPSERT',
-              'MESSAGES_UPDATE',
-              'MESSAGES_DELETE',
-              'SEND_MESSAGE',
-              'CONTACTS_SET',
-              'CONTACTS_UPSERT',
-              'CONTACTS_UPDATE',
-              'PRESENCE_UPDATE',
-              'CHATS_SET',
-              'CHATS_UPSERT',
-              'CHATS_UPDATE',
-              'CHATS_DELETE',
-              'GROUPS_UPSERT',
-              'GROUP_UPDATE',
-              'GROUP_PARTICIPANTS_UPDATE',
-              'CONNECTION_UPDATE',
-              'LABELS_EDIT',
-              'LABELS_ASSOCIATION',
-              'CALL',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-            ];
+            newEvents = EventsArray;
           } else {
             newEvents = rabbitmqEvents;
           }
@@ -311,32 +228,7 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (sqsEvents.length === 0) {
-            newEvents = [
-              'APPLICATION_STARTUP',
-              'QRCODE_UPDATED',
-              'MESSAGES_SET',
-              'MESSAGES_UPSERT',
-              'MESSAGES_UPDATE',
-              'MESSAGES_DELETE',
-              'SEND_MESSAGE',
-              'CONTACTS_SET',
-              'CONTACTS_UPSERT',
-              'CONTACTS_UPDATE',
-              'PRESENCE_UPDATE',
-              'CHATS_SET',
-              'CHATS_UPSERT',
-              'CHATS_UPDATE',
-              'CHATS_DELETE',
-              'GROUPS_UPSERT',
-              'GROUP_UPDATE',
-              'GROUP_PARTICIPANTS_UPDATE',
-              'CONNECTION_UPDATE',
-              'LABELS_EDIT',
-              'LABELS_ASSOCIATION',
-              'CALL',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-            ];
+            newEvents = EventsArray;
           } else {
             newEvents = sqsEvents;
           }
@@ -375,27 +267,6 @@ export class InstanceController {
           username: proxyUsername,
           password: proxyPassword,
         });
-      }
-
-      if (this.configService.get<Typebot>('TYPEBOT').ENABLED && typebotUrl) {
-        try {
-          if (!isURL(typebotUrl, { require_tld: false })) {
-            throw new BadRequestException('Invalid "url" property in typebotUrl');
-          }
-
-          this.typebotService.create(instance, {
-            enabled: true,
-            url: typebotUrl,
-            typebot: typebot,
-            expire: typebotExpire,
-            keywordFinish: typebotKeywordFinish,
-            delayMessage: typebotDelayMessage,
-            unknownMessage: typebotUnknownMessage,
-            listeningFromMe: typebotListeningFromMe,
-          });
-        } catch (error) {
-          this.logger.log(error);
-        }
       }
 
       const settings: wa.LocalSettings = {
@@ -458,16 +329,6 @@ export class InstanceController {
           sqs: {
             enabled: sqsEnabled,
             events: getSqsEvents,
-          },
-          typebot: {
-            enabled: typebotUrl ? true : false,
-            url: typebotUrl,
-            typebot,
-            expire: typebotExpire,
-            keywordFinish: typebotKeywordFinish,
-            delayMessage: typebotDelayMessage,
-            unknownMessage: typebotUnknownMessage,
-            listeningFromMe: typebotListeningFromMe,
           },
           settings,
           qrcode: getQrcode,
@@ -557,16 +418,6 @@ export class InstanceController {
         sqs: {
           enabled: sqsEnabled,
           events: getSqsEvents,
-        },
-        typebot: {
-          enabled: typebotUrl ? true : false,
-          url: typebotUrl,
-          typebot,
-          expire: typebotExpire,
-          keywordFinish: typebotKeywordFinish,
-          delayMessage: typebotDelayMessage,
-          unknownMessage: typebotUnknownMessage,
-          listeningFromMe: typebotListeningFromMe,
         },
         settings,
         chatwoot: {

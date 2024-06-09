@@ -11,6 +11,7 @@ export enum Events {
   STATUS_INSTANCE = 'status.instance',
   MESSAGES_SET = 'messages.set',
   MESSAGES_UPSERT = 'messages.upsert',
+  MESSAGES_EDITED = 'messages.edited',
   MESSAGES_UPDATE = 'messages.update',
   MESSAGES_DELETE = 'messages.delete',
   SEND_MESSAGE = 'send.message',

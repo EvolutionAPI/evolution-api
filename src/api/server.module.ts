@@ -90,7 +90,6 @@ export const instanceController = new InstanceController(
   websocketService,
   rabbitmqService,
   sqsService,
-  typebotService,
   proxyController,
   cache,
   chatwootCache,

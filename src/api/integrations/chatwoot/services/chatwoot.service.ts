@@ -9,6 +9,7 @@ import ChatwootClient, {
 } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import { Chatwoot as ChatwootModel, Contact as ContactModel, Message as MessageModel } from '@prisma/client';
+import { proto } from '@whiskeysockets/baileys';
 import axios from 'axios';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
@@ -105,6 +106,7 @@ export class ChatwootService {
     await this.waMonitor.waInstances[instance.instanceName].setChatwoot(data);
 
     if (data.autoCreate) {
+      this.logger.log('Auto create chatwoot instance');
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       await this.initInstanceChatwoot(
@@ -175,6 +177,7 @@ export class ChatwootService {
 
     let inboxId: number;
 
+    this.logger.log('Creating chatwoot inbox');
     if (!checkDuplicate) {
       const data = {
         type: 'api',
@@ -205,7 +208,9 @@ export class ChatwootService {
 
       inboxId = inbox.id;
     }
+    this.logger.log(`Inox created - inboxId: ${inboxId}`);
 
+    this.logger.log('Creating chatwoot bot contact');
     const contact =
       (await this.findContact(instance, '123456')) ||
       ((await this.createContact(
@@ -223,8 +228,10 @@ export class ChatwootService {
     }
 
     const contactId = contact.id || contact.payload.contact.id;
+    this.logger.log(`Contact created - contactId: ${contactId}`);
 
     if (qrcode) {
+      this.logger.log('QR code enabled');
       const data = {
         contact_id: contactId.toString(),
         inbox_id: inboxId.toString(),
@@ -259,6 +266,7 @@ export class ChatwootService {
         this.logger.warn('conversation not found');
         return null;
       }
+      this.logger.log('Init message sent');
     }
 
     return true;
@@ -700,6 +708,7 @@ export class ChatwootService {
     }[],
     messageBody?: any,
     sourceId?: string,
+    quotedMsg?: MessageModel,
   ) {
     const client = await this.clientCw(instance);
 
@@ -709,6 +718,8 @@ export class ChatwootService {
     }
 
     const replyToIds = await this.getReplyToIds(messageBody, instance);
+
+    const sourceReplyId = quotedMsg?.chatwootMessageId || null;
 
     const message = await client.messages.create({
       accountId: this.provider.accountId,
@@ -722,6 +733,7 @@ export class ChatwootService {
         content_attributes: {
           ...replyToIds,
         },
+        source_reply_id: sourceReplyId ? sourceReplyId.toString() : null,
       },
     });
 
@@ -1039,7 +1051,6 @@ export class ChatwootService {
         return null;
       }
 
-      // invalidate the conversation cache if reopenConversation is false and the conversation was resolved
       if (
         this.provider.reopenConversation === false &&
         body.event === 'conversation_status_changed' &&
@@ -1081,9 +1092,16 @@ export class ChatwootService {
         });
 
         if (message) {
-          await waInstance?.client.sendMessage(message[0].key.remoteJid, { delete: message[0].key });
+          const key = message.key as {
+            id: string;
+            remoteJid: string;
+            fromMe: boolean;
+            participant: string;
+          };
 
-          this.prismaRepository.message.deleteMany({
+          await waInstance?.client.sendMessage(key.remoteJid, { delete: key });
+
+          await this.prismaRepository.message.deleteMany({
             where: {
               instanceId: instance.instanceId,
               chatwootMessageId: body.id,
@@ -1206,7 +1224,7 @@ export class ChatwootService {
                 this.onSendMessageError(instance, body.conversation?.id);
               }
 
-              this.updateChatwootMessageId(
+              await this.updateChatwootMessageId(
                 {
                   ...messageSent,
                   owner: instance.instanceName,
@@ -1239,7 +1257,7 @@ export class ChatwootService {
                 messageSent.messageTimestamp = messageSent.messageTimestamp?.toNumber();
               }
 
-              this.updateChatwootMessageId(
+              await this.updateChatwootMessageId(
                 {
                   ...messageSent,
                   instanceId: instance.instanceId,
@@ -1300,32 +1318,10 @@ export class ChatwootService {
             await this.prismaRepository.message.updateMany({
               where: {
                 instanceId: instance.instanceId,
-                AND: [
-                  {
-                    key: {
-                      path: ['id'],
-                      equals: key.id,
-                    },
-                  },
-                  {
-                    key: {
-                      path: ['remoteJid'],
-                      equals: key.remoteJid,
-                    },
-                  },
-                  {
-                    key: {
-                      path: ['fromMe'],
-                      equals: key.fromMe,
-                    },
-                  },
-                  {
-                    key: {
-                      path: ['participant'],
-                      equals: key.participant,
-                    },
-                  },
-                ],
+                key: {
+                  path: ['id'],
+                  equals: key.id,
+                },
               },
               data: updateMessage,
             });
@@ -1351,7 +1347,11 @@ export class ChatwootService {
     }
   }
 
-  private updateChatwootMessageId(message: MessageModel, chatwootMessageIds: ChatwootMessage, instance: InstanceDto) {
+  private async updateChatwootMessageId(
+    message: MessageModel,
+    chatwootMessageIds: ChatwootMessage,
+    instance: InstanceDto,
+  ) {
     const key = message.key as {
       id: string;
       fromMe: boolean;
@@ -1363,7 +1363,7 @@ export class ChatwootService {
       return;
     }
 
-    this.prismaRepository.message.updateMany({
+    await this.prismaRepository.message.updateMany({
       where: {
         key: {
           path: ['id'],
@@ -1436,8 +1436,8 @@ export class ChatwootService {
 
       if (message && key?.id) {
         return {
-          key: message[0].key,
-          message: message[0].message,
+          key: message.key as proto.IMessageKey,
+          message: message.message as proto.IMessage,
         };
       }
     }
@@ -1732,6 +1732,20 @@ export class ChatwootService {
           return;
         }
 
+        const quotedId = body.contextInfo?.stanzaId || body.message?.contextInfo?.stanzaId;
+
+        let quotedMsg = null;
+
+        if (quotedId)
+          quotedMsg = await this.prismaRepository.message.findFirst({
+            where: {
+              key: {
+                path: ['id'],
+                equals: quotedId,
+              },
+            },
+          });
+
         const isMedia = this.isMediaMessage(body.message);
 
         const adsMessage = this.getAdsMessage(body.message);
@@ -1841,6 +1855,7 @@ export class ChatwootService {
                 message: { extendedTextMessage: { contextInfo: { stanzaId: reactionMessage.key.id } } },
               },
               'WAID:' + body.key.id,
+              quotedMsg,
             );
             if (!send) {
               this.logger.warn('message not sent');
@@ -1919,6 +1934,7 @@ export class ChatwootService {
             [],
             body,
             'WAID:' + body.key.id,
+            quotedMsg,
           );
 
           if (!send) {
@@ -1937,6 +1953,7 @@ export class ChatwootService {
             [],
             body,
             'WAID:' + body.key.id,
+            quotedMsg,
           );
 
           if (!send) {
@@ -1950,6 +1967,9 @@ export class ChatwootService {
 
       if (event === Events.MESSAGES_DELETE) {
         const chatwootDelete = this.configService.get<Chatwoot>('CHATWOOT').MESSAGE_DELETE;
+
+        console.log('chatwootDelete', chatwootDelete);
+
         if (chatwootDelete === true) {
           if (!body?.key?.id) {
             this.logger.warn('message id not found');
@@ -1957,8 +1977,10 @@ export class ChatwootService {
           }
 
           const message = await this.getMessageByKeyId(instance, body.key.id);
+          console.log('message', message);
+
           if (message?.chatwootMessageId && message?.chatwootConversationId) {
-            this.prismaRepository.message.deleteMany({
+            await this.prismaRepository.message.deleteMany({
               where: {
                 key: {
                   path: ['id'],
@@ -2003,6 +2025,7 @@ export class ChatwootService {
               message: { extendedTextMessage: { contextInfo: { stanzaId: key.id } } },
             },
             'WAID:' + body.key.id,
+            null,
           );
           if (!send) {
             this.logger.warn('edited message not sent');
@@ -2194,12 +2217,16 @@ export class ChatwootService {
         limitContacts,
       );
 
+      const contactIdentifiers = recentContacts
+        .map((contact) => contact.identifier)
+        .filter((identifier) => identifier !== null);
+
       const contactsWithProfilePicture = (
         await this.prismaRepository.contact.findMany({
           where: {
             instanceId: instance.instanceId,
             id: {
-              in: recentContacts.map((contact) => contact.identifier),
+              in: contactIdentifiers,
             },
             profilePicUrl: {
               not: null,

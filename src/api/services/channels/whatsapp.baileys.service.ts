@@ -1054,15 +1054,18 @@ export class BaileysStartupService extends ChannelStartupService {
     ) => {
       try {
         for (const received of messages) {
-          if (
-            this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-            this.localChatwoot.enabled &&
-            (received.message?.protocolMessage?.editedMessage || received.message?.editedMessage?.message)
-          ) {
+          if (received.message?.protocolMessage?.editedMessage || received.message?.editedMessage?.message) {
             const editedMessage =
               received.message?.protocolMessage || received.message?.editedMessage?.message?.protocolMessage;
             if (editedMessage) {
-              this.chatwootService.eventWhatsapp('messages.edit', { instanceName: this.instance.name }, editedMessage);
+              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled)
+                this.chatwootService.eventWhatsapp(
+                  'messages.edit',
+                  { instanceName: this.instance.name },
+                  editedMessage,
+                );
+
+              await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
             }
           }
 
@@ -1169,11 +1172,9 @@ export class BaileysStartupService extends ChannelStartupService {
             );
 
             if (chatwootSentMessage?.id) {
-              messageRaw.chatwoot = {
-                messageId: chatwootSentMessage.id,
-                inboxId: chatwootSentMessage.inbox_id,
-                conversationId: chatwootSentMessage.conversation_id,
-              };
+              messageRaw.chatwootMessageId = chatwootSentMessage.id;
+              messageRaw.chatwootInboxId = chatwootSentMessage.inbox_id;
+              messageRaw.chatwootConversationId = chatwootSentMessage.conversation_id;
             }
           }
 

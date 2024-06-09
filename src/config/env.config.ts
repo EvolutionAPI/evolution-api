@@ -78,6 +78,7 @@ export type EventsRabbitmq = {
   QRCODE_UPDATED: boolean;
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
+  MESSAGES_EDITED: boolean;
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
@@ -135,6 +136,7 @@ export type EventsWebhook = {
   QRCODE_UPDATED: boolean;
   MESSAGES_SET: boolean;
   MESSAGES_UPSERT: boolean;
+  MESSAGES_EDITED: boolean;
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
@@ -324,6 +326,7 @@ export class ConfigService {
           QRCODE_UPDATED: process.env?.RABBITMQ_EVENTS_QRCODE_UPDATED === 'true',
           MESSAGES_SET: process.env?.RABBITMQ_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.RABBITMQ_EVENTS_MESSAGES_UPSERT === 'true',
+          MESSAGES_EDITED: process.env?.RABBITMQ_EVENTS_MESSAGES_EDITED === 'true',
           MESSAGES_UPDATE: process.env?.RABBITMQ_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.RABBITMQ_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.RABBITMQ_EVENTS_SEND_MESSAGE === 'true',
@@ -397,6 +400,7 @@ export class ConfigService {
           QRCODE_UPDATED: process.env?.WEBHOOK_EVENTS_QRCODE_UPDATED === 'true',
           MESSAGES_SET: process.env?.WEBHOOK_EVENTS_MESSAGES_SET === 'true',
           MESSAGES_UPSERT: process.env?.WEBHOOK_EVENTS_MESSAGES_UPSERT === 'true',
+          MESSAGES_EDITED: process.env?.WEBHOOK_EVENTS_MESSAGES_EDITED === 'true',
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.WEBHOOK_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
@@ -436,8 +440,8 @@ export class ConfigService {
       },
       CHATWOOT: {
         ENABLED: process.env?.CHATWOOT_ENABLED === 'true',
-        MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'false',
-        MESSAGE_READ: process.env.CHATWOOT_MESSAGE_READ === 'false',
+        MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'true',
+        MESSAGE_READ: process.env.CHATWOOT_MESSAGE_READ === 'true',
         IMPORT: {
           DATABASE: {
             CONNECTION: {
