@@ -1,4 +1,4 @@
-FROM node:20-bullseye-slim AS base
+FROM node:20.7.0-alpine AS base
 
 RUN apt-get update -y
 RUN apt-get upgrade -y
