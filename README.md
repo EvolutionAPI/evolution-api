@@ -85,12 +85,12 @@ Run one of the commands below for the non-existence of a database.
   - **MySQL or MariaDB**:
 
     ```sh
-    npx prisma migrate dev --name init --schema ./prisma/mysql-schema.prisma
+    npm run db:migrate:mysql
     ```
 
   - **PostgreSQL**:
     ```sh
-    npx prisma migrate dev --name init --schema ./prisma/postgresql-schema.prisma
+    npm run db:migrate:postgres
     ```
 
 #### Deploying
@@ -101,15 +101,15 @@ For existing relational databases such as PostgreSQL, MySQL, or MariaDB, the set
 
 1. **Setting the Environment Variable**: Initially, it's imperative to define the `DATABASE_PROVIDER` environment variable in alignment with your relational database type. Use `postgresql` for PostgreSQL, and `mysql` for MySQL or MariaDB. This configuration is crucial as it directs the Prisma ORM regarding the specific relational database in use.
 
-2. **Deploying Schema Changes**: Following this, execute the `npx prisma migrate deploy --schema ./prisma/postgresql-schema.prisma` command. This command serves as a shortcut for the `prisma deploy` command, whose main role is to examine the current schema of the relational database and implement necessary modifications. A key feature of this command is its ability to update the database schema without affecting the existing data. This ensures that your current data remains intact while the database schema is updated to meet the latest requirements of the application.
+2. **Deploying Schema Changes**: Following this, execute the `npm run db:migrate:postgres` command. This command serves as a shortcut for the `prisma deploy` command, whose main role is to examine the current schema of the relational database and implement necessary modifications. A key feature of this command is its ability to update the database schema without affecting the existing data. This ensures that your current data remains intact while the database schema is updated to meet the latest requirements of the application.
 
 #### Prisma Studio
 
 - **View your data**
   ```sh
-  npx prisma studio --schema ./prisma/mysql-schema.prisma
+  npm run db:studio:mysql
   # or
-  npx prisma studio --schema ./prisma/postgresql-schema.prisma
+  npm run db:studio:postgres
   ```
 
 This will sync your data models to your database, creating tables as needed.

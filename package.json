@@ -11,7 +11,9 @@
     "test": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src",
     "db:migrate:postgres": "npx prisma migrate dev --name init --schema ./prisma/postgresql-schema.prisma",
-    "db:migrate:mysql": "npx prisma migrate dev --name init --schema ./prisma/mysql-schema.prisma"
+    "db:migrate:mysql": "npx prisma migrate dev --name init --schema ./prisma/mysql-schema.prisma",
+    "db:studio:postgres": "npx prisma studio --schema ./prisma/postgresql-schema.prisma",
+    "db:studio:mysql": "npx prisma studio --schema ./prisma/mysql-schema.prisma"
   },
   "repository": {
     "type": "git",
