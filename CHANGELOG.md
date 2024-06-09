@@ -6,6 +6,7 @@
 * Added chatwoot integration activation
 * Added typebot integration activation
 * Now you can register several typebots with triggers
+* Media sent to typebot now goes as a template string, example: imageMessage:MESSAGE_ID
 
 ### Fixed
 
