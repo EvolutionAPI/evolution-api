@@ -1,9 +1,9 @@
 FROM node:20.7.0-alpine AS base
 
-RUN apt-get update -y
-RUN apt-get upgrade -y
+RUN apk update && apk add git
 
-RUN apt-get install -y git tzdata ffmpeg wget curl
+RUN apk update && apk upgrade && \
+    apk add --no-cache git tzdata ffmpeg wget curl
 
 RUN npm i -g npm@latest
 
