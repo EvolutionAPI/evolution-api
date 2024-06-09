@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./scripts/env_functions.sh
+source ./Docker/scripts/env_functions.sh
 
 if [ "$DOCKER_ENV" != "true" ]; then
     export_env_vars

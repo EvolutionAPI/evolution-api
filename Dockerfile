@@ -27,11 +27,11 @@ COPY ./.env.example ./.env
 
 COPY ./Docker ./Docker
 
-RUN chmod +x ./Docker/deploy_database.sh
+RUN chmod +x ./Docker/scripts/*
 
 ENV DATABASE_CONNECTION_URI=postgres://postgres:pass@localhost/evolution
 
-RUN ./Docker/deploy_database.sh
+RUN ./Docker/scripts/deploy_database.sh
 
 RUN npm run build
 
