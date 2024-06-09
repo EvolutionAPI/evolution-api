@@ -2,6 +2,7 @@
 
 ### Feature
 * New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
+* Correction of variables breaking lines in typebot
 
 # 1.8.0 (2024-05-27 16:10)
 
