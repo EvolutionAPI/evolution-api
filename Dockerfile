@@ -1,11 +1,8 @@
 FROM node:20-bullseye-slim AS base
 
-RUN apt-get update -y
-RUN apt-get upgrade -y
-
-RUN apt-get install -y git tzdata ffmpeg wget curl
-
-RUN npm i -g npm@latest
+RUN apt-get update -y && apt-get upgrade -y && \
+    apt-get install -y git tzdata ffmpeg wget curl && \
+    npm i -g npm@latest
 
 FROM base AS builder
 
