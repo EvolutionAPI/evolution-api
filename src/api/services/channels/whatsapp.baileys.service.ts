@@ -54,6 +54,7 @@ import P from 'pino';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
+import { PassThrough } from 'stream';
 
 import { CacheEngine } from '../../../cache/cacheengine';
 import {
@@ -2361,17 +2362,14 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
-  public async processAudio(audio: string, number: string) {
-    let tempAudioPath: string;
-    let outputAudio: string;
-
+  public async processAudio(audio: string, number: string): Promise<string> {
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
+    const outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+
+    let inputAudioStream: PassThrough;
 
     if (isURL(audio)) {
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
-      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
-
       const timestamp = new Date().getTime();
       const url = `${audio}?timestamp=${timestamp}`;
 
@@ -2380,41 +2378,28 @@ export class BaileysStartupService extends ChannelStartupService {
       };
 
       const response = await axios.get(url, config);
-
-      const writer = fs.createWriteStream(tempAudioPath);
-
-      response.data.pipe(writer);
-
-      await new Promise((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-      });
+      inputAudioStream = response.data.pipe(new PassThrough());
     } else {
-      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
-      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
-
       const audioBuffer = Buffer.from(audio, 'base64');
-      await fs.promises.writeFile(tempAudioPath, audioBuffer);
+      inputAudioStream = new PassThrough();
+      inputAudioStream.end(audioBuffer);
     }
 
     return new Promise((resolve, reject) => {
       ffmpeg.setFfmpegPath(ffmpegPath.path);
 
-      ffmpeg()
-        .input(tempAudioPath)
+      ffmpeg(inputAudioStream)
         .outputFormat('ogg')
         .noVideo()
         .audioCodec('libopus')
         .saveToFile(outputAudio)
         .addOutputOptions('-avoid_negative_ts make_zero')
         .audioChannels(1)
-        .on('error', async function (error) {
+        .on('error', function (error) {
           console.log('error', error);
-          // await fs.promises.unlink(tempAudioPath);
-          if (error) reject(error);
+          reject(error);
         })
-        .on('end', async function () {
-          // await fs.promises.unlink(tempAudioPath);
+        .on('end', function () {
           resolve(outputAudio);
         })
         .run();
