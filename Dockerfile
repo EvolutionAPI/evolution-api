@@ -1,10 +1,7 @@
-FROM node:20-bullseye-slim AS base
+FROM node:20-alpine AS builder
 
-RUN apt-get update -y && apt-get upgrade -y && \
-    apt-get install -y git tzdata ffmpeg wget curl && \
-    npm i -g npm@latest
-
-FROM base AS builder
+RUN apk update && \
+    apk add git ffmpeg wget curl bash
 
 LABEL version="2.0.0" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
@@ -24,13 +21,16 @@ COPY ./.env.example ./.env
 
 COPY ./Docker ./Docker
 
-RUN chmod +x ./Docker/scripts/*
+RUN chmod +x ./Docker/scripts/* && dos2unix ./Docker/scripts/*
 
 RUN ./Docker/scripts/generate_database.sh
 
 RUN npm run build
 
-FROM base AS final
+FROM node:20-alpine AS final
+
+RUN apk update && \
+    apk add tzdata ffmpeg
 
 ENV TZ=America/Sao_Paulo
 
