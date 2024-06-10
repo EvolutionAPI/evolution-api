@@ -63,7 +63,7 @@ export class WAMonitoringService {
     }
   }
 
-  public async instanceInfo(instanceName?: string, arrayReturn = false) {
+  public async instanceInfo(instanceName?: string): Promise<any> {
     if (instanceName && !this.waInstances[instanceName]) {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }

@@ -510,7 +510,7 @@ export class InstanceController {
     const env = this.configService.get<Auth>('AUTHENTICATION').API_KEY;
 
     let name = instanceName;
-    let arrayReturn = false;
+    // let arrayReturn = false;
 
     if (env.KEY !== key) {
       const instanceByKey = await this.prismaRepository.instance.findUnique({
@@ -521,14 +521,14 @@ export class InstanceController {
 
       if (instanceByKey) {
         name = instanceByKey.name;
-        arrayReturn = true;
+        // arrayReturn = true;
       } else {
         throw new UnauthorizedException();
       }
     }
 
     if (name) {
-      return this.waMonitor.instanceInfo(name, arrayReturn);
+      return this.waMonitor.instanceInfo(name);
     } else if (instanceId || number) {
       return this.waMonitor.instanceInfoById(instanceId, number);
     }

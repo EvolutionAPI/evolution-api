@@ -50,6 +50,7 @@ model Instance {
   name             String                   @unique @db.VarChar(255)
   connectionStatus InstanceConnectionStatus @default(open)
   ownerJid         String?                  @db.VarChar(100)
+  profileName      String?                  @db.VarChar(100)
   profilePicUrl    String?                  @db.VarChar(500)
   integration      String?                  @db.VarChar(100)
   number           String?                  @db.VarChar(100)

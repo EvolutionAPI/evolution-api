@@ -1,5 +1,6 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
+import { Instance } from '@prisma/client';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -419,6 +420,7 @@ export class BaileysStartupService extends ChannelStartupService {
           where: { id: this.instanceId },
           data: {
             ownerJid: this.instance.wuid,
+            profileName: (await this.getProfileName()) as string,
             profilePicUrl: this.instance.profilePictureUrl,
             connectionStatus: 'open',
           },
@@ -1650,15 +1652,15 @@ export class BaileysStartupService extends ChannelStartupService {
           website: business?.website?.shift(),
         };
       } else {
-        const info = await waMonitor.instanceInfo(instanceName);
+        const info: Instance = await waMonitor.instanceInfo(instanceName);
         const business = await this.fetchBusinessProfile(jid);
 
         return {
           wuid: jid,
-          // name: info?.instance?.profileName,
+          name: info?.profileName,
           numberExists: true,
-          // picture: info?.instance?.profilePictureUrl,
-          // status: info?.instance?.profileStatus,
+          picture: info?.profilePicUrl,
+          status: info?.connectionStatus,
           isBusiness: business.isBusiness,
           email: business?.email,
           description: business?.description,
