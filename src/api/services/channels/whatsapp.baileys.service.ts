@@ -40,6 +40,8 @@ import axios from 'axios';
 import { exec } from 'child_process';
 import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
+// import { exec } from 'child_process';
+import ffmpeg from 'fluent-ffmpeg';
 // import ffmpeg from 'fluent-ffmpeg';
 import fs, { existsSync, readFileSync } from 'fs';
 import Long from 'long';
@@ -2097,6 +2099,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
       };
     }
+
     if (status.type === 'video') {
       return {
         content: {
@@ -2110,8 +2113,9 @@ export class BaileysStartupService extends ChannelStartupService {
         },
       };
     }
+
     if (status.type === 'audio') {
-      const convert = await this.processAudio(status.content, 'status@broadcast');
+      const convert = await this.processAudioMp4(status.content, 'status@broadcast');
       if (typeof convert === 'string') {
         const audio = fs.readFileSync(convert).toString('base64');
 
@@ -2119,7 +2123,7 @@ export class BaileysStartupService extends ChannelStartupService {
           content: {
             audio: Buffer.from(audio, 'base64'),
             ptt: true,
-            mimetype: 'audio/mp4',
+            mimetype: 'audio/ogg; codecs=opus',
           },
           option: {
             statusJidList: status.statusJidList,
@@ -2319,7 +2323,7 @@ export class BaileysStartupService extends ChannelStartupService {
     );
   }
 
-  public async processAudio(audio: string, number: string) {
+  public async processAudioMp4(audio: string, number: string) {
     let tempAudioPath: string;
     let outputAudio: string;
 
@@ -2355,6 +2359,66 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
+  public async processAudio(audio: string, number: string) {
+    let tempAudioPath: string;
+    let outputAudio: string;
+
+    number = number.replace(/\D/g, '');
+    const hash = `${number}-${new Date().getTime()}`;
+
+    if (isURL(audio)) {
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+      const timestamp = new Date().getTime();
+      const url = `${audio}?timestamp=${timestamp}`;
+
+      const config: any = {
+        responseType: 'stream',
+      };
+
+      const response = await axios.get(url, config);
+
+      const writer = fs.createWriteStream(tempAudioPath);
+
+      response.data.pipe(writer);
+
+      await new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+      });
+    } else {
+      outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
+      tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
+
+      const audioBuffer = Buffer.from(audio, 'base64');
+      await fs.promises.writeFile(tempAudioPath, audioBuffer);
+    }
+
+    return new Promise((resolve, reject) => {
+      ffmpeg.setFfmpegPath(ffmpegPath.path);
+
+      ffmpeg()
+        .input(tempAudioPath)
+        .outputFormat('ogg')
+        .noVideo()
+        .audioCodec('libopus')
+        .saveToFile(outputAudio)
+        .addOutputOptions('-avoid_negative_ts make_zero')
+        .audioChannels(1)
+        .on('error', async function (error) {
+          console.log('error', error);
+          await fs.promises.unlink(tempAudioPath);
+          if (error) reject(error);
+        })
+        .on('end', async function () {
+          await fs.promises.unlink(tempAudioPath);
+          resolve(outputAudio);
+        })
+        .run();
+    });
+  }
+
   public async audioWhatsapp(data: SendAudioDto, isIntegration = false) {
     if (!data?.encoding && data?.encoding !== false) {
       data.encoding = true;
@@ -2369,7 +2433,7 @@ export class BaileysStartupService extends ChannelStartupService {
           {
             audio: Buffer.from(audio, 'base64'),
             ptt: true,
-            mimetype: 'audio/mp4',
+            mimetype: 'audio/ogg; codecs=opus',
           },
           { presence: 'recording', delay: data?.delay },
           isIntegration,
@@ -2799,7 +2863,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       if (convertToMp4 && typeMessage === 'audioMessage') {
         const number = msg.key.remoteJid.split('@')[0];
-        const convert = await this.processAudio(buffer.toString('base64'), number);
+        const convert = await this.processAudioMp4(buffer.toString('base64'), number);
 
         if (typeof convert === 'string') {
           const audio = fs.readFileSync(convert).toString('base64');
