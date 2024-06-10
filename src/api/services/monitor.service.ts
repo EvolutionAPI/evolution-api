@@ -70,7 +70,7 @@ export class WAMonitoringService {
 
     // const instances: any[] = [];
 
-    return await this.prismaRepository.instance.findMany({
+    const instances = await this.prismaRepository.instance.findMany({
       include: {
         Chatwoot: true,
         Proxy: true,
@@ -80,6 +80,9 @@ export class WAMonitoringService {
         Setting: true,
       },
     });
+
+    return instances;
+
     // for await (const [key, value] of Object.entries(this.waInstances)) {
     //   if (value) {
     //     let chatwoot: any;

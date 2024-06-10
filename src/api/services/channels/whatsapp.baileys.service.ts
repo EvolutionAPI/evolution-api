@@ -1655,10 +1655,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
         return {
           wuid: jid,
-          name: info?.instance?.profileName,
+          // name: info?.instance?.profileName,
           numberExists: true,
-          picture: info?.instance?.profilePictureUrl,
-          status: info?.instance?.profileStatus,
+          // picture: info?.instance?.profilePictureUrl,
+          // status: info?.instance?.profileStatus,
           isBusiness: business.isBusiness,
           email: business?.email,
           description: business?.description,
