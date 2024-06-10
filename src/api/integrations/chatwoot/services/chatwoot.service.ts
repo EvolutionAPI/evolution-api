@@ -835,6 +835,7 @@ export class ChatwootService {
     instance?: InstanceDto,
     messageBody?: any,
     sourceId?: string,
+    quotedMsg?: MessageModel,
   ) {
     const data = new FormData();
 
@@ -846,6 +847,8 @@ export class ChatwootService {
 
     data.append('attachments[]', createReadStream(file));
 
+    const sourceReplyId = quotedMsg?.chatwootMessageId || null;
+
     if (messageBody && instance) {
       const replyToIds = await this.getReplyToIds(messageBody, instance);
 
@@ -854,6 +857,10 @@ export class ChatwootService {
           ...replyToIds,
         });
       }
+    }
+
+    if (sourceReplyId) {
+      data.append('source_reply_id', sourceReplyId.toString());
     }
 
     if (sourceId) {
@@ -1820,6 +1827,7 @@ export class ChatwootService {
               instance,
               body,
               'WAID:' + body.key.id,
+              quotedMsg,
             );
 
             if (!send) {
@@ -1837,6 +1845,7 @@ export class ChatwootService {
               instance,
               body,
               'WAID:' + body.key.id,
+              quotedMsg,
             );
 
             if (!send) {

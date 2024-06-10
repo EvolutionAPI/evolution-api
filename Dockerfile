@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 
 RUN apk update && \
-    apk add git ffmpeg wget curl bash
+    apk add git bash --no-cache
 
 LABEL version="2.0.0" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
@@ -30,7 +30,7 @@ RUN npm run build
 FROM node:20-alpine AS final
 
 RUN apk update && \
-    apk add tzdata ffmpeg
+    apk add tzdata ffmpeg --no-cache
 
 ENV TZ=America/Sao_Paulo
 
