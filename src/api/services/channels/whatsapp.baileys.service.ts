@@ -2410,11 +2410,11 @@ export class BaileysStartupService extends ChannelStartupService {
         .audioChannels(1)
         .on('error', async function (error) {
           console.log('error', error);
-          await fs.promises.unlink(tempAudioPath);
+          // await fs.promises.unlink(tempAudioPath);
           if (error) reject(error);
         })
         .on('end', async function () {
-          await fs.promises.unlink(tempAudioPath);
+          // await fs.promises.unlink(tempAudioPath);
           resolve(outputAudio);
         })
         .run();
