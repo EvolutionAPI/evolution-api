@@ -2362,11 +2362,7 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
-  public async processAudio(audio: string, number: string): Promise<string> {
-    number = number.replace(/\D/g, '');
-    const hash = `${number}-${new Date().getTime()}`;
-    const outputAudio = `${join(this.storePath, 'temp', `${hash}.ogg`)}`;
-
+  public async processAudio(audio: string): Promise<Buffer> {
     let inputAudioStream: PassThrough;
 
     if (isURL(audio)) {
@@ -2386,23 +2382,33 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     return new Promise((resolve, reject) => {
+      const outputAudioStream = new PassThrough();
+      const chunks: Buffer[] = [];
+
+      outputAudioStream.on('data', (chunk) => chunks.push(chunk));
+      outputAudioStream.on('end', () => {
+        const outputBuffer = Buffer.concat(chunks);
+        resolve(outputBuffer);
+      });
+
+      outputAudioStream.on('error', (error) => {
+        console.log('error', error);
+        reject(error);
+      });
+
       ffmpeg.setFfmpegPath(ffmpegPath.path);
 
       ffmpeg(inputAudioStream)
         .outputFormat('ogg')
         .noVideo()
         .audioCodec('libopus')
-        .saveToFile(outputAudio)
         .addOutputOptions('-avoid_negative_ts make_zero')
         .audioChannels(1)
+        .pipe(outputAudioStream, { end: true })
         .on('error', function (error) {
           console.log('error', error);
           reject(error);
-        })
-        .on('end', function () {
-          resolve(outputAudio);
-        })
-        .run();
+        });
     });
   }
 
@@ -2412,13 +2418,13 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (data?.encoding) {
-      const convert = await this.processAudio(data.audio, data.number);
-      if (typeof convert === 'string') {
-        const audio = fs.readFileSync(convert).toString('base64');
+      const convert = await this.processAudio(data.audio);
+
+      if (Buffer.isBuffer(convert)) {
         const result = this.sendMessageWithTyping<AnyMessageContent>(
           data.number,
           {
-            audio: Buffer.from(audio, 'base64'),
+            audio: convert,
             ptt: true,
             mimetype: 'audio/ogg; codecs=opus',
           },
@@ -2426,11 +2432,9 @@ export class BaileysStartupService extends ChannelStartupService {
           isIntegration,
         );
 
-        fs.unlinkSync(convert);
-
         return result;
       } else {
-        throw new InternalServerErrorException(convert);
+        throw new InternalServerErrorException('Failed to convert audio');
       }
     }
 
