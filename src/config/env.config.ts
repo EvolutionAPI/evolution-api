@@ -176,7 +176,7 @@ export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
 export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string; VERSION: string };
 export type QrCode = { LIMIT: number; COLOR: string };
-export type Typebot = { ENABLED: boolean; API_VERSION: string };
+export type Typebot = { ENABLED: boolean; API_VERSION: string; SEND_MEDIA_BASE64: boolean };
 export type Chatwoot = {
   ENABLED: boolean;
   MESSAGE_DELETE: boolean;
@@ -403,6 +403,7 @@ export class ConfigService {
       TYPEBOT: {
         ENABLED: process.env?.TYPEBOT_ENABLED === 'true',
         API_VERSION: process.env?.TYPEBOT_API_VERSION || 'old',
+        SEND_MEDIA_BASE64: process.env?.TYPEBOT_SEND_MEDIA_BASE64 === 'true',
       },
       CHATWOOT: {
         ENABLED: process.env?.CHATWOOT_ENABLED === 'true',

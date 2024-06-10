@@ -1,7 +1,7 @@
 import { Message, TypebotSession } from '@prisma/client';
 import axios from 'axios';
 
-import { Auth, ConfigService, Typebot } from '../../../../config/env.config';
+import { ConfigService, Typebot } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
@@ -484,25 +484,35 @@ export class TypebotService {
       const remoteJid = data.remoteJid;
       const status = data.status;
 
-      const session = await this.prismaRepository.typebotSession.updateMany({
-        where: {
-          instanceId: instanceId,
+      if (status === 'closed') {
+        await this.prismaRepository.typebotSession.deleteMany({
+          where: {
+            remoteJid: remoteJid,
+          },
+        });
+
+        return { typebot: { ...instance, typebot: { remoteJid: remoteJid, status: status } } };
+      } else {
+        const session = await this.prismaRepository.typebotSession.updateMany({
+          where: {
+            instanceId: instanceId,
+            remoteJid: remoteJid,
+          },
+          data: {
+            status: status,
+          },
+        });
+
+        const typebotData = {
           remoteJid: remoteJid,
-        },
-        data: {
           status: status,
-        },
-      });
+          session,
+        };
 
-      const typebotData = {
-        remoteJid: remoteJid,
-        status: status,
-        session,
-      };
+        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);
 
-      this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);
-
-      return { typebot: { ...instance, typebot: typebotData } };
+        return { typebot: { ...instance, typebot: typebotData } };
+      }
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error changing status');
@@ -568,9 +578,6 @@ export class TypebotService {
       remoteJid: remoteJid,
       instanceName: instance.instanceName,
     };
-
-    if (this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES)
-      prefilledVariables['token'] = instance.token;
 
     if (variables?.length) {
       variables.forEach((variable: { name: string | number; value: string }) => {

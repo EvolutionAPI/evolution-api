@@ -1120,7 +1120,11 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contentMsg = received?.message[getContentType(received.message)] as any;
 
-          if (this.localWebhook.webhookBase64 === true && isMedia) {
+          if (
+            this.localWebhook.webhookBase64 === true ||
+            (this.configService.get<Typebot>('TYPEBOT').SEND_MEDIA_BASE64 && isMedia)
+          ) {
+            console.log('Download media');
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
               'buffer',
