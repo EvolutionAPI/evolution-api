@@ -3,16 +3,7 @@ import EventEmitter2 from 'eventemitter2';
 import { opendirSync, readdirSync, rmSync } from 'fs';
 import { join } from 'path';
 
-import {
-  Auth,
-  CacheConf,
-  Chatwoot,
-  ConfigService,
-  Database,
-  DelInstance,
-  HttpServer,
-  ProviderSession,
-} from '../../config/env.config';
+import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
 import { NotFoundException } from '../../exceptions';
@@ -77,92 +68,102 @@ export class WAMonitoringService {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
 
-    const instances: any[] = [];
+    // const instances: any[] = [];
 
-    for await (const [key, value] of Object.entries(this.waInstances)) {
-      if (value) {
-        let chatwoot: any;
-        const urlServer = this.configService.get<HttpServer>('SERVER').URL;
+    return await this.prismaRepository.instance.findMany({
+      include: {
+        Chatwoot: true,
+        Proxy: true,
+        Rabbitmq: true,
+        Sqs: true,
+        Websocket: true,
+        Setting: true,
+      },
+    });
+    // for await (const [key, value] of Object.entries(this.waInstances)) {
+    //   if (value) {
+    //     let chatwoot: any;
+    //     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
-          const findChatwoot = await this.waInstances[key].findChatwoot();
+    //     if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+    //       const findChatwoot = await this.waInstances[key].findChatwoot();
 
-          if (findChatwoot && findChatwoot.enabled) {
-            chatwoot = {
-              ...findChatwoot,
-              webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
-            };
-          }
-        }
+    //       if (findChatwoot && findChatwoot.enabled) {
+    //         chatwoot = {
+    //           ...findChatwoot,
+    //           webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
+    //         };
+    //       }
+    //     }
 
-        const findIntegration = {
-          integration: this.waInstances[key].integration,
-          token: this.waInstances[key].token,
-          number: this.waInstances[key].number,
-        };
+    //     const findIntegration = {
+    //       integration: this.waInstances[key].integration,
+    //       token: this.waInstances[key].token,
+    //       number: this.waInstances[key].number,
+    //     };
 
-        let integration: any;
-        if (this.waInstances[key].integration === Integration.WHATSAPP_BUSINESS) {
-          integration = {
-            ...findIntegration,
-            webhookWaBusiness: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
-          };
-        }
+    //     let integration: any;
+    //     if (this.waInstances[key].integration === Integration.WHATSAPP_BUSINESS) {
+    //       integration = {
+    //         ...findIntegration,
+    //         webhookWaBusiness: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
+    //       };
+    //     }
 
-        const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
+    //     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
 
-        if (value.connectionStatus.state === 'open') {
-          const instanceData = {
-            instance: {
-              instanceName: key,
-              instanceId: this.waInstances[key].instanceId,
-              owner: value.wuid,
-              profileName: (await value.getProfileName()) || 'not loaded',
-              profilePictureUrl: value.profilePictureUrl,
-              profileStatus: (await value.getProfileStatus()) || '',
-              status: value.connectionStatus.state,
-            },
-          };
+    //     if (value.connectionStatus.state === 'open') {
+    //       const instanceData = {
+    //         instance: {
+    //           instanceName: key,
+    //           instanceId: this.waInstances[key].instanceId,
+    //           owner: value.wuid,
+    //           profileName: (await value.getProfileName()) || 'not loaded',
+    //           profilePictureUrl: value.profilePictureUrl,
+    //           profileStatus: (await value.getProfileStatus()) || '',
+    //           status: value.connectionStatus.state,
+    //         },
+    //       };
 
-          if (expose) {
-            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
+    //       if (expose) {
+    //         instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['token'] = this.waInstances[key].token;
+    //         instanceData.instance['token'] = this.waInstances[key].token;
 
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
+    //         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
 
-            instanceData.instance['integration'] = integration;
-          }
+    //         instanceData.instance['integration'] = integration;
+    //       }
 
-          instances.push(instanceData);
-        } else {
-          const instanceData = {
-            instance: {
-              instanceName: key,
-              instanceId: this.waInstances[key].instanceId,
-              status: value.connectionStatus.state,
-            },
-          };
+    //       instances.push(instanceData);
+    //     } else {
+    //       const instanceData = {
+    //         instance: {
+    //           instanceName: key,
+    //           instanceId: this.waInstances[key].instanceId,
+    //           status: value.connectionStatus.state,
+    //         },
+    //       };
 
-          if (expose) {
-            instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
+    //       if (expose) {
+    //         instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
 
-            instanceData.instance['token'] = this.waInstances[key].token;
+    //         instanceData.instance['token'] = this.waInstances[key].token;
 
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
+    //         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
 
-            instanceData.instance['integration'] = integration;
-          }
+    //         instanceData.instance['integration'] = integration;
+    //       }
 
-          instances.push(instanceData);
-        }
-      }
-    }
+    //       instances.push(instanceData);
+    //     }
+    //   }
+    // }
 
-    if (arrayReturn) {
-      return [instances.find((i) => i.instance.instanceName === instanceName) ?? instances];
-    }
-    return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
+    // if (arrayReturn) {
+    //   return [instances.find((i) => i.instance.instanceName === instanceName) ?? instances];
+    // }
+    // return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
   }
 
   public async instanceInfoById(instanceId?: string, number?: string) {
