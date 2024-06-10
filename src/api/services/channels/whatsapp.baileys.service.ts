@@ -442,7 +442,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async getMessage(key: proto.IMessageKey, full = false) {
     try {
-      const webMessageInfo = (await this.prismaRepository.message.findFirst({
+      const webMessageInfo = (await this.prismaRepository.message.findMany({
         where: {
           instanceId: this.instanceId,
           key: {
