@@ -30,7 +30,7 @@ RUN npm run build
 FROM node:20-alpine AS final
 
 RUN apk update && \
-    apk add tzdata ffmpeg
+    apk add tzdata ffmpeg bash
 
 ENV TZ=America/Sao_Paulo
 
