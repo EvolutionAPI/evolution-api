@@ -32,9 +32,6 @@ docker-compose.yaml
 !.vscode/extensions.json
 .nova/*
 
-# Prisma
-/prisma/migrations
-
 # Project related
 /instances/*
 !/instances/.gitkeep
