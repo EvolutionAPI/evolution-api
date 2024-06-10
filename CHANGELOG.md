@@ -14,6 +14,7 @@
 * Optimization in instance registration
 * Now in typebot we wait until the terminal block to accept the user's message, if it arrives before the block is sent, it is ignored
 * Correction of audio sending, now we can speed it up and have the audio wireframe
+* Reply with media message on Chatwoot
 
 ### Break changes
 
