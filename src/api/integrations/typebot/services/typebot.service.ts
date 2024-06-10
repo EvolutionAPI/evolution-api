@@ -719,10 +719,13 @@ export class TypebotService {
       listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       // Medias
-      audioMessage: `audioMessage:${msg?.key?.id}`,
-      imageMessage: `imageMessage:${msg?.key?.id}`,
-      videoMessage: `videoMessage:${msg?.key?.id}`,
-      documentMessage: `documentMessage:${msg?.key?.id}`,
+      audioMessage: msg?.message?.audioMessage ? `audioMessage:${msg?.key?.id}` : undefined,
+      imageMessage: msg?.message?.imageMessage ? `imageMessage:${msg?.key?.id}` : undefined,
+      videoMessage: msg?.message?.videoMessage ? `videoMessage:${msg?.key?.id}` : undefined,
+      documentMessage: msg?.message?.documentMessage ? `documentMessage:${msg?.key?.id}` : undefined,
+      documentWithCaptionMessage: msg?.message?.auddocumentWithCaptionMessageioMessage
+        ? `documentWithCaptionMessage:${msg?.key?.id}`
+        : undefined,
     };
 
     const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';

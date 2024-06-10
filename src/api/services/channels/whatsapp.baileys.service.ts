@@ -1173,6 +1173,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
+          await this.prismaRepository.message.create({
+            data: messageRaw,
+          });
+
           if (
             this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
             this.localChatwoot.enabled &&
@@ -1201,10 +1205,6 @@ export class BaileysStartupService extends ChannelStartupService {
                 );
             }
           }
-
-          await this.prismaRepository.message.create({
-            data: messageRaw,
-          });
 
           const contact = await this.prismaRepository.contact.findFirst({
             where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
