@@ -701,16 +701,16 @@ export class TypebotService {
 
   private getTypeMessage(msg: any) {
     const types = {
-      conversation: msg.conversation,
-      extendedTextMessage: msg.extendedTextMessage?.text,
-      contactMessage: msg.contactMessage?.displayName,
-      locationMessage: msg.locationMessage?.degreesLatitude,
+      conversation: msg?.message?.conversation,
+      extendedTextMessage: msg?.message?.extendedTextMessage?.text,
+      contactMessage: msg?.message?.contactMessage?.displayName,
+      locationMessage: msg?.message?.locationMessage?.degreesLatitude,
       viewOnceMessageV2:
-        msg.viewOnceMessageV2?.message?.imageMessage?.url ||
-        msg.viewOnceMessageV2?.message?.videoMessage?.url ||
-        msg.viewOnceMessageV2?.message?.audioMessage?.url,
-      listResponseMessage: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
-      responseRowId: msg.listResponseMessage?.singleSelectReply?.selectedRowId,
+        msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
+        msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
+        msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
+      listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
+      responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       // Medias
       audioMessage: `audioMessage:${msg?.key?.id}`,
       imageMessage: `imageMessage:${msg?.key?.id}`,
@@ -1117,7 +1117,7 @@ export class TypebotService {
         },
       });
 
-      const content = this.getConversationMessage(msg.message);
+      const content = this.getConversationMessage(msg);
 
       let findTypebot = null;
 
