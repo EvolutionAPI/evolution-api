@@ -1,5 +1,5 @@
 import { CacheEngine } from '../cache/cacheengine';
-import { Chatwoot, configService } from '../config/env.config';
+import { Chatwoot, configService, ProviderSession } from '../config/env.config';
 import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
 import { ChatController } from './controllers/chat.controller';
@@ -39,7 +39,11 @@ if (configService.get<Chatwoot>('CHATWOOT').ENABLED) {
 export const cache = new CacheService(new CacheEngine(configService, 'instance').getEngine());
 const baileysCache = new CacheService(new CacheEngine(configService, 'baileys').getEngine());
 
-const providerFiles = new ProviderFiles(configService);
+let providerFiles: ProviderFiles = null;
+if (configService.get<ProviderSession>('PROVIDER').ENABLED) {
+  providerFiles = new ProviderFiles(configService);
+}
+
 export const prismaRepository = new PrismaRepository(configService);
 
 export const waMonitor = new WAMonitoringService(
