@@ -1,4 +1,4 @@
-# 2.0.0 (v2.0.0)
+# 2.0.0 (alpha)
 
 ### Feature
 
@@ -8,6 +8,7 @@
 * Now you can register several typebots with triggers
 * Media sent to typebot now goes as a template string, example: imageMessage:MESSAGE_ID
 * Organization configuration and logo in chatwoot bot contact
+* Added debounce time for typebot messages
 
 ### Fixed
 
