@@ -14,4 +14,6 @@ export class ChatwootDto {
   importMessages?: boolean;
   daysLimitImportMessages?: number;
   autoCreate?: boolean;
+  organization?: string;
+  logo?: string;
 }

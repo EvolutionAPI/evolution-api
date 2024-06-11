@@ -39,22 +39,6 @@ export class ChatwootController {
       if (data.signMsg === false) data.signDelimiter = null;
     }
 
-    if (!data.enabled) {
-      data.accountId = '';
-      data.token = '';
-      data.url = '';
-      data.signMsg = false;
-      data.signDelimiter = null;
-      data.reopenConversation = false;
-      data.conversationPending = false;
-      data.importContacts = false;
-      data.importMessages = false;
-      data.mergeBrazilContacts = false;
-      data.daysLimitImportMessages = 0;
-      data.autoCreate = false;
-      data.nameInbox = '';
-    }
-
     if (!data.nameInbox || data.nameInbox === '') {
       data.nameInbox = instance.instanceName;
     }

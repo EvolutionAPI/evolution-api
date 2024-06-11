@@ -314,6 +314,8 @@ export class ChannelStartupService {
           importContacts: data.importContacts,
           importMessages: data.importMessages,
           daysLimitImportMessages: data.daysLimitImportMessages,
+          organization: data.organization,
+          logo: data.logo,
         },
       });
 

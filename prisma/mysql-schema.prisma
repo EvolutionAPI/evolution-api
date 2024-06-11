@@ -171,6 +171,8 @@ model Chatwoot {
   importContacts          Boolean?  @default(false)
   importMessages          Boolean?  @default(false)
   daysLimitImportMessages Int?      @db.Int
+  organization            String?   @db.VarChar(100)
+  logoUrl                 String?   @db.VarChar(500)
   createdAt               DateTime? @default(now()) @db.Date
   updatedAt               DateTime  @updatedAt @db.Date
   Instance                Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)

@@ -86,6 +86,8 @@ export class InstanceController {
     chatwootMergeBrazilContacts,
     chatwootImportMessages,
     chatwootDaysLimitImportMessages,
+    chatwootOrganization,
+    chatwootLogo,
   }: InstanceDto) {
     try {
       await this.authService.checkDuplicateToken(token);
@@ -383,6 +385,8 @@ export class InstanceController {
           mergeBrazilContacts: chatwootMergeBrazilContacts ?? false,
           importMessages: chatwootImportMessages ?? true,
           daysLimitImportMessages: chatwootDaysLimitImportMessages ?? 60,
+          organization: chatwootOrganization,
+          logo: chatwootLogo,
           autoCreate: true,
         });
       } catch (error) {

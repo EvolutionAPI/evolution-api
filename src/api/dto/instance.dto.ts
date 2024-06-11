@@ -29,6 +29,8 @@ export class InstanceDto {
   chatwootImportMessages?: boolean;
   chatwootDaysLimitImportMessages?: number;
   chatwootNameInbox?: string;
+  chatwootOrganization?: string;
+  chatwootLogo?: string;
   websocketEnabled?: boolean;
   websocketEvents?: string[];
   rabbitmqEnabled?: boolean;

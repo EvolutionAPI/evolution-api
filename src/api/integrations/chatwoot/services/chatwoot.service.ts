@@ -115,6 +115,8 @@ export class ChatwootService {
         `${urlServer}/chatwoot/webhook/${encodeURIComponent(instance.instanceName)}`,
         true,
         data.number,
+        data.organization,
+        data.logo,
       );
     }
     return data;
@@ -161,6 +163,8 @@ export class ChatwootService {
     webhookUrl: string,
     qrcode: boolean,
     number: string,
+    organization?: string,
+    logo?: string,
   ) {
     const client = await this.clientCw(instance);
 
@@ -218,8 +222,8 @@ export class ChatwootService {
         '123456',
         inboxId,
         false,
-        'EvolutionAPI',
-        'https://evolution-api.com/files/evolution-api-favicon.png',
+        organization ? organization : 'EvolutionAPI',
+        logo ? logo : 'https://evolution-api.com/files/evolution-api-favicon.png',
       )) as any);
 
     if (!contact) {
