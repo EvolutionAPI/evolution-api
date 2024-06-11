@@ -7,7 +7,6 @@ import { v4 } from 'uuid';
 import { Auth, Chatwoot, ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '../../exceptions';
-import { Events as EventsArray } from '../../validate/validate.schema';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
 import { RabbitmqService } from '../integrations/rabbitmq/services/rabbitmq.service';
@@ -154,7 +153,33 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (webhookEvents.length === 0) {
-            newEvents = EventsArray;
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_EDITED',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'LABELS_EDIT',
+              'LABELS_ASSOCIATION',
+              'CALL',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+            ];
           } else {
             newEvents = webhookEvents;
           }
@@ -180,7 +205,33 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (websocketEvents.length === 0) {
-            newEvents = EventsArray;
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_EDITED',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'LABELS_EDIT',
+              'LABELS_ASSOCIATION',
+              'CALL',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+            ];
           } else {
             newEvents = websocketEvents;
           }
@@ -205,7 +256,33 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (rabbitmqEvents.length === 0) {
-            newEvents = EventsArray;
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_EDITED',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'LABELS_EDIT',
+              'LABELS_ASSOCIATION',
+              'CALL',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+            ];
           } else {
             newEvents = rabbitmqEvents;
           }
@@ -228,7 +305,33 @@ export class InstanceController {
         try {
           let newEvents: string[] = [];
           if (sqsEvents.length === 0) {
-            newEvents = EventsArray;
+            newEvents = [
+              'APPLICATION_STARTUP',
+              'QRCODE_UPDATED',
+              'MESSAGES_SET',
+              'MESSAGES_UPSERT',
+              'MESSAGES_EDITED',
+              'MESSAGES_UPDATE',
+              'MESSAGES_DELETE',
+              'SEND_MESSAGE',
+              'CONTACTS_SET',
+              'CONTACTS_UPSERT',
+              'CONTACTS_UPDATE',
+              'PRESENCE_UPDATE',
+              'CHATS_SET',
+              'CHATS_UPSERT',
+              'CHATS_UPDATE',
+              'CHATS_DELETE',
+              'GROUPS_UPSERT',
+              'GROUP_UPDATE',
+              'GROUP_PARTICIPANTS_UPDATE',
+              'CONNECTION_UPDATE',
+              'LABELS_EDIT',
+              'LABELS_ASSOCIATION',
+              'CALL',
+              'TYPEBOT_START',
+              'TYPEBOT_CHANGE_STATUS',
+            ];
           } else {
             newEvents = sqsEvents;
           }

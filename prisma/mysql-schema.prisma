@@ -262,6 +262,7 @@ model Typebot {
   listeningFromMe Boolean?         @default(false)
   stopBotFromMe   Boolean?         @default(false)
   keepOpen        Boolean?         @default(false)
+  debounceTime    Int?             @db.Int
   createdAt       DateTime?        @default(now()) @db.Date
   updatedAt       DateTime?        @updatedAt @db.Date
   triggerType     TriggerType?
@@ -279,6 +280,7 @@ model TypebotSession {
   sessionId          String    @db.VarChar(100)
   status             String    @db.VarChar(100)
   prefilledVariables Json?     @db.Json
+  debounceTime       Int?      @db.Int
   createdAt          DateTime? @default(now()) @db.Date
   updatedAt          DateTime  @updatedAt @db.Date
   Typebot            Typebot   @relation(fields: [typebotId], references: [id], onDelete: Cascade)

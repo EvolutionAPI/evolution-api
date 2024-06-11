@@ -15,31 +15,3 @@ export * from './proxy.schema';
 export * from './settings.schema';
 export * from './webhook.schema';
 export * from './websocket.schema';
-
-export const Events = [
-  'APPLICATION_STARTUP',
-  'QRCODE_UPDATED',
-  'MESSAGES_SET',
-  'MESSAGES_UPSERT',
-  'MESSAGES_EDITED',
-  'MESSAGES_UPDATE',
-  'MESSAGES_DELETE',
-  'SEND_MESSAGE',
-  'CONTACTS_SET',
-  'CONTACTS_UPSERT',
-  'CONTACTS_UPDATE',
-  'PRESENCE_UPDATE',
-  'CHATS_SET',
-  'CHATS_UPSERT',
-  'CHATS_UPDATE',
-  'CHATS_DELETE',
-  'GROUPS_UPSERT',
-  'GROUP_UPDATE',
-  'GROUP_PARTICIPANTS_UPDATE',
-  'CONNECTION_UPDATE',
-  'LABELS_EDIT',
-  'LABELS_ASSOCIATION',
-  'CALL',
-  'TYPEBOT_START',
-  'TYPEBOT_CHANGE_STATUS',
-];

@@ -261,6 +261,7 @@ model Typebot {
   listeningFromMe Boolean?         @default(false) @db.Boolean
   stopBotFromMe   Boolean?         @default(false) @db.Boolean
   keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
   createdAt       DateTime?        @default(now()) @db.Timestamp
   updatedAt       DateTime?        @updatedAt @db.Timestamp
   triggerType     TriggerType?
@@ -297,6 +298,7 @@ model TypebotSetting {
   listeningFromMe Boolean?  @default(false) @db.Boolean
   stopBotFromMe   Boolean?  @default(false) @db.Boolean
   keepOpen        Boolean?  @default(false) @db.Boolean
+  debounceTime    Int?      @db.Integer
   createdAt       DateTime? @default(now()) @db.Timestamp
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)

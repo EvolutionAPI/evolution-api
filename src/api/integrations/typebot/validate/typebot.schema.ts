@@ -75,6 +75,7 @@ export const typebotSettingSchema: JSONSchema7 = {
     listeningFromMe: { type: 'boolean' },
     stopBotFromMe: { type: 'boolean' },
     keepOpen: { type: 'boolean' },
+    debounceTime: { type: 'integer' },
   },
   required: ['expire', 'keywordFinish', 'delayMessage', 'unknownMessage', 'listeningFromMe', 'stopBotFromMe'],
   ...isNotEmpty('expire', 'keywordFinish', 'delayMessage', 'unknownMessage', 'listeningFromMe', 'stopBotFromMe'),

@@ -1,4 +1,4 @@
-import { Message, TypebotSession } from '@prisma/client';
+import { Message, Typebot as TypebotModel, TypebotSession } from '@prisma/client';
 import axios from 'axios';
 
 import { ConfigService, Typebot } from '../../../../config/env.config';
@@ -15,6 +15,8 @@ export class TypebotService {
     private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
   ) {}
+
+  private userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
   private readonly logger = new Logger(TypebotService.name);
 
@@ -34,7 +36,8 @@ export class TypebotService {
       !data.unknownMessage ||
       !data.listeningFromMe ||
       !data.stopBotFromMe ||
-      !data.keepOpen
+      !data.keepOpen ||
+      !data.debounceTime
     ) {
       const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
         where: {
@@ -53,6 +56,7 @@ export class TypebotService {
       if (!data.listeningFromMe) data.listeningFromMe = defaultSettingCheck.listeningFromMe;
       if (!data.stopBotFromMe) data.stopBotFromMe = defaultSettingCheck.stopBotFromMe;
       if (!data.keepOpen) data.keepOpen = defaultSettingCheck.keepOpen;
+      if (!data.debounceTime) data.debounceTime = defaultSettingCheck.debounceTime;
     }
 
     const checkTriggerAll = await this.prismaRepository.typebot.findFirst({
@@ -106,6 +110,8 @@ export class TypebotService {
           unknownMessage: data.unknownMessage,
           listeningFromMe: data.listeningFromMe,
           stopBotFromMe: data.stopBotFromMe,
+          keepOpen: data.keepOpen,
+          debounceTime: data.debounceTime,
           instanceId: instanceId,
           triggerType: data.triggerType,
           triggerOperator: data.triggerOperator,
@@ -238,6 +244,8 @@ export class TypebotService {
             unknownMessage: data.unknownMessage,
             listeningFromMe: data.listeningFromMe,
             stopBotFromMe: data.stopBotFromMe,
+            keepOpen: data.keepOpen,
+            debounceTime: data.debounceTime,
             triggerType: data.triggerType,
             triggerOperator: data.triggerOperator,
             triggerValue: data.triggerValue,
@@ -349,6 +357,7 @@ export class TypebotService {
             listeningFromMe: data.listeningFromMe,
             stopBotFromMe: data.stopBotFromMe,
             keepOpen: data.keepOpen,
+            debounceTime: data.debounceTime,
           },
         });
 
@@ -360,6 +369,7 @@ export class TypebotService {
           listeningFromMe: updateSettings.listeningFromMe,
           stopBotFromMe: updateSettings.stopBotFromMe,
           keepOpen: updateSettings.keepOpen,
+          debounceTime: updateSettings.debounceTime,
         };
       }
 
@@ -372,6 +382,7 @@ export class TypebotService {
           listeningFromMe: data.listeningFromMe,
           stopBotFromMe: data.stopBotFromMe,
           keepOpen: data.keepOpen,
+          debounceTime: data.debounceTime,
           instanceId: instanceId,
         },
       });
@@ -384,6 +395,7 @@ export class TypebotService {
         listeningFromMe: newSetttings.listeningFromMe,
         stopBotFromMe: newSetttings.stopBotFromMe,
         keepOpen: newSetttings.keepOpen,
+        debounceTime: newSetttings.debounceTime,
       };
     } catch (error) {
       this.logger.error(error);
@@ -1119,9 +1131,30 @@ export class TypebotService {
     return typebot;
   }
 
+  private processDebounce(content: string, remoteJid: string, debounceTime: number, callback: any) {
+    if (this.userMessageDebounce[remoteJid]) {
+      this.userMessageDebounce[remoteJid].message += ` ${content}`;
+      this.logger.log('message debounced: ' + this.userMessageDebounce[remoteJid].message);
+      clearTimeout(this.userMessageDebounce[remoteJid].timeoutId);
+    } else {
+      this.userMessageDebounce[remoteJid] = {
+        message: content,
+        timeoutId: null,
+      };
+    }
+
+    this.userMessageDebounce[remoteJid].timeoutId = setTimeout(() => {
+      const myQuestion = this.userMessageDebounce[remoteJid].message;
+      this.logger.log('Debounce complete. Processing message: ' + myQuestion);
+
+      delete this.userMessageDebounce[remoteJid];
+      callback(myQuestion);
+    }, debounceTime * 1000);
+  }
+
   public async sendTypebot(instance: InstanceDto, remoteJid: string, msg: Message) {
     try {
-      let session = await this.prismaRepository.typebotSession.findFirst({
+      const session = await this.prismaRepository.typebotSession.findFirst({
         where: {
           remoteJid: remoteJid,
         },
@@ -1154,6 +1187,7 @@ export class TypebotService {
       let listeningFromMe = findTypebot?.listeningFromMe;
       let stopBotFromMe = findTypebot?.stopBotFromMe;
       let keepOpen = findTypebot?.keepOpen;
+      let debounceTime = findTypebot?.debounceTime;
 
       if (
         !expire ||
@@ -1183,6 +1217,8 @@ export class TypebotService {
         if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
 
         if (!keepOpen) keepOpen = settings.keepOpen;
+
+        if (!debounceTime) debounceTime = settings.debounceTime;
       }
 
       const key = msg.key as {
@@ -1206,141 +1242,107 @@ export class TypebotService {
         return;
       }
 
-      if (session && !session.awaitUser) return;
-
-      if (session && expire && expire > 0) {
-        const now = Date.now();
-
-        const sessionUpdatedAt = new Date(session.updatedAt).getTime();
-
-        const diff = now - sessionUpdatedAt;
-
-        const diffInMinutes = Math.floor(diff / 1000 / 60);
-
-        if (diffInMinutes > expire) {
-          await this.prismaRepository.typebotSession.deleteMany({
-            where: {
-              typebotId: findTypebot.id,
-              remoteJid: remoteJid,
-            },
-          });
-
-          const data = await this.createNewSession(instance, {
-            enabled: findTypebot.enabled,
-            url: url,
-            typebot: typebot,
-            expire: expire,
-            keywordFinish: keywordFinish,
-            delayMessage: delayMessage,
-            unknownMessage: unknownMessage,
-            listeningFromMe: listeningFromMe,
-            remoteJid: remoteJid,
-            pushName: msg.pushName,
-            typebotId: findTypebot.id,
-          });
-
-          if (data.session) {
-            session = data.session;
-          }
-
-          await this.sendWAMessage(
+      if (debounceTime && debounceTime > 0) {
+        this.processDebounce(content, remoteJid, debounceTime, async (debouncedContent) => {
+          await this.processTypebot(
             instance,
-            session,
-            {
-              expire: expire,
-              keywordFinish: keywordFinish,
-              delayMessage: delayMessage,
-              unknownMessage: unknownMessage,
-              listeningFromMe: listeningFromMe,
-              stopBotFromMe: stopBotFromMe,
-              keepOpen: keepOpen,
-            },
             remoteJid,
-            data.messages,
-            data.input,
-            data.clientSideActions,
+            msg,
+            session,
+            findTypebot,
+            url,
+            expire,
+            typebot,
+            keywordFinish,
+            delayMessage,
+            unknownMessage,
+            listeningFromMe,
+            stopBotFromMe,
+            keepOpen,
+            debouncedContent,
           );
-
-          if (data.messages.length === 0) {
-            const content = this.getConversationMessage(msg.message);
-
-            if (!content) {
-              if (unknownMessage) {
-                this.waMonitor.waInstances[instance.instanceName].textMessage(
-                  {
-                    number: remoteJid.split('@')[0],
-                    delay: delayMessage || 1000,
-                    text: unknownMessage,
-                  },
-                  true,
-                );
-              }
-              return;
-            }
-
-            if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-              await this.prismaRepository.typebotSession.deleteMany({
-                where: {
-                  typebotId: findTypebot.id,
-                  remoteJid: remoteJid,
-                },
-              });
-              return;
-            }
-
-            try {
-              const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-              let urlTypebot: string;
-              let reqData: {};
-              if (version === 'latest') {
-                urlTypebot = `${url}/api/v1/sessions/${data.sessionId}/continueChat`;
-                reqData = {
-                  message: content,
-                };
-              } else {
-                urlTypebot = `${url}/api/v1/sendMessage`;
-                reqData = {
-                  message: content,
-                  sessionId: data.sessionId,
-                };
-              }
-
-              const request = await axios.post(urlTypebot, reqData);
-
-              await this.sendWAMessage(
-                instance,
-                session,
-                {
-                  expire: expire,
-                  keywordFinish: keywordFinish,
-                  delayMessage: delayMessage,
-                  unknownMessage: unknownMessage,
-                  listeningFromMe: listeningFromMe,
-                  stopBotFromMe: stopBotFromMe,
-                  keepOpen: keepOpen,
-                },
-                remoteJid,
-                request.data.messages,
-                request.data.input,
-                request.data.clientSideActions,
-              );
-            } catch (error) {
-              this.logger.error(error);
-              return;
-            }
-          }
-
-          return;
-        }
+        });
+      } else {
+        await this.processTypebot(
+          instance,
+          remoteJid,
+          msg,
+          session,
+          findTypebot,
+          url,
+          expire,
+          typebot,
+          keywordFinish,
+          delayMessage,
+          unknownMessage,
+          listeningFromMe,
+          stopBotFromMe,
+          keepOpen,
+          content,
+        );
       }
 
-      if (session && session.status !== 'opened') {
-        return;
-      }
+      // await this.processTypebot(
+      //   instance,
+      //   remoteJid,
+      //   msg,
+      //   session,
+      //   findTypebot,
+      //   url,
+      //   expire,
+      //   typebot,
+      //   keywordFinish,
+      //   delayMessage,
+      //   unknownMessage,
+      //   listeningFromMe,
+      //   stopBotFromMe,
+      //   keepOpen,
+      //   content,
+      // );
 
-      if (!session) {
+      if (session && !session.awaitUser) return;
+    } catch (error) {
+      this.logger.error(error);
+      return;
+    }
+  }
+
+  private async processTypebot(
+    instance: InstanceDto,
+    remoteJid: string,
+    msg: Message,
+    session: TypebotSession,
+    findTypebot: TypebotModel,
+    url: string,
+    expire: number,
+    typebot: string,
+    keywordFinish: string,
+    delayMessage: number,
+    unknownMessage: string,
+    listeningFromMe: boolean,
+    stopBotFromMe: boolean,
+    keepOpen: boolean,
+    content: string,
+  ) {
+    if (session && expire && expire > 0) {
+      const now = Date.now();
+
+      const sessionUpdatedAt = new Date(session.updatedAt).getTime();
+
+      const diff = now - sessionUpdatedAt;
+
+      const diffInMinutes = Math.floor(diff / 1000 / 60);
+
+      if (diffInMinutes > expire) {
+        await this.prismaRepository.typebotSession.deleteMany({
+          where: {
+            typebotId: findTypebot.id,
+            remoteJid: remoteJid,
+          },
+        });
+
         const data = await this.createNewSession(instance, {
-          enabled: findTypebot?.enabled,
+          enabled: findTypebot.enabled,
           url: url,
           typebot: typebot,
           expire: expire,
@@ -1370,12 +1372,14 @@ export class TypebotService {
             keepOpen: keepOpen,
           },
           remoteJid,
-          data?.messages,
-          data?.input,
-          data?.clientSideActions,
+          data.messages,
+          data.input,
+          data.clientSideActions,
         );
 
         if (data.messages.length === 0) {
+          const content = this.getConversationMessage(msg.message);
+
           if (!content) {
             if (unknownMessage) {
               this.waMonitor.waInstances[instance.instanceName].textMessage(
@@ -1397,11 +1401,9 @@ export class TypebotService {
                 remoteJid: remoteJid,
               },
             });
-
             return;
           }
 
-          let request: any;
           try {
             const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
             let urlTypebot: string;
@@ -1418,7 +1420,8 @@ export class TypebotService {
                 sessionId: data.sessionId,
               };
             }
-            request = await axios.post(urlTypebot, reqData);
+
+            const request = await axios.post(urlTypebot, reqData);
 
             await this.sendWAMessage(
               instance,
@@ -1442,59 +1445,33 @@ export class TypebotService {
             return;
           }
         }
+
         return;
       }
+    }
 
-      await this.prismaRepository.typebotSession.update({
-        where: {
-          id: session.id,
-        },
-        data: {
-          status: 'opened',
-          awaitUser: false,
-        },
+    if (session && session.status !== 'opened') {
+      return;
+    }
+
+    if (!session) {
+      const data = await this.createNewSession(instance, {
+        enabled: findTypebot?.enabled,
+        url: url,
+        typebot: typebot,
+        expire: expire,
+        keywordFinish: keywordFinish,
+        delayMessage: delayMessage,
+        unknownMessage: unknownMessage,
+        listeningFromMe: listeningFromMe,
+        remoteJid: remoteJid,
+        pushName: msg.pushName,
+        typebotId: findTypebot.id,
       });
 
-      if (!content) {
-        if (unknownMessage) {
-          this.waMonitor.waInstances[instance.instanceName].textMessage(
-            {
-              number: remoteJid.split('@')[0],
-              delay: delayMessage || 1000,
-              text: unknownMessage,
-            },
-            true,
-          );
-        }
-        return;
+      if (data.session) {
+        session = data.session;
       }
-
-      if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-        await this.prismaRepository.typebotSession.deleteMany({
-          where: {
-            typebotId: findTypebot.id,
-            remoteJid: remoteJid,
-          },
-        });
-        return;
-      }
-
-      const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-      let urlTypebot: string;
-      let reqData: {};
-      if (version === 'latest') {
-        urlTypebot = `${url}/api/v1/sessions/${session.sessionId.split('-')[1]}/continueChat`;
-        reqData = {
-          message: content,
-        };
-      } else {
-        urlTypebot = `${url}/api/v1/sendMessage`;
-        reqData = {
-          message: content,
-          sessionId: session.sessionId.split('-')[1],
-        };
-      }
-      const request = await axios.post(urlTypebot, reqData);
 
       await this.sendWAMessage(
         instance,
@@ -1509,15 +1486,150 @@ export class TypebotService {
           keepOpen: keepOpen,
         },
         remoteJid,
-        request?.data?.messages,
-        request?.data?.input,
-        request?.data?.clientSideActions,
+        data?.messages,
+        data?.input,
+        data?.clientSideActions,
       );
 
-      return;
-    } catch (error) {
-      this.logger.error(error);
+      if (data.messages.length === 0) {
+        if (!content) {
+          if (unknownMessage) {
+            this.waMonitor.waInstances[instance.instanceName].textMessage(
+              {
+                number: remoteJid.split('@')[0],
+                delay: delayMessage || 1000,
+                text: unknownMessage,
+              },
+              true,
+            );
+          }
+          return;
+        }
+
+        if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
+          await this.prismaRepository.typebotSession.deleteMany({
+            where: {
+              typebotId: findTypebot.id,
+              remoteJid: remoteJid,
+            },
+          });
+
+          return;
+        }
+
+        let request: any;
+        try {
+          const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
+          let urlTypebot: string;
+          let reqData: {};
+          if (version === 'latest') {
+            urlTypebot = `${url}/api/v1/sessions/${data.sessionId}/continueChat`;
+            reqData = {
+              message: content,
+            };
+          } else {
+            urlTypebot = `${url}/api/v1/sendMessage`;
+            reqData = {
+              message: content,
+              sessionId: data.sessionId,
+            };
+          }
+          request = await axios.post(urlTypebot, reqData);
+
+          await this.sendWAMessage(
+            instance,
+            session,
+            {
+              expire: expire,
+              keywordFinish: keywordFinish,
+              delayMessage: delayMessage,
+              unknownMessage: unknownMessage,
+              listeningFromMe: listeningFromMe,
+              stopBotFromMe: stopBotFromMe,
+              keepOpen: keepOpen,
+            },
+            remoteJid,
+            request.data.messages,
+            request.data.input,
+            request.data.clientSideActions,
+          );
+        } catch (error) {
+          this.logger.error(error);
+          return;
+        }
+      }
       return;
     }
+
+    await this.prismaRepository.typebotSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'opened',
+        awaitUser: false,
+      },
+    });
+
+    if (!content) {
+      if (unknownMessage) {
+        this.waMonitor.waInstances[instance.instanceName].textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: delayMessage || 1000,
+            text: unknownMessage,
+          },
+          true,
+        );
+      }
+      return;
+    }
+
+    if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
+      await this.prismaRepository.typebotSession.deleteMany({
+        where: {
+          typebotId: findTypebot.id,
+          remoteJid: remoteJid,
+        },
+      });
+      return;
+    }
+
+    const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
+    let urlTypebot: string;
+    let reqData: {};
+    if (version === 'latest') {
+      urlTypebot = `${url}/api/v1/sessions/${session.sessionId.split('-')[1]}/continueChat`;
+      reqData = {
+        message: content,
+      };
+    } else {
+      urlTypebot = `${url}/api/v1/sendMessage`;
+      reqData = {
+        message: content,
+        sessionId: session.sessionId.split('-')[1],
+      };
+    }
+    const request = await axios.post(urlTypebot, reqData);
+
+    await this.sendWAMessage(
+      instance,
+      session,
+      {
+        expire: expire,
+        keywordFinish: keywordFinish,
+        delayMessage: delayMessage,
+        unknownMessage: unknownMessage,
+        listeningFromMe: listeningFromMe,
+        stopBotFromMe: stopBotFromMe,
+        keepOpen: keepOpen,
+      },
+      remoteJid,
+      request?.data?.messages,
+      request?.data?.input,
+      request?.data?.clientSideActions,
+    );
+
+    return;
   }
 }

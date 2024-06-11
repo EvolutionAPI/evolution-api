@@ -1,6 +1,5 @@
 import { configService, Rabbitmq } from '../../../../config/env.config';
 import { BadRequestException } from '../../../../exceptions';
-import { Events } from '../../../../validate/validate.schema';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { RabbitmqDto } from '../dto/rabbitmq.dto';
 import { RabbitmqService } from '../services/rabbitmq.service';
@@ -16,7 +15,33 @@ export class RabbitmqController {
     }
 
     if (data.events.length === 0) {
-      data.events = Events;
+      data.events = [
+        'APPLICATION_STARTUP',
+        'QRCODE_UPDATED',
+        'MESSAGES_SET',
+        'MESSAGES_UPSERT',
+        'MESSAGES_EDITED',
+        'MESSAGES_UPDATE',
+        'MESSAGES_DELETE',
+        'SEND_MESSAGE',
+        'CONTACTS_SET',
+        'CONTACTS_UPSERT',
+        'CONTACTS_UPDATE',
+        'PRESENCE_UPDATE',
+        'CHATS_SET',
+        'CHATS_UPSERT',
+        'CHATS_UPDATE',
+        'CHATS_DELETE',
+        'GROUPS_UPSERT',
+        'GROUP_UPDATE',
+        'GROUP_PARTICIPANTS_UPDATE',
+        'CONNECTION_UPDATE',
+        'LABELS_EDIT',
+        'LABELS_ASSOCIATION',
+        'CALL',
+        'TYPEBOT_START',
+        'TYPEBOT_CHANGE_STATUS',
+      ];
     }
 
     return this.rabbitmqService.create(instance, data);

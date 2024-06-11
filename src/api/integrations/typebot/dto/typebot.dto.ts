@@ -27,6 +27,7 @@ export class TypebotDto {
   listeningFromMe?: boolean;
   stopBotFromMe?: boolean;
   keepOpen?: boolean;
+  debounceTime?: number;
   triggerType?: TriggerType;
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
@@ -40,4 +41,5 @@ export class TypebotSettingDto {
   listeningFromMe?: boolean;
   stopBotFromMe?: boolean;
   keepOpen?: boolean;
+  debounceTime?: number;
 }
