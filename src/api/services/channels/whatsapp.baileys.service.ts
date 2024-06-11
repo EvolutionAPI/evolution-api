@@ -1124,7 +1124,6 @@ export class BaileysStartupService extends ChannelStartupService {
             this.localWebhook.webhookBase64 === true ||
             (this.configService.get<Typebot>('TYPEBOT').SEND_MEDIA_BASE64 && isMedia)
           ) {
-            console.log('Download media');
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
               'buffer',
@@ -1173,10 +1172,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
-          await this.prismaRepository.message.create({
-            data: messageRaw,
-          });
-
           if (
             this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
             this.localChatwoot.enabled &&
@@ -1194,6 +1189,10 @@ export class BaileysStartupService extends ChannelStartupService {
               messageRaw.chatwootConversationId = chatwootSentMessage.conversation_id;
             }
           }
+
+          await this.prismaRepository.message.create({
+            data: messageRaw,
+          });
 
           if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
             if (type === 'notify') {

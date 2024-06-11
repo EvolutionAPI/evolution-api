@@ -725,8 +725,6 @@ export class ChatwootService {
 
     const sourceReplyId = quotedMsg?.chatwootMessageId || null;
 
-    console.log('sourceReplyId', sourceReplyId);
-
     const message = await client.messages.create({
       accountId: this.provider.accountId,
       conversationId: conversationId,
@@ -1440,7 +1438,7 @@ export class ChatwootService {
         },
       });
 
-      const key = message.key as {
+      const key = message?.key as {
         id: string;
         fromMe: boolean;
         remoteJid: string;
@@ -1747,8 +1745,6 @@ export class ChatwootService {
 
         const quotedId = body.contextInfo?.stanzaId || body.message?.contextInfo?.stanzaId;
 
-        console.log('quotedId', quotedId);
-
         let quotedMsg = null;
 
         if (quotedId)
@@ -1760,8 +1756,6 @@ export class ChatwootService {
               },
             },
           });
-
-        console.log('quotedMsg', quotedMsg);
 
         const isMedia = this.isMediaMessage(body.message);
 
