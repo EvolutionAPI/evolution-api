@@ -1793,7 +1793,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const messageSent = await (async () => {
         const option = {
           quoted,
-          messageId: '3EB0' + randomBytes(6).toString('hex').toUpperCase(),
+          messageId: '3EB0' + randomBytes(18).toString('hex').toUpperCase(),
         };
 
         if (
