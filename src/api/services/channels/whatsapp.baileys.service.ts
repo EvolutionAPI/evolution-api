@@ -595,9 +595,12 @@ export class BaileysStartupService extends ChannelStartupService {
         browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
         version,
         markOnlineOnConnect: this.localSettings.always_online,
-        retryRequestDelayMs: 10,
-        connectTimeoutMs: 60_000,
-        qrTimeout: 40_000,
+        retryRequestDelayMs: 350,
+        maxMsgRetryCount: 4,
+        fireInitQueries: true,
+        connectTimeoutMs: 20_000,
+        keepAliveIntervalMs: 30_000,
+        qrTimeout: 45_000,
         defaultQueryTimeoutMs: undefined,
         emitOwnEvents: false,
         shouldIgnoreJid: (jid) => {
@@ -614,7 +617,7 @@ export class BaileysStartupService extends ChannelStartupService {
           return this.historySyncNotification(msg);
         },
         userDevicesCache: this.userDevicesCache,
-        transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
+        transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
         patchMessageBeforeSending(message) {
           if (
             message.deviceSentMessage?.message?.listMessage?.listType ===
@@ -770,12 +773,16 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
+        mobile: this.mobile,
         browser: this.phoneNumber ? ['Chrome (Linux)', session.NAME, release()] : browser,
         version,
         markOnlineOnConnect: this.localSettings.always_online,
-        retryRequestDelayMs: 10,
-        connectTimeoutMs: 60_000,
-        qrTimeout: 40_000,
+        retryRequestDelayMs: 350,
+        maxMsgRetryCount: 4,
+        fireInitQueries: true,
+        connectTimeoutMs: 20_000,
+        keepAliveIntervalMs: 30_000,
+        qrTimeout: 45_000,
         defaultQueryTimeoutMs: undefined,
         emitOwnEvents: false,
         shouldIgnoreJid: (jid) => {
@@ -792,7 +799,7 @@ export class BaileysStartupService extends ChannelStartupService {
           return this.historySyncNotification(msg);
         },
         userDevicesCache: this.userDevicesCache,
-        transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
+        transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
         patchMessageBeforeSending(message) {
           if (
             message.deviceSentMessage?.message?.listMessage?.listType ===
