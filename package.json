@@ -52,7 +52,7 @@
     "@hapi/boom": "^10.0.1",
     "@prisma/client": "^5.15.0",
     "@sentry/node": "^7.59.2",
-    "@whiskeysockets/baileys": "6.7.4",
+    "@whiskeysockets/baileys": "6.7.5",
     "amqplib": "^0.10.3",
     "axios": "^1.6.5",
     "class-validator": "^0.14.1",
