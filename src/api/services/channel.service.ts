@@ -70,6 +70,7 @@ export class ChannelStartupService {
 
   public setInstance(instance: InstanceDto) {
     this.instance.name = instance.instanceName;
+    this.logger.setInstance(instance.instanceName);
     this.instance.id = instance.instanceId;
     this.instance.integration = instance.integration;
     this.instance.number = instance.number;

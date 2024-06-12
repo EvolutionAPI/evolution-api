@@ -156,7 +156,6 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      // TODO: realizar filtro pelo postgres corretamente
       .post(this.routerPath('findMessages'), ...guards, async (req, res) => {
         const response = await this.dataValidate<Query<Message>>({
           request: req,

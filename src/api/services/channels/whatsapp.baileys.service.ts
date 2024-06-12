@@ -39,6 +39,7 @@ import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
 import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
 import axios from 'axios';
 import { isBase64, isURL } from 'class-validator';
+import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
 // import { exec } from 'child_process';
 import ffmpeg from 'fluent-ffmpeg';
@@ -1792,6 +1793,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const messageSent = await (async () => {
         const option = {
           quoted,
+          messageId: '3EB0' + randomBytes(6).toString('hex').toUpperCase(),
         };
 
         if (
