@@ -9,6 +9,7 @@
 * Media sent to typebot now goes as a template string, example: imageMessage:MESSAGE_ID
 * Organization configuration and logo in chatwoot bot contact
 * Added debounce time for typebot messages
+* Tagging in chatwoot contact by instance
 
 ### Fixed
 
