@@ -28,6 +28,7 @@ import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
 import { Events } from '../../../types/wa.types';
 import { ChatwootDto } from '../dto/chatwoot.dto';
+import { postgresClient } from '../libs/postgres.client';
 import { chatwootImport } from '../utils/chatwoot-import-helper';
 
 interface ChatwootMessage {
@@ -49,6 +50,8 @@ export class ChatwootService {
     private readonly prismaRepository: PrismaRepository,
     private readonly cache: ICache,
   ) {}
+
+  private pgClient = postgresClient.getChatwootConnection();
 
   private async getProvider(instance: InstanceDto) {
     const cacheKey = `${instance.instanceName}:getProvider`;
@@ -320,6 +323,12 @@ export class ChatwootService {
       return null;
     }
 
+    const findContact = await this.findContact(instance, phoneNumber);
+
+    const contactId = findContact?.id;
+
+    await this.addLabelToContact(this.provider.nameInbox, contactId);
+
     return contact;
   }
 
@@ -346,6 +355,33 @@ export class ChatwootService {
       return contact;
     } catch (error) {
       this.logger.error(error);
+    }
+  }
+
+  public async addLabelToContact(nameInbox: string, contactId: number) {
+    try {
+      const sqlTags = `SELECT id FROM tags WHERE name = '${nameInbox}' LIMIT 1`;
+
+      const tagData = (await this.pgClient.query(sqlTags))?.rows[0];
+      let tagId = tagData?.id;
+      const taggingsCount = tagData?.taggings_count || 0;
+
+      const sqlTag = `INSERT INTO tags (name, taggings_count) VALUES ('${nameInbox}', ${
+        taggingsCount + 1
+      }) ON CONFLICT (name) DO UPDATE SET taggings_count = ${taggingsCount + 1} RETURNING id`;
+
+      tagId = (await this.pgClient.query(sqlTag))?.rows[0]?.id;
+
+      await this.pgClient.query(sqlTag);
+
+      const sqlInsertLabel = `INSERT INTO taggings (tag_id, taggable_type, taggable_id, context, created_at) VALUES (${tagId}, 'Contact', ${contactId}, 'labels', NOW())`;
+
+      await this.pgClient.query(sqlInsertLabel);
+
+      return true;
+    } catch (error) {
+      this.logger.error(error);
+      return false;
     }
   }
 

@@ -950,7 +950,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
-        console.log('chatsRaw', chatsRaw);
+        // console.log('chatsRaw', chatsRaw);
 
         const chatsSaved = await this.prismaRepository.chat.createMany({
           data: chatsRaw,
@@ -1012,7 +1012,7 @@ export class BaileysStartupService extends ChannelStartupService {
           });
         }
 
-        console.log('messagesRaw', messagesRaw);
+        // console.log('messagesRaw', messagesRaw);
 
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
