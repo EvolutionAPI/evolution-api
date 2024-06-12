@@ -323,7 +323,7 @@ export class WAMonitoringService {
     this.logger.verbose('Loading instances');
 
     try {
-      if (this.providerSession.ENABLED) {
+      if (this.providerSession?.ENABLED) {
         await this.loadInstancesFromProvider();
       } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
         await this.loadInstancesFromRedis();

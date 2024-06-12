@@ -1,5 +1,5 @@
 import { CacheEngine } from '../cache/cacheengine';
-import { configService } from '../config/env.config';
+import { configService, ProviderSession } from '../config/env.config';
 import { eventEmitter } from '../config/event.config';
 import { Logger } from '../config/logger.config';
 import { dbserver } from '../libs/db.connect';
@@ -110,7 +110,12 @@ export const repository = new RepositoryBroker(
 export const cache = new CacheService(new CacheEngine(configService, 'instance').getEngine());
 const chatwootCache = new CacheService(new CacheEngine(configService, ChatwootService.name).getEngine());
 const baileysCache = new CacheService(new CacheEngine(configService, 'baileys').getEngine());
-const providerFiles = new ProviderFiles(configService);
+
+let providerFiles: ProviderFiles = null;
+
+if (configService.get<ProviderSession>('PROVIDER')?.ENABLED) {
+  providerFiles = new ProviderFiles(configService);
+}
 
 export const waMonitor = new WAMonitoringService(
   eventEmitter,
