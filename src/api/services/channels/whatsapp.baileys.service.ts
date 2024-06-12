@@ -585,8 +585,9 @@ export class BaileysStartupService extends ChannelStartupService {
         shouldIgnoreJid: (jid) => {
           const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
           const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
+          const isNewsletter = jid.includes('newsletter');
 
-          return isGroupJid || isBroadcast;
+          return isGroupJid || isBroadcast || isNewsletter;
         },
         msgRetryCounterCache: this.msgRetryCounterCache,
         getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
@@ -711,8 +712,9 @@ export class BaileysStartupService extends ChannelStartupService {
         shouldIgnoreJid: (jid) => {
           const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
           const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
+          const isNewsletter = jid.includes('newsletter');
 
-          return isGroupJid || isBroadcast;
+          return isGroupJid || isBroadcast || isNewsletter;
         },
         msgRetryCounterCache: this.msgRetryCounterCache,
         getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
