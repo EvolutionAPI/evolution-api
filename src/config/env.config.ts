@@ -327,9 +327,9 @@ export class ConfigService {
         GLOBAL_EVENTS: process.env?.WEBSOCKET_GLOBAL_EVENTS === 'true',
       },
       WA_BUSINESS: {
-        TOKEN_WEBHOOK: process.env.WA_BUSINESS_TOKEN_WEBHOOK || '',
-        URL: process.env.WA_BUSINESS_URL || '',
-        VERSION: process.env.WA_BUSINESS_VERSION || '',
+        TOKEN_WEBHOOK: process.env.WA_BUSINESS_TOKEN_WEBHOOK || 'evolution',
+        URL: process.env.WA_BUSINESS_URL || 'https://graph.facebook.com',
+        VERSION: process.env.WA_BUSINESS_VERSION || 'v18.0',
         LANGUAGE: process.env.WA_BUSINESS_LANGUAGE || 'en',
       },
       LOG: {
