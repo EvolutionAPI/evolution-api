@@ -3438,6 +3438,11 @@ export class BaileysStartupService extends ChannelStartupService {
   public async fakeCall(data: FakeCallDto) {
     try {
       const number = this.createJid(data.number);
+
+      if (number.includes('@g.us')) {
+        throw new BadRequestException('Group calls are not supported');
+      }
+
       const mdDelay = data.delay ?? 0;
 
       const call = await this.client.offerCall(number);
