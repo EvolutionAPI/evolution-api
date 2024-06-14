@@ -1,6 +1,6 @@
 import { Contact, Message } from '@prisma/client';
-import { WASocket } from '@whiskeysockets/baileys';
 import axios from 'axios';
+import { WASocket } from 'baileys';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { join } from 'path';

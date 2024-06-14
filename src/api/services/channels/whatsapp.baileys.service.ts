@@ -1,6 +1,7 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
 import { Instance } from '@prisma/client';
+import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -20,6 +21,7 @@ import makeWASocket, {
   GroupMetadata,
   isJidBroadcast,
   isJidGroup,
+  isJidNewsletter,
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
@@ -34,10 +36,9 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-} from '@whiskeysockets/baileys';
-import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
-import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
-import axios from 'axios';
+} from 'baileys';
+import { Label } from 'baileys/lib/Types/Label';
+import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { isBase64, isURL } from 'class-validator';
 import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
@@ -108,6 +109,7 @@ import { InstanceDto, SetPresenceDto } from '../../dto/instance.dto';
 import { HandleLabelDto, LabelDto } from '../../dto/label.dto';
 import {
   ContactMessage,
+  FakeCallDto,
   MediaMessage,
   Options,
   SendAudioDto,
@@ -244,7 +246,7 @@ export class BaileysStartupService extends ChannelStartupService {
   public async getProfileStatus() {
     const status = await this.client.fetchStatus(this.instance.wuid);
 
-    return status.status;
+    return status[0]?.status;
   }
 
   public get profilePictureUrl() {
@@ -588,7 +590,7 @@ export class BaileysStartupService extends ChannelStartupService {
         shouldIgnoreJid: (jid) => {
           const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
           const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-          const isNewsletter = jid.includes('newsletter');
+          const isNewsletter = isJidNewsletter(jid);
 
           return isGroupJid || isBroadcast || isNewsletter;
         },
@@ -601,6 +603,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
+        cachedGroupMetadata: this.getGroupMetadataCache,
         patchMessageBeforeSending(message) {
           if (
             message.deviceSentMessage?.message?.listMessage?.listType ===
@@ -1626,7 +1629,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       return {
         wuid: jid,
-        status: (await this.client.fetchStatus(jid))?.status,
+        status: (await this.client.fetchStatus(jid))[0]?.status,
       };
     } catch (error) {
       return {
@@ -1822,11 +1825,11 @@ export class BaileysStartupService extends ChannelStartupService {
               } as unknown as AnyMessageContent,
               {
                 ...option,
-                cachedGroupMetadata:
+                useCachedGroupMetadata:
                   !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
                   !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                    ? null
-                    : this.getGroupMetadataCache,
+                    ? false
+                    : true,
               } as unknown as MiscMessageGenerationOptions,
             );
           }
@@ -1841,11 +1844,11 @@ export class BaileysStartupService extends ChannelStartupService {
             } as unknown as AnyMessageContent,
             {
               ...option,
-              cachedGroupMetadata:
+              useCachedGroupMetadata:
                 !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
                 !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? null
-                  : this.getGroupMetadataCache,
+                  ? false
+                  : true,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1862,11 +1865,11 @@ export class BaileysStartupService extends ChannelStartupService {
             },
             {
               ...option,
-              cachedGroupMetadata:
+              useCachedGroupMetadata:
                 !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
                 !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? null
-                  : this.getGroupMetadataCache,
+                  ? false
+                  : true,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1888,11 +1891,11 @@ export class BaileysStartupService extends ChannelStartupService {
           message as unknown as AnyMessageContent,
           {
             ...option,
-            cachedGroupMetadata:
+            useCachedGroupMetadata:
               !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
               !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                ? null
-                : this.getGroupMetadataCache,
+                ? false
+                : true,
           } as unknown as MiscMessageGenerationOptions,
         );
       })();
@@ -3436,5 +3439,22 @@ export class BaileysStartupService extends ChannelStartupService {
   }
   public async templateMessage() {
     throw new Error('Method not available in the Baileys service');
+  }
+
+  public async fakeCall(data: FakeCallDto) {
+    try {
+      const number = this.createJid(data.number);
+      const mdDelay = data.delay ?? 0;
+
+      const call = await this.client.offerCall(number);
+
+      await delay(mdDelay);
+
+      await this.client.rejectCall(call.callId, call.toJid);
+
+      return call;
+    } catch (error) {
+      throw new BadRequestException('Error making fake call', error.toString());
+    }
   }
 }

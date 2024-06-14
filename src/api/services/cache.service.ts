@@ -1,4 +1,4 @@
-import { BufferJSON } from '@whiskeysockets/baileys';
+import { BufferJSON } from 'baileys';
 
 import { Logger } from '../../config/logger.config';
 import { ICache } from '../abstract/abstract.cache';

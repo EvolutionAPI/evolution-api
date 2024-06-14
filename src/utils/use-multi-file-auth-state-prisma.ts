@@ -1,4 +1,4 @@
-import { BufferJSON, initAuthCreds, WAProto as proto } from '@whiskeysockets/baileys';
+import { BufferJSON, initAuthCreds, WAProto as proto } from 'baileys';
 import fs from 'fs/promises';
 import path from 'path';
 

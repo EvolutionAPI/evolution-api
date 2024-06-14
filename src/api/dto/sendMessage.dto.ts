@@ -1,4 +1,4 @@
-import { proto, WAPresence } from '@whiskeysockets/baileys';
+import { proto, WAPresence } from 'baileys';
 
 export class Quoted {
   key: proto.IMessageKey;
@@ -129,6 +129,11 @@ export class SendListDto extends Metadata {
   footerText?: string;
   buttonText: string;
   sections: Section[];
+}
+
+export class FakeCallDto extends Metadata {
+  number: string;
+  delay: number;
 }
 
 export class ContactMessage {

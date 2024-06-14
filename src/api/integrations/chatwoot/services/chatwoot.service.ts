@@ -9,8 +9,8 @@ import ChatwootClient, {
 } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import { Chatwoot as ChatwootModel, Contact as ContactModel, Message as MessageModel } from '@prisma/client';
-import { proto } from '@whiskeysockets/baileys';
 import axios from 'axios';
+import { proto } from 'baileys';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';

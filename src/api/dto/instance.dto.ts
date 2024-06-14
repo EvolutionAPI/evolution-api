@@ -1,4 +1,4 @@
-import { WAPresence } from '@whiskeysockets/baileys';
+import { WAPresence } from 'baileys';
 
 export class InstanceDto {
   instanceName: string;

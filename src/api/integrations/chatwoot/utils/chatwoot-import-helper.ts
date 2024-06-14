@@ -1,6 +1,6 @@
 import { inbox } from '@figuro/chatwoot-sdk';
 import { Chatwoot as ChatwootModel, Contact, Message } from '@prisma/client';
-import { proto } from '@whiskeysockets/baileys';
+import { proto } from 'baileys';
 
 import { InstanceDto } from '../../../../api/dto/instance.dto';
 import { Chatwoot, configService } from '../../../../config/env.config';

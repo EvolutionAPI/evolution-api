@@ -1351,4 +1351,7 @@ export class BusinessStartupService extends ChannelStartupService {
   public async receiveMobileCode() {
     throw new BadRequestException('Method not available on WhatsApp Business API');
   }
+  public async fakeCall() {
+    throw new BadRequestException('Method not available on WhatsApp Business API');
+  }
 }

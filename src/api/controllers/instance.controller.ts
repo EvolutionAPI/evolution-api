@@ -1,5 +1,5 @@
 import { JsonValue } from '@prisma/client/runtime/library';
-import { delay } from '@whiskeysockets/baileys';
+import { delay } from 'baileys';
 import { isArray, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
