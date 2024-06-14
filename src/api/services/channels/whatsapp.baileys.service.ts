@@ -1826,10 +1826,8 @@ export class BaileysStartupService extends ChannelStartupService {
               {
                 ...option,
                 useCachedGroupMetadata:
-                  !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                  !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                    ? false
-                    : true,
+                  !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                  !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
               } as unknown as MiscMessageGenerationOptions,
             );
           }
@@ -1845,10 +1843,8 @@ export class BaileysStartupService extends ChannelStartupService {
             {
               ...option,
               useCachedGroupMetadata:
-                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? false
-                  : true,
+                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1866,10 +1862,8 @@ export class BaileysStartupService extends ChannelStartupService {
             {
               ...option,
               useCachedGroupMetadata:
-                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? false
-                  : true,
+                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1892,10 +1886,8 @@ export class BaileysStartupService extends ChannelStartupService {
           {
             ...option,
             useCachedGroupMetadata:
-              !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-              !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                ? false
-                : true,
+              !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+              !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
           } as unknown as MiscMessageGenerationOptions,
         );
       })();
@@ -2003,6 +1995,8 @@ export class BaileysStartupService extends ChannelStartupService {
   public async setPresence(data: SetPresenceDto) {
     try {
       await this.client.sendPresenceUpdate(data.presence);
+
+      return { presence: data.presence };
     } catch (error) {
       this.logger.error(error);
       throw new BadRequestException(error.toString());

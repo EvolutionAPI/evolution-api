@@ -171,14 +171,6 @@ export const instanceSchema: JSONSchema7 = {
     chatwootMergeBrazilContacts: { type: 'boolean' },
     chatwootImportMessages: { type: 'boolean' },
     chatwootDaysLimitImportMessages: { type: 'number' },
-    // Typebot
-    typebotUrl: { type: 'string' },
-    typebot: { type: 'boolean' },
-    typebotExpire: { type: 'number' },
-    typebotKeywordFinish: { type: 'string' },
-    typebotDelayMessage: { type: 'number' },
-    typebotUnknownMessage: { type: 'string' },
-    typebotListeningFromMe: { type: 'boolean' },
   },
   ...isNotEmpty('instanceName'),
 };
