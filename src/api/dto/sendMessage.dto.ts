@@ -131,11 +131,6 @@ export class SendListDto extends Metadata {
   sections: Section[];
 }
 
-export class FakeCallDto extends Metadata {
-  number: string;
-  delay: number;
-}
-
 export class ContactMessage {
   fullName: string;
   wuid: string;

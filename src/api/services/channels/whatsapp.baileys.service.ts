@@ -109,7 +109,6 @@ import { InstanceDto, SetPresenceDto } from '../../dto/instance.dto';
 import { HandleLabelDto, LabelDto } from '../../dto/label.dto';
 import {
   ContactMessage,
-  FakeCallDto,
   MediaMessage,
   Options,
   SendAudioDto,
@@ -1985,6 +1984,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
         await this.client.sendPresenceUpdate('paused', sender);
       }
+
+      return { presence: data.presence };
     } catch (error) {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
@@ -2696,7 +2697,7 @@ export class BaileysStartupService extends ChannelStartupService {
   public async markMessageAsRead(data: ReadMessageDto) {
     try {
       const keys: proto.IMessageKey[] = [];
-      data.read_messages.forEach((read) => {
+      data.readMessages.forEach((read) => {
         if (isJidGroup(read.remoteJid) || isJidUser(read.remoteJid)) {
           keys.push({
             remoteJid: read.remoteJid,
@@ -3433,27 +3434,5 @@ export class BaileysStartupService extends ChannelStartupService {
   }
   public async templateMessage() {
     throw new Error('Method not available in the Baileys service');
-  }
-
-  public async fakeCall(data: FakeCallDto) {
-    try {
-      const number = this.createJid(data.number);
-
-      if (number.includes('@g.us')) {
-        throw new BadRequestException('Group calls are not supported');
-      }
-
-      const mdDelay = data.delay ?? 0;
-
-      const call = await this.client.offerCall(number);
-
-      await delay(mdDelay);
-
-      await this.client.rejectCall(call.callId, call.toJid);
-
-      return call;
-    } catch (error) {
-      throw new BadRequestException('Error making fake call', error.toString());
-    }
   }
 }

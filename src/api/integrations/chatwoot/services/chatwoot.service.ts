@@ -1346,7 +1346,7 @@ export class ChatwootService {
             };
 
             waInstance?.markMessageAsRead({
-              read_messages: [
+              readMessages: [
                 {
                   id: key.id,
                   fromMe: key.fromMe,

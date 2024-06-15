@@ -3,7 +3,6 @@ import { isBase64, isURL } from 'class-validator';
 import { BadRequestException } from '../../exceptions';
 import { InstanceDto } from '../dto/instance.dto';
 import {
-  FakeCallDto,
   SendAudioDto,
   SendButtonDto,
   SendContactDto,
@@ -84,9 +83,5 @@ export class SendMessageController {
 
   public async sendStatus({ instanceName }: InstanceDto, data: SendStatusDto) {
     return await this.waMonitor.waInstances[instanceName].statusMessage(data);
-  }
-
-  public async fakeCall({ instanceName }: InstanceDto, data: FakeCallDto) {
-    return await this.waMonitor.waInstances[instanceName].fakeCall(data);
   }
 }

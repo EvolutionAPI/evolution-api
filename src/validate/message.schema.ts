@@ -358,16 +358,3 @@ export const listMessageSchema: JSONSchema7 = {
   },
   required: ['number', 'title', 'footerText', 'buttonText', 'sections'],
 };
-
-export const fakeCallSchema: JSONSchema7 = {
-  $id: v4(),
-  type: 'object',
-  properties: {
-    number: { ...numberDefinition },
-    delay: {
-      type: 'integer',
-      description: 'Enter a value in milliseconds',
-    },
-  },
-  required: ['number', 'delay'],
-};

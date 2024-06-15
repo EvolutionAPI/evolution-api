@@ -45,7 +45,7 @@ export const readMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
-    read_messages: {
+    readMessages: {
       type: 'array',
       minItems: 1,
       uniqueItems: true,
@@ -60,7 +60,7 @@ export const readMessageSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['read_messages'],
+  required: ['readMessages'],
 };
 
 export const archiveChatSchema: JSONSchema7 = {

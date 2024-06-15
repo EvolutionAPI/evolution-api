@@ -3,7 +3,6 @@ import { RequestHandler, Router } from 'express';
 import {
   audioMessageSchema,
   contactMessageSchema,
-  fakeCallSchema,
   listMessageSchema,
   locationMessageSchema,
   mediaMessageSchema,
@@ -16,7 +15,6 @@ import {
 } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import {
-  FakeCallDto,
   SendAudioDto,
   SendContactDto,
   SendListDto,
@@ -143,16 +141,6 @@ export class MessageRouter extends RouterBroker {
           schema: listMessageSchema,
           ClassRef: SendListDto,
           execute: (instance, data) => sendMessageController.sendList(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
-      .post(this.routerPath('fakeCall'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<FakeCallDto>({
-          request: req,
-          schema: fakeCallSchema,
-          ClassRef: FakeCallDto,
-          execute: (instance, data) => sendMessageController.fakeCall(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
