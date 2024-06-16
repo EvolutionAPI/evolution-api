@@ -35,9 +35,9 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-} from '@whiskeysockets/baileys';
-import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
-import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
+} from 'baileys';
+import { Label } from 'baileys/lib/Types/Label';
+import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import axios from 'axios';
 import { exec } from 'child_process';
 import { isBase64, isURL } from 'class-validator';
@@ -618,6 +618,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
+        cachedGroupMetadata: this.getGroupMetadataCache,
         patchMessageBeforeSending(message) {
           if (
             message.deviceSentMessage?.message?.listMessage?.listType ===
@@ -1946,11 +1947,9 @@ export class BaileysStartupService extends ChannelStartupService {
               } as unknown as AnyMessageContent,
               {
                 ...option,
-                cachedGroupMetadata:
-                  !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                  !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                    ? null
-                    : this.getGroupMetadataCache,
+                useCachedGroupMetadata:
+                  !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                  !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
               } as unknown as MiscMessageGenerationOptions,
             );
           }
@@ -1966,11 +1965,9 @@ export class BaileysStartupService extends ChannelStartupService {
             } as unknown as AnyMessageContent,
             {
               ...option,
-              cachedGroupMetadata:
-                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? null
-                  : this.getGroupMetadataCache,
+              useCachedGroupMetadata:
+                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1988,11 +1985,9 @@ export class BaileysStartupService extends ChannelStartupService {
             },
             {
               ...option,
-              cachedGroupMetadata:
-                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? null
-                  : this.getGroupMetadataCache,
+              useCachedGroupMetadata:
+                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -2016,11 +2011,9 @@ export class BaileysStartupService extends ChannelStartupService {
           message as unknown as AnyMessageContent,
           {
             ...option,
-            cachedGroupMetadata:
-              !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-              !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                ? null
-                : this.getGroupMetadataCache,
+            useCachedGroupMetadata:
+              !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+              !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
           } as unknown as MiscMessageGenerationOptions,
         );
       })();
@@ -3354,6 +3347,10 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
+    if (this.localSettings.groups_ignore === true) {
+      return;
+    }
+
     this.logger.verbose('Fetching group');
     try {
       const group = await this.client.groupMetadata(id.groupJid);
@@ -3384,6 +3381,10 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchAllGroups(getParticipants: GetParticipant) {
+    if (this.localSettings.groups_ignore === true) {
+      return;
+    }
+
     this.logger.verbose('Fetching all groups');
     try {
       const fetch = Object.values(await this.client.groupFetchAllParticipating());

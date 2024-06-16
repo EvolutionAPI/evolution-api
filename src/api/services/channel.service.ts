@@ -1,4 +1,4 @@
-import { WASocket } from '@whiskeysockets/baileys';
+import { WASocket } from 'baileys';
 import axios from 'axios';
 import { execSync } from 'child_process';
 import { isURL } from 'class-validator';

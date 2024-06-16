@@ -4,7 +4,7 @@ import {
   initAuthCreds,
   proto,
   SignalDataTypeMap,
-} from '@whiskeysockets/baileys';
+} from 'baileys';
 
 import { CacheService } from '../api/services/cache.service';
 import { Logger } from '../config/logger.config';

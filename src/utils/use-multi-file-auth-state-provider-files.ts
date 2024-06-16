@@ -41,7 +41,7 @@ import {
   initAuthCreds,
   proto,
   SignalDataTypeMap,
-} from '@whiskeysockets/baileys';
+} from 'baileys';
 import { isNotEmpty } from 'class-validator';
 
 import { ProviderFiles } from '../api/provider/sessions';
