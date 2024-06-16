@@ -1,5 +1,6 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
+import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -38,7 +39,6 @@ import makeWASocket, {
 } from 'baileys';
 import { Label } from 'baileys/lib/Types/Label';
 import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
-import axios from 'axios';
 import { exec } from 'child_process';
 import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -253,8 +253,8 @@ export class BaileysStartupService extends ChannelStartupService {
     this.logger.verbose('Getting profile status');
     const status = await this.client.fetchStatus(this.instance.wuid);
 
-    this.logger.verbose(`Profile status: ${status.status}`);
-    return status.status;
+    this.logger.verbose(`Profile status: ${status[0]?.status}`);
+    return status[0]?.status;
   }
 
   public get profilePictureUrl() {
@@ -1737,7 +1737,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Getting status');
       return {
         wuid: jid,
-        status: (await this.client.fetchStatus(jid))?.status,
+        status: (await this.client.fetchStatus(jid))[0]?.status,
       };
     } catch (error) {
       this.logger.verbose('Status not found');
