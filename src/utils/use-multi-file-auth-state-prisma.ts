@@ -1,4 +1,4 @@
-import { BufferJSON, initAuthCreds, WAProto as proto } from 'baileys';
+import { AuthenticationState, BufferJSON, initAuthCreds, WAProto as proto } from 'baileys';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -7,7 +7,7 @@ import { prismaServer } from '../libs/prisma.connect';
 
 const prisma = prismaServer;
 
-const fixFileName = (file) => {
+const fixFileName = (file: string): string | undefined => {
   if (!file) {
     return undefined;
   }
@@ -16,7 +16,7 @@ const fixFileName = (file) => {
   return replacedColon;
 };
 
-export async function keyExists(sessionId) {
+export async function keyExists(sessionId: string): Promise<any> {
   try {
     const key = await prisma.session.findUnique({ where: { sessionId: sessionId } });
     return !!key;
@@ -26,10 +26,10 @@ export async function keyExists(sessionId) {
   }
 }
 
-export async function saveKey(sessionId, keyJson) {
-  const jaExiste = await keyExists(sessionId);
+export async function saveKey(sessionId: string, keyJson: any): Promise<any> {
+  const exists = await keyExists(sessionId);
   try {
-    if (!jaExiste)
+    if (!exists)
       return await prisma.session.create({
         data: {
           sessionId: sessionId,
@@ -46,10 +46,10 @@ export async function saveKey(sessionId, keyJson) {
   }
 }
 
-export async function getAuthKey(sessionId) {
+export async function getAuthKey(sessionId: string): Promise<any> {
   try {
-    const registro = await keyExists(sessionId);
-    if (!registro) return null;
+    const register = await keyExists(sessionId);
+    if (!register) return null;
     const auth = await prisma.session.findUnique({ where: { sessionId: sessionId } });
     return JSON.parse(auth?.creds);
   } catch (error) {
@@ -58,17 +58,17 @@ export async function getAuthKey(sessionId) {
   }
 }
 
-async function deleteAuthKey(sessionId) {
+async function deleteAuthKey(sessionId: string): Promise<any> {
   try {
-    const registro = await keyExists(sessionId);
-    if (!registro) return;
+    const register = await keyExists(sessionId);
+    if (!register) return;
     await prisma.session.delete({ where: { sessionId: sessionId } });
   } catch (error) {
     console.log('2', `${error}`);
   }
 }
 
-async function fileExists(file) {
+async function fileExists(file: string): Promise<any> {
   try {
     const stat = await fs.stat(file);
     if (stat.isFile()) return true;
@@ -77,12 +77,15 @@ async function fileExists(file) {
   }
 }
 
-export default async function useMultiFileAuthStatePrisma(sessionId) {
+export default async function useMultiFileAuthStatePrisma(sessionId: string): Promise<{
+  state: AuthenticationState;
+  saveCreds: () => Promise<void>;
+}> {
   const localFolder = path.join(INSTANCE_DIR, sessionId);
-  const localFile = (key) => path.join(localFolder, fixFileName(key) + '.json');
+  const localFile = (key: string) => path.join(localFolder, fixFileName(key) + '.json');
   await fs.mkdir(localFolder, { recursive: true });
 
-  async function writeData(data, key) {
+  async function writeData(data: any, key: string): Promise<any> {
     const dataString = JSON.stringify(data, BufferJSON.replacer);
 
     if (key != 'creds') {
@@ -93,7 +96,7 @@ export default async function useMultiFileAuthStatePrisma(sessionId) {
     return;
   }
 
-  async function readData(key) {
+  async function readData(key: string): Promise<any> {
     try {
       let rawData;
 
@@ -111,7 +114,7 @@ export default async function useMultiFileAuthStatePrisma(sessionId) {
     }
   }
 
-  async function removeData(key) {
+  async function removeData(key: string): Promise<any> {
     try {
       if (key != 'creds') {
         await fs.unlink(localFile(key));
