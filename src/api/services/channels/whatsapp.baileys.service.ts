@@ -1127,6 +1127,7 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.videoMessage ||
             received?.message?.stickerMessage ||
             received?.message?.documentMessage ||
+            received?.message?.documentWithCaptionMessage ||
             received?.message?.audioMessage;
 
           const contentMsg = received?.message[getContentType(received.message)] as any;
