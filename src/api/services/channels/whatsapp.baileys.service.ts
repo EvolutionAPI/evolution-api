@@ -1514,7 +1514,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (events['presence.update']) {
           const payload = events['presence.update'];
 
-          if (settings.groupsIgnore && payload.id.includes('@g.us')) {
+          if (settings?.groupsIgnore && payload.id.includes('@g.us')) {
             return;
           }
           this.sendDataWebhook(Events.PRESENCE_UPDATE, payload);
