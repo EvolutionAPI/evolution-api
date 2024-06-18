@@ -721,7 +721,9 @@ export class ChannelStartupService {
                 autoDelete: false,
               });
 
-              const queueName = `${this.instanceName}.${event}`;
+              const eventName = event.replace(/_/g, '.').toLowerCase();
+
+              const queueName = `${this.instanceName}.${eventName}`;
 
               await amqp.assertQueue(queueName, {
                 durable: true,
@@ -731,7 +733,7 @@ export class ChannelStartupService {
                 },
               });
 
-              await amqp.bindQueue(queueName, exchangeName, event);
+              await amqp.bindQueue(queueName, exchangeName, eventName);
 
               const message = {
                 event,
