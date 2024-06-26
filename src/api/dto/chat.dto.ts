@@ -78,17 +78,13 @@ export class MarkChatUnreadDto {
   chat?: string;
 }
 
-class PrivacySetting {
+export class PrivacySettingDto {
   readreceipts: WAReadReceiptsValue;
   profile: WAPrivacyValue;
   status: WAPrivacyValue;
   online: WAPrivacyOnlineValue;
   last: WAPrivacyValue;
   groupadd: WAPrivacyValue;
-}
-
-export class PrivacySettingDto {
-  privacySettings: PrivacySetting;
 }
 
 export class DeleteMessage {

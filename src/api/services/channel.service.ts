@@ -229,6 +229,29 @@ export class ChannelStartupService {
   }
 
   public async setWebhook(data: WebhookDto) {
+    const findWebhook = await this.prismaRepository.webhook.findUnique({
+      where: {
+        instanceId: this.instanceId,
+      },
+    });
+
+    if (findWebhook) {
+      await this.prismaRepository.webhook.update({
+        where: {
+          instanceId: this.instanceId,
+        },
+        data: {
+          url: data.url,
+          enabled: data.enabled,
+          events: data.events,
+          webhookByEvents: data.webhookByEvents,
+          webhookBase64: data.webhookBase64,
+        },
+      });
+
+      Object.assign(this.localWebhook, data);
+      return;
+    }
     await this.prismaRepository.webhook.create({
       data: {
         url: data.url,
@@ -241,6 +264,7 @@ export class ChannelStartupService {
     });
 
     Object.assign(this.localWebhook, data);
+    return;
   }
 
   public async findWebhook() {
@@ -437,6 +461,27 @@ export class ChannelStartupService {
   }
 
   public async setRabbitmq(data: RabbitmqDto) {
+    const findRabbitmq = await this.prismaRepository.rabbitmq.findUnique({
+      where: {
+        instanceId: this.instanceId,
+      },
+    });
+
+    if (findRabbitmq) {
+      await this.prismaRepository.rabbitmq.update({
+        where: {
+          instanceId: this.instanceId,
+        },
+        data: {
+          enabled: data.enabled,
+          events: data.events,
+        },
+      });
+
+      Object.assign(this.localRabbitmq, data);
+      return;
+    }
+
     await this.prismaRepository.rabbitmq.create({
       data: {
         enabled: data.enabled,
@@ -446,6 +491,7 @@ export class ChannelStartupService {
     });
 
     Object.assign(this.localRabbitmq, data);
+    return;
   }
 
   public async findRabbitmq() {
@@ -480,6 +526,27 @@ export class ChannelStartupService {
   }
 
   public async setSqs(data: SqsDto) {
+    const findSqs = await this.prismaRepository.sqs.findUnique({
+      where: {
+        instanceId: this.instanceId,
+      },
+    });
+
+    if (findSqs) {
+      await this.prismaRepository.sqs.update({
+        where: {
+          instanceId: this.instanceId,
+        },
+        data: {
+          enabled: data.enabled,
+          events: data.events,
+        },
+      });
+
+      Object.assign(this.localSqs, data);
+      return;
+    }
+
     await this.prismaRepository.sqs.create({
       data: {
         enabled: data.enabled,
@@ -489,6 +556,7 @@ export class ChannelStartupService {
     });
 
     Object.assign(this.localSqs, data);
+    return;
   }
 
   public async findSqs() {
@@ -1059,10 +1127,14 @@ export class ChannelStartupService {
   }
 
   public async fetchContacts(query: Query<Contact>) {
+    const remoteJid = query.where?.remoteJid.includes('@')
+      ? query.where?.remoteJid
+      : this.createJid(query.where?.remoteJid);
+
     return await this.prismaRepository.contact.findMany({
       where: {
         instanceId: this.instanceId,
-        remoteJid: query.where?.remoteJid,
+        remoteJid,
       },
     });
   }
@@ -1075,6 +1147,14 @@ export class ChannelStartupService {
       participants?: string;
     };
 
+    const remoteJid = keyFilters?.remoteJid
+      ? keyFilters?.remoteJid.includes('@')
+        ? keyFilters?.remoteJid
+        : this.createJid(keyFilters?.remoteJid)
+      : null;
+
+    console.log(remoteJid);
+
     const count = await this.prismaRepository.message.count({
       where: {
         instanceId: this.instanceId,
@@ -1084,7 +1164,7 @@ export class ChannelStartupService {
         AND: [
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
-          keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
+          remoteJid ? { key: { path: ['remoteJid'], equals: remoteJid } } : {},
           keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
         ],
       },
@@ -1107,7 +1187,7 @@ export class ChannelStartupService {
         AND: [
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
-          keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
+          remoteJid ? { key: { path: ['remoteJid'], equals: remoteJid } } : {},
           keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
         ],
       },

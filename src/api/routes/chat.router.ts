@@ -228,7 +228,7 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-      .put(this.routerPath('updateProfilePicture'), ...guards, async (req, res) => {
+      .post(this.routerPath('updateProfilePicture'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfilePictureDto>({
           request: req,
           schema: profilePictureSchema,

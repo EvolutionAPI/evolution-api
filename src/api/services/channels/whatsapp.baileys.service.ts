@@ -2928,24 +2928,24 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async updatePrivacySettings(settings: PrivacySettingDto) {
     try {
-      await this.client.updateReadReceiptsPrivacy(settings.privacySettings.readreceipts);
-      await this.client.updateProfilePicturePrivacy(settings.privacySettings.profile);
-      await this.client.updateStatusPrivacy(settings.privacySettings.status);
-      await this.client.updateOnlinePrivacy(settings.privacySettings.online);
-      await this.client.updateLastSeenPrivacy(settings.privacySettings.last);
-      await this.client.updateGroupsAddPrivacy(settings.privacySettings.groupadd);
+      await this.client.updateReadReceiptsPrivacy(settings.readreceipts);
+      await this.client.updateProfilePicturePrivacy(settings.profile);
+      await this.client.updateStatusPrivacy(settings.status);
+      await this.client.updateOnlinePrivacy(settings.online);
+      await this.client.updateLastSeenPrivacy(settings.last);
+      await this.client.updateGroupsAddPrivacy(settings.groupadd);
 
       this.reloadConnection();
 
       return {
         update: 'success',
         data: {
-          readreceipts: settings.privacySettings.readreceipts,
-          profile: settings.privacySettings.profile,
-          status: settings.privacySettings.status,
-          online: settings.privacySettings.online,
-          last: settings.privacySettings.last,
-          groupadd: settings.privacySettings.groupadd,
+          readreceipts: settings.readreceipts,
+          profile: settings.profile,
+          status: settings.status,
+          online: settings.online,
+          last: settings.last,
+          groupadd: settings.groupadd,
         },
       };
     } catch (error) {
