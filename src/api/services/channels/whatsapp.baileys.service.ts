@@ -1413,6 +1413,8 @@ export class BaileysStartupService extends ChannelStartupService {
       action: ParticipantAction;
     }) => {
       this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
+
+      this.updateGroupMetadataCache(participantsUpdate.id);
     },
   };
 
