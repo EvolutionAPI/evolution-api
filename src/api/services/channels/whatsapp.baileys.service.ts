@@ -162,22 +162,45 @@ export class BaileysStartupService extends ChannelStartupService {
   public phoneNumber: string;
 
   private async recoveringMessages() {
-    this.logger.info('Recovering messages lost');
     const cacheConf = this.configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
+      this.logger.info('Recovering messages lost from cache');
       setInterval(async () => {
         this.baileysCache.keys().then((keys) => {
           keys.forEach(async (key) => {
-            const message = await this.baileysCache.get(key.split(':')[2]);
+            const data = await this.baileysCache.get(key.split(':')[2]);
+
+            let message: any;
+            let retry: number;
+
+            if (!data?.message) {
+              message = data;
+              retry = 0;
+            } else {
+              message = data.message;
+              retry = data.retry;
+            }
 
             if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
-              this.logger.info('Message absent from node, retrying to send, key: ' + key.split(':')[2]);
-              await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
+              retry = retry + 1;
+              this.logger.info(`Message absent from node, retrying to send, key: ${key.split(':')[2]} retry: ${retry}`);
+              if (message.messageStubParameters[1]) {
+                await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
+              }
+
+              this.baileysCache.set(key.split(':')[2], { message, retry });
+
+              if (retry >= 100) {
+                this.logger.warn(`Message absent from node, retry limit reached, key: ${key.split(':')[2]}`);
+                this.baileysCache.delete(key.split(':')[2]);
+                return;
+              }
             }
           });
         });
-      }, 30000);
+        // 15 minutes
+      }, 15 * 60 * 1000);
     }
   }
 
@@ -1112,9 +1135,12 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
-            this.logger.info('Recovering message lost');
+            this.logger.info(`Recovering message lost messageId: ${received.key.id}`);
 
-            await this.baileysCache.set(received.key.id, received);
+            await this.baileysCache.set(received.key.id, {
+              message: received,
+              retry: 0,
+            });
             continue;
           }
 
