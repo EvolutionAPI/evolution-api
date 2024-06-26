@@ -3172,7 +3172,7 @@ export class BaileysStartupService extends ChannelStartupService {
     if (!isJidGroup(groupJid)) return null;
 
     if (await groupMetadataCache.has(groupJid)) {
-      this.logger.verbose(`Cache request for group: ${groupJid}`);
+      console.log(`Cache request for group: ${groupJid}`);
       const meta = await groupMetadataCache.get(groupJid);
 
       if (Date.now() - meta.timestamp > 3600000) {
@@ -3182,7 +3182,7 @@ export class BaileysStartupService extends ChannelStartupService {
       return meta.data;
     }
 
-    this.logger.verbose(`Cache request for group: ${groupJid} - not found`);
+    console.log(`Cache request for group: ${groupJid} - not found`);
     return await this.updateGroupMetadataCache(groupJid);
   }
 
