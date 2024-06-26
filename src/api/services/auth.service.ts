@@ -5,6 +5,10 @@ export class AuthService {
   constructor(private readonly prismaRepository: PrismaRepository) {}
 
   public async checkDuplicateToken(token: string) {
+    if (!token) {
+      return true;
+    }
+
     const instances = await this.prismaRepository.instance.findMany({
       where: { token },
     });

@@ -89,7 +89,7 @@ export class InstanceController {
     chatwootLogo,
   }: InstanceDto) {
     try {
-      await this.authService.checkDuplicateToken(token);
+      if (token) await this.authService.checkDuplicateToken(token);
 
       if (!token && integration === Integration.WHATSAPP_BUSINESS) {
         throw new BadRequestException('token is required');

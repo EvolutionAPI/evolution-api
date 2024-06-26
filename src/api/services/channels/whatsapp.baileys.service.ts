@@ -1831,8 +1831,6 @@ export class BaileysStartupService extends ChannelStartupService {
             throw new NotFoundException('Group not found');
           }
 
-          console.log('options', options);
-
           if (options.mentionsEveryOne) {
             mentions = group.participants.map((participant) => participant.id);
           } else if (options.mentioned?.length) {

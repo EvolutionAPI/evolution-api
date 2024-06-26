@@ -68,9 +68,10 @@ export class WAMonitoringService {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
 
-    // const instances: any[] = [];
+    const where = instanceName ? { name: instanceName } : {};
 
     const instances = await this.prismaRepository.instance.findMany({
+      where,
       include: {
         Chatwoot: true,
         Proxy: true,
@@ -82,91 +83,6 @@ export class WAMonitoringService {
     });
 
     return instances;
-
-    // for await (const [key, value] of Object.entries(this.waInstances)) {
-    //   if (value) {
-    //     let chatwoot: any;
-    //     const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-
-    //     if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
-    //       const findChatwoot = await this.waInstances[key].findChatwoot();
-
-    //       if (findChatwoot && findChatwoot.enabled) {
-    //         chatwoot = {
-    //           ...findChatwoot,
-    //           webhook_url: `${urlServer}/chatwoot/webhook/${encodeURIComponent(key)}`,
-    //         };
-    //       }
-    //     }
-
-    //     const findIntegration = {
-    //       integration: this.waInstances[key].integration,
-    //       token: this.waInstances[key].token,
-    //       number: this.waInstances[key].number,
-    //     };
-
-    //     let integration: any;
-    //     if (this.waInstances[key].integration === Integration.WHATSAPP_BUSINESS) {
-    //       integration = {
-    //         ...findIntegration,
-    //         webhookWaBusiness: `${urlServer}/webhook/whatsapp/${encodeURIComponent(key)}`,
-    //       };
-    //     }
-
-    //     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
-
-    //     if (value.connectionStatus.state === 'open') {
-    //       const instanceData = {
-    //         instance: {
-    //           instanceName: key,
-    //           instanceId: this.waInstances[key].instanceId,
-    //           owner: value.wuid,
-    //           profileName: (await value.getProfileName()) || 'not loaded',
-    //           profilePictureUrl: value.profilePictureUrl,
-    //           profileStatus: (await value.getProfileStatus()) || '',
-    //           status: value.connectionStatus.state,
-    //         },
-    //       };
-
-    //       if (expose) {
-    //         instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
-
-    //         instanceData.instance['token'] = this.waInstances[key].token;
-
-    //         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
-
-    //         instanceData.instance['integration'] = integration;
-    //       }
-
-    //       instances.push(instanceData);
-    //     } else {
-    //       const instanceData = {
-    //         instance: {
-    //           instanceName: key,
-    //           instanceId: this.waInstances[key].instanceId,
-    //           status: value.connectionStatus.state,
-    //         },
-    //       };
-
-    //       if (expose) {
-    //         instanceData.instance['serverUrl'] = this.configService.get<HttpServer>('SERVER').URL;
-
-    //         instanceData.instance['token'] = this.waInstances[key].token;
-
-    //         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instanceData.instance['chatwoot'] = chatwoot;
-
-    //         instanceData.instance['integration'] = integration;
-    //       }
-
-    //       instances.push(instanceData);
-    //     }
-    //   }
-    // }
-
-    // if (arrayReturn) {
-    //   return [instances.find((i) => i.instance.instanceName === instanceName) ?? instances];
-    // }
-    // return instances.find((i) => i.instance.instanceName === instanceName) ?? instances;
   }
 
   public async instanceInfoById(instanceId?: string, number?: string) {
@@ -251,7 +167,7 @@ export class WAMonitoringService {
 
   public async loadInstance() {
     try {
-      if (this.providerSession.ENABLED) {
+      if (this.providerSession?.ENABLED) {
         await this.loadInstancesFromProvider();
       } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
         await this.loadInstancesFromDatabasePostgres();
