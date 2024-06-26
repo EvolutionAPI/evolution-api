@@ -366,7 +366,7 @@ export class BaileysStartupService extends ChannelStartupService {
     if (connection === 'close') {
       const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
       if (shouldReconnect) {
-        await this.connectToWhatsapp();
+        await this.connectToWhatsapp(this.phoneNumber);
       } else {
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
@@ -512,7 +512,19 @@ export class BaileysStartupService extends ChannelStartupService {
       this.instance.authState = await this.defineAuthState();
 
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+
+      let browserOptions = {};
+
+      if (number || this.phoneNumber) {
+        this.phoneNumber = number;
+
+        this.logger.info(`Phone number: ${number}`);
+      } else {
+        const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+        browserOptions = { browser };
+
+        this.logger.info(`Browser: ${browser}`);
+      }
 
       let version;
       let log;
@@ -575,7 +587,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
-        browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
+        ...browserOptions,
         version,
         markOnlineOnConnect: this.localSettings.alwaysOnline,
         retryRequestDelayMs: 350,
@@ -643,7 +655,17 @@ export class BaileysStartupService extends ChannelStartupService {
       this.instance.authState = await this.defineAuthState();
 
       const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+
+      let browserOptions = {};
+
+      if (this.phoneNumber) {
+        this.logger.info(`Phone number: ${this.phoneNumber}`);
+      } else {
+        const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+        browserOptions = { browser };
+
+        this.logger.info(`Browser: ${browser}`);
+      }
 
       let version;
       let log;
@@ -706,7 +728,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         logger: P({ level: this.logBaileys }),
         printQRInTerminal: false,
-        browser: this.phoneNumber ? ['Chrome (Linux)', session.NAME, release()] : browser,
+        ...browserOptions,
         version,
         markOnlineOnConnect: this.localSettings.alwaysOnline,
         retryRequestDelayMs: 350,
