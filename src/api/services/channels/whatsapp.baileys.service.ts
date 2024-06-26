@@ -3096,12 +3096,51 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  public async updateMessage(data: UpdateMessageDto) {
+  private async formatUpdateMessage(data: UpdateMessageDto) {
     try {
-      const jid = this.createJid(data.number);
+      const msg: any = await this.getMessage(data.key, true);
 
+      console.log('msg', msg);
+      if (msg?.messageType === 'conversation' || msg?.messageType === 'extendedTextMessage') {
+        return {
+          text: data.text,
+        };
+      }
+
+      if (msg?.messageType === 'imageMessage') {
+        return {
+          image: msg?.message?.imageMessage,
+          caption: data.text,
+        };
+      }
+
+      if (msg?.messageType === 'videoMessage') {
+        return {
+          video: msg?.message?.videoMessage,
+          caption: data.text,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  public async updateMessage(data: UpdateMessageDto) {
+    const jid = this.createJid(data.number);
+
+    const options = await this.formatUpdateMessage(data);
+
+    if (!options) {
+      this.logger.error('Message not compatible');
+      throw new BadRequestException('Message not compatible');
+    }
+
+    try {
       return await this.client.sendMessage(jid, {
-        text: data.text,
+        ...(options as any),
         edit: data.key,
       });
     } catch (error) {
