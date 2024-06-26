@@ -1831,25 +1831,23 @@ export class BaileysStartupService extends ChannelStartupService {
             throw new NotFoundException('Group not found');
           }
 
-          if (options?.mentions) {
-            if (options.mentions?.everyOne) {
-              mentions = group.participants.map((participant) => participant.id);
-            } else if (options.mentions?.mentioned?.length) {
-              mentions = options.mentions.mentioned.map((mention) => {
-                const jid = this.createJid(mention);
-                if (isJidGroup(jid)) {
-                  return null;
-                }
-                return jid;
-              });
-            }
+          console.log('options', options);
+
+          if (options.mentionsEveryOne) {
+            mentions = group.participants.map((participant) => participant.id);
+          } else if (options.mentioned?.length) {
+            mentions = options.mentioned.map((mention) => {
+              const jid = this.createJid(mention);
+              if (isJidGroup(jid)) {
+                return null;
+              }
+              return jid;
+            });
           }
         } catch (error) {
           throw new NotFoundException('Group not found');
         }
       }
-
-      console.log('message', message);
 
       const messageSent = await (async () => {
         const option = {
@@ -2073,10 +2071,8 @@ export class BaileysStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
       isIntegration,
     );
@@ -2097,10 +2093,8 @@ export class BaileysStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
   }
@@ -2352,10 +2346,8 @@ export class BaileysStartupService extends ChannelStartupService {
         delay: data?.delay,
         presence: 'composing',
         quoted: data?.quoted,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
 
@@ -2374,10 +2366,8 @@ export class BaileysStartupService extends ChannelStartupService {
         delay: data?.delay,
         presence: 'composing',
         quoted: data?.quoted,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
       isIntegration,
     );
@@ -2541,10 +2531,8 @@ export class BaileysStartupService extends ChannelStartupService {
         delay: data?.delay,
         presence: 'composing',
         quoted: data?.quoted,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
   }
@@ -2566,10 +2554,8 @@ export class BaileysStartupService extends ChannelStartupService {
         delay: data?.delay,
         presence: 'composing',
         quoted: data?.quoted,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
   }

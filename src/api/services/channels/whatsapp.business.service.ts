@@ -853,10 +853,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
       isIntegration,
     );
@@ -938,10 +936,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
       isIntegration,
     );
@@ -986,10 +982,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
       isIntegration,
     );
@@ -1027,10 +1021,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
   }
@@ -1051,10 +1043,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
   }
@@ -1093,10 +1083,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
   }
@@ -1116,10 +1104,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
       isIntegration,
     );
@@ -1188,10 +1174,8 @@ export class BusinessStartupService extends ChannelStartupService {
         presence: 'composing',
         quoted: data?.quoted,
         linkPreview: data?.linkPreview,
-        mentions: {
-          everyOne: data?.everyOne,
-          mentioned: data?.mentioned,
-        },
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
       },
     );
   }

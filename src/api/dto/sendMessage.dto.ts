@@ -5,18 +5,14 @@ export class Quoted {
   message: proto.IMessage;
 }
 
-export class Mentions {
-  everyOne?: boolean;
-  mentioned?: string[];
-}
-
 export class Options {
   delay?: number;
   presence?: WAPresence;
   quoted?: Quoted;
-  mentions?: Mentions;
   linkPreview?: boolean;
   encoding?: boolean;
+  mentionsEveryOne?: boolean;
+  mentioned?: string[];
 }
 
 export class MediaMessage {
@@ -44,7 +40,7 @@ export class Metadata {
   delay?: number;
   quoted?: Quoted;
   linkPreview?: boolean;
-  everyOne?: boolean;
+  mentionsEveryOne?: boolean;
   mentioned?: string[];
   encoding?: boolean;
 }
