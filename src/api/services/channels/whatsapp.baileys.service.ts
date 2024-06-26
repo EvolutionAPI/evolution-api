@@ -45,7 +45,7 @@ import EventEmitter2 from 'eventemitter2';
 // import { exec } from 'child_process';
 import ffmpeg from 'fluent-ffmpeg';
 // import ffmpeg from 'fluent-ffmpeg';
-import fs, { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import Long from 'long';
 import NodeCache from 'node-cache';
 import { getMIMEType } from 'node-mime-types';
@@ -1897,7 +1897,7 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
 
-        if (!message['audio'] && !message['poll'] && sender != 'status@broadcast') {
+        if (!message['audio'] && !message['poll'] && !message['sticker'] && sender != 'status@broadcast') {
           return await this.client.sendMessage(
             sender,
             {
@@ -2283,19 +2283,13 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  private async convertToWebP(image: string, number: string) {
+  private async convertToWebP(image: string): Promise<Buffer> {
     try {
-      let imagePath: string;
-      const hash = `${number}-${new Date().getTime()}`;
-
-      const outputPath = `${join(this.storePath, 'temp', `${hash}.webp`)}`;
+      let imageBuffer: Buffer;
 
       if (isBase64(image)) {
         const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
-        const imageBuffer = Buffer.from(base64Data, 'base64');
-        imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
-
-        await sharp(imageBuffer).toFile(imagePath);
+        imageBuffer = Buffer.from(base64Data, 'base64');
       } else {
         const timestamp = new Date().getTime();
         const url = `${image}?timestamp=${timestamp}`;
@@ -2318,29 +2312,26 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         const response = await axios.get(url, config);
-
-        const imageBuffer = Buffer.from(response.data, 'binary');
-        imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
-
-        await sharp(imageBuffer).toFile(imagePath);
+        imageBuffer = Buffer.from(response.data, 'binary');
       }
 
-      await sharp(imagePath).webp().toFile(outputPath);
+      const webpBuffer = await sharp(imageBuffer).webp().toBuffer();
 
-      fs.unlinkSync(imagePath);
-
-      return outputPath;
+      return webpBuffer;
     } catch (error) {
       console.error('Erro ao converter a imagem para WebP:', error);
+      throw error;
     }
   }
 
   public async mediaSticker(data: SendStickerDto) {
-    const convert = await this.convertToWebP(data.sticker, data.number);
+    const convert = await this.convertToWebP(data.sticker);
+    const gifPlayback = data.sticker.includes('.gif');
     const result = await this.sendMessageWithTyping(
       data.number,
       {
-        sticker: { url: convert },
+        sticker: convert,
+        gifPlayback,
       },
       {
         delay: data?.delay,
@@ -2350,8 +2341,6 @@ export class BaileysStartupService extends ChannelStartupService {
         mentioned: data?.mentioned,
       },
     );
-
-    fs.unlinkSync(convert);
 
     return result;
   }
