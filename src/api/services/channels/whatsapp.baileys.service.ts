@@ -22,7 +22,6 @@ import makeWASocket, {
   GroupParticipant,
   isJidBroadcast,
   isJidGroup,
-  isJidNewsletter,
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
@@ -41,6 +40,7 @@ import makeWASocket, {
 import { Label } from 'baileys/lib/Types/Label';
 import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { isBase64, isURL } from 'class-validator';
+import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
 // import { exec } from 'child_process';
 import ffmpeg from 'fluent-ffmpeg';
@@ -146,7 +146,6 @@ export class BaileysStartupService extends ChannelStartupService {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
     this.instance.qrcode = { count: 0 };
     this.recoveringMessages();
-    this.cronForceUpdateGroupMetadataCache();
 
     this.authStateProvider = new AuthStateProvider(this.providerFiles);
   }
@@ -204,19 +203,8 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  private async cronForceUpdateGroupMetadataCache() {
-    if (
-      !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-      !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-    )
-      return;
-
-    setInterval(async () => {
-      await this.forceUpdateGroupMetadataCache();
-    }, 3600000);
-  }
-
   private async forceUpdateGroupMetadataCache() {
+    this.logger.verbose('Force update group metadata cache');
     const groups = await this.fetchAllGroups({ getParticipants: 'false' });
 
     for (const group of groups) {
@@ -553,7 +541,7 @@ export class BaileysStartupService extends ChannelStartupService {
       let log;
 
       if (session.VERSION) {
-        version = session.VERSION.split(',');
+        version = session.VERSION.split('.');
         log = `Baileys version env: ${version}`;
       } else {
         const baileysVersion = await fetchLatestBaileysVersion();
@@ -624,7 +612,7 @@ export class BaileysStartupService extends ChannelStartupService {
         shouldIgnoreJid: (jid) => {
           const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
           const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-          const isNewsletter = isJidNewsletter(jid);
+          const isNewsletter = jid.includes('newsletter');
 
           return isGroupJid || isBroadcast || isNewsletter;
         },
@@ -637,7 +625,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
-        cachedGroupMetadata: this.getGroupMetadataCache,
+        // forceGroupsPrekey: false,
         patchMessageBeforeSending(message) {
           if (
             message.deviceSentMessage?.message?.listMessage?.listType ===
@@ -694,7 +682,7 @@ export class BaileysStartupService extends ChannelStartupService {
       let log;
 
       if (session.VERSION) {
-        version = session.VERSION.split(',');
+        version = session.VERSION.split('.');
         log = `Baileys version env: ${version}`;
       } else {
         const baileysVersion = await fetchLatestBaileysVersion();
@@ -1751,22 +1739,23 @@ export class BaileysStartupService extends ChannelStartupService {
     linkPreview: any,
     quoted: any,
     messageId?: string,
+    ephemeralExpiration?: number,
     participants?: GroupParticipant[],
   ) {
     const option: any = {
       quoted,
     };
 
-    if (messageId) option.messageId = messageId;
-
     if (participants)
       option.cachedGroupMetadata = async () => {
-        participants;
+        return { participants: participants as GroupParticipant[] };
       };
-    else
-      option.useCachedGroupMetadata =
-        !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-        !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED;
+    else option.cachedGroupMetadata = this.getGroupMetadataCache;
+
+    if (ephemeralExpiration) option.ephemeralExpiration = ephemeralExpiration;
+
+    if (messageId) option.messageId = messageId;
+    else option.messageId = '3EB0' + randomBytes(18).toString('hex').toUpperCase();
 
     if (
       !message['audio'] &&
@@ -1788,6 +1777,7 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
     }
+
     if (message['conversation']) {
       return await this.client.sendMessage(
         sender,
@@ -1897,8 +1887,11 @@ export class BaileysStartupService extends ChannelStartupService {
 
     const sender = isWA.jid;
 
+    this.logger.verbose(`Sending message to ${sender}`);
+
     try {
       if (options?.delay) {
+        this.logger.verbose(`Typing for ${options.delay}ms to ${sender}`);
         if (options.delay > 20000) {
           let remainingDelay = options.delay;
           while (remainingDelay > 20000) {
@@ -1963,14 +1956,6 @@ export class BaileysStartupService extends ChannelStartupService {
           throw new NotFoundException('Group not found');
         }
 
-        const participansList = group.participants;
-
-        const batchSize = 1;
-
-        const batches = Array.from({ length: Math.ceil(participansList.length / batchSize) }, (_, i) =>
-          participansList.slice(i * batchSize, i * batchSize + batchSize),
-        );
-
         if (options.mentionsEveryOne) {
           mentions = group.participants.map((participant) => participant.id);
         } else if (options.mentioned?.length) {
@@ -1983,25 +1968,46 @@ export class BaileysStartupService extends ChannelStartupService {
           });
         }
 
-        let msgId: string | null = null;
+        // console.log('group.participants', group.participants.length);
 
-        const firstBatch = batches.shift();
+        // const batchSize = 200;
 
-        if (firstBatch) {
-          messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted, null, firstBatch);
+        // const batches = Array.from({ length: Math.ceil(group.participants.length / batchSize) }, (_, i) =>
+        //   group.participants.slice(i * batchSize, i * batchSize + batchSize),
+        // );
 
-          msgId = messageSent.key.id;
+        // console.log('batches', batches.length);
 
-          if (batches.length === 0) return messageSent;
+        // const firstBatch = batches.shift();
 
-          await Promise.allSettled(
-            batches.map(async (batch: GroupParticipant[]) => {
-              const messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted, msgId, batch);
+        // let firstMessage: WAMessage;
+        // let msgId: string | null = null;
 
-              return messageSent;
-            }),
-          );
-        }
+        // if (firstBatch) {
+        //   firstMessage = await this.sendMessage(sender, message, mentions, linkPreview, quoted, null, firstBatch);
+
+        //   msgId = firstMessage.key.id;
+        // }
+
+        // if (batches.length === 0) messageSent = firstMessage;
+
+        // await Promise.allSettled(
+        //   batches.map(async (batch: GroupParticipant[]) => {
+        //     const messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted, msgId, batch);
+
+        //     return messageSent;
+        //   }),
+        // );
+
+        messageSent = await this.sendMessage(
+          sender,
+          message,
+          mentions,
+          linkPreview,
+          quoted,
+          null,
+          group?.ephemeralDuration,
+        );
       } else {
         messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted);
       }
