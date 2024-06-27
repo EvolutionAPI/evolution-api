@@ -19,6 +19,7 @@ import makeWASocket, {
   getContentType,
   getDevice,
   GroupMetadata,
+  GroupParticipant,
   isJidBroadcast,
   isJidGroup,
   isJidNewsletter,
@@ -40,7 +41,6 @@ import makeWASocket, {
 import { Label } from 'baileys/lib/Types/Label';
 import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { isBase64, isURL } from 'class-validator';
-import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
 // import { exec } from 'child_process';
 import ffmpeg from 'fluent-ffmpeg';
@@ -1744,6 +1744,134 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
+  private async sendMessage(
+    sender: string,
+    message: any,
+    mentions: any,
+    linkPreview: any,
+    quoted: any,
+    messageId?: string,
+    participants?: GroupParticipant[],
+  ) {
+    const option: any = {
+      quoted,
+    };
+
+    if (messageId) option.messageId = messageId;
+
+    if (participants)
+      option.cachedGroupMetadata = async () => {
+        participants;
+      };
+    else
+      option.useCachedGroupMetadata =
+        !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+        !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED;
+
+    if (
+      !message['audio'] &&
+      !message['poll'] &&
+      !message['sticker'] &&
+      !message['conversation'] &&
+      sender !== 'status@broadcast'
+    ) {
+      if (message['reactionMessage']) {
+        return await this.client.sendMessage(
+          sender,
+          {
+            react: {
+              text: message['reactionMessage']['text'],
+              key: message['reactionMessage']['key'],
+            },
+          } as unknown as AnyMessageContent,
+          option as unknown as MiscMessageGenerationOptions,
+        );
+      }
+    }
+    if (message['conversation']) {
+      return await this.client.sendMessage(
+        sender,
+        {
+          text: message['conversation'],
+          mentions,
+          linkPreview: linkPreview,
+        } as unknown as AnyMessageContent,
+        option as unknown as MiscMessageGenerationOptions,
+      );
+    }
+
+    if (!message['audio'] && !message['poll'] && !message['sticker'] && sender != 'status@broadcast') {
+      return await this.client.sendMessage(
+        sender,
+        {
+          forward: {
+            key: { remoteJid: this.instance.wuid, fromMe: true },
+            message,
+          },
+          mentions,
+        },
+        option as unknown as MiscMessageGenerationOptions,
+      );
+    }
+
+    if (sender === 'status@broadcast') {
+      const jidList = message['status'].option.statusJidList;
+
+      const batchSize = 500;
+
+      const batches = Array.from({ length: Math.ceil(jidList.length / batchSize) }, (_, i) =>
+        jidList.slice(i * batchSize, i * batchSize + batchSize),
+      );
+
+      let msgId: string | null = null;
+
+      let firstMessage: WAMessage;
+
+      const firstBatch = batches.shift();
+
+      if (firstBatch) {
+        firstMessage = await this.client.sendMessage(
+          sender,
+          message['status'].content as unknown as AnyMessageContent,
+          {
+            backgroundColor: message['status'].option.backgroundColor,
+            font: message['status'].option.font,
+            statusJidList: firstBatch,
+          } as unknown as MiscMessageGenerationOptions,
+        );
+
+        msgId = firstMessage.key.id;
+      }
+
+      if (batches.length === 0) return firstMessage;
+
+      await Promise.allSettled(
+        batches.map(async (batch) => {
+          const messageSent = await this.client.sendMessage(
+            sender,
+            message['status'].content as unknown as AnyMessageContent,
+            {
+              backgroundColor: message['status'].option.backgroundColor,
+              font: message['status'].option.font,
+              statusJidList: batch,
+              messageId: msgId,
+            } as unknown as MiscMessageGenerationOptions,
+          );
+
+          return messageSent;
+        }),
+      );
+
+      return firstMessage;
+    }
+
+    return await this.client.sendMessage(
+      sender,
+      message as unknown as AnyMessageContent,
+      option as unknown as MiscMessageGenerationOptions,
+    );
+  }
+
   private async sendMessageWithTyping<T = proto.IMessage>(
     number: string,
     message: T,
@@ -1818,125 +1946,65 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
+      let messageSent: WAMessage;
+
       let mentions: string[];
       if (isJidGroup(sender)) {
+        let group;
         try {
-          let group;
-
           const cache = this.configService.get<CacheConf>('CACHE');
           if (!cache.REDIS.ENABLED && !cache.LOCAL.ENABLED) group = await this.findGroup({ groupJid: sender }, 'inner');
           else group = await this.getGroupMetadataCache(sender);
-
-          if (!group) {
-            throw new NotFoundException('Group not found');
-          }
-
-          if (options.mentionsEveryOne) {
-            mentions = group.participants.map((participant) => participant.id);
-          } else if (options.mentioned?.length) {
-            mentions = options.mentioned.map((mention) => {
-              const jid = this.createJid(mention);
-              if (isJidGroup(jid)) {
-                return null;
-              }
-              return jid;
-            });
-          }
         } catch (error) {
           throw new NotFoundException('Group not found');
         }
-      }
 
-      const messageSent = await (async () => {
-        const option = {
-          quoted,
-          messageId: '3EB0' + randomBytes(18).toString('hex').toUpperCase(),
-        };
-
-        if (
-          !message['audio'] &&
-          !message['poll'] &&
-          !message['sticker'] &&
-          !message['conversation'] &&
-          sender !== 'status@broadcast'
-        ) {
-          if (message['reactionMessage']) {
-            return await this.client.sendMessage(
-              sender,
-              {
-                react: {
-                  text: message['reactionMessage']['text'],
-                  key: message['reactionMessage']['key'],
-                },
-              } as unknown as AnyMessageContent,
-              {
-                ...option,
-                useCachedGroupMetadata:
-                  !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                  !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
-              } as unknown as MiscMessageGenerationOptions,
-            );
-          }
-        }
-        if (message['conversation']) {
-          return await this.client.sendMessage(
-            sender,
-            {
-              text: message['conversation'],
-              mentions,
-              linkPreview: linkPreview,
-            } as unknown as AnyMessageContent,
-            {
-              ...option,
-              useCachedGroupMetadata:
-                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
-            } as unknown as MiscMessageGenerationOptions,
-          );
+        if (!group) {
+          throw new NotFoundException('Group not found');
         }
 
-        if (!message['audio'] && !message['poll'] && !message['sticker'] && sender != 'status@broadcast') {
-          return await this.client.sendMessage(
-            sender,
-            {
-              forward: {
-                key: { remoteJid: this.instance.wuid, fromMe: true },
-                message,
-              },
-              mentions,
-            },
-            {
-              ...option,
-              useCachedGroupMetadata:
-                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
-            } as unknown as MiscMessageGenerationOptions,
-          );
-        }
+        const participansList = group.participants;
 
-        if (sender === 'status@broadcast') {
-          return await this.client.sendMessage(
-            sender,
-            message['status'].content as unknown as AnyMessageContent,
-            {
-              backgroundColor: message['status'].option.backgroundColor,
-              font: message['status'].option.font,
-              statusJidList: message['status'].option.statusJidList,
-            } as unknown as MiscMessageGenerationOptions,
-          );
-        }
+        const batchSize = 1;
 
-        return await this.client.sendMessage(
-          sender,
-          message as unknown as AnyMessageContent,
-          {
-            ...option,
-            useCachedGroupMetadata:
-              !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-              !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
-          } as unknown as MiscMessageGenerationOptions,
+        const batches = Array.from({ length: Math.ceil(participansList.length / batchSize) }, (_, i) =>
+          participansList.slice(i * batchSize, i * batchSize + batchSize),
         );
-      })();
+
+        if (options.mentionsEveryOne) {
+          mentions = group.participants.map((participant) => participant.id);
+        } else if (options.mentioned?.length) {
+          mentions = options.mentioned.map((mention) => {
+            const jid = this.createJid(mention);
+            if (isJidGroup(jid)) {
+              return null;
+            }
+            return jid;
+          });
+        }
+
+        let msgId: string | null = null;
+
+        const firstBatch = batches.shift();
+
+        if (firstBatch) {
+          messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted, null, firstBatch);
+
+          msgId = messageSent.key.id;
+
+          if (batches.length === 0) return messageSent;
+
+          await Promise.allSettled(
+            batches.map(async (batch: GroupParticipant[]) => {
+              const messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted, msgId, batch);
+
+              return messageSent;
+            }),
+          );
+        }
+      } else {
+        messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted);
+      }
 
       const contentMsg = messageSent.message[getContentType(messageSent.message)] as any;
 
