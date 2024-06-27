@@ -22,6 +22,7 @@ import makeWASocket, {
   GroupParticipant,
   isJidBroadcast,
   isJidGroup,
+  isJidNewsletter,
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
@@ -506,8 +507,147 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (db.SAVE_DATA.INSTANCE && db.ENABLED) {
-      return await useMultiFileAuthStatePrisma(this.instance.id);
+      return await useMultiFileAuthStatePrisma(this.instance.id, this.cache);
     }
+  }
+
+  private async createClient(number?: string): Promise<WASocket> {
+    this.instance.authState = await this.defineAuthState();
+
+    const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+
+    let browserOptions = {};
+
+    if (number || this.phoneNumber) {
+      this.phoneNumber = number;
+
+      this.logger.info(`Phone number: ${number}`);
+    } else {
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      browserOptions = { browser };
+
+      this.logger.info(`Browser: ${browser}`);
+    }
+
+    let version;
+    let log;
+
+    if (session.VERSION) {
+      version = session.VERSION.split('.');
+      log = `Baileys version env: ${version}`;
+    } else {
+      const baileysVersion = await fetchLatestBaileysVersion();
+      version = baileysVersion.version;
+      log = `Baileys version: ${version}`;
+    }
+
+    this.logger.info(log);
+
+    this.logger.info(`Group Ignore: ${this.localSettings.groupsIgnore}`);
+
+    let options;
+
+    if (this.localProxy.enabled) {
+      this.logger.info('Proxy enabled: ' + this.localProxy?.host);
+
+      if (this.localProxy?.host?.includes('proxyscrape')) {
+        try {
+          const response = await axios.get(this.localProxy?.host);
+          const text = response.data;
+          const proxyUrls = text.split('\r\n');
+          const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
+          const proxyUrl = 'http://' + proxyUrls[rand];
+          options = {
+            agent: makeProxyAgent(proxyUrl),
+            fetchAgent: makeProxyAgent(proxyUrl),
+          };
+        } catch (error) {
+          this.localProxy.enabled = false;
+        }
+      } else {
+        options = {
+          agent: makeProxyAgent({
+            host: this.localProxy.host,
+            port: this.localProxy.port,
+            protocol: this.localProxy.protocol,
+            username: this.localProxy.username,
+            password: this.localProxy.password,
+          }),
+          fetchAgent: makeProxyAgent({
+            host: this.localProxy.host,
+            port: this.localProxy.port,
+            protocol: this.localProxy.protocol,
+            username: this.localProxy.username,
+            password: this.localProxy.password,
+          }),
+        };
+      }
+    }
+
+    const socketConfig: UserFacingSocketConfig = {
+      ...options,
+      auth: {
+        creds: this.instance.authState.state.creds,
+        keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
+      },
+      logger: P({ level: this.logBaileys }),
+      printQRInTerminal: false,
+      ...browserOptions,
+      version,
+      markOnlineOnConnect: this.localSettings.alwaysOnline,
+      retryRequestDelayMs: 350,
+      maxMsgRetryCount: 4,
+      fireInitQueries: true,
+      connectTimeoutMs: 20_000,
+      keepAliveIntervalMs: 30_000,
+      qrTimeout: 45_000,
+      defaultQueryTimeoutMs: undefined,
+      emitOwnEvents: false,
+      shouldIgnoreJid: (jid) => {
+        const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
+        const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
+        const isNewsletter = isJidNewsletter(jid);
+
+        return isGroupJid || isBroadcast || isNewsletter;
+      },
+      msgRetryCounterCache: this.msgRetryCounterCache,
+      getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+      generateHighQualityLinkPreview: true,
+      syncFullHistory: this.localSettings.syncFullHistory,
+      shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
+        return this.historySyncNotification(msg);
+      },
+      userDevicesCache: this.userDevicesCache,
+      transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
+      patchMessageBeforeSending(message) {
+        if (
+          message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST
+        ) {
+          message = JSON.parse(JSON.stringify(message));
+
+          message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+        }
+
+        if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+          message = JSON.parse(JSON.stringify(message));
+
+          message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+        }
+
+        return message;
+      },
+      forceGroupsPrekeys: false,
+    };
+
+    this.endSession = false;
+
+    this.client = makeWASocket(socketConfig);
+
+    this.eventHandler();
+
+    this.phoneNumber = number;
+
+    return this.client;
   }
 
   public async connectToWhatsapp(number?: string): Promise<WASocket> {
@@ -520,142 +660,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.loadSqs();
       this.loadProxy();
 
-      this.instance.authState = await this.defineAuthState();
-
-      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-
-      let browserOptions = {};
-
-      if (number || this.phoneNumber) {
-        this.phoneNumber = number;
-
-        this.logger.info(`Phone number: ${number}`);
-      } else {
-        const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-        browserOptions = { browser };
-
-        this.logger.info(`Browser: ${browser}`);
-      }
-
-      let version;
-      let log;
-
-      if (session.VERSION) {
-        version = session.VERSION.split('.');
-        log = `Baileys version env: ${version}`;
-      } else {
-        const baileysVersion = await fetchLatestBaileysVersion();
-        version = baileysVersion.version;
-        log = `Baileys version: ${version}`;
-      }
-
-      this.logger.info(log);
-
-      this.logger.info(`Group Ignore: ${this.localSettings.groupsIgnore}`);
-
-      let options;
-
-      if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy?.host);
-
-        if (this.localProxy?.host?.includes('proxyscrape')) {
-          try {
-            const response = await axios.get(this.localProxy?.host);
-            const text = response.data;
-            const proxyUrls = text.split('\r\n');
-            const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
-            const proxyUrl = 'http://' + proxyUrls[rand];
-            options = {
-              agent: makeProxyAgent(proxyUrl),
-              fetchAgent: makeProxyAgent(proxyUrl),
-            };
-          } catch (error) {
-            this.localProxy.enabled = false;
-          }
-        } else {
-          options = {
-            agent: makeProxyAgent({
-              host: this.localProxy.host,
-              port: this.localProxy.port,
-              protocol: this.localProxy.protocol,
-              username: this.localProxy.username,
-              password: this.localProxy.password,
-            }),
-            fetchAgent: makeProxyAgent({
-              host: this.localProxy.host,
-              port: this.localProxy.port,
-              protocol: this.localProxy.protocol,
-              username: this.localProxy.username,
-              password: this.localProxy.password,
-            }),
-          };
-        }
-      }
-
-      const socketConfig: UserFacingSocketConfig = {
-        ...options,
-        auth: {
-          creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
-        },
-        logger: P({ level: this.logBaileys }),
-        printQRInTerminal: false,
-        ...browserOptions,
-        version,
-        markOnlineOnConnect: this.localSettings.alwaysOnline,
-        retryRequestDelayMs: 350,
-        maxMsgRetryCount: 4,
-        fireInitQueries: true,
-        connectTimeoutMs: 20_000,
-        keepAliveIntervalMs: 30_000,
-        qrTimeout: 45_000,
-        defaultQueryTimeoutMs: undefined,
-        emitOwnEvents: false,
-        shouldIgnoreJid: (jid) => {
-          const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
-          const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-          const isNewsletter = jid.includes('newsletter');
-
-          return isGroupJid || isBroadcast || isNewsletter;
-        },
-        msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: this.localSettings.syncFullHistory,
-        shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
-          return this.historySyncNotification(msg);
-        },
-        userDevicesCache: this.userDevicesCache,
-        transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
-        patchMessageBeforeSending(message) {
-          if (
-            message.deviceSentMessage?.message?.listMessage?.listType ===
-            proto.Message.ListMessage.ListType.PRODUCT_LIST
-          ) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          return message;
-        },
-      };
-
-      this.endSession = false;
-
-      this.client = makeWASocket(socketConfig);
-
-      this.eventHandler();
-
-      this.phoneNumber = number;
-
-      return this.client;
+      return await this.createClient(number);
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
@@ -664,132 +669,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async reloadConnection(): Promise<WASocket> {
     try {
-      this.instance.authState = await this.defineAuthState();
-
-      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-
-      let browserOptions = {};
-
-      if (this.phoneNumber) {
-        this.logger.info(`Phone number: ${this.phoneNumber}`);
-      } else {
-        const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-        browserOptions = { browser };
-
-        this.logger.info(`Browser: ${browser}`);
-      }
-
-      let version;
-      let log;
-
-      if (session.VERSION) {
-        version = session.VERSION.split('.');
-        log = `Baileys version env: ${version}`;
-      } else {
-        const baileysVersion = await fetchLatestBaileysVersion();
-        version = baileysVersion.version;
-        log = `Baileys version: ${version}`;
-      }
-
-      this.logger.info(log);
-
-      let options;
-
-      if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy?.host);
-
-        if (this.localProxy?.host?.includes('proxyscrape')) {
-          try {
-            const response = await axios.get(this.localProxy?.host);
-            const text = response.data;
-            const proxyUrls = text.split('\r\n');
-            const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
-            const proxyUrl = 'http://' + proxyUrls[rand];
-            options = {
-              agent: makeProxyAgent(proxyUrl),
-              fetchAgent: makeProxyAgent(proxyUrl),
-            };
-          } catch (error) {
-            this.localProxy.enabled = false;
-          }
-        } else {
-          options = {
-            agent: makeProxyAgent({
-              host: this.localProxy.host,
-              port: this.localProxy.port,
-              protocol: this.localProxy.protocol,
-              username: this.localProxy.username,
-              password: this.localProxy.password,
-            }),
-            fetchAgent: makeProxyAgent({
-              host: this.localProxy.host,
-              port: this.localProxy.port,
-              protocol: this.localProxy.protocol,
-              username: this.localProxy.username,
-              password: this.localProxy.password,
-            }),
-          };
-        }
-      }
-
-      const socketConfig: UserFacingSocketConfig = {
-        ...options,
-        auth: {
-          creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
-        },
-        logger: P({ level: this.logBaileys }),
-        printQRInTerminal: false,
-        ...browserOptions,
-        version,
-        markOnlineOnConnect: this.localSettings.alwaysOnline,
-        retryRequestDelayMs: 350,
-        maxMsgRetryCount: 4,
-        fireInitQueries: true,
-        connectTimeoutMs: 20_000,
-        keepAliveIntervalMs: 30_000,
-        qrTimeout: 45_000,
-        defaultQueryTimeoutMs: undefined,
-        emitOwnEvents: false,
-        shouldIgnoreJid: (jid) => {
-          const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
-          const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-          const isNewsletter = jid.includes('newsletter');
-
-          return isGroupJid || isBroadcast || isNewsletter;
-        },
-        msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: this.localSettings.syncFullHistory,
-        shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
-          return this.historySyncNotification(msg);
-        },
-        userDevicesCache: this.userDevicesCache,
-        transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
-        patchMessageBeforeSending(message) {
-          if (
-            message.deviceSentMessage?.message?.listMessage?.listType ===
-            proto.Message.ListMessage.ListType.PRODUCT_LIST
-          ) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          return message;
-        },
-      };
-
-      this.client = makeWASocket(socketConfig);
-
-      return this.client;
+      return await this.createClient(this.phoneNumber);
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
@@ -1747,11 +1627,13 @@ export class BaileysStartupService extends ChannelStartupService {
       quoted,
     };
 
-    if (participants)
-      option.cachedGroupMetadata = async () => {
-        return { participants: participants as GroupParticipant[] };
-      };
-    else option.cachedGroupMetadata = this.getGroupMetadataCache;
+    if (isJidGroup(sender)) {
+      if (participants)
+        option.cachedGroupMetadata = async () => {
+          return { participants: participants as GroupParticipant[] };
+        };
+      else option.cachedGroupMetadata = this.getGroupMetadataCache;
+    }
 
     if (ephemeralExpiration) option.ephemeralExpiration = ephemeralExpiration;
 
@@ -1968,7 +1850,6 @@ export class BaileysStartupService extends ChannelStartupService {
             return jid;
           });
         }
-
         // console.log('group.participants', group.participants.length);
 
         // const batchSize = 200;
@@ -1985,7 +1866,16 @@ export class BaileysStartupService extends ChannelStartupService {
         // let msgId: string | null = null;
 
         // if (firstBatch) {
-        //   firstMessage = await this.sendMessage(sender, message, mentions, linkPreview, quoted, null, firstBatch);
+        //   firstMessage = await this.sendMessage(
+        //     sender,
+        //     message,
+        //     mentions,
+        //     linkPreview,
+        //     quoted,
+        //     null,
+        //     group?.ephemeralDuration,
+        //     firstBatch,
+        //   );
 
         //   msgId = firstMessage.key.id;
         // }
@@ -1994,11 +1884,22 @@ export class BaileysStartupService extends ChannelStartupService {
 
         // await Promise.allSettled(
         //   batches.map(async (batch: GroupParticipant[]) => {
-        //     const messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted, msgId, batch);
+        //     const messageSent = await this.sendMessage(
+        //       sender,
+        //       message,
+        //       mentions,
+        //       linkPreview,
+        //       quoted,
+        //       msgId,
+        //       group?.ephemeralDuration,
+        //       batch,
+        //     );
 
         //     return messageSent;
         //   }),
         // );
+
+        // messageSent = firstMessage;
 
         messageSent = await this.sendMessage(
           sender,
@@ -2008,6 +1909,7 @@ export class BaileysStartupService extends ChannelStartupService {
           quoted,
           null,
           group?.ephemeralDuration,
+          group.participants,
         );
       } else {
         messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted);

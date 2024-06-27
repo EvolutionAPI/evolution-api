@@ -2,6 +2,7 @@ import { AuthenticationState, BufferJSON, initAuthCreds, WAProto as proto } from
 import fs from 'fs/promises';
 import path from 'path';
 
+import { CacheService } from '../api/services/cache.service';
 import { INSTANCE_DIR } from '../config/path.config';
 import { prismaServer } from '../libs/prisma.connect';
 
@@ -77,7 +78,10 @@ async function fileExists(file: string): Promise<any> {
   }
 }
 
-export default async function useMultiFileAuthStatePrisma(sessionId: string): Promise<{
+export default async function useMultiFileAuthStatePrisma(
+  sessionId: string,
+  cache: CacheService,
+): Promise<{
   state: AuthenticationState;
   saveCreds: () => Promise<void>;
 }> {
@@ -89,8 +93,9 @@ export default async function useMultiFileAuthStatePrisma(sessionId: string): Pr
     const dataString = JSON.stringify(data, BufferJSON.replacer);
 
     if (key != 'creds') {
-      await fs.writeFile(localFile(key), dataString);
-      return;
+      return await cache.hSet(sessionId, key, data);
+      // await fs.writeFile(localFile(key), dataString);
+      // return;
     }
     await saveKey(sessionId, dataString);
     return;
@@ -101,8 +106,9 @@ export default async function useMultiFileAuthStatePrisma(sessionId: string): Pr
       let rawData;
 
       if (key != 'creds') {
-        if (!(await fileExists(localFile(key)))) return null;
-        rawData = await fs.readFile(localFile(key), { encoding: 'utf-8' });
+        return await cache.hGet(sessionId, key);
+        // if (!(await fileExists(localFile(key)))) return null;
+        // rawData = await fs.readFile(localFile(key), { encoding: 'utf-8' });
       } else {
         rawData = await getAuthKey(sessionId);
       }
@@ -117,7 +123,8 @@ export default async function useMultiFileAuthStatePrisma(sessionId: string): Pr
   async function removeData(key: string): Promise<any> {
     try {
       if (key != 'creds') {
-        await fs.unlink(localFile(key));
+        return await cache.hDelete(sessionId, key);
+        // await fs.unlink(localFile(key));
       } else {
         await deleteAuthKey(sessionId);
       }
