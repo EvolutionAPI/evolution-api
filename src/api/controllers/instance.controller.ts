@@ -373,13 +373,13 @@ export class InstanceController {
       }
 
       const settings: wa.LocalSettings = {
-        rejectCall: rejectCall || false,
+        rejectCall: rejectCall === true,
         msgCall: msgCall || '',
-        groupsIgnore: groupsIgnore || true,
-        alwaysOnline: alwaysOnline || false,
-        readMessages: readMessages || false,
-        readStatus: readStatus || false,
-        syncFullHistory: syncFullHistory ?? false,
+        groupsIgnore: groupsIgnore === true,
+        alwaysOnline: alwaysOnline === true,
+        readMessages: readMessages === true,
+        readStatus: readStatus === true,
+        syncFullHistory: syncFullHistory === true,
       };
 
       await this.settingsService.create(instance, settings);

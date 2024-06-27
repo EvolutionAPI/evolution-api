@@ -189,7 +189,13 @@ export class ChannelStartupService {
       },
     });
 
-    Object.assign(this.localSettings, data);
+    this.localSettings.rejectCall = data?.rejectCall;
+    this.localSettings.msgCall = data?.msgCall;
+    this.localSettings.groupsIgnore = data?.groupsIgnore;
+    this.localSettings.alwaysOnline = data?.alwaysOnline;
+    this.localSettings.readMessages = data?.readMessages;
+    this.localSettings.readStatus = data?.readStatus;
+    this.localSettings.syncFullHistory = data?.syncFullHistory;
   }
 
   public async findSettings() {

@@ -256,7 +256,7 @@ export class BaileysStartupService extends ChannelStartupService {
   public async getProfileStatus() {
     const status = await this.client.fetchStatus(this.instance.wuid);
 
-    return status[0]?.status;
+    return status?.status;
   }
 
   public get profilePictureUrl() {
@@ -551,6 +551,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.logger.info(log);
 
+      this.logger.info(`Group Ignore: ${this.localSettings.groupsIgnore}`);
+
       let options;
 
       if (this.localProxy.enabled) {
@@ -625,7 +627,6 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         userDevicesCache: this.userDevicesCache,
         transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
-        // forceGroupsPrekey: false,
         patchMessageBeforeSending(message) {
           if (
             message.deviceSentMessage?.message?.listMessage?.listType ===
@@ -1667,7 +1668,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       return {
         wuid: jid,
-        status: (await this.client.fetchStatus(jid))[0]?.status,
+        status: (await this.client.fetchStatus(jid))?.status,
       };
     } catch (error) {
       return {
