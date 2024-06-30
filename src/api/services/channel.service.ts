@@ -732,7 +732,7 @@ export class ChannelStartupService {
               autoDelete: false,
             });
 
-            const queueName = transformedWe;
+            const queueName = event;
 
             await amqp.assertQueue(queueName, {
               durable: true,
