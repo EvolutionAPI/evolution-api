@@ -8,8 +8,8 @@ import ChatwootClient, {
   inbox,
 } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
-import { proto } from '@whiskeysockets/baileys';
 import axios from 'axios';
+import { proto } from 'baileys';
 import FormData from 'form-data';
 import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
@@ -444,8 +444,7 @@ export class ChatwootService {
     const searchableFields = this.getSearchableFields();
 
     // eslint-disable-next-line prettier/prettier
-    if(contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')){
-
+    if (contacts.length === 2 && this.getClientCwConfig().merge_brazil_contacts && query.startsWith('+55')) {
       const contact = this.mergeBrazilianContacts(contacts);
       if (contact) {
         return contact;
@@ -736,7 +735,12 @@ export class ChatwootService {
     }
 
     this.logger.verbose('find inbox by name');
-    const findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().name_inbox);
+    let findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().name_inbox);
+
+    if (!findByName) {
+      findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().name_inbox.split('-cwId-')[0]);
+    }
+
 
     if (!findByName) {
       this.logger.warn('inbox not found');

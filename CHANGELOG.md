@@ -1,3 +1,12 @@
+# 1.8.2 (2024-07-03 13:50)
+
+### Fixed
+
+* Corretion in globall rabbitmq queue name
+* Improvement in the use of mongodb database for credentials
+* Fixed base64 in webhook for documentWithCaption
+* Fixed Generate pairing code
+
 # 1.8.1 (2024-06-08 21:32)
 
 ### Feature

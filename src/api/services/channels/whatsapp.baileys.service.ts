@@ -1,5 +1,6 @@
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
+import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -19,6 +20,7 @@ import makeWASocket, {
   GroupMetadata,
   isJidBroadcast,
   isJidGroup,
+  isJidNewsletter,
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
@@ -35,10 +37,9 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-} from '@whiskeysockets/baileys';
-import { Label } from '@whiskeysockets/baileys/lib/Types/Label';
-import { LabelAssociation } from '@whiskeysockets/baileys/lib/Types/LabelAssociation';
-import axios from 'axios';
+} from 'baileys';
+import { Label } from 'baileys/lib/Types/Label';
+import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { exec } from 'child_process';
 import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -253,8 +254,8 @@ export class BaileysStartupService extends ChannelStartupService {
     this.logger.verbose('Getting profile status');
     const status = await this.client.fetchStatus(this.instance.wuid);
 
-    this.logger.verbose(`Profile status: ${status.status}`);
-    return status.status;
+    this.logger.verbose(`Profile status: ${status[0]?.status}`);
+    return status[0]?.status;
   }
 
   public get profilePictureUrl() {
@@ -517,6 +518,143 @@ export class BaileysStartupService extends ChannelStartupService {
     return await useMultiFileAuthState(join(INSTANCE_DIR, this.instance.name));
   }
 
+  private async createClient(number?: string, mobile?: boolean): Promise<WASocket> {
+    this.instance.authState = await this.defineAuthState();
+
+    if (!mobile) {
+      this.mobile = false;
+    } else {
+      this.mobile = mobile;
+    }
+
+    const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+
+    let browserOptions = {};
+
+    if (number || this.phoneNumber) {
+      this.phoneNumber = number;
+
+      this.logger.info(`Phone number: ${number}`);
+    } else {
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      browserOptions = { browser };
+
+      this.logger.info(`Browser: ${browser}`);
+    }
+
+    let version;
+    let log;
+
+    if (session.VERSION) {
+      version = session.VERSION.split(',');
+      log = `Baileys version env: ${version}`;
+    } else {
+      const baileysVersion = await fetchLatestBaileysVersion();
+      version = baileysVersion.version;
+      log = `Baileys version: ${version}`;
+    }
+
+    this.logger.info(log);
+
+    let options;
+
+    if (this.localProxy.enabled) {
+      this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
+
+      if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
+        try {
+          const response = await axios.get(this.localProxy.proxy?.host);
+          const text = response.data;
+          const proxyUrls = text.split('\r\n');
+          const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
+          const proxyUrl = 'http://' + proxyUrls[rand];
+          options = {
+            agent: makeProxyAgent(proxyUrl),
+            fetchAgent: makeProxyAgent(proxyUrl),
+          };
+        } catch (error) {
+          this.localProxy.enabled = false;
+        }
+      } else {
+        options = {
+          agent: makeProxyAgent(this.localProxy.proxy),
+          fetchAgent: makeProxyAgent(this.localProxy.proxy),
+        };
+      }
+    }
+
+    const socketConfig: UserFacingSocketConfig = {
+      ...options,
+      auth: {
+        creds: this.instance.authState.state.creds,
+        keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
+      },
+      logger: P({ level: this.logBaileys }),
+      printQRInTerminal: false,
+      mobile,
+      ...browserOptions,
+      version,
+      markOnlineOnConnect: this.localSettings.always_online,
+      retryRequestDelayMs: 350,
+      maxMsgRetryCount: 4,
+      fireInitQueries: true,
+      connectTimeoutMs: 20_000,
+      keepAliveIntervalMs: 30_000,
+      qrTimeout: 45_000,
+      defaultQueryTimeoutMs: undefined,
+      emitOwnEvents: false,
+      shouldIgnoreJid: (jid) => {
+        const isGroupJid = this.localSettings.groups_ignore && isJidGroup(jid);
+        const isBroadcast = !this.localSettings.read_status && isJidBroadcast(jid);
+        const isNewsletter = isJidNewsletter(jid);
+
+        return isGroupJid || isBroadcast || isNewsletter;
+      },
+      msgRetryCounterCache: this.msgRetryCounterCache,
+      getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+      generateHighQualityLinkPreview: true,
+      syncFullHistory: this.localSettings.sync_full_history,
+      shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
+        return this.historySyncNotification(msg);
+      },
+      userDevicesCache: this.userDevicesCache,
+      transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
+      patchMessageBeforeSending(message) {
+        if (
+          message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST
+        ) {
+          message = JSON.parse(JSON.stringify(message));
+
+          message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+        }
+
+        if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+          message = JSON.parse(JSON.stringify(message));
+
+          message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+        }
+
+        return message;
+      },
+    };
+
+    this.endSession = false;
+
+    this.logger.verbose('Creating socket');
+
+    this.client = makeWASocket(socketConfig);
+
+    this.logger.verbose('Socket created');
+
+    this.eventHandler();
+
+    this.logger.verbose('Socket event handler initialized');
+
+    this.phoneNumber = number;
+
+    return this.client;
+  }
+
   public async connectToWhatsapp(number?: string, mobile?: boolean): Promise<WASocket> {
     this.logger.verbose('Connecting to whatsapp');
     try {
@@ -530,129 +668,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.loadProxy();
       this.loadChamaai();
 
-      this.instance.authState = await this.defineAuthState();
-
-      if (!mobile) {
-        this.mobile = false;
-      } else {
-        this.mobile = mobile;
-      }
-
-      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-      this.logger.verbose('Browser: ' + JSON.stringify(browser));
-
-      let version;
-      let log;
-
-      if (session.VERSION) {
-        version = session.VERSION.split(',');
-        log = `Baileys version env: ${version}`;
-      } else {
-        const baileysVersion = await fetchLatestBaileysVersion();
-        version = baileysVersion.version;
-        log = `Baileys version: ${version}`;
-      }
-
-      this.logger.info(log);
-
-      let options;
-
-      if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
-
-        if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
-          try {
-            const response = await axios.get(this.localProxy.proxy?.host);
-            const text = response.data;
-            const proxyUrls = text.split('\r\n');
-            const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
-            const proxyUrl = 'http://' + proxyUrls[rand];
-            options = {
-              agent: makeProxyAgent(proxyUrl),
-              fetchAgent: makeProxyAgent(proxyUrl),
-            };
-          } catch (error) {
-            this.localProxy.enabled = false;
-          }
-        } else {
-          options = {
-            agent: makeProxyAgent(this.localProxy.proxy),
-            fetchAgent: makeProxyAgent(this.localProxy.proxy),
-          };
-        }
-      }
-
-      const socketConfig: UserFacingSocketConfig = {
-        ...options,
-        auth: {
-          creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
-        },
-        logger: P({ level: this.logBaileys }),
-        printQRInTerminal: false,
-        mobile,
-        browser: number ? ['Chrome (Linux)', session.NAME, release()] : browser,
-        version,
-        markOnlineOnConnect: this.localSettings.always_online,
-        retryRequestDelayMs: 350,
-        maxMsgRetryCount: 4,
-        fireInitQueries: true,
-        connectTimeoutMs: 20_000,
-        keepAliveIntervalMs: 30_000,
-        qrTimeout: 45_000,
-        defaultQueryTimeoutMs: undefined,
-        emitOwnEvents: false,
-        shouldIgnoreJid: (jid) => {
-          const isGroupJid = this.localSettings.groups_ignore && isJidGroup(jid);
-          const isBroadcast = !this.localSettings.read_status && isJidBroadcast(jid);
-
-          return isGroupJid || isBroadcast;
-        },
-        msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: this.localSettings.sync_full_history,
-        shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
-          return this.historySyncNotification(msg);
-        },
-        userDevicesCache: this.userDevicesCache,
-        transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
-        patchMessageBeforeSending(message) {
-          if (
-            message.deviceSentMessage?.message?.listMessage?.listType ===
-            proto.Message.ListMessage.ListType.PRODUCT_LIST
-          ) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          return message;
-        },
-      };
-
-      this.endSession = false;
-
-      this.logger.verbose('Creating socket');
-
-      this.client = makeWASocket(socketConfig);
-
-      this.logger.verbose('Socket created');
-
-      this.eventHandler();
-
-      this.logger.verbose('Socket event handler initialized');
-
-      this.phoneNumber = number;
-
-      return this.client;
+      return await this.createClient(number, mobile);
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
@@ -719,110 +735,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async reloadConnection(): Promise<WASocket> {
     try {
-      this.instance.authState = await this.defineAuthState();
-
-      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-
-      let version;
-      let log;
-
-      if (session.VERSION) {
-        version = session.VERSION.split(',');
-        log = `Baileys version env: ${version}`;
-      } else {
-        const baileysVersion = await fetchLatestBaileysVersion();
-        version = baileysVersion.version;
-        log = `Baileys version: ${version}`;
-      }
-
-      this.logger.info(log);
-
-      let options;
-
-      if (this.localProxy.enabled) {
-        this.logger.info('Proxy enabled: ' + this.localProxy.proxy?.host);
-
-        if (this.localProxy?.proxy?.host?.includes('proxyscrape')) {
-          try {
-            const response = await axios.get(this.localProxy.proxy?.host);
-            const text = response.data;
-            const proxyUrls = text.split('\r\n');
-            const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
-            const proxyUrl = 'http://' + proxyUrls[rand];
-            options = {
-              agent: makeProxyAgent(proxyUrl),
-              fetchAgent: makeProxyAgent(proxyUrl),
-            };
-          } catch (error) {
-            this.localProxy.enabled = false;
-          }
-        } else {
-          options = {
-            agent: makeProxyAgent(this.localProxy.proxy),
-            fetchAgent: makeProxyAgent(this.localProxy.proxy),
-          };
-        }
-      }
-
-      const socketConfig: UserFacingSocketConfig = {
-        ...options,
-        auth: {
-          creds: this.instance.authState.state.creds,
-          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
-        },
-        logger: P({ level: this.logBaileys }),
-        printQRInTerminal: false,
-        mobile: this.mobile,
-        browser: this.phoneNumber ? ['Chrome (Linux)', session.NAME, release()] : browser,
-        version,
-        markOnlineOnConnect: this.localSettings.always_online,
-        retryRequestDelayMs: 350,
-        maxMsgRetryCount: 4,
-        fireInitQueries: true,
-        connectTimeoutMs: 20_000,
-        keepAliveIntervalMs: 30_000,
-        qrTimeout: 45_000,
-        defaultQueryTimeoutMs: undefined,
-        emitOwnEvents: false,
-        shouldIgnoreJid: (jid) => {
-          const isGroupJid = this.localSettings.groups_ignore && isJidGroup(jid);
-          const isBroadcast = !this.localSettings.read_status && isJidBroadcast(jid);
-
-          return isGroupJid || isBroadcast;
-        },
-        msgRetryCounterCache: this.msgRetryCounterCache,
-        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: this.localSettings.sync_full_history,
-        shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
-          return this.historySyncNotification(msg);
-        },
-        userDevicesCache: this.userDevicesCache,
-        transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
-        patchMessageBeforeSending(message) {
-          if (
-            message.deviceSentMessage?.message?.listMessage?.listType ===
-            proto.Message.ListMessage.ListType.PRODUCT_LIST
-          ) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
-            message = JSON.parse(JSON.stringify(message));
-
-            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-          }
-
-          return message;
-        },
-      };
-
-      this.client = makeWASocket(socketConfig);
-
-      return this.client;
+      return await this.createClient(this.phoneNumber, this.mobile);
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
@@ -1060,7 +973,7 @@ export class BaileysStartupService extends ChannelStartupService {
             m.messageTimestamp = m.messageTimestamp?.toNumber();
           }
 
-          if (m.messageTimestamp <= timestampLimitToImport) {
+          if ((m.messageTimestamp as number) <= timestampLimitToImport) {
             continue;
           }
 
@@ -1185,6 +1098,7 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.videoMessage ||
             received?.message?.stickerMessage ||
             received?.message?.documentMessage ||
+            received?.message?.documentWithCaptionMessage ||
             received?.message?.audioMessage;
 
           const contentMsg = received?.message[getContentType(received.message)] as any;
@@ -1736,7 +1650,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Getting status');
       return {
         wuid: jid,
-        status: (await this.client.fetchStatus(jid))?.status,
+        status: (await this.client.fetchStatus(jid))[0]?.status,
       };
     } catch (error) {
       this.logger.verbose('Status not found');
@@ -1946,11 +1860,9 @@ export class BaileysStartupService extends ChannelStartupService {
               } as unknown as AnyMessageContent,
               {
                 ...option,
-                cachedGroupMetadata:
-                  !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                  !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                    ? null
-                    : this.getGroupMetadataCache,
+                useCachedGroupMetadata:
+                  !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                  !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
               } as unknown as MiscMessageGenerationOptions,
             );
           }
@@ -1966,11 +1878,9 @@ export class BaileysStartupService extends ChannelStartupService {
             } as unknown as AnyMessageContent,
             {
               ...option,
-              cachedGroupMetadata:
-                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? null
-                  : this.getGroupMetadataCache,
+              useCachedGroupMetadata:
+                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -1988,11 +1898,9 @@ export class BaileysStartupService extends ChannelStartupService {
             },
             {
               ...option,
-              cachedGroupMetadata:
-                !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-                !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                  ? null
-                  : this.getGroupMetadataCache,
+              useCachedGroupMetadata:
+                !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+                !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
             } as unknown as MiscMessageGenerationOptions,
           );
         }
@@ -2016,11 +1924,9 @@ export class BaileysStartupService extends ChannelStartupService {
           message as unknown as AnyMessageContent,
           {
             ...option,
-            cachedGroupMetadata:
-              !this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
-              !this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED
-                ? null
-                : this.getGroupMetadataCache,
+            useCachedGroupMetadata:
+              !!this.configService.get<CacheConf>('CACHE').REDIS.ENABLED &&
+              !!this.configService.get<CacheConf>('CACHE').LOCAL.ENABLED,
           } as unknown as MiscMessageGenerationOptions,
         );
       })();
@@ -3354,6 +3260,10 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
+    if (this.localSettings.groups_ignore === true) {
+      return;
+    }
+
     this.logger.verbose('Fetching group');
     try {
       const group = await this.client.groupMetadata(id.groupJid);
@@ -3384,6 +3294,10 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchAllGroups(getParticipants: GetParticipant) {
+    if (this.localSettings.groups_ignore === true) {
+      return;
+    }
+
     this.logger.verbose('Fetching all groups');
     try {
       const fetch = Object.values(await this.client.groupFetchAllParticipating());
