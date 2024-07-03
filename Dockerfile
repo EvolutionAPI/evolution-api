@@ -11,7 +11,7 @@ WORKDIR /evolution
 
 COPY ./package.json ./tsconfig.json ./
 
-RUN npm install
+RUN npm install --no-cache
 
 COPY ./src ./src
 COPY ./public ./public
@@ -39,7 +39,7 @@ WORKDIR /evolution
 COPY --from=builder /evolution/package.json ./package.json
 COPY --from=builder /evolution/package-lock.json ./package-lock.json
 
-RUN npm install --omit=dev
+RUN npm install --omit=dev --no-cache
 
 COPY --from=builder /evolution/dist ./dist
 COPY --from=builder /evolution/prisma ./prisma

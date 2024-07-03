@@ -36,14 +36,22 @@
   - KeepOpen configuration (keeps the session even when the bot ends, to run once per contact)
   - StopBotFromMe configuration, allows me to stop the bot if I send a chat message.
 
-# 1.8.1 (develop)
+# 1.8.2 (2024-07-03 13:50)
+
+### Fixed
+
+* Corretion in globall rabbitmq queue name
+* Improvement in the use of mongodb database for credentials
+* Fixed base64 in webhook for documentWithCaption
+* Fixed Generate pairing code
+
+# 1.8.1 (2024-06-08 21:32)
 
 ### Feature
 
 * New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
-* Caching system for group data
 
-### Fixes
+### Fixed
 
 * Correction of variables breaking lines in typebot
 
