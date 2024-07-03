@@ -874,8 +874,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
-        // console.log('chatsRaw', chatsRaw);
-
         const chatsSaved = await this.prismaRepository.chat.createMany({
           data: chatsRaw,
           skipDuplicates: true,
@@ -935,8 +933,6 @@ export class BaileysStartupService extends ChannelStartupService {
             source: getDevice(m.key.id),
           });
         }
-
-        // console.log('messagesRaw', messagesRaw);
 
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
@@ -1850,56 +1846,6 @@ export class BaileysStartupService extends ChannelStartupService {
             return jid;
           });
         }
-        // console.log('group.participants', group.participants.length);
-
-        // const batchSize = 200;
-
-        // const batches = Array.from({ length: Math.ceil(group.participants.length / batchSize) }, (_, i) =>
-        //   group.participants.slice(i * batchSize, i * batchSize + batchSize),
-        // );
-
-        // console.log('batches', batches.length);
-
-        // const firstBatch = batches.shift();
-
-        // let firstMessage: WAMessage;
-        // let msgId: string | null = null;
-
-        // if (firstBatch) {
-        //   firstMessage = await this.sendMessage(
-        //     sender,
-        //     message,
-        //     mentions,
-        //     linkPreview,
-        //     quoted,
-        //     null,
-        //     group?.ephemeralDuration,
-        //     firstBatch,
-        //   );
-
-        //   msgId = firstMessage.key.id;
-        // }
-
-        // if (batches.length === 0) messageSent = firstMessage;
-
-        // await Promise.allSettled(
-        //   batches.map(async (batch: GroupParticipant[]) => {
-        //     const messageSent = await this.sendMessage(
-        //       sender,
-        //       message,
-        //       mentions,
-        //       linkPreview,
-        //       quoted,
-        //       msgId,
-        //       group?.ephemeralDuration,
-        //       batch,
-        //     );
-
-        //     return messageSent;
-        //   }),
-        // );
-
-        // messageSent = firstMessage;
 
         messageSent = await this.sendMessage(
           sender,
@@ -3075,7 +3021,6 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const msg: any = await this.getMessage(data.key, true);
 
-      console.log('msg', msg);
       if (msg?.messageType === 'conversation' || msg?.messageType === 'extendedTextMessage') {
         return {
           text: data.text,
