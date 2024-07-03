@@ -592,7 +592,7 @@ export class BaileysStartupService extends ChannelStartupService {
       },
       logger: P({ level: this.logBaileys }),
       printQRInTerminal: false,
-      // ...browserOptions,
+      ...browserOptions,
       version,
       markOnlineOnConnect: this.localSettings.alwaysOnline,
       retryRequestDelayMs: 350,
@@ -601,7 +601,6 @@ export class BaileysStartupService extends ChannelStartupService {
       connectTimeoutMs: 20_000,
       keepAliveIntervalMs: 30_000,
       qrTimeout: 45_000,
-      // defaultQueryTimeoutMs: undefined,
       emitOwnEvents: false,
       shouldIgnoreJid: (jid) => {
         const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
@@ -618,7 +617,7 @@ export class BaileysStartupService extends ChannelStartupService {
         return this.historySyncNotification(msg);
       },
       userDevicesCache: this.userDevicesCache,
-      transactionOpts: { maxCommitRetries: 5, delayBetweenTriesMs: 2500 },
+      transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
       patchMessageBeforeSending(message) {
         if (
           message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST
