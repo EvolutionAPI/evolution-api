@@ -200,6 +200,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       for (const group of groups) {
         await this.updateGroupMetadataCache(group.id);
+        await delay(1000);
       }
     }, 3600000);
   }
