@@ -818,6 +818,18 @@ export const getParticipantsSchema: JSONSchema7 = {
   ...isNotEmpty('getParticipants'),
 };
 
+export const fetchAllGroupsSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    getParticipants: { type: 'string', enum: ['true', 'false'] },
+    getProfilePicture: { type: 'string', enum: ['true', 'false'] },
+    delay: { type: 'string', pattern: '^\\d+$' },
+  },
+  required: ['getParticipants'],
+  ...isNotEmpty('getParticipants'),
+};
+
 export const groupSendInviteSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',

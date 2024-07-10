@@ -24,8 +24,10 @@ export class GroupJid {
   groupJid: string;
 }
 
-export class GetParticipant {
+export class FetchAllGroupsDto {
   getParticipants: string;
+  getProfilePicture?: string;
+  delay?: string;
 }
 
 export class GroupInvite {

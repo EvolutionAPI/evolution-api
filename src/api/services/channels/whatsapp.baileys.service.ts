@@ -92,7 +92,7 @@ import {
 import {
   AcceptGroupInvite,
   CreateGroupDto,
-  GetParticipant,
+  FetchAllGroupsDto,
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
@@ -3293,7 +3293,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  public async fetchAllGroups(getParticipants: GetParticipant) {
+  public async fetchAllGroups(fetchAllGroupsData: FetchAllGroupsDto) {
     if (this.localSettings.groups_ignore === true) {
       return;
     }
@@ -3303,7 +3303,13 @@ export class BaileysStartupService extends ChannelStartupService {
       const fetch = Object.values(await this.client.groupFetchAllParticipating());
       let groups = [];
       for (const group of fetch) {
-        const picture = await this.profilePicture(group.id);
+        let picture;
+        if (!fetchAllGroupsData.getProfilePicture || fetchAllGroupsData.getProfilePicture != 'false') {
+          picture = await this.profilePicture(group.id);
+        }
+        if (fetchAllGroupsData.delay) {
+          await delay(+fetchAllGroupsData.delay);
+        }
 
         const result = {
           id: group.id,
@@ -3320,7 +3326,7 @@ export class BaileysStartupService extends ChannelStartupService {
           announce: group.announce,
         };
 
-        if (getParticipants.getParticipants == 'true') {
+        if (fetchAllGroupsData.getParticipants == 'true') {
           result['participants'] = group.participants;
         }
 

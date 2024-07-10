@@ -6,8 +6,9 @@ import { validate } from 'jsonschema';
 
 import { Logger } from '../../config/logger.config';
 import { BadRequestException } from '../../exceptions';
-import { GetParticipant, GroupInvite } from '../dto/group.dto';
+import { FetchAllGroupsDto, GroupInvite } from '../dto/group.dto';
 import { InstanceDto } from '../dto/instance.dto';
+import { fetchAllGroupsSchema } from '../../validate/validate.schema';
 
 type DataValidate<T> = {
   request: Request;
@@ -186,25 +187,25 @@ export abstract class RouterBroker {
     return await execute(instance, ref);
   }
 
-  public async getParticipantsValidate<T>(args: DataValidate<T>) {
+  public async fetchAllGroupsValidate<T>(args: DataValidate<T>) {
     const { request, ClassRef, schema, execute } = args;
-
-    const getParticipants = request.query as unknown as GetParticipant;
-
-    if (!getParticipants?.getParticipants) {
+  
+    const fetchAllGroups = request.query as unknown as FetchAllGroupsDto;
+  
+    if (!fetchAllGroups?.getParticipants) {
       throw new BadRequestException('The getParticipants needs to be informed in the query');
     }
-
+  
     const instance = request.params as unknown as InstanceDto;
     const body = request.body;
-
+  
     const ref = new ClassRef();
-
-    Object.assign(body, getParticipants);
+  
+    Object.assign(body, fetchAllGroups);
     Object.assign(ref, body);
-
-    const v = validate(ref, schema);
-
+  
+    const v = validate(ref, schema || fetchAllGroupsSchema);
+  
     if (!v.valid) {
       const message: any[] = v.errors.map(({ property, stack, schema }) => {
         let message: string;
@@ -221,7 +222,7 @@ export abstract class RouterBroker {
       logger.error([...message]);
       throw new BadRequestException(...message);
     }
-
+  
     return await execute(instance, ref);
   }
 }

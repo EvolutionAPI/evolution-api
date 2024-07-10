@@ -1646,6 +1646,19 @@ paths:
           schema:
             type: boolean
           description: "- required - Indicates whether to retrieve the participants of the group."
+        - name: getProfilePicture
+          in: query
+          schema:
+            type: boolean
+          required: false
+          description: "Indicates whether to retrieve the profile pictures of the participants."
+        - name: delay
+          in: query
+          schema:
+            type: string
+            pattern: '^\\d+$'
+          required: false
+          description: "Optional delay in milliseconds before the response is sent."
         - name: instanceName
           in: path
           schema:

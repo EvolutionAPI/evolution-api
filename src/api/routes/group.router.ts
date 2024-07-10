@@ -4,6 +4,7 @@ import { Logger } from '../../config/logger.config';
 import {
   AcceptGroupInviteSchema,
   createGroupSchema,
+  fetchAllGroupsSchema,
   getParticipantsSchema,
   groupInviteSchema,
   groupJidSchema,
@@ -19,7 +20,7 @@ import { RouterBroker } from '../abstract/abstract.router';
 import {
   AcceptGroupInvite,
   CreateGroupDto,
-  GetParticipant,
+  FetchAllGroupsDto,
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
@@ -127,10 +128,10 @@ export class GroupRouter extends RouterBroker {
 
         logger.verbose('request query: ');
         logger.verbose(req.query);
-        const response = await this.getParticipantsValidate<GetParticipant>({
+        const response = await this.fetchAllGroupsValidate<FetchAllGroupsDto>({
           request: req,
-          schema: getParticipantsSchema,
-          ClassRef: GetParticipant,
+          schema: fetchAllGroupsSchema,
+          ClassRef: FetchAllGroupsDto,
           execute: (instance, data) => groupController.fetchAllGroups(instance, data),
         });
 

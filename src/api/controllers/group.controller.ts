@@ -2,7 +2,7 @@ import { Logger } from '../../config/logger.config';
 import {
   AcceptGroupInvite,
   CreateGroupDto,
-  GetParticipant,
+  FetchAllGroupsDto,
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
@@ -46,9 +46,9 @@ export class GroupController {
     return await this.waMonitor.waInstances[instance.instanceName].findGroup(groupJid);
   }
 
-  public async fetchAllGroups(instance: InstanceDto, getPaticipants: GetParticipant) {
+  public async fetchAllGroups(instance: InstanceDto, fetchAllGroupsData: FetchAllGroupsDto) {
     logger.verbose('requested fetchAllGroups from ' + instance.instanceName + ' instance');
-    return await this.waMonitor.waInstances[instance.instanceName].fetchAllGroups(getPaticipants);
+    return await this.waMonitor.waInstances[instance.instanceName].fetchAllGroups(fetchAllGroupsData);
   }
 
   public async inviteCode(instance: InstanceDto, groupJid: GroupJid) {
