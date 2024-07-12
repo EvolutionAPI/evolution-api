@@ -17,6 +17,7 @@ import { LabelRouter } from './label.router';
 import { ProxyRouter } from './proxy.router';
 import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
+import { TemplateRouter } from './template.router';
 import { ViewsRouter } from './view.router';
 import { WebhookRouter } from './webhook.router';
 
@@ -53,6 +54,7 @@ router
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
   .use('/webhook', new WebhookRouter(configService, ...guards).router)
+  .use('/template', new TemplateRouter(configService, ...guards).router)
   .use('/chatwoot', new ChatwootRouter(...guards).router)
   .use('/settings', new SettingsRouter(...guards).router)
   .use('/websocket', new WebsocketRouter(...guards).router)

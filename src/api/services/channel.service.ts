@@ -69,12 +69,14 @@ export class ChannelStartupService {
   public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository);
 
   public setInstance(instance: InstanceDto) {
-    this.instance.name = instance.instanceName;
     this.logger.setInstance(instance.instanceName);
+
+    this.instance.name = instance.instanceName;
     this.instance.id = instance.instanceId;
     this.instance.integration = instance.integration;
     this.instance.number = instance.number;
     this.instance.token = instance.token;
+    this.instance.businessId = instance.businessId;
 
     this.sendDataWebhook(Events.STATUS_INSTANCE, {
       instance: this.instance.name,

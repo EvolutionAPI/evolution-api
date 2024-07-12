@@ -221,6 +221,7 @@ export class WAMonitoringService {
         integration: instanceData.integration,
         token: instanceData.token,
         number: instanceData.number,
+        businessId: instanceData.businessId,
       });
     } else {
       instance = new BaileysStartupService(
@@ -239,6 +240,7 @@ export class WAMonitoringService {
         integration: instanceData.integration,
         token: instanceData.token,
         number: instanceData.number,
+        businessId: instanceData.businessId,
       });
     }
 
@@ -267,6 +269,7 @@ export class WAMonitoringService {
             integration: instanceData.integration,
             token: instanceData.token,
             number: instanceData.number,
+            businessId: instanceData.businessId,
           };
 
           this.setInstance(instance);
@@ -294,6 +297,7 @@ export class WAMonitoringService {
           integration: instance.integration,
           token: instance.token,
           number: instance.number,
+          businessId: instance.businessId,
         });
       }),
     );
@@ -317,6 +321,7 @@ export class WAMonitoringService {
           instanceName: instance.name,
           integration: instance.integration,
           token: instance.token,
+          businessId: instance.businessId,
         });
       }),
     );

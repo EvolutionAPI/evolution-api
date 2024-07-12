@@ -134,6 +134,7 @@ export class InstanceController {
         integration,
         token: hash,
         number,
+        businessId,
       });
 
       instance.sendDataWebhook(Events.INSTANCE_CREATE, {

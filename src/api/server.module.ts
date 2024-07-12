@@ -9,6 +9,7 @@ import { LabelController } from './controllers/label.controller';
 import { ProxyController } from './controllers/proxy.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
+import { TemplateController } from './controllers/template.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import { ChatwootController } from './integrations/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatwoot/services/chatwoot.service';
@@ -27,6 +28,7 @@ import { CacheService } from './services/cache.service';
 import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { SettingsService } from './services/settings.service';
+import { TemplateService } from './services/template.service';
 import { WebhookService } from './services/webhook.service';
 
 const logger = new Logger('WA MODULE');
@@ -63,6 +65,9 @@ export const typebotController = new TypebotController(typebotService);
 
 const webhookService = new WebhookService(waMonitor, prismaRepository);
 export const webhookController = new WebhookController(webhookService, waMonitor);
+
+const templateService = new TemplateService(waMonitor, prismaRepository, configService);
+export const templateController = new TemplateController(templateService);
 
 const websocketService = new WebsocketService(waMonitor);
 export const websocketController = new WebsocketController(websocketService);

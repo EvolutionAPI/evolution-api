@@ -55,6 +55,7 @@ export declare namespace wa {
     token?: string;
     number?: string;
     integration?: string;
+    businessId?: string;
   };
 
   export type LocalWebHook = {

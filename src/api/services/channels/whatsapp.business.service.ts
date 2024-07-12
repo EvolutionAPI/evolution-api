@@ -76,8 +76,7 @@ export class BusinessStartupService extends ChannelStartupService {
       const result = await axios.post(urlServer, message, { headers });
       return result.data;
     } catch (e) {
-      this.logger.error(e);
-      return e.response.data;
+      return e.response?.data?.error;
     }
   }
 
@@ -793,9 +792,9 @@ export class BusinessStartupService extends ChannelStartupService {
         }
       })();
 
-      if (messageSent?.error?.message) {
-        this.logger.error(messageSent.error.message);
-        throw messageSent.error.message.toString();
+      if (messageSent?.error_data) {
+        this.logger.error(messageSent);
+        return messageSent;
       }
 
       const messageRaw: any = {
