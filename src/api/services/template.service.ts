@@ -1,4 +1,3 @@
-import { Template } from '@prisma/client';
 import axios from 'axios';
 
 import { ConfigService, WaBusiness } from '../../config/env.config';
@@ -39,7 +38,7 @@ export class TemplateService {
     return response.data;
   }
 
-  public async create(instance: InstanceDto, data: TemplateDto): Promise<Template> {
+  public async create(instance: InstanceDto, data: TemplateDto) {
     try {
       const getInstance = await this.waMonitor.waInstances[instance.instanceName].instance;
 
@@ -61,21 +60,10 @@ export class TemplateService {
       const response = await this.requestTemplate(postData, 'POST');
 
       if (!response) {
-        throw new Error('Error to create template');
+        return response;
       }
 
-      console.log(response);
-
-      const template = await this.prismaRepository.template.create({
-        data: {
-          instanceId: getInstance.id,
-          templateId: response.id,
-          name: data.name,
-          language: data.language,
-        },
-      });
-
-      return template;
+      return response;
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error to create template');
@@ -94,13 +82,10 @@ export class TemplateService {
       } else if (method === 'POST') {
         const result = await axios.post(urlServer, data, { headers });
         return result.data;
-      } else if (method === 'DELETE') {
-        const result = await axios.delete(urlServer + '/' + data, { headers });
-        return result.data;
       }
     } catch (e) {
       this.logger.error(e.response.data);
-      return null;
+      return e.response.data.error;
     }
   }
 }
