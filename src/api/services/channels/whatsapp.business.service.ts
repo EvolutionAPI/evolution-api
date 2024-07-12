@@ -174,6 +174,13 @@ export class BusinessStartupService extends ChannelStartupService {
     return content;
   }
 
+  private messageButtonJson(received: any) {
+    const message = received.messages[0];
+    let content: any = { conversation: received.messages[0].button?.text };
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+    return content;
+  }
+
   private messageReactionJson(received: any) {
     const message = received.messages[0];
     let content: any = {
@@ -315,7 +322,7 @@ export class BusinessStartupService extends ChannelStartupService {
               ...this.messageMediaJson(received),
               base64: buffer ? buffer.toString('base64') : undefined,
             },
-            contextInfo: this.messageTextJson(received)?.contextInfo,
+            contextInfo: this.messageMediaJson(received)?.contextInfo,
             messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
@@ -328,7 +335,20 @@ export class BusinessStartupService extends ChannelStartupService {
             message: {
               ...this.messageInteractiveJson(received),
             },
-            contextInfo: this.messageTextJson(received)?.contextInfo,
+            contextInfo: this.messageInteractiveJson(received)?.contextInfo,
+            messageType: 'conversation',
+            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
+          };
+        } else if (received?.messages[0].button) {
+          messageRaw = {
+            key,
+            pushName,
+            message: {
+              ...this.messageButtonJson(received),
+            },
+            contextInfo: this.messageButtonJson(received)?.contextInfo,
             messageType: 'conversation',
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
@@ -341,7 +361,7 @@ export class BusinessStartupService extends ChannelStartupService {
             message: {
               ...this.messageReactionJson(received),
             },
-            contextInfo: this.messageTextJson(received)?.contextInfo,
+            contextInfo: this.messageReactionJson(received)?.contextInfo,
             messageType: 'reactionMessage',
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
@@ -354,7 +374,7 @@ export class BusinessStartupService extends ChannelStartupService {
             message: {
               ...this.messageContactsJson(received),
             },
-            contextInfo: this.messageTextJson(received)?.contextInfo,
+            contextInfo: this.messageContactsJson(received)?.contextInfo,
             messageType: 'conversation',
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',

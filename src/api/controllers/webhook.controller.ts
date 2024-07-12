@@ -57,7 +57,6 @@ export class WebhookController {
   }
 
   public async receiveWebhook(data: any) {
-    console.log('webhook/meta', data);
     this.webhookService.receiveWebhook(data);
 
     return {
