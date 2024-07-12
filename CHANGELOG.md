@@ -1,3 +1,9 @@
+# 1.8.3 (2024-07-03 13:50)
+
+### Fixed
+
+* Fixed issue sending group messages when ignore groups enabled
+
 # 1.8.2 (2024-07-03 13:50)
 
 ### Fixed

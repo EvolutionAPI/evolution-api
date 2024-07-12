@@ -2590,7 +2590,7 @@ export class BaileysStartupService extends ChannelStartupService {
         const group = await this.findGroup({ groupJid: jid }, 'inner');
 
         if (!group) {
-          new OnWhatsAppDto(jid, false, number);
+          return new OnWhatsAppDto(jid, false, number);
         }
 
         return new OnWhatsAppDto(group.id, !!group?.id, number, group?.subject);
@@ -3260,10 +3260,6 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
-    if (this.localSettings.groups_ignore === true) {
-      return;
-    }
-
     this.logger.verbose('Fetching group');
     try {
       const group = await this.client.groupMetadata(id.groupJid);
