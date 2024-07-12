@@ -12,6 +12,7 @@
 * Tagging in chatwoot contact by instance
 * Add support for managing WhatsApp templates via official API
 * Fixes and implementation of regex and fallback in typebot
+* Ignore jids configuration added to typebot (will be used for both groups and contacts)
 
 ### Fixed
 
