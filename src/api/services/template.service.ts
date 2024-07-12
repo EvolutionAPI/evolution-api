@@ -64,6 +64,8 @@ export class TemplateService {
         throw new Error('Error to create template');
       }
 
+      console.log(response);
+
       const template = await this.prismaRepository.template.create({
         data: {
           instanceId: getInstance.id,

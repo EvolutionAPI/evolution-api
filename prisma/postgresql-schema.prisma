@@ -75,7 +75,7 @@ model Instance {
   MessageUpdate    MessageUpdate[]
   TypebotSession   TypebotSession[]
   TypebotSetting   TypebotSetting?
-  Template         Template?
+  Template         Template[]
 }
 
 model Session {
@@ -315,5 +315,5 @@ model Template {
   createdAt  DateTime? @default(now()) @db.Timestamp
   updatedAt  DateTime  @updatedAt @db.Timestamp
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId String    @unique
+  instanceId String
 }
