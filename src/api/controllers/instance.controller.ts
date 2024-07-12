@@ -392,7 +392,7 @@ export class InstanceController {
           throw new BadRequestException('number is required');
         }
         const urlServer = this.configService.get<HttpServer>('SERVER').URL;
-        webhookWaBusiness = `${urlServer}/webhook/whatsapp/${encodeURIComponent(instance.instanceName)}`;
+        webhookWaBusiness = `${urlServer}/webhook/meta`;
         accessTokenWaBusiness = this.configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK;
       }
 

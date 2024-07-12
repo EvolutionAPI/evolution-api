@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import fs from 'fs';
 
-import { configService } from '../../config/env.config';
+import { configService, WaBusiness } from '../../config/env.config';
 import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { ChatwootRouter } from '../integrations/chatwoot/routes/chatwoot.router';
@@ -9,6 +9,7 @@ import { RabbitmqRouter } from '../integrations/rabbitmq/routes/rabbitmq.router'
 import { SqsRouter } from '../integrations/sqs/routes/sqs.router';
 import { TypebotRouter } from '../integrations/typebot/routes/typebot.router';
 import { WebsocketRouter } from '../integrations/websocket/routes/websocket.router';
+import { webhookController } from '../server.module';
 import { ChatRouter } from './chat.router';
 import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
@@ -59,6 +60,17 @@ router
   .use('/sqs', new SqsRouter(...guards).router)
   .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
-  .use('/label', new LabelRouter(...guards).router);
+  .use('/label', new LabelRouter(...guards).router)
+  .get('/webhook/meta', async (req, res) => {
+    if (req.query['hub.verify_token'] === configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK)
+      res.send(req.query['hub.challenge']);
+    else res.send('Error, wrong validation token');
+  })
+  .post('/webhook/meta', async (req, res) => {
+    const { body } = req;
+    const response = await webhookController.receiveWebhook(body);
+
+    return res.status(200).json(response);
+  });
 
 export { HttpStatus, router };

@@ -187,7 +187,7 @@ export class WAMonitoringService {
           data: {
             id: data.instanceId,
             name: data.instanceName,
-            connectionStatus: 'close',
+            connectionStatus: data.integration && data.integration === Integration.WHATSAPP_BUSINESS ? 'open' : 'close',
             number: data.number,
             integration: data.integration || Integration.WHATSAPP_BAILEYS,
             token: data.hash,

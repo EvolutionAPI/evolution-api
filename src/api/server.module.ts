@@ -61,7 +61,7 @@ const authService = new AuthService(prismaRepository);
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
 export const typebotController = new TypebotController(typebotService);
 
-const webhookService = new WebhookService(waMonitor);
+const webhookService = new WebhookService(waMonitor, prismaRepository);
 export const webhookController = new WebhookController(webhookService, waMonitor);
 
 const websocketService = new WebsocketService(waMonitor);

@@ -56,7 +56,12 @@ export class WebhookController {
     return this.webhookService.find(instance);
   }
 
-  public async receiveWebhook(instance: InstanceDto, data: any) {
-    return await this.waMonitor.waInstances[instance.instanceName].connectToWhatsapp(data);
+  public async receiveWebhook(data: any) {
+    console.log('webhook/meta', data);
+    this.webhookService.receiveWebhook(data);
+
+    return {
+      message: 'Webhook received',
+    };
   }
 }
