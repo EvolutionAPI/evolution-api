@@ -10,6 +10,8 @@
 * Organization configuration and logo in chatwoot bot contact
 * Added debounce time for typebot messages
 * Tagging in chatwoot contact by instance
+* Add support for managing WhatsApp templates via official API
+* Fixes and implementation of regex and fallback in typebot
 
 ### Fixed
 
@@ -19,6 +21,8 @@
 * Correction of audio sending, now we can speed it up and have the audio wireframe
 * Reply with media message on Chatwoot
 * improvements in sending status and groups
+* Correction in response returns from buttons, lists and templates
+* EvolutionAPI/Baileys implemented
 
 ### Break changes
 
@@ -35,6 +39,7 @@
   - Session search by typebot or remoteJid
   - KeepOpen configuration (keeps the session even when the bot ends, to run once per contact)
   - StopBotFromMe configuration, allows me to stop the bot if I send a chat message.
+* Changed the way the goal webhook is configured
 
 # 1.8.2 (2024-07-03 13:50)
 

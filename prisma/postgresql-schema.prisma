@@ -43,6 +43,7 @@ enum TriggerOperator {
   equals
   startsWith
   endsWith
+  regex
 }
 
 model Instance {
@@ -271,6 +272,7 @@ model Typebot {
   Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String
   sessions        TypebotSession[]
+  TypebotSetting  TypebotSetting[]
 }
 
 model TypebotSession {
@@ -291,17 +293,19 @@ model TypebotSession {
 }
 
 model TypebotSetting {
-  id              String    @id @default(cuid())
-  expire          Int?      @default(0) @db.Integer
-  keywordFinish   String?   @db.VarChar(100)
-  delayMessage    Int?      @db.Integer
-  unknownMessage  String?   @db.VarChar(100)
-  listeningFromMe Boolean?  @default(false) @db.Boolean
-  stopBotFromMe   Boolean?  @default(false) @db.Boolean
-  keepOpen        Boolean?  @default(false) @db.Boolean
-  debounceTime    Int?      @db.Integer
-  createdAt       DateTime? @default(now()) @db.Timestamp
-  updatedAt       DateTime  @updatedAt @db.Timestamp
-  Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId      String    @unique
+  id                String    @id @default(cuid())
+  expire            Int?      @default(0) @db.Integer
+  keywordFinish     String?   @db.VarChar(100)
+  delayMessage      Int?      @db.Integer
+  unknownMessage    String?   @db.VarChar(100)
+  listeningFromMe   Boolean?  @default(false) @db.Boolean
+  stopBotFromMe     Boolean?  @default(false) @db.Boolean
+  keepOpen          Boolean?  @default(false) @db.Boolean
+  debounceTime      Int?      @db.Integer
+  typebotIdFallback String?   @db.VarChar(100)
+  createdAt         DateTime? @default(now()) @db.Timestamp
+  updatedAt         DateTime  @updatedAt @db.Timestamp
+  Fallback          Typebot?  @relation(fields: [typebotIdFallback], references: [id])
+  Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId        String    @unique
 }

@@ -42,4 +42,5 @@ export class TypebotSettingDto {
   stopBotFromMe?: boolean;
   keepOpen?: boolean;
   debounceTime?: number;
+  typebotIdFallback?: string;
 }
