@@ -31,6 +31,7 @@ export class TypebotDto {
   triggerType?: TriggerType;
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
+  ignoreJids?: any;
 }
 
 export class TypebotSettingDto {
@@ -43,4 +44,5 @@ export class TypebotSettingDto {
   keepOpen?: boolean;
   debounceTime?: number;
   typebotIdFallback?: string;
+  ignoreJids?: any;
 }

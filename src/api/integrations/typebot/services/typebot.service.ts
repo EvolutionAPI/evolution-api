@@ -37,7 +37,8 @@ export class TypebotService {
       !data.listeningFromMe ||
       !data.stopBotFromMe ||
       !data.keepOpen ||
-      !data.debounceTime
+      !data.debounceTime ||
+      !data.ignoreJids
     ) {
       const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
         where: {
@@ -53,6 +54,7 @@ export class TypebotService {
       if (!data.stopBotFromMe) data.stopBotFromMe = defaultSettingCheck?.stopBotFromMe || false;
       if (!data.keepOpen) data.keepOpen = defaultSettingCheck?.keepOpen || false;
       if (!data.debounceTime) data.debounceTime = defaultSettingCheck?.debounceTime || 0;
+      if (!data.ignoreJids) data.ignoreJids = defaultSettingCheck?.ignoreJids || [];
 
       if (!defaultSettingCheck) {
         await this.setDefaultSettings(instance, {
@@ -64,6 +66,7 @@ export class TypebotService {
           stopBotFromMe: data.stopBotFromMe,
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
+          ignoreJids: data.ignoreJids,
         });
       }
     }
@@ -128,6 +131,7 @@ export class TypebotService {
           triggerType: data.triggerType,
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
+          ignoreJids: data.ignoreJids,
         },
       });
 
@@ -264,6 +268,7 @@ export class TypebotService {
             triggerType: data.triggerType,
             triggerOperator: data.triggerOperator,
             triggerValue: data.triggerValue,
+            ignoreJids: data.ignoreJids,
           },
         });
 
@@ -374,6 +379,7 @@ export class TypebotService {
             keepOpen: data.keepOpen,
             debounceTime: data.debounceTime,
             typebotIdFallback: data.typebotIdFallback,
+            ignoreJids: data.ignoreJids,
           },
         });
 
@@ -387,6 +393,7 @@ export class TypebotService {
           keepOpen: updateSettings.keepOpen,
           debounceTime: updateSettings.debounceTime,
           typebotIdFallback: updateSettings.typebotIdFallback,
+          ignoreJids: updateSettings.ignoreJids,
         };
       }
 
@@ -401,6 +408,7 @@ export class TypebotService {
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
           typebotIdFallback: data.typebotIdFallback,
+          ignoreJids: data.ignoreJids,
           instanceId: instanceId,
         },
       });
@@ -415,6 +423,7 @@ export class TypebotService {
         keepOpen: newSetttings.keepOpen,
         debounceTime: newSetttings.debounceTime,
         typebotIdFallback: newSetttings.typebotIdFallback,
+        ignoreJids: newSetttings.ignoreJids,
       };
     } catch (error) {
       this.logger.error(error);
@@ -453,6 +462,7 @@ export class TypebotService {
         listeningFromMe: settings.listeningFromMe,
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
+        ignoreJids: settings.ignoreJids,
         typebotIdFallback: settings.typebotIdFallback,
         fallback: settings.Fallback,
       };
@@ -1095,8 +1105,6 @@ export class TypebotService {
   }
 
   public async findTypebotByTrigger(content: string, instanceId: string) {
-    console.log('Check for triggerType all');
-
     // Check for triggerType 'all'
     const findTriggerAll = await this.prismaRepository.typebot.findFirst({
       where: {
@@ -1106,11 +1114,7 @@ export class TypebotService {
       },
     });
 
-    console.log('findTriggerAll', findTriggerAll);
-
     if (findTriggerAll) return findTriggerAll;
-
-    console.log('Check for exact match');
 
     // Check for exact match
     const findTriggerEquals = await this.prismaRepository.typebot.findFirst({
@@ -1123,11 +1127,7 @@ export class TypebotService {
       },
     });
 
-    console.log('findTriggerEquals', findTriggerEquals);
-
     if (findTriggerEquals) return findTriggerEquals;
-
-    console.log('Check for regex match');
 
     // Check for regex match
     const findRegex = await this.prismaRepository.typebot.findMany({
@@ -1150,11 +1150,7 @@ export class TypebotService {
       }
     }
 
-    console.log('findTriggerRegex', findTriggerRegex);
-
     if (findTriggerRegex) return findTriggerRegex;
-
-    console.log('Check for startsWith match');
 
     // Check for startsWith match
     const findTriggerStartsWith = await this.prismaRepository.typebot.findFirst({
@@ -1169,11 +1165,7 @@ export class TypebotService {
       },
     });
 
-    console.log('findTriggerStartsWith', findTriggerStartsWith);
-
     if (findTriggerStartsWith) return findTriggerStartsWith;
-
-    console.log('Check for endsWith match');
 
     // Check for endsWith match
     const findTriggerEndsWith = await this.prismaRepository.typebot.findFirst({
@@ -1188,11 +1180,7 @@ export class TypebotService {
       },
     });
 
-    console.log('findTriggerEndsWith', findTriggerEndsWith);
-
     if (findTriggerEndsWith) return findTriggerEndsWith;
-
-    console.log('Check for contains match');
 
     // Check for contains match
     const findTriggerContains = await this.prismaRepository.typebot.findFirst({
@@ -1207,11 +1195,7 @@ export class TypebotService {
       },
     });
 
-    console.log('findTriggerContains', findTriggerContains);
-
     if (findTriggerContains) return findTriggerContains;
-
-    console.log('Check for fallback');
 
     const fallback = await this.prismaRepository.typebotSetting.findFirst({
       where: {
@@ -1219,18 +1203,12 @@ export class TypebotService {
       },
     });
 
-    console.log('fallback', fallback);
-
     if (fallback?.typebotIdFallback) {
-      console.log('Check for fallback typebot');
-
       const findFallback = await this.prismaRepository.typebot.findFirst({
         where: {
           id: fallback.typebotIdFallback,
         },
       });
-
-      console.log('findFallback', findFallback);
 
       if (findFallback) return findFallback;
     }
@@ -1261,23 +1239,30 @@ export class TypebotService {
 
   public async sendTypebot(instance: InstanceDto, remoteJid: string, msg: Message) {
     try {
-      const session = await this.prismaRepository.typebotSession.findFirst({
-        where: {
-          remoteJid: remoteJid,
-        },
-      });
-
       const settings = await this.prismaRepository.typebotSetting.findFirst({
         where: {
           instanceId: instance.instanceId,
         },
       });
 
+      if (settings.ignoreJids) {
+        const ignoreJids: any = settings.ignoreJids;
+
+        if (ignoreJids.includes(remoteJid)) {
+          this.logger.warn('Ignoring message from jid: ' + remoteJid);
+          return;
+        }
+      }
+
+      const session = await this.prismaRepository.typebotSession.findFirst({
+        where: {
+          remoteJid: remoteJid,
+        },
+      });
+
       const content = this.getConversationMessage(msg);
 
       let findTypebot = null;
-
-      console.log('content', content);
 
       if (!session) {
         findTypebot = await this.findTypebotByTrigger(content, instance.instanceId);
@@ -1351,7 +1336,6 @@ export class TypebotService {
         return;
       }
 
-      console.log(debounceTime);
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(content, remoteJid, debounceTime, async (debouncedContent) => {
           await this.processTypebot(

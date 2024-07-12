@@ -266,6 +266,7 @@ model Typebot {
   debounceTime    Int?             @db.Integer
   createdAt       DateTime?        @default(now()) @db.Timestamp
   updatedAt       DateTime?        @updatedAt @db.Timestamp
+  ignoreJids      Json?
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
@@ -303,6 +304,7 @@ model TypebotSetting {
   keepOpen          Boolean?  @default(false) @db.Boolean
   debounceTime      Int?      @db.Integer
   typebotIdFallback String?   @db.VarChar(100)
+  ignoreJids        Json?
   createdAt         DateTime? @default(now()) @db.Timestamp
   updatedAt         DateTime  @updatedAt @db.Timestamp
   Fallback          Typebot?  @relation(fields: [typebotIdFallback], references: [id])
