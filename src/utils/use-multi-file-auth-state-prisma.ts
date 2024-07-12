@@ -8,21 +8,20 @@ import { prismaServer } from '../libs/prisma.connect';
 
 const prisma = prismaServer;
 
-const fixFileName = (file: string): string | undefined => {
-  if (!file) {
-    return undefined;
-  }
-  const replacedSlash = file.replace(/\//g, '__');
-  const replacedColon = replacedSlash.replace(/:/g, '-');
-  return replacedColon;
-};
+// const fixFileName = (file: string): string | undefined => {
+//   if (!file) {
+//     return undefined;
+//   }
+//   const replacedSlash = file.replace(/\//g, '__');
+//   const replacedColon = replacedSlash.replace(/:/g, '-');
+//   return replacedColon;
+// };
 
 export async function keyExists(sessionId: string): Promise<any> {
   try {
     const key = await prisma.session.findUnique({ where: { sessionId: sessionId } });
     return !!key;
   } catch (error) {
-    console.log(`${error}`);
     return false;
   }
 }
@@ -42,7 +41,6 @@ export async function saveKey(sessionId: string, keyJson: any): Promise<any> {
       data: { creds: JSON.stringify(keyJson) },
     });
   } catch (error) {
-    console.log(`${error}`);
     return null;
   }
 }
@@ -54,7 +52,6 @@ export async function getAuthKey(sessionId: string): Promise<any> {
     const auth = await prisma.session.findUnique({ where: { sessionId: sessionId } });
     return JSON.parse(auth?.creds);
   } catch (error) {
-    console.log(`${error}`);
     return null;
   }
 }
@@ -65,18 +62,18 @@ async function deleteAuthKey(sessionId: string): Promise<any> {
     if (!register) return;
     await prisma.session.delete({ where: { sessionId: sessionId } });
   } catch (error) {
-    console.log('2', `${error}`);
-  }
-}
-
-async function fileExists(file: string): Promise<any> {
-  try {
-    const stat = await fs.stat(file);
-    if (stat.isFile()) return true;
-  } catch (error) {
     return;
   }
 }
+
+// async function fileExists(file: string): Promise<any> {
+//   try {
+//     const stat = await fs.stat(file);
+//     if (stat.isFile()) return true;
+//   } catch (error) {
+//     return;
+//   }
+// }
 
 export default async function useMultiFileAuthStatePrisma(
   sessionId: string,
@@ -86,7 +83,7 @@ export default async function useMultiFileAuthStatePrisma(
   saveCreds: () => Promise<void>;
 }> {
   const localFolder = path.join(INSTANCE_DIR, sessionId);
-  const localFile = (key: string) => path.join(localFolder, fixFileName(key) + '.json');
+  // const localFile = (key: string) => path.join(localFolder, fixFileName(key) + '.json');
   await fs.mkdir(localFolder, { recursive: true });
 
   async function writeData(data: any, key: string): Promise<any> {
