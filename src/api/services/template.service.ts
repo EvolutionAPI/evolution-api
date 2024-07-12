@@ -36,8 +36,6 @@ export class TemplateService {
       throw new Error('Error to create template');
     }
 
-    console.log(response);
-
     return response.data;
   }
 
@@ -66,8 +64,6 @@ export class TemplateService {
         throw new Error('Error to create template');
       }
 
-      console.log(response);
-
       const template = await this.prismaRepository.template.create({
         data: {
           instanceId: getInstance.id,
@@ -95,6 +91,9 @@ export class TemplateService {
         return result.data;
       } else if (method === 'POST') {
         const result = await axios.post(urlServer, data, { headers });
+        return result.data;
+      } else if (method === 'DELETE') {
+        const result = await axios.delete(urlServer + '/' + data, { headers });
         return result.data;
       }
     } catch (e) {

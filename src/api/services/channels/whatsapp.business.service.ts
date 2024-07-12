@@ -602,6 +602,8 @@ export class BusinessStartupService extends ChannelStartupService {
         documentMessage: message,
       };
     }
+
+    return message;
   }
 
   protected async eventHandler(content: any) {
