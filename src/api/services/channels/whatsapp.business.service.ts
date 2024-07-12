@@ -738,7 +738,7 @@ export class BusinessStartupService extends ChannelStartupService {
           message = { conversation: `${message['text'] || 'Select'}\n` + formattedText };
           return await this.post(content, 'messages');
         }
-        if (message['sections']) {
+        if (message['listMessage']) {
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -748,29 +748,29 @@ export class BusinessStartupService extends ChannelStartupService {
               type: 'list',
               header: {
                 type: 'text',
-                text: message['title'],
+                text: message['listMessage']['title'],
               },
               body: {
-                text: message['text'],
+                text: message['listMessage']['description'],
               },
               footer: {
-                text: message['footerText'],
+                text: message['listMessage']['footerText'],
               },
               action: {
-                button: message['buttonText'],
-                sections: message['sections'],
+                button: message['listMessage']['buttonText'],
+                sections: message['listMessage']['sections'],
               },
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
           let formattedText = '';
-          for (const section of message['sections']) {
+          for (const section of message['listMessage']['sections']) {
             formattedText += `${section?.title}\n`;
             for (const row of section.rows) {
               formattedText += `${row?.title}\n`;
             }
           }
-          message = { conversation: `${message['title']}\n` + formattedText };
+          message = { conversation: `${message['listMessage']['title']}\n` + formattedText };
           return await this.post(content, 'messages');
         }
         if (message['template']) {
@@ -993,8 +993,8 @@ export class BusinessStartupService extends ChannelStartupService {
     const embeddedMedia: any = {};
 
     const btnItems = {
-      text: data.buttonMessage.buttons.map((btn) => btn.buttonText),
-      ids: data.buttonMessage.buttons.map((btn) => btn.buttonId),
+      text: data.buttons.map((btn) => btn.text),
+      ids: data.buttons.map((btn) => btn.id),
     };
 
     if (!arrayUnique(btnItems.text) || !arrayUnique(btnItems.ids)) {
@@ -1004,13 +1004,13 @@ export class BusinessStartupService extends ChannelStartupService {
     return await this.sendMessageWithTyping(
       data.number,
       {
-        text: !embeddedMedia?.mediaKey ? data.buttonMessage.title : undefined,
-        buttons: data.buttonMessage.buttons.map((button) => {
+        text: !embeddedMedia?.mediaKey ? data.title : undefined,
+        buttons: data.buttons.map((button) => {
           return {
             type: 'reply',
             reply: {
-              title: button.buttonText,
-              id: button.buttonId,
+              title: button.text,
+              id: button.id,
             },
           };
         }),
@@ -1058,11 +1058,10 @@ export class BusinessStartupService extends ChannelStartupService {
       throw new BadRequestException('Section tiles cannot be repeated');
     }
 
-    return await this.sendMessageWithTyping(
-      data.number,
-      {
+    const sendData: any = {
+      listMessage: {
         title: data.title,
-        text: data.description,
+        description: data.description,
         footerText: data?.footerText,
         buttonText: data?.buttonText,
         sections: data.sections.map((section) => {
@@ -1071,22 +1070,23 @@ export class BusinessStartupService extends ChannelStartupService {
             rows: section.rows.map((row) => {
               return {
                 title: row.title,
-                description: row.description,
+                description: row.description.substring(0, 72),
                 id: row.rowId,
               };
             }),
           };
         }),
       },
-      {
-        delay: data?.delay,
-        presence: 'composing',
-        quoted: data?.quoted,
-        linkPreview: data?.linkPreview,
-        mentionsEveryOne: data?.mentionsEveryOne,
-        mentioned: data?.mentioned,
-      },
-    );
+    };
+
+    return await this.sendMessageWithTyping(data.number, sendData, {
+      delay: data?.delay,
+      presence: 'composing',
+      quoted: data?.quoted,
+      linkPreview: data?.linkPreview,
+      mentionsEveryOne: data?.mentionsEveryOne,
+      mentioned: data?.mentioned,
+    });
   }
 
   public async templateMessage(data: SendTemplateDto, isIntegration = false) {

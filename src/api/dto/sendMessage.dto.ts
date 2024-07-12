@@ -90,17 +90,14 @@ export class SendAudioDto extends Metadata {
 }
 
 class Button {
-  buttonText: string;
-  buttonId: string;
+  text: string;
+  id: string;
 }
-class ButtonMessage {
+export class SendButtonDto extends Metadata {
   title: string;
   description: string;
   footerText?: string;
   buttons: Button[];
-}
-export class SendButtonDto extends Metadata {
-  buttonMessage: ButtonMessage;
 }
 
 export class SendLocationDto extends Metadata {

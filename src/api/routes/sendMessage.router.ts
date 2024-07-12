@@ -2,6 +2,7 @@ import { RequestHandler, Router } from 'express';
 
 import {
   audioMessageSchema,
+  buttonMessageSchema,
   contactMessageSchema,
   listMessageSchema,
   locationMessageSchema,
@@ -16,6 +17,7 @@ import {
 import { RouterBroker } from '../abstract/abstract.router';
 import {
   SendAudioDto,
+  SendButtonDto,
   SendContactDto,
   SendListDto,
   SendLocationDto,
@@ -144,17 +146,17 @@ export class MessageRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.CREATED).json(response);
-      });
-    // .post(this.routerPath('sendButtons'), ...guards, async (req, res) => {
-    //   const response = await this.dataValidate<SendButtonDto>({
-    //     request: req,
-    //     schema: buttonMessageSchema,
-    //     ClassRef: SendButtonDto,
-    //     execute: (instance, data) => sendMessageController.sendButtons(instance, data),
-    //   });
+      })
+      .post(this.routerPath('sendButtons'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<SendButtonDto>({
+          request: req,
+          schema: buttonMessageSchema,
+          ClassRef: SendButtonDto,
+          execute: (instance, data) => sendMessageController.sendButtons(instance, data),
+        });
 
-    //   return res.status(HttpStatus.CREATED).json(response);
-    // })
+        return res.status(HttpStatus.CREATED).json(response);
+      });
   }
 
   public readonly router = Router();

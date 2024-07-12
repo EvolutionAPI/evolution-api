@@ -358,3 +358,48 @@ export const listMessageSchema: JSONSchema7 = {
   },
   required: ['number', 'title', 'footerText', 'buttonText', 'sections'],
 };
+
+export const buttonMessageSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    title: { type: 'string' },
+    description: { type: 'string' },
+    footerText: { type: 'string' },
+    buttons: {
+      type: 'array',
+      minItems: 1,
+      uniqueItems: true,
+      items: {
+        type: 'object',
+        properties: {
+          text: { type: 'string' },
+          id: { type: 'string' },
+        },
+        required: ['text', 'id'],
+        ...isNotEmpty('text', 'id'),
+      },
+    },
+    media: { type: 'string' },
+    fileName: { type: 'string' },
+    mediatype: { type: 'string', enum: ['image', 'document', 'video'] },
+    delay: {
+      type: 'integer',
+      description: 'Enter a value in milliseconds',
+    },
+    quoted: { ...quotedOptionsSchema },
+    everyOne: { type: 'boolean', enum: [true, false] },
+    mentioned: {
+      type: 'array',
+      minItems: 1,
+      uniqueItems: true,
+      items: {
+        type: 'string',
+        pattern: '^\\d+',
+        description: '"mentioned" must be an array of numeric strings',
+      },
+    },
+  },
+  required: ['number', 'title', 'buttons'],
+};
