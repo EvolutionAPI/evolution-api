@@ -1,8 +1,9 @@
-# 1.8.3 (2024-07-03 13:50)
+# 1.8.3 (develop)
 
 ### Fixed
 
 * Fixed issue sending group messages when ignore groups enabled
+* Fixed groups_ignore in /instance/create and maintaining compatibility
 
 # 1.8.2 (2024-07-03 13:50)
 
