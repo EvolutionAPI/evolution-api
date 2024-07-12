@@ -192,6 +192,7 @@ export class WAMonitoringService {
             integration: data.integration || Integration.WHATSAPP_BAILEYS,
             token: data.hash,
             clientName: clientName,
+            businessId: data.businessId,
           },
         });
       }

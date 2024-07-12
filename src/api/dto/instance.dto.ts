@@ -42,6 +42,7 @@ export class InstanceDto {
   proxyProtocol?: string;
   proxyUsername?: string;
   proxyPassword?: string;
+  businessId?: string;
 }
 
 export class SetPresenceDto {

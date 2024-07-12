@@ -30,6 +30,7 @@ export const instanceSchema: JSONSchema7 = {
     instanceName: { type: 'string' },
     token: { type: 'string' },
     number: { type: 'string', pattern: '^\\d+[\\.@\\w-]+' },
+    businessId: { type: 'string' },
     qrcode: { type: 'boolean' },
     Integration: {
       type: 'string',

@@ -87,6 +87,7 @@ export class InstanceController {
     chatwootDaysLimitImportMessages,
     chatwootOrganization,
     chatwootLogo,
+    businessId,
   }: InstanceDto) {
     try {
       if (token) await this.authService.checkDuplicateToken(token);
@@ -125,7 +126,7 @@ export class InstanceController {
       if (!token) hash = v4().toUpperCase();
       else hash = token;
 
-      await this.waMonitor.saveInstance({ instanceId, integration, instanceName, hash, number });
+      await this.waMonitor.saveInstance({ instanceId, integration, instanceName, hash, number, businessId });
 
       instance.setInstance({
         instanceName,

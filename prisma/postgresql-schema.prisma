@@ -54,6 +54,7 @@ model Instance {
   profilePicUrl    String?                  @db.VarChar(500)
   integration      String?                  @db.VarChar(100)
   number           String?                  @db.VarChar(100)
+  businessId       String?                  @db.VarChar(100)
   token            String?                  @unique @db.VarChar(255)
   clientName       String?                  @db.VarChar(100)
   createdAt        DateTime?                @default(now()) @db.Timestamp
