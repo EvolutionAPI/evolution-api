@@ -6,6 +6,7 @@ import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { ChatwootRouter } from '../integrations/chatwoot/routes/chatwoot.router';
 import { RabbitmqRouter } from '../integrations/rabbitmq/routes/rabbitmq.router';
+import { S3Router } from '../integrations/s3/routes/s3.router';
 import { SqsRouter } from '../integrations/sqs/routes/sqs.router';
 import { TypebotRouter } from '../integrations/typebot/routes/typebot.router';
 import { WebsocketRouter } from '../integrations/websocket/routes/websocket.router';
@@ -63,6 +64,7 @@ router
   .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
   .use('/label', new LabelRouter(...guards).router)
+  .use('/s3', new S3Router(...guards).router)
   .get('/webhook/meta', async (req, res) => {
     if (req.query['hub.verify_token'] === configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK)
       res.send(req.query['hub.challenge']);

@@ -48,6 +48,7 @@ import ffmpeg from 'fluent-ffmpeg';
 // import ffmpeg from 'fluent-ffmpeg';
 import { existsSync, readFileSync } from 'fs';
 import Long from 'long';
+import mime from 'mime';
 import NodeCache from 'node-cache';
 import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
@@ -57,6 +58,7 @@ import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 import { PassThrough } from 'stream';
+import { v4 } from 'uuid';
 
 import { CacheEngine } from '../../../cache/cacheengine';
 import {
@@ -69,6 +71,7 @@ import {
   Log,
   ProviderSession,
   QrCode,
+  S3,
   Typebot,
 } from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
@@ -125,6 +128,7 @@ import {
   StatusMessage,
 } from '../../dto/sendMessage.dto';
 import { chatwootImport } from '../../integrations/chatwoot/utils/chatwoot-import-helper';
+import * as s3Service from '../../integrations/s3/libs/minio.server';
 import { ProviderFiles } from '../../provider/sessions';
 import { PrismaRepository } from '../../repository/repository.service';
 import { waMonitor } from '../../server.module';
@@ -1044,10 +1048,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contentMsg = received?.message[getContentType(received.message)] as any;
 
-          if (
-            this.localWebhook.webhookBase64 === true ||
-            (this.configService.get<Typebot>('TYPEBOT').SEND_MEDIA_BASE64 && isMedia)
-          ) {
+          if (this.localWebhook.webhookBase64 === true && isMedia) {
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
               'buffer',
@@ -1092,10 +1093,6 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.client.readMessages([received.key]);
           }
 
-          this.logger.log(messageRaw);
-
-          this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
-
           if (
             this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
             this.localChatwoot.enabled &&
@@ -1114,9 +1111,51 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          await this.prismaRepository.message.create({
+          const msg = await this.prismaRepository.message.create({
             data: messageRaw,
           });
+
+          if (this.configService.get<S3>('S3').ENABLE && isMedia) {
+            try {
+              const message: any = received;
+              const media = await this.getBase64FromMediaMessage(
+                {
+                  message,
+                },
+                true,
+              );
+
+              const { buffer, mediaType, fileName, size } = media;
+
+              const mimetype = mime.lookup(fileName).toString();
+
+              const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
+
+              await s3Service.uploadFile(fullName, buffer, size.fileLength, {
+                'Content-Type': mimetype,
+              });
+
+              await this.prismaRepository.media.create({
+                data: {
+                  messageId: msg.id,
+                  instanceId: this.instanceId,
+                  type: mediaType,
+                  fileName: fullName,
+                  mimetype,
+                },
+              });
+
+              const mediaUrl = await s3Service.getObjectUrl(fullName);
+
+              messageRaw.message.mediaUrl = mediaUrl;
+            } catch (error) {
+              this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
+            }
+          }
+
+          this.logger.log(messageRaw);
+
+          this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
           if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
             if (type === 'notify') {
@@ -2772,7 +2811,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto) {
+  public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto, getBuffer: boolean) {
     try {
       const m = data?.message;
       const convertToMp4 = data?.convertToMp4 ?? false;
@@ -2819,13 +2858,17 @@ export class BaileysStartupService extends ChannelStartupService {
       );
       const typeMessage = getContentType(msg.message);
 
+      const ext = mime.extension(mediaMessage?.['mimetype']);
+
+      const fileName = mediaMessage?.['fileName'] || `${msg.key.id}.${ext}` || `${v4()}.${ext}`;
+
       if (convertToMp4 && typeMessage === 'audioMessage') {
         const convert = await this.processAudioMp4(buffer.toString('base64'));
 
         if (Buffer.isBuffer(convert)) {
           const result = {
             mediaType,
-            fileName: mediaMessage['fileName'],
+            fileName,
             caption: mediaMessage['caption'],
             size: {
               fileLength: mediaMessage['fileLength'],
@@ -2834,6 +2877,7 @@ export class BaileysStartupService extends ChannelStartupService {
             },
             mimetype: 'audio/mp4',
             base64: convert,
+            buffer: getBuffer ? convert : null,
           };
 
           return result;
@@ -2842,7 +2886,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return {
         mediaType,
-        fileName: mediaMessage['fileName'],
+        fileName,
         caption: mediaMessage['caption'],
         size: {
           fileLength: mediaMessage['fileLength'],
@@ -2851,6 +2895,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
         mimetype: mediaMessage['mimetype'],
         base64: buffer.toString('base64'),
+        buffer: getBuffer ? buffer : null,
       };
     } catch (error) {
       this.logger.error(error);

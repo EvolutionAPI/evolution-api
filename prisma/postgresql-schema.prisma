@@ -76,6 +76,7 @@ model Instance {
   MessageUpdate    MessageUpdate[]
   TypebotSession   TypebotSession[]
   TypebotSetting   TypebotSetting?
+  Media            Media[]
 }
 
 model Session {
@@ -127,6 +128,7 @@ model Message {
   typebotSessionId             String?
   MessageUpdate                MessageUpdate[]
   TypebotSession               TypebotSession? @relation(fields: [typebotSessionId], references: [id])
+  Media                        Media?
 }
 
 model MessageUpdate {
@@ -310,4 +312,16 @@ model TypebotSetting {
   Fallback          Typebot?  @relation(fields: [typebotIdFallback], references: [id])
   Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId        String    @unique
+}
+
+model Media {
+  id         String    @id @default(cuid())
+  fileName   String    @unique @db.VarChar(500)
+  type       String    @db.VarChar(100)
+  mimetype   String    @db.VarChar(100)
+  createdAt  DateTime? @default(now()) @db.Date
+  Message    Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId  String    @unique
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
 }

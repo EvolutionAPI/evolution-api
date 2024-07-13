@@ -191,6 +191,16 @@ export type Chatwoot = {
   };
 };
 
+export type S3 = {
+  ACCESS_KEY: string;
+  SECRET_KEY: string;
+  ENDPOINT: string;
+  BUCKET_NAME: string;
+  ENABLE: boolean;
+  PORT?: number;
+  USE_SSL?: boolean;
+};
+
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
 export type Production = boolean;
 
@@ -214,6 +224,7 @@ export interface Env {
   TYPEBOT: Typebot;
   CHATWOOT: Chatwoot;
   CACHE: CacheConf;
+  S3?: S3;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
 }
@@ -430,6 +441,15 @@ export class ConfigService {
           ENABLED: process.env?.CACHE_LOCAL_ENABLED === 'true',
           TTL: Number.parseInt(process.env?.CACHE_REDIS_TTL) || 86400,
         },
+      },
+      S3: {
+        ACCESS_KEY: process.env?.S3_ACCESS_KEY,
+        SECRET_KEY: process.env?.S3_SECRET_KEY,
+        ENDPOINT: process.env?.S3_ENDPOINT,
+        BUCKET_NAME: process.env?.S3_BUCKET,
+        ENABLE: process.env?.S3_ENABLED === 'true',
+        PORT: Number.parseInt(process.env?.S3_PORT || '9000'),
+        USE_SSL: process.env?.S3_USE_SSL === 'true',
       },
       AUTHENTICATION: {
         API_KEY: {

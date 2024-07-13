@@ -15,6 +15,8 @@ import { ChatwootController } from './integrations/chatwoot/controllers/chatwoot
 import { ChatwootService } from './integrations/chatwoot/services/chatwoot.service';
 import { RabbitmqController } from './integrations/rabbitmq/controllers/rabbitmq.controller';
 import { RabbitmqService } from './integrations/rabbitmq/services/rabbitmq.service';
+import { S3Controller } from './integrations/s3/controllers/s3.controller';
+import { S3Service } from './integrations/s3/services/s3.service';
 import { SqsController } from './integrations/sqs/controllers/sqs.controller';
 import { SqsService } from './integrations/sqs/services/sqs.service';
 import { TypebotController } from './integrations/typebot/controllers/typebot.controller';
@@ -62,6 +64,9 @@ const authService = new AuthService(prismaRepository);
 
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
 export const typebotController = new TypebotController(typebotService);
+
+const s3Service = new S3Service(prismaRepository);
+export const s3Controller = new S3Controller(s3Service);
 
 const webhookService = new WebhookService(waMonitor, prismaRepository);
 export const webhookController = new WebhookController(webhookService, waMonitor);

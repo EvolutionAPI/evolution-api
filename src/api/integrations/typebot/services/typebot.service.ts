@@ -651,17 +651,17 @@ export class TypebotService {
 
       if (ignoreGroups && remoteJid.includes('@g.us')) {
         this.logger.warn('Ignoring message from group: ' + remoteJid);
-        return;
+        throw new Error('Group not allowed');
       }
 
       if (ignoreContacts && remoteJid.includes('@s.whatsapp.net')) {
         this.logger.warn('Ignoring message from contact: ' + remoteJid);
-        return;
+        throw new Error('Contact not allowed');
       }
 
       if (ignoreJids.includes(remoteJid)) {
         this.logger.warn('Ignoring message from jid: ' + remoteJid);
-        return;
+        throw new Error('Jid not allowed');
       }
     }
 
