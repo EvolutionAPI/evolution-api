@@ -1048,7 +1048,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contentMsg = received?.message[getContentType(received.message)] as any;
 
-          if (this.localWebhook.webhookBase64 === true && isMedia) {
+          if (this.localWebhook.webhookBase64 === true && !this.configService.get<S3>('S3').ENABLE && isMedia) {
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
               'buffer',
