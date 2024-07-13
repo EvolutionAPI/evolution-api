@@ -7,7 +7,7 @@ import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
 import { Events } from '../../../types/wa.types';
-import { TypebotDto } from '../dto/typebot.dto';
+import { TypebotDto, TypebotIgnoreJidDto } from '../dto/typebot.dto';
 
 export class TypebotService {
   constructor(
@@ -472,6 +472,54 @@ export class TypebotService {
     }
   }
 
+  public async ignoreJid(instance: InstanceDto, data: TypebotIgnoreJidDto) {
+    try {
+      const instanceId = await this.prismaRepository.instance
+        .findFirst({
+          where: {
+            name: instance.instanceName,
+          },
+        })
+        .then((instance) => instance.id);
+
+      const settings = await this.prismaRepository.typebotSetting.findFirst({
+        where: {
+          instanceId: instanceId,
+        },
+      });
+
+      if (!settings) {
+        throw new Error('Settings not found');
+      }
+
+      let ignoreJids: any = settings?.ignoreJids || [];
+
+      if (data.action === 'add') {
+        if (ignoreJids.includes(data.remoteJid)) return { ignoreJids: ignoreJids };
+
+        ignoreJids.push(data.remoteJid);
+      } else {
+        ignoreJids = ignoreJids.filter((jid) => jid !== data.remoteJid);
+      }
+
+      const updateSettings = await this.prismaRepository.typebotSetting.update({
+        where: {
+          id: settings.id,
+        },
+        data: {
+          ignoreJids: ignoreJids,
+        },
+      });
+
+      return {
+        ignoreJids: updateSettings.ignoreJids,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      throw new Error('Error setting default settings');
+    }
+  }
+
   public async fetchSessions(instance: InstanceDto, typebotId?: string, remoteJid?: string) {
     try {
       const instanceId = await this.prismaRepository.instance
@@ -581,6 +629,42 @@ export class TypebotService {
     let stopBotFromMe = data?.typebot?.stopBotFromMe;
     let keepOpen = data?.typebot?.keepOpen;
 
+    const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
+      where: {
+        instanceId: instance.instanceId,
+      },
+    });
+
+    if (defaultSettingCheck?.ignoreJids) {
+      const ignoreJids: any = defaultSettingCheck.ignoreJids;
+
+      let ignoreGroups = false;
+      let ignoreContacts = false;
+
+      if (ignoreJids.includes('@g.us')) {
+        ignoreGroups = true;
+      }
+
+      if (ignoreJids.includes('@s.whatsapp.net')) {
+        ignoreContacts = true;
+      }
+
+      if (ignoreGroups && remoteJid.includes('@g.us')) {
+        this.logger.warn('Ignoring message from group: ' + remoteJid);
+        return;
+      }
+
+      if (ignoreContacts && remoteJid.includes('@s.whatsapp.net')) {
+        this.logger.warn('Ignoring message from contact: ' + remoteJid);
+        return;
+      }
+
+      if (ignoreJids.includes(remoteJid)) {
+        this.logger.warn('Ignoring message from jid: ' + remoteJid);
+        return;
+      }
+    }
+
     const findTypebot = await this.prismaRepository.typebot.findFirst({
       where: {
         url: url,
@@ -601,12 +685,6 @@ export class TypebotService {
       !stopBotFromMe ||
       !keepOpen
     ) {
-      const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
-        where: {
-          instanceId: instance.instanceId,
-        },
-      });
-
       if (!expire) expire = defaultSettingCheck?.expire || 0;
       if (!keywordFinish) keywordFinish = defaultSettingCheck?.keywordFinish || '#SAIR';
       if (!delayMessage) delayMessage = defaultSettingCheck?.delayMessage || 1000;
@@ -1245,8 +1323,29 @@ export class TypebotService {
         },
       });
 
-      if (settings.ignoreJids) {
+      if (settings?.ignoreJids) {
         const ignoreJids: any = settings.ignoreJids;
+
+        let ignoreGroups = false;
+        let ignoreContacts = false;
+
+        if (ignoreJids.includes('@g.us')) {
+          ignoreGroups = true;
+        }
+
+        if (ignoreJids.includes('@s.whatsapp.net')) {
+          ignoreContacts = true;
+        }
+
+        if (ignoreGroups && remoteJid.endsWith('@g.us')) {
+          this.logger.warn('Ignoring message from group: ' + remoteJid);
+          return;
+        }
+
+        if (ignoreContacts && remoteJid.endsWith('@s.whatsapp.net')) {
+          this.logger.warn('Ignoring message from contact: ' + remoteJid);
+          return;
+        }
 
         if (ignoreJids.includes(remoteJid)) {
           this.logger.warn('Ignoring message from jid: ' + remoteJid);

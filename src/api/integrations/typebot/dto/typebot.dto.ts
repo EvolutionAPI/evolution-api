@@ -46,3 +46,8 @@ export class TypebotSettingDto {
   typebotIdFallback?: string;
   ignoreJids?: any;
 }
+
+export class TypebotIgnoreJidDto {
+  remoteJid?: string;
+  action?: string;
+}

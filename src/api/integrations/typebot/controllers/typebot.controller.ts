@@ -1,7 +1,7 @@
 import { configService, Typebot } from '../../../../config/env.config';
 import { BadRequestException } from '../../../../exceptions';
 import { InstanceDto } from '../../../dto/instance.dto';
-import { TypebotDto } from '../dto/typebot.dto';
+import { TypebotDto, TypebotIgnoreJidDto } from '../dto/typebot.dto';
 import { TypebotService } from '../services/typebot.service';
 
 export class TypebotController {
@@ -65,5 +65,11 @@ export class TypebotController {
     if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
 
     return this.typebotService.fetchSessions(instance, typebotId);
+  }
+
+  public async ignoreJid(instance: InstanceDto, data: TypebotIgnoreJidDto) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) throw new BadRequestException('Typebot is disabled');
+
+    return this.typebotService.ignoreJid(instance, data);
   }
 }

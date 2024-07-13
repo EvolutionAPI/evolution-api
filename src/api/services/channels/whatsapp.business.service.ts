@@ -2,7 +2,7 @@ import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
-import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import { getMIMEType } from 'node-mime-types';
 
 import { Chatwoot, ConfigService, Database, Typebot, WaBusiness } from '../../../config/env.config';
@@ -885,12 +885,19 @@ export class BusinessStartupService extends ChannelStartupService {
   private async getIdMedia(mediaMessage: any) {
     const formData = new FormData();
 
-    const fileBuffer = await fs.readFile(mediaMessage.media);
+    const fileStream = createReadStream(mediaMessage.media);
 
-    const fileBlob = new Blob([fileBuffer], { type: mediaMessage.mimetype });
-    formData.append('file', fileBlob);
+    formData.append('file', fileStream, { filename: 'media', contentType: mediaMessage.mimetype });
     formData.append('typeFile', mediaMessage.mimetype);
     formData.append('messaging_product', 'whatsapp');
+
+    // const fileBuffer = await fs.readFile(mediaMessage.media);
+
+    // const fileBlob = new Blob([fileBuffer], { type: mediaMessage.mimetype });
+    // formData.append('file', fileBlob);
+    // formData.append('typeFile', mediaMessage.mimetype);
+    // formData.append('messaging_product', 'whatsapp');
+
     const headers = { Authorization: `Bearer ${this.token}` };
     const res = await axios.post(
       process.env.API_URL + '/' + process.env.VERSION + '/' + this.number + '/media',

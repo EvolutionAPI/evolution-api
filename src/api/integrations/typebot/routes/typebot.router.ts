@@ -2,6 +2,7 @@ import { RequestHandler, Router } from 'express';
 
 import {
   instanceSchema,
+  typebotIgnoreJidSchema,
   typebotSchema,
   typebotSettingSchema,
   typebotStartSchema,
@@ -11,7 +12,7 @@ import { RouterBroker } from '../../../abstract/abstract.router';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { HttpStatus } from '../../../routes/index.router';
 import { typebotController } from '../../../server.module';
-import { TypebotDto, TypebotSettingDto } from '../dto/typebot.dto';
+import { TypebotDto, TypebotIgnoreJidDto, TypebotSettingDto } from '../dto/typebot.dto';
 
 export class TypebotRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -113,6 +114,16 @@ export class TypebotRouter extends RouterBroker {
           schema: instanceSchema,
           ClassRef: InstanceDto,
           execute: (instance) => typebotController.fetchSessions(instance, req.params.typebotId),
+        });
+
+        res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('ignoreJid'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<TypebotIgnoreJidDto>({
+          request: req,
+          schema: typebotIgnoreJidSchema,
+          ClassRef: TypebotIgnoreJidDto,
+          execute: (instance, data) => typebotController.ignoreJid(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);

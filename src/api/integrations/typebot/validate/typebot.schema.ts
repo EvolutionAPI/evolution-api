@@ -83,3 +83,14 @@ export const typebotSettingSchema: JSONSchema7 = {
   required: ['expire', 'keywordFinish', 'delayMessage', 'unknownMessage', 'listeningFromMe', 'stopBotFromMe'],
   ...isNotEmpty('expire', 'keywordFinish', 'delayMessage', 'unknownMessage', 'listeningFromMe', 'stopBotFromMe'),
 };
+
+export const typebotIgnoreJidSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    remoteJid: { type: 'string' },
+    action: { type: 'string', enum: ['add', 'remove'] },
+  },
+  required: ['remoteJid', 'action'],
+  ...isNotEmpty('remoteJid', 'action'),
+};
