@@ -13,6 +13,7 @@
 * Add support for managing WhatsApp templates via official API
 * Fixes and implementation of regex and fallback in typebot
 * Ignore jids configuration added to typebot (will be used for both groups and contacts)
+* Minio and S3 integration
 
 ### Fixed
 
