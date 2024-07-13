@@ -12,11 +12,11 @@ import { Chatwoot as ChatwootModel, Contact as ContactModel, Message as MessageM
 import axios from 'axios';
 import { proto } from 'baileys';
 import FormData from 'form-data';
-import { createReadStream, unlinkSync, writeFileSync } from 'fs';
 import Jimp from 'jimp';
 import Long from 'long';
 import mimeTypes from 'mime-types';
 import path from 'path';
+import { Readable } from 'stream';
 
 import { Chatwoot, ConfigService, HttpServer } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
@@ -867,7 +867,8 @@ export class ChatwootService {
 
   private async sendData(
     conversationId: number,
-    file: string,
+    fileStream: Readable,
+    fileName: string,
     messageType: 'incoming' | 'outgoing' | undefined,
     content?: string,
     instance?: InstanceDto,
@@ -883,7 +884,7 @@ export class ChatwootService {
 
     data.append('message_type', messageType);
 
-    data.append('attachments[]', createReadStream(file));
+    data.append('attachments[]', fileStream, { filename: fileName });
 
     const sourceReplyId = quotedMsg?.chatwootMessageId || null;
 
@@ -919,12 +920,9 @@ export class ChatwootService {
     try {
       const { data } = await axios.request(config);
 
-      unlinkSync(file);
-
       return data;
     } catch (error) {
       this.logger.error(error);
-      unlinkSync(file);
     }
   }
 
@@ -932,7 +930,8 @@ export class ChatwootService {
     instance: InstanceDto,
     content: string,
     messageType: 'incoming' | 'outgoing' | undefined,
-    file?: string,
+    fileStream?: Readable,
+    fileName?: string,
   ) {
     const client = await this.clientCw(instance);
 
@@ -970,8 +969,8 @@ export class ChatwootService {
 
     data.append('message_type', messageType);
 
-    if (file) {
-      data.append('attachments[]', createReadStream(file));
+    if (fileStream && fileName) {
+      data.append('attachments[]', fileStream, { filename: fileName });
     }
 
     const config = {
@@ -987,8 +986,6 @@ export class ChatwootService {
 
     try {
       const { data } = await axios.request(config);
-
-      unlinkSync(file);
 
       return data;
     } catch (error) {
@@ -1838,9 +1835,10 @@ export class ChatwootService {
 
           const fileData = Buffer.from(downloadBase64.base64, 'base64');
 
-          const fileName = `${path.join(waInstance?.storePath, 'temp', `${nameFile}`)}`;
-
-          writeFileSync(fileName, fileData, 'utf8');
+          const fileStream = new Readable();
+          fileStream._read = () => {};
+          fileStream.push(fileData);
+          fileStream.push(null);
 
           if (body.key.remoteJid.includes('@g.us')) {
             const participantName = body.pushName;
@@ -1855,7 +1853,8 @@ export class ChatwootService {
 
             const send = await this.sendData(
               getConversation,
-              fileName,
+              fileStream,
+              nameFile,
               messageType,
               content,
               instance,
@@ -1873,7 +1872,8 @@ export class ChatwootService {
           } else {
             const send = await this.sendData(
               getConversation,
-              fileName,
+              fileStream,
+              nameFile,
               messageType,
               bodyMessage,
               instance,
@@ -1929,15 +1929,17 @@ export class ChatwootService {
           const random = Math.random().toString(36).substring(7);
           const nameFile = `${random}.${mimeTypes.extension(mimeType)}`;
           const fileData = Buffer.from(imgBuffer.data, 'binary');
-          const fileName = `${path.join(waInstance?.storePath, 'temp', `${nameFile}`)}`;
 
-          await Jimp.read(fileData)
-            .then(async (img) => {
-              await img.cover(320, 180).writeAsync(fileName);
-            })
-            .catch((err) => {
-              this.logger.error(`image is not write: ${err}`);
-            });
+          const img = await Jimp.read(fileData);
+          await img.cover(320, 180);
+
+          const processedBuffer = await img.getBufferAsync(Jimp.MIME_PNG);
+
+          const fileStream = new Readable();
+          fileStream._read = () => {}; // _read is required but you can noop it
+          fileStream.push(processedBuffer);
+          fileStream.push(null);
+
           const truncStr = (str: string, len: number) => {
             return str.length > len ? str.substring(0, len) + '...' : str;
           };
@@ -1947,7 +1949,8 @@ export class ChatwootService {
 
           const send = await this.sendData(
             getConversation,
-            fileName,
+            fileStream,
+            nameFile,
             messageType,
             `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`,
             instance,
@@ -2156,11 +2159,18 @@ export class ChatwootService {
         } else {
           const fileData = Buffer.from(body?.qrcode.base64.replace('data:image/png;base64,', ''), 'base64');
 
-          const fileName = `${path.join(waInstance?.storePath, 'temp', `${instance.instanceName}.png`)}`;
+          const fileStream = new Readable();
+          fileStream._read = () => {};
+          fileStream.push(fileData);
+          fileStream.push(null);
 
-          writeFileSync(fileName, fileData, 'utf8');
-
-          await this.createBotQr(instance, i18next.t('qrgeneratedsuccesfully'), 'incoming', fileName);
+          await this.createBotQr(
+            instance,
+            i18next.t('qrgeneratedsuccesfully'),
+            'incoming',
+            fileStream,
+            `${instance.instanceName}.png`,
+          );
 
           let msgQrCode = `⚡️${i18next.t('qrgeneratedsuccesfully')}\n\n${i18next.t('scanqr')}`;
 
