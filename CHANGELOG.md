@@ -6,7 +6,7 @@
 * Added chatwoot integration activation
 * Added typebot integration activation
 * Now you can register several typebots with triggers
-* Media sent to typebot now goes as a template string, example: imageMessage:MESSAGE_ID
+* Media sent to typebot now goes as a template string, example: imageMessage|MESSAGE_ID
 * Organization configuration and logo in chatwoot bot contact
 * Added debounce time for typebot messages
 * Tagging in chatwoot contact by instance
@@ -14,6 +14,7 @@
 * Fixes and implementation of regex and fallback in typebot
 * Ignore jids configuration added to typebot (will be used for both groups and contacts)
 * Minio and S3 integration
+* When S3 integration enabled, the media sent to typebot now goes as a template string, example: imageMessage|MEDIA_URL
 
 ### Fixed
 
