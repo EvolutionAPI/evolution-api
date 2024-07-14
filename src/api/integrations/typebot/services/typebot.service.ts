@@ -1,7 +1,7 @@
 import { Message, Typebot as TypebotModel, TypebotSession } from '@prisma/client';
 import axios from 'axios';
 
-import { ConfigService, Typebot } from '../../../../config/env.config';
+import { ConfigService, S3, Typebot } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
@@ -839,6 +839,11 @@ export class TypebotService {
   }
 
   private getTypeMessage(msg: any) {
+    let mediaId: string;
+
+    if (this.configService.get<S3>('S3').ENABLE) mediaId = msg.message.mediaUrl;
+    else mediaId = msg.key.id;
+
     const types = {
       conversation: msg?.message?.conversation,
       extendedTextMessage: msg?.message?.extendedTextMessage?.text,
@@ -851,12 +856,12 @@ export class TypebotService {
       listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       // Medias
-      audioMessage: msg?.message?.audioMessage ? `audioMessage:${msg?.key?.id}` : undefined,
-      imageMessage: msg?.message?.imageMessage ? `imageMessage:${msg?.key?.id}` : undefined,
-      videoMessage: msg?.message?.videoMessage ? `videoMessage:${msg?.key?.id}` : undefined,
-      documentMessage: msg?.message?.documentMessage ? `documentMessage:${msg?.key?.id}` : undefined,
+      audioMessage: msg?.message?.audioMessage ? `audioMessage|${mediaId}` : undefined,
+      imageMessage: msg?.message?.imageMessage ? `imageMessage|${mediaId}` : undefined,
+      videoMessage: msg?.message?.videoMessage ? `videoMessage|${mediaId}` : undefined,
+      documentMessage: msg?.message?.documentMessage ? `documentMessage|${mediaId}` : undefined,
       documentWithCaptionMessage: msg?.message?.auddocumentWithCaptionMessageioMessage
-        ? `documentWithCaptionMessage:${msg?.key?.id}`
+        ? `documentWithCaptionMessage|${mediaId}`
         : undefined,
     };
 

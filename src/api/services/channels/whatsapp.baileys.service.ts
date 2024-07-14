@@ -1036,7 +1036,18 @@ export class BaileysStartupService extends ChannelStartupService {
             return;
           }
 
-          let messageRaw: any;
+          const contentMsg = received?.message[getContentType(received.message)] as any;
+
+          const messageRaw: any = {
+            key: received.key,
+            pushName: received.pushName,
+            message: { ...received.message },
+            contextInfo: contentMsg?.contextInfo,
+            messageType: getContentType(received.message),
+            messageTimestamp: received.messageTimestamp as number,
+            instanceId: this.instanceId,
+            source: getDevice(received.key.id),
+          };
 
           const isMedia =
             received?.message?.imageMessage ||
@@ -1045,45 +1056,6 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.documentMessage ||
             received?.message?.documentWithCaptionMessage ||
             received?.message?.audioMessage;
-
-          const contentMsg = received?.message[getContentType(received.message)] as any;
-
-          if (this.localWebhook.webhookBase64 === true && !this.configService.get<S3>('S3').ENABLE && isMedia) {
-            const buffer = await downloadMediaMessage(
-              { key: received.key, message: received?.message },
-              'buffer',
-              {},
-              {
-                logger: P({ level: 'error' }) as any,
-                reuploadRequest: this.client.updateMediaMessage,
-              },
-            );
-
-            messageRaw = {
-              key: received.key,
-              pushName: received.pushName,
-              message: {
-                ...received.message,
-                base64: buffer ? buffer.toString('base64') : undefined,
-              },
-              contextInfo: contentMsg?.contextInfo,
-              messageType: getContentType(received.message),
-              messageTimestamp: received.messageTimestamp as number,
-              instanceId: this.instanceId,
-              source: getDevice(received.key.id),
-            };
-          } else {
-            messageRaw = {
-              key: received.key,
-              pushName: received.pushName,
-              message: { ...received.message },
-              contextInfo: contentMsg?.contextInfo,
-              messageType: getContentType(received.message),
-              messageTimestamp: received.messageTimestamp as number,
-              instanceId: this.instanceId,
-              source: getDevice(received.key.id),
-            };
-          }
 
           if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
             await this.client.readMessages([received.key]);
@@ -1115,41 +1087,57 @@ export class BaileysStartupService extends ChannelStartupService {
             data: messageRaw,
           });
 
-          if (this.configService.get<S3>('S3').ENABLE && isMedia) {
-            try {
-              const message: any = received;
-              const media = await this.getBase64FromMediaMessage(
-                {
-                  message,
-                },
-                true,
-              );
+          if (isMedia) {
+            if (this.configService.get<S3>('S3').ENABLE) {
+              try {
+                const message: any = received;
+                const media = await this.getBase64FromMediaMessage(
+                  {
+                    message,
+                  },
+                  true,
+                );
 
-              const { buffer, mediaType, fileName, size } = media;
+                const { buffer, mediaType, fileName, size } = media;
 
-              const mimetype = mime.lookup(fileName).toString();
+                const mimetype = mime.lookup(fileName).toString();
 
-              const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
+                const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
 
-              await s3Service.uploadFile(fullName, buffer, size.fileLength, {
-                'Content-Type': mimetype,
-              });
+                await s3Service.uploadFile(fullName, buffer, size.fileLength, {
+                  'Content-Type': mimetype,
+                });
 
-              await this.prismaRepository.media.create({
-                data: {
-                  messageId: msg.id,
-                  instanceId: this.instanceId,
-                  type: mediaType,
-                  fileName: fullName,
-                  mimetype,
-                },
-              });
+                await this.prismaRepository.media.create({
+                  data: {
+                    messageId: msg.id,
+                    instanceId: this.instanceId,
+                    type: mediaType,
+                    fileName: fullName,
+                    mimetype,
+                  },
+                });
 
-              const mediaUrl = await s3Service.getObjectUrl(fullName);
+                const mediaUrl = await s3Service.getObjectUrl(fullName);
 
-              messageRaw.message.mediaUrl = mediaUrl;
-            } catch (error) {
-              this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
+                messageRaw.message.mediaUrl = mediaUrl;
+              } catch (error) {
+                this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
+              }
+            } else {
+              if (this.localWebhook.webhookBase64 === true) {
+                const buffer = await downloadMediaMessage(
+                  { key: received.key, message: received?.message },
+                  'buffer',
+                  {},
+                  {
+                    logger: P({ level: 'error' }) as any,
+                    reuploadRequest: this.client.updateMediaMessage,
+                  },
+                );
+
+                messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+              }
             }
           }
 
