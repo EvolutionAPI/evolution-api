@@ -175,3 +175,6 @@ We are proud to collaborate with the following content creators who have contrib
 - [OrionDesign](youtube.com/OrionDesign_Oficial)
 - [IMPA 365](youtube.com/@impa365_ofc)
 - [Comunidade Hub Connect](https://youtube.com/@comunidadehubconnect)
+- [dSantana Automações](https://www.youtube.com/channel/UCG7DjUmAxtYyURlOGAIryNQ?view_as=subscriber)
+- [Edison Martins](https://www.youtube.com/@edisonmartinsmkt)
+- [Astra Online](https://www.youtube.com/@astraonlineweb)
