@@ -21,6 +21,10 @@ The code allows the creation of multiservice chats, service bots, or any other s
 
 The Evolution API has direct integration with [Typebot](https://github.com/baptisteArno/typebot.io) and [Chatwoot](https://github.com/chatwoot/chatwoot)
 
+## Telemetry Notice
+
+To continuously improve our services, we have implemented telemetry that collects data on the routes used, the most accessed routes, and the version of the API in use. We would like to assure you that no sensitive or personal data is collected during this process. The telemetry helps us identify improvements and provide a better experience for users.
+
 ## Evolution Pro Community
 
 Join our Evolution Pro community for expert support and a weekly call to answer questions. Visit the link below to learn more and subscribe:
