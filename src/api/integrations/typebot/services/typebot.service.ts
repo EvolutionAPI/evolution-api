@@ -3,6 +3,7 @@ import axios from 'axios';
 
 import { ConfigService, S3, Typebot } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
+import { sendTelemetry } from '../../../../utils/sendTelemetry';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
@@ -1091,6 +1092,8 @@ export class TypebotService {
             },
             true,
           );
+
+          sendTelemetry('/message/sendText');
         }
 
         if (message.type === 'image') {
@@ -1103,6 +1106,8 @@ export class TypebotService {
             },
             true,
           );
+
+          sendTelemetry('/message/sendMedia');
         }
 
         if (message.type === 'video') {
@@ -1115,6 +1120,8 @@ export class TypebotService {
             },
             true,
           );
+
+          sendTelemetry('/message/sendMedia');
         }
 
         if (message.type === 'audio') {
@@ -1127,6 +1134,8 @@ export class TypebotService {
             },
             true,
           );
+
+          sendTelemetry('/message/sendWhatsAppAudio');
         }
 
         const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
@@ -1156,6 +1165,8 @@ export class TypebotService {
             },
             true,
           );
+
+          sendTelemetry('/message/sendText');
         }
 
         await prismaRepository.typebotSession.update({
@@ -1588,6 +1599,8 @@ export class TypebotService {
                 },
                 true,
               );
+
+              sendTelemetry('/message/sendText');
             }
             return;
           }
@@ -1700,6 +1713,8 @@ export class TypebotService {
               },
               true,
             );
+
+            sendTelemetry('/message/sendText');
           }
           return;
         }
@@ -1779,6 +1794,8 @@ export class TypebotService {
           },
           true,
         );
+
+        sendTelemetry('/message/sendText');
       }
       return;
     }

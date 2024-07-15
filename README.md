@@ -172,3 +172,6 @@ We are proud to collaborate with the following content creators who have contrib
 - [Costar Wagner Dev](https://www.youtube.com/@costarwagnerdev)
 - [Dante Testa](https://youtube.com/@dantetesta_)
 - [Rubén Salazar](https://youtube.com/channel/UCnYGZIE2riiLqaN9sI6riig)
+- [OrionDesign](youtube.com/OrionDesign_Oficial)
+- [IMPA 365](youtube.com/@impa365_ofc)
+- [Comunidade Hub Connect](https://youtube.com/@comunidadehubconnect)

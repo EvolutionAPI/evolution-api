@@ -21,6 +21,7 @@ import { Readable } from 'stream';
 import { Chatwoot, ConfigService, HttpServer } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import i18next from '../../../../utils/i18n';
+import { sendTelemetry } from '../../../../utils/sendTelemetry';
 import { ICache } from '../../../abstract/abstract.cache';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../../../dto/sendMessage.dto';
@@ -1034,6 +1035,8 @@ export class ChatwootService {
           quoted: options?.quoted,
         };
 
+        sendTelemetry('/message/sendWhatsAppAudio');
+
         const messageSent = await waInstance?.audioWhatsapp(data, true);
 
         return messageSent;
@@ -1051,6 +1054,8 @@ export class ChatwootService {
         delay: 1200,
         quoted: options?.quoted,
       };
+
+      sendTelemetry('/message/sendMedia');
 
       if (caption) {
         data.caption = caption;
@@ -1290,6 +1295,8 @@ export class ChatwootService {
               quoted: await this.getQuotedMessage(body, instance),
             };
 
+            sendTelemetry('/message/sendText');
+
             let messageSent: any;
             try {
               messageSent = await waInstance?.textMessage(data, true);
@@ -1379,6 +1386,8 @@ export class ChatwootService {
           text: body.content.replace(/\\\r\n|\\\n|\n/g, '\n'),
           delay: 1200,
         };
+
+        sendTelemetry('/message/sendText');
 
         await waInstance?.textMessage(data);
       }
