@@ -4,6 +4,7 @@ import fs from 'fs';
 import { configService, WaBusiness } from '../../config/env.config';
 import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
+import Telemetry from '../guards/telemetry.guard';
 import { ChatwootRouter } from '../integrations/chatwoot/routes/chatwoot.router';
 import { RabbitmqRouter } from '../integrations/rabbitmq/routes/rabbitmq.router';
 import { S3Router } from '../integrations/s3/routes/s3.router';
@@ -36,11 +37,15 @@ const router = Router();
 const serverConfig = configService.get('SERVER');
 const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard['apikey']];
 
+const telemetry = new Telemetry();
+
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
 if (!serverConfig.DISABLE_MANAGER) router.use('/manager', new ViewsRouter().router);
 
 router
+  .use((req, res, next) => telemetry.collectTelemetry(req, res, next))
+
   .get('/', (req, res) => {
     res.status(HttpStatus.OK).json({
       status: HttpStatus.OK,
