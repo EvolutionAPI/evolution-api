@@ -3,6 +3,7 @@
 ### Fixed
 
 * Resolved issue with Chatwoot not receiving messages sent by Typebot
+* Fixed the function of saving or not saving data in the database
 
 # 2.0.0-beta (2024-07-14 17:00)
 

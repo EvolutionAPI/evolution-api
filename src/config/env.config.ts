@@ -37,6 +37,7 @@ export type ProviderSession = {
 
 export type SaveData = {
   INSTANCE: boolean;
+  HISTORIC: boolean;
   NEW_MESSAGE: boolean;
   MESSAGE_UPDATE: boolean;
   CONTACTS: boolean;
@@ -288,6 +289,7 @@ export class ConfigService {
           MESSAGE_UPDATE: process.env?.DATABASE_SAVE_MESSAGE_UPDATE === 'true',
           CONTACTS: process.env?.DATABASE_SAVE_DATA_CONTACTS === 'true',
           CHATS: process.env?.DATABASE_SAVE_DATA_CHATS === 'true',
+          HISTORIC: process.env?.DATABASE_SAVE_DATA_HISTORIC === 'true',
           LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
         },
       },
