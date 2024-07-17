@@ -1,4 +1,10 @@
-# 2.0.1-beta (beta)
+# 2.0.2-beta (beta)
+
+### Fixed
+
+* Fixed the function of saving or not saving data in the database
+
+# 2.0.1-beta (2024-07-17 17:01)
 
 ### Fixed
 
