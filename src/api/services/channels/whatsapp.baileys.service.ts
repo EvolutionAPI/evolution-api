@@ -2656,7 +2656,7 @@ export class BaileysStartupService extends ChannelStartupService {
         return {
           exists: !!numberVerified?.exists,
           jid: numberJid,
-          name: contacts.find((c) => c.id === numberJid)?.pushName,
+          name: contacts.find((c) => c.remoteJid === numberJid)?.pushName,
           number: user.number,
         };
       }),
