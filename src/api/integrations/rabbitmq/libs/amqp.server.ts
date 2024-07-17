@@ -23,7 +23,7 @@ export const initAMQP = () => {
           return;
         }
 
-        const exchangeName = 'evolution_exchange';
+        const exchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME || 'evolution_exchange';
 
         channel.assertExchange(exchangeName, 'topic', {
           durable: true,
@@ -59,7 +59,7 @@ export const initGlobalQueues = () => {
 
     const queueName = `${event.replace(/_/g, '.').toLowerCase()}`;
     const amqp = getAMQP();
-    const exchangeName = 'evolution_exchange';
+    const exchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME || 'evolution_exchange';
 
     amqp.assertExchange(exchangeName, 'topic', {
       durable: true,
