@@ -1090,7 +1090,7 @@ export class TypebotService {
               delay: settings?.delayMessage || 1000,
               text: formattedText,
             },
-            true,
+            false,
           );
 
           sendTelemetry('/message/sendText');
@@ -1104,7 +1104,7 @@ export class TypebotService {
               mediatype: 'image',
               media: message.content.url,
             },
-            true,
+            false,
           );
 
           sendTelemetry('/message/sendMedia');
@@ -1118,7 +1118,7 @@ export class TypebotService {
               mediatype: 'video',
               media: message.content.url,
             },
-            true,
+            false,
           );
 
           sendTelemetry('/message/sendMedia');
@@ -1132,7 +1132,7 @@ export class TypebotService {
               encoding: true,
               audio: message.content.url,
             },
-            true,
+            false,
           );
 
           sendTelemetry('/message/sendWhatsAppAudio');
@@ -1163,7 +1163,7 @@ export class TypebotService {
               delay: settings?.delayMessage || 1000,
               text: formattedText,
             },
-            true,
+            false,
           );
 
           sendTelemetry('/message/sendText');
@@ -1597,7 +1597,7 @@ export class TypebotService {
                   delay: delayMessage || 1000,
                   text: unknownMessage,
                 },
-                true,
+                false,
               );
 
               sendTelemetry('/message/sendText');
@@ -1711,7 +1711,7 @@ export class TypebotService {
                 delay: delayMessage || 1000,
                 text: unknownMessage,
               },
-              true,
+              false,
             );
 
             sendTelemetry('/message/sendText');
@@ -1792,7 +1792,7 @@ export class TypebotService {
             delay: delayMessage || 1000,
             text: unknownMessage,
           },
-          true,
+          false,
         );
 
         sendTelemetry('/message/sendText');

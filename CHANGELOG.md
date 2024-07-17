@@ -1,4 +1,10 @@
-# 2.0.0 (beta)
+# 2.0.1-beta (beta)
+
+### Fixed
+
+* Resolved issue with Chatwoot not receiving messages sent by Typebot
+
+# 2.0.0-beta (2024-07-14 17:00)
 
 ### Feature
 
