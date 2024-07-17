@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
-import { opendirSync, readdirSync, rmSync } from 'fs';
+import { rmSync } from 'fs';
 import { join } from 'path';
 
 import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '../../config/env.config';
@@ -371,41 +371,5 @@ export class WAMonitoringService {
         this.logger.warn(`Instance "${instanceName}" - NOT CONNECTION`);
       }
     });
-  }
-
-  private delInstanceFiles() {
-    setInterval(async () => {
-      const dir = opendirSync(INSTANCE_DIR, { encoding: 'utf-8' });
-      for await (const dirent of dir) {
-        if (dirent.isDirectory()) {
-          const files = readdirSync(join(INSTANCE_DIR, dirent.name), {
-            encoding: 'utf-8',
-          });
-          files.forEach(async (file) => {
-            if (file.match(/^app.state.*/) || file.match(/^session-.*/)) {
-              rmSync(join(INSTANCE_DIR, dirent.name, file), {
-                recursive: true,
-                force: true,
-              });
-            }
-          });
-        }
-      }
-    }, 3600 * 1000 * 2);
-  }
-
-  private async deleteTempInstances() {
-    const shouldDelete = this.configService.get<boolean>('DEL_TEMP_INSTANCES');
-    if (!shouldDelete) {
-      return;
-    }
-    const instancesClosed = await this.prismaRepository.instance.findMany({ where: { connectionStatus: 'close' } });
-
-    let tempInstances = 0;
-    instancesClosed.forEach((instance) => {
-      tempInstances++;
-      this.eventEmitter.emit('remove.instance', instance.id, 'inner');
-    });
-    this.logger.log('Temp instances removed: ' + tempInstances);
   }
 }
