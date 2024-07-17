@@ -3,13 +3,13 @@
 ### Fixed
 
 * Fixed the function of saving or not saving data in the database
+* Resolve not find name
 
 # 2.0.1-beta (2024-07-17 17:01)
 
 ### Fixed
 
 * Resolved issue with Chatwoot not receiving messages sent by Typebot
-* Fixed the function of saving or not saving data in the database
 
 # 2.0.0-beta (2024-07-14 17:00)
 
