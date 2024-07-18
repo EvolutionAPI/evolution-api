@@ -6,6 +6,8 @@
 * Resolve not find name
 * Removed DEL_TEMP_INSTANCES as it is not being used
 * Fixed global exchange name
+* Add apiKey and serverUrl to prefilledVariables in typebot service
+* Correction in start typebot, if it doesn't exist, create it
 
 # 2.0.1-beta (2024-07-17 17:01)
 

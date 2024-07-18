@@ -4,7 +4,6 @@ import axios from 'axios';
 import { Auth, ConfigService, HttpServer, S3, Typebot } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { sendTelemetry } from '../../../../utils/sendTelemetry';
-import { ServerUP } from '../../../../utils/server-up';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
@@ -667,17 +666,6 @@ export class TypebotService {
       }
     }
 
-    const findTypebot = await this.prismaRepository.typebot.findFirst({
-      where: {
-        url: url,
-        typebot: typebot,
-      },
-    });
-
-    if (!findTypebot) {
-      throw new Error('Typebot not found');
-    }
-
     if (
       !expire ||
       !keywordFinish ||
@@ -722,6 +710,31 @@ export class TypebotService {
     }
 
     if (startSession) {
+      let findTypebot: any = await this.prismaRepository.typebot.findFirst({
+        where: {
+          url: url,
+          typebot: typebot,
+        },
+      });
+
+      if (!findTypebot) {
+        findTypebot = await this.prismaRepository.typebot.create({
+          data: {
+            enabled: true,
+            url: url,
+            typebot: typebot,
+            expire: expire,
+            keywordFinish: keywordFinish,
+            delayMessage: delayMessage,
+            unknownMessage: unknownMessage,
+            listeningFromMe: listeningFromMe,
+            stopBotFromMe: stopBotFromMe,
+            keepOpen: keepOpen,
+            instanceId: instance.instanceId,
+          },
+        });
+      }
+
       await this.prismaRepository.typebotSession.deleteMany({
         where: {
           remoteJid: remoteJid,
