@@ -1,9 +1,10 @@
 import { Message, Typebot as TypebotModel, TypebotSession } from '@prisma/client';
 import axios from 'axios';
 
-import { ConfigService, S3, Typebot } from '../../../../config/env.config';
+import { Auth, ConfigService, HttpServer, S3, Typebot } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { sendTelemetry } from '../../../../utils/sendTelemetry';
+import { ServerUP } from '../../../../utils/server-up';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
@@ -710,6 +711,8 @@ export class TypebotService {
     const prefilledVariables = {
       remoteJid: remoteJid,
       instanceName: instance.instanceName,
+      serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+      apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
     };
 
     if (variables?.length) {
@@ -904,6 +907,8 @@ export class TypebotService {
             remoteJid: data.remoteJid,
             pushName: data.pushName || data.prefilledVariables?.pushName || '',
             instanceName: instance.instanceName,
+            serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+            apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
           },
         };
       } else {
@@ -917,6 +922,8 @@ export class TypebotService {
               remoteJid: data.remoteJid,
               pushName: data.pushName || data.prefilledVariables?.pushName || '',
               instanceName: instance.instanceName,
+              serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+              apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
             },
           },
         };
@@ -936,6 +943,8 @@ export class TypebotService {
               remoteJid: data.remoteJid,
               pushName: data.pushName || '',
               instanceName: instance.instanceName,
+              serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+              apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
             },
             awaitUser: false,
             typebotId: data.typebotId,
