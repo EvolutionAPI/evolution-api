@@ -47,36 +47,41 @@ enum TriggerOperator {
 }
 
 model Instance {
-  id               String                   @id @default(cuid())
-  name             String                   @unique @db.VarChar(255)
-  connectionStatus InstanceConnectionStatus @default(open)
-  ownerJid         String?                  @db.VarChar(100)
-  profileName      String?                  @db.VarChar(100)
-  profilePicUrl    String?                  @db.VarChar(500)
-  integration      String?                  @db.VarChar(100)
-  number           String?                  @db.VarChar(100)
-  businessId       String?                  @db.VarChar(100)
-  token            String?                  @unique @db.VarChar(255)
-  clientName       String?                  @db.VarChar(100)
-  createdAt        DateTime?                @default(now()) @db.Timestamp
-  updatedAt        DateTime?                @updatedAt @db.Timestamp
-  Chat             Chat[]
-  Contact          Contact[]
-  Message          Message[]
-  Webhook          Webhook?
-  Chatwoot         Chatwoot?
-  Label            Label[]
-  Proxy            Proxy?
-  Setting          Setting?
-  Rabbitmq         Rabbitmq?
-  Sqs              Sqs?
-  Websocket        Websocket?
-  Typebot          Typebot[]
-  Session          Session?
-  MessageUpdate    MessageUpdate[]
-  TypebotSession   TypebotSession[]
-  TypebotSetting   TypebotSetting?
-  Media            Media[]
+  id                          String                        @id @default(cuid())
+  name                        String                        @unique @db.VarChar(255)
+  connectionStatus            InstanceConnectionStatus      @default(open)
+  ownerJid                    String?                       @db.VarChar(100)
+  profileName                 String?                       @db.VarChar(100)
+  profilePicUrl               String?                       @db.VarChar(500)
+  integration                 String?                       @db.VarChar(100)
+  number                      String?                       @db.VarChar(100)
+  businessId                  String?                       @db.VarChar(100)
+  token                       String?                       @unique @db.VarChar(255)
+  clientName                  String?                       @db.VarChar(100)
+  createdAt                   DateTime?                     @default(now()) @db.Timestamp
+  updatedAt                   DateTime?                     @updatedAt @db.Timestamp
+  Chat                        Chat[]
+  Contact                     Contact[]
+  Message                     Message[]
+  Webhook                     Webhook?
+  Chatwoot                    Chatwoot?
+  Label                       Label[]
+  Proxy                       Proxy?
+  Setting                     Setting?
+  Rabbitmq                    Rabbitmq?
+  Sqs                         Sqs?
+  Websocket                   Websocket?
+  Typebot                     Typebot[]
+  Session                     Session?
+  MessageUpdate               MessageUpdate[]
+  TypebotSession              TypebotSession[]
+  TypebotSetting              TypebotSetting?
+  Media                       Media[]
+  OpenaiCreds                 OpenaiCreds?
+  OpenaiAssistant             OpenaiAssistant[]
+  OpenaiAssistantThread       OpenaiAssistantThread[]
+  OpenaiChatCompletion        OpenaiChatCompletion[]
+  OpenaiChatCompletionSession OpenaiChatCompletionSession[]
 }
 
 model Session {
@@ -109,26 +114,30 @@ model Contact {
 }
 
 model Message {
-  id                           String          @id @default(cuid())
-  key                          Json            @db.JsonB
-  pushName                     String?         @db.VarChar(100)
-  participant                  String?         @db.VarChar(100)
-  messageType                  String          @db.VarChar(100)
-  message                      Json            @db.JsonB
-  contextInfo                  Json?           @db.JsonB
-  source                       DeviceMessage
-  messageTimestamp             Int             @db.Integer
-  chatwootMessageId            Int?            @db.Integer
-  chatwootInboxId              Int?            @db.Integer
-  chatwootConversationId       Int?            @db.Integer
-  chatwootContactInboxSourceId String?         @db.VarChar(100)
-  chatwootIsRead               Boolean?        @db.Boolean
-  Instance                     Instance        @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId                   String
-  typebotSessionId             String?
-  MessageUpdate                MessageUpdate[]
-  TypebotSession               TypebotSession? @relation(fields: [typebotSessionId], references: [id])
-  Media                        Media?
+  id                            String                       @id @default(cuid())
+  key                           Json                         @db.JsonB
+  pushName                      String?                      @db.VarChar(100)
+  participant                   String?                      @db.VarChar(100)
+  messageType                   String                       @db.VarChar(100)
+  message                       Json                         @db.JsonB
+  contextInfo                   Json?                        @db.JsonB
+  source                        DeviceMessage
+  messageTimestamp              Int                          @db.Integer
+  chatwootMessageId             Int?                         @db.Integer
+  chatwootInboxId               Int?                         @db.Integer
+  chatwootConversationId        Int?                         @db.Integer
+  chatwootContactInboxSourceId  String?                      @db.VarChar(100)
+  chatwootIsRead                Boolean?                     @db.Boolean
+  Instance                      Instance                     @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId                    String
+  typebotSessionId              String?
+  MessageUpdate                 MessageUpdate[]
+  TypebotSession                TypebotSession?              @relation(fields: [typebotSessionId], references: [id])
+  Media                         Media?
+  OpenaiAssistantThread         OpenaiAssistantThread?       @relation(fields: [openaiAssistantThreadId], references: [id])
+  openaiAssistantThreadId       String?
+  OpenaiChatCompletionSession   OpenaiChatCompletionSession? @relation(fields: [openaiChatCompletionSessionId], references: [id])
+  openaiChatCompletionSessionId String?
 }
 
 model MessageUpdate {
@@ -324,4 +333,90 @@ model Media {
   messageId  String    @unique
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String
+}
+
+model OpenaiCreds {
+  id         String    @id @default(cuid())
+  apiKey     String    @unique @db.VarChar(255)
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
+}
+
+model OpenaiAssistant {
+  id                    String                  @id @default(cuid())
+  assistantId           String                  @unique @db.VarChar(255)
+  expire                Int?                    @default(0) @db.Integer
+  keywordFinish         String?                 @db.VarChar(100)
+  delayMessage          Int?                    @db.Integer
+  unknownMessage        String?                 @db.VarChar(100)
+  listeningFromMe       Boolean?                @default(false) @db.Boolean
+  stopBotFromMe         Boolean?                @default(false) @db.Boolean
+  keepOpen              Boolean?                @default(false) @db.Boolean
+  debounceTime          Int?                    @db.Integer
+  ignoreJids            Json?
+  triggerType           TriggerType?
+  triggerOperator       TriggerOperator?
+  triggerValue          String?
+  createdAt             DateTime?               @default(now()) @db.Timestamp
+  updatedAt             DateTime                @updatedAt @db.Timestamp
+  Instance              Instance                @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId            String
+  OpenaiAssistantThread OpenaiAssistantThread[]
+}
+
+model OpenaiAssistantThread {
+  id                String               @id @default(cuid())
+  threadId          String               @db.VarChar(255)
+  remoteJid         String               @db.VarChar(100)
+  status            TypebotSessionStatus
+  awaitUser         Boolean              @default(false) @db.Boolean
+  createdAt         DateTime?            @default(now()) @db.Timestamp
+  updatedAt         DateTime             @updatedAt @db.Timestamp
+  OpenaiAssistant   OpenaiAssistant      @relation(fields: [openaiAssistantId], references: [id], onDelete: Cascade)
+  openaiAssistantId String
+  Message           Message[]
+  Instance          Instance             @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId        String
+}
+
+model OpenaiChatCompletion {
+  id                          String                        @id @default(cuid())
+  model                       String                        @db.VarChar(100)
+  systemMessages              Json?                         @db.JsonB
+  assistantMessages           Json?                         @db.JsonB
+  userMessages                Json?                         @db.JsonB
+  maxTokens                   Int?                          @db.Integer
+  expire                      Int?                          @default(0) @db.Integer
+  keywordFinish               String?                       @db.VarChar(100)
+  delayMessage                Int?                          @db.Integer
+  unknownMessage              String?                       @db.VarChar(100)
+  listeningFromMe             Boolean?                      @default(false) @db.Boolean
+  stopBotFromMe               Boolean?                      @default(false) @db.Boolean
+  keepOpen                    Boolean?                      @default(false) @db.Boolean
+  debounceTime                Int?                          @db.Integer
+  ignoreJids                  Json?
+  triggerType                 TriggerType?
+  triggerOperator             TriggerOperator?
+  triggerValue                String?
+  createdAt                   DateTime?                     @default(now()) @db.Timestamp
+  updatedAt                   DateTime                      @updatedAt @db.Timestamp
+  Instance                    Instance                      @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId                  String
+  OpenaiChatCompletionSession OpenaiChatCompletionSession[]
+}
+
+model OpenaiChatCompletionSession {
+  id                     String               @id @default(cuid())
+  remoteJid              String               @db.VarChar(100)
+  sessionId              String               @db.VarChar(100)
+  status                 TypebotSessionStatus
+  createdAt              DateTime?            @default(now()) @db.Timestamp
+  updatedAt              DateTime             @updatedAt @db.Timestamp
+  OpenaiChatCompletion   OpenaiChatCompletion @relation(fields: [openaiChatCompletionId], references: [id], onDelete: Cascade)
+  openaiChatCompletionId String
+  Message                Message[]
+  Instance               Instance             @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId             String
 }
