@@ -13,6 +13,8 @@ import { TemplateController } from './controllers/template.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import { ChatwootController } from './integrations/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatwoot/services/chatwoot.service';
+import { OpenaiController } from './integrations/openai/controllers/openai.controller';
+import { OpenaiService } from './integrations/openai/services/openai.service';
 import { RabbitmqController } from './integrations/rabbitmq/controllers/rabbitmq.controller';
 import { RabbitmqService } from './integrations/rabbitmq/services/rabbitmq.service';
 import { S3Controller } from './integrations/s3/controllers/s3.controller';
@@ -64,6 +66,9 @@ const authService = new AuthService(prismaRepository);
 
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
 export const typebotController = new TypebotController(typebotService);
+
+const openaiService = new OpenaiService(waMonitor, configService, prismaRepository);
+export const openaiController = new OpenaiController(openaiService);
 
 const s3Service = new S3Service(prismaRepository);
 export const s3Controller = new S3Controller(s3Service);
