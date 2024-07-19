@@ -154,16 +154,9 @@ export class OpenaiService {
       if (!data.model) throw new Error('Model is required');
       if (!data.maxTokens) throw new Error('Max tokens is required');
 
-      if (!data.systemMessages) data.systemMessages = [];
-      if (!data.assistantMessages) data.assistantMessages = [];
-      if (!data.userMessages) data.userMessages = [];
-
       whereDuplication = {
         ...whereDuplication,
         model: data.model,
-        systemMessages: data.systemMessages,
-        assistantMessages: data.assistantMessages,
-        userMessages: data.userMessages,
         maxTokens: data.maxTokens,
       };
     } else {
@@ -320,16 +313,9 @@ export class OpenaiService {
       if (!data.model) throw new Error('Model is required');
       if (!data.maxTokens) throw new Error('Max tokens is required');
 
-      if (!data.systemMessages) data.systemMessages = [];
-      if (!data.assistantMessages) data.assistantMessages = [];
-      if (!data.userMessages) data.userMessages = [];
-
       whereDuplication = {
         ...whereDuplication,
         model: data.model,
-        systemMessages: data.systemMessages,
-        assistantMessages: data.assistantMessages,
-        userMessages: data.userMessages,
         maxTokens: data.maxTokens,
       };
     } else {
@@ -788,44 +774,6 @@ export class OpenaiService {
     return messageContent;
   }
 
-  public async createNewSession(instance: InstanceDto, data: any) {
-    if (data.remoteJid === 'status@broadcast') return;
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: data.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
-
-    try {
-      this.client = new OpenAI({
-        apiKey: creds.apiKey,
-      });
-
-      const threadId = (await this.client.beta.threads.create({})).id;
-
-      let session = null;
-      if (threadId) {
-        session = await this.prismaRepository.openaiSession.create({
-          data: {
-            remoteJid: data.remoteJid,
-            sessionId: threadId,
-            status: 'open',
-            awaitUser: false,
-            openaiBotId: data.openaiBotId,
-            instanceId: instance.instanceId,
-          },
-        });
-      }
-      return { session };
-    } catch (error) {
-      this.logger.error(error);
-      return;
-    }
-  }
-
   public async findOpenaiByTrigger(content: string, instanceId: string) {
     // Check for triggerType 'all'
     const findTriggerAll = await this.prismaRepository.openaiBot.findFirst({
@@ -1096,10 +1044,32 @@ export class OpenaiService {
               debouncedContent,
             );
           }
+
+          if (findOpenai.botType === 'chatCompletion') {
+            await this.processOpenaiChatCompletion(
+              this.waMonitor.waInstances[instance.instanceName],
+              remoteJid,
+              findOpenai,
+              session,
+              settings,
+              debouncedContent,
+            );
+          }
         });
       } else {
         if (findOpenai.botType === 'assistant') {
           await this.processOpenaiAssistant(
+            this.waMonitor.waInstances[instance.instanceName],
+            remoteJid,
+            findOpenai,
+            session,
+            settings,
+            content,
+          );
+        }
+
+        if (findOpenai.botType === 'chatCompletion') {
+          await this.processOpenaiChatCompletion(
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
             findOpenai,
@@ -1117,7 +1087,45 @@ export class OpenaiService {
     }
   }
 
-  private async initNewSession(
+  public async createAssistantNewSession(instance: InstanceDto, data: any) {
+    if (data.remoteJid === 'status@broadcast') return;
+
+    const creds = await this.prismaRepository.openaiCreds.findFirst({
+      where: {
+        id: data.openaiCredsId,
+      },
+    });
+
+    if (!creds) throw new Error('Openai Creds not found');
+
+    try {
+      this.client = new OpenAI({
+        apiKey: creds.apiKey,
+      });
+
+      const threadId = (await this.client.beta.threads.create({})).id;
+
+      let session = null;
+      if (threadId) {
+        session = await this.prismaRepository.openaiSession.create({
+          data: {
+            remoteJid: data.remoteJid,
+            sessionId: threadId,
+            status: 'open',
+            awaitUser: false,
+            openaiBotId: data.openaiBotId,
+            instanceId: instance.instanceId,
+          },
+        });
+      }
+      return { session };
+    } catch (error) {
+      this.logger.error(error);
+      return;
+    }
+  }
+
+  private async initAssistantNewSession(
     instance: any,
     remoteJid: string,
     openaiBot: OpenaiBot,
@@ -1125,7 +1133,7 @@ export class OpenaiService {
     session: OpenaiSession,
     content: string,
   ) {
-    const data = await this.createNewSession(instance, {
+    const data = await this.createAssistantNewSession(instance, {
       remoteJid,
       openaiCredsId: openaiBot.openaiCredsId,
       openaiBotId: openaiBot.id,
@@ -1178,6 +1186,26 @@ export class OpenaiService {
     return;
   }
 
+  private async getAIResponse(threadId: string, runId: string) {
+    const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
+
+    switch (getRun.status) {
+      case 'queued':
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return this.getAIResponse(threadId, runId);
+      case 'in_progress':
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return this.getAIResponse(threadId, runId);
+      case 'requires_action':
+        return null;
+      case 'completed':
+        return await this.client.beta.threads.messages.list(threadId, {
+          run_id: runId,
+          limit: 1,
+        });
+    }
+  }
+
   private async processOpenaiAssistant(
     instance: any,
     remoteJid: string,
@@ -1207,13 +1235,13 @@ export class OpenaiService {
           },
         });
 
-        await this.initNewSession(instance, remoteJid, openaiBot, settings, session, content);
+        await this.initAssistantNewSession(instance, remoteJid, openaiBot, settings, session, content);
         return;
       }
     }
 
     if (!session) {
-      await this.initNewSession(instance, remoteJid, openaiBot, settings, session, content);
+      await this.initAssistantNewSession(instance, remoteJid, openaiBot, settings, session, content);
       return;
     }
 
@@ -1310,23 +1338,293 @@ export class OpenaiService {
     return;
   }
 
-  private async getAIResponse(threadId: string, runId: string) {
-    const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
+  public async createChatCompletionNewSession(instance: InstanceDto, data: any) {
+    if (data.remoteJid === 'status@broadcast') return;
 
-    switch (getRun.status) {
-      case 'queued':
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId);
-      case 'in_progress':
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId);
-      case 'requires_action':
-        return null;
-      case 'completed':
-        return await this.client.beta.threads.messages.list(threadId, {
-          run_id: runId,
-          limit: 1,
-        });
+    const id = Math.floor(Math.random() * 10000000000).toString();
+
+    const creds = await this.prismaRepository.openaiCreds.findFirst({
+      where: {
+        id: data.openaiCredsId,
+      },
+    });
+
+    if (!creds) throw new Error('Openai Creds not found');
+
+    try {
+      const session = await this.prismaRepository.openaiSession.create({
+        data: {
+          remoteJid: data.remoteJid,
+          sessionId: id,
+          status: 'open',
+          awaitUser: false,
+          openaiBotId: data.openaiBotId,
+          instanceId: instance.instanceId,
+        },
+      });
+
+      return { session, creds };
+    } catch (error) {
+      this.logger.error(error);
+      return;
     }
+  }
+
+  private async initChatCompletionNewSession(
+    instance: any,
+    remoteJid: string,
+    openaiBot: OpenaiBot,
+    settings: OpenaiSetting,
+    session: OpenaiSession,
+    content: string,
+  ) {
+    const data = await this.createChatCompletionNewSession(instance, {
+      remoteJid,
+      openaiCredsId: openaiBot.openaiCredsId,
+      openaiBotId: openaiBot.id,
+    });
+
+    session = data.session;
+    const creds = data.creds;
+
+    this.client = new OpenAI({
+      apiKey: creds.apiKey,
+    });
+
+    const systemMessages: any = openaiBot.systemMessages;
+
+    const messagesSystem: any[] = systemMessages.map((message) => {
+      return {
+        role: 'system',
+        content: message,
+      };
+    });
+
+    const assistantMessages: any = openaiBot.assistantMessages;
+
+    const messagesAssistant: any[] = assistantMessages.map((message) => {
+      return {
+        role: 'assistant',
+        content: message,
+      };
+    });
+
+    const userMessages: any = openaiBot.userMessages;
+
+    const messagesUser: any[] = userMessages.map((message) => {
+      return {
+        role: 'user',
+        content: message,
+      };
+    });
+
+    const messages: any[] = [
+      ...messagesSystem,
+      ...messagesAssistant,
+      ...messagesUser,
+      {
+        role: 'user',
+        content: content,
+      },
+    ];
+
+    await instance.client.presenceSubscribe(remoteJid);
+
+    await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+    const completions = await this.client.chat.completions.create({
+      model: openaiBot.model,
+      messages: messages,
+      max_tokens: openaiBot.maxTokens,
+    });
+
+    await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+    const message = completions.choices[0].message.content;
+
+    await instance.textMessage(
+      {
+        number: remoteJid.split('@')[0],
+        delay: settings?.delayMessage || 1000,
+        text: message,
+      },
+      false,
+    );
+
+    await this.prismaRepository.openaiSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'open',
+        awaitUser: true,
+      },
+    });
+
+    sendTelemetry('/message/sendText');
+
+    return;
+  }
+
+  private async processOpenaiChatCompletion(
+    instance: any,
+    remoteJid: string,
+    openaiBot: OpenaiBot,
+    session: OpenaiSession,
+    settings: OpenaiSetting,
+    content: string,
+  ) {
+    if (session && session.status !== 'open') {
+      return;
+    }
+
+    if (session && settings.expire && settings.expire > 0) {
+      const now = Date.now();
+
+      const sessionUpdatedAt = new Date(session.updatedAt).getTime();
+
+      const diff = now - sessionUpdatedAt;
+
+      const diffInMinutes = Math.floor(diff / 1000 / 60);
+
+      if (diffInMinutes > settings.expire) {
+        await this.prismaRepository.openaiSession.deleteMany({
+          where: {
+            openaiBotId: openaiBot.id,
+            remoteJid: remoteJid,
+          },
+        });
+
+        await this.initChatCompletionNewSession(instance, remoteJid, openaiBot, settings, session, content);
+        return;
+      }
+    }
+
+    if (!session) {
+      await this.initChatCompletionNewSession(instance, remoteJid, openaiBot, settings, session, content);
+      return;
+    }
+
+    await this.prismaRepository.openaiSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'open',
+        awaitUser: false,
+      },
+    });
+
+    if (!content) {
+      if (settings.unknownMessage) {
+        this.waMonitor.waInstances[instance.instanceName].textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings.delayMessage || 1000,
+            text: settings.unknownMessage,
+          },
+          false,
+        );
+
+        sendTelemetry('/message/sendText');
+      }
+      return;
+    }
+
+    if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
+      await this.prismaRepository.openaiSession.deleteMany({
+        where: {
+          openaiBotId: openaiBot.id,
+          remoteJid: remoteJid,
+        },
+      });
+      return;
+    }
+
+    const creds = await this.prismaRepository.openaiCreds.findFirst({
+      where: {
+        id: openaiBot.openaiCredsId,
+      },
+    });
+
+    if (!creds) throw new Error('Openai Creds not found');
+
+    this.client = new OpenAI({
+      apiKey: creds.apiKey,
+    });
+
+    const systemMessages: any = openaiBot.systemMessages;
+
+    const messagesSystem: any[] = systemMessages.map((message) => {
+      return {
+        role: 'system',
+        content: message,
+      };
+    });
+
+    const assistantMessages: any = openaiBot.assistantMessages;
+
+    const messagesAssistant: any[] = assistantMessages.map((message) => {
+      return {
+        role: 'assistant',
+        content: message,
+      };
+    });
+
+    const userMessages: any = openaiBot.userMessages;
+
+    const messagesUser: any[] = userMessages.map((message) => {
+      return {
+        role: 'user',
+        content: message,
+      };
+    });
+
+    const messages: any[] = [
+      ...messagesSystem,
+      ...messagesAssistant,
+      ...messagesUser,
+      {
+        role: 'user',
+        content: content,
+      },
+    ];
+
+    await instance.client.presenceSubscribe(remoteJid);
+
+    await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+    const completions = await this.client.chat.completions.create({
+      model: openaiBot.model,
+      messages: messages,
+      max_tokens: openaiBot.maxTokens,
+    });
+
+    await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+    const message = completions.choices[0].message.content;
+
+    await instance.textMessage(
+      {
+        number: remoteJid.split('@')[0],
+        delay: settings?.delayMessage || 1000,
+        text: message,
+      },
+      false,
+    );
+
+    await this.prismaRepository.openaiSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'open',
+        awaitUser: true,
+      },
+    });
+
+    sendTelemetry('/message/sendText');
+
+    return;
   }
 }
