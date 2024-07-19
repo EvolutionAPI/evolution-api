@@ -1,8 +1,8 @@
-# 2.0.2-beta (beta)
+# 2.0.2-beta (2024-07-18 21:33)
 
 ### Feature
 
-* Open AI assistants implemented
+* Open AI implemented
 
 ### Fixed
 
