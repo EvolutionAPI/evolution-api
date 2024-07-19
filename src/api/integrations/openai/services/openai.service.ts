@@ -1,5 +1,9 @@
-import { ConfigService } from '../../../../config/env.config';
+import { Message, OpenaiBot, OpenaiSession, OpenaiSetting } from '@prisma/client';
+import OpenAI from 'openai';
+
+import { ConfigService, S3 } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
+import { sendTelemetry } from '../../../../utils/sendTelemetry';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
@@ -13,6 +17,8 @@ export class OpenaiService {
   ) {}
 
   private userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
+
+  private client: OpenAI;
 
   private readonly logger = new Logger(OpenaiService.name);
 
@@ -51,7 +57,7 @@ export class OpenaiService {
       })
       .then((instance) => instance.id);
 
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
+    const creds = await this.prismaRepository.openaiCreds.findMany({
       where: {
         instanceId: instanceId,
       },
@@ -734,1018 +740,593 @@ export class OpenaiService {
     }
   }
 
-  // private getTypeMessage(msg: any) {
-  //   let mediaId: string;
-
-  //   if (this.configService.get<S3>('S3').ENABLE) mediaId = msg.message.mediaUrl;
-  //   else mediaId = msg.key.id;
-
-  //   const types = {
-  //     conversation: msg?.message?.conversation,
-  //     extendedTextMessage: msg?.message?.extendedTextMessage?.text,
-  //     contactMessage: msg?.message?.contactMessage?.displayName,
-  //     locationMessage: msg?.message?.locationMessage?.degreesLatitude,
-  //     viewOnceMessageV2:
-  //       msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
-  //       msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
-  //       msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
-  //     listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
-  //     responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
-  //     // Medias
-  //     audioMessage: msg?.message?.audioMessage ? `audioMessage|${mediaId}` : undefined,
-  //     imageMessage: msg?.message?.imageMessage ? `imageMessage|${mediaId}` : undefined,
-  //     videoMessage: msg?.message?.videoMessage ? `videoMessage|${mediaId}` : undefined,
-  //     documentMessage: msg?.message?.documentMessage ? `documentMessage|${mediaId}` : undefined,
-  //     documentWithCaptionMessage: msg?.message?.auddocumentWithCaptionMessageioMessage
-  //       ? `documentWithCaptionMessage|${mediaId}`
-  //       : undefined,
-  //   };
-
-  //   const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';
-
-  //   return { ...types, messageType };
-  // }
-
-  // private getMessageContent(types: any) {
-  //   const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
-
-  //   const result = typeKey ? types[typeKey] : undefined;
-
-  //   return result;
-  // }
-
-  // private getConversationMessage(msg: any) {
-  //   const types = this.getTypeMessage(msg);
-
-  //   const messageContent = this.getMessageContent(types);
-
-  //   return messageContent;
-  // }
-
-  // public async createNewSession(instance: InstanceDto, data: any) {
-  //   if (data.remoteJid === 'status@broadcast') return;
-  //   const id = Math.floor(Math.random() * 10000000000).toString();
-
-  //   try {
-  //     const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-  //     let url: string;
-  //     let reqData: {};
-  //     if (version === 'latest') {
-  //       url = `${data.url}/api/v1/typebots/${data.typebot}/startChat`;
-
-  //       reqData = {
-  //         prefilledVariables: {
-  //           ...data.prefilledVariables,
-  //           remoteJid: data.remoteJid,
-  //           pushName: data.pushName || data.prefilledVariables?.pushName || '',
-  //           instanceName: instance.instanceName,
-  //           serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-  //           apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-  //         },
-  //       };
-  //     } else {
-  //       url = `${data.url}/api/v1/sendMessage`;
-
-  //       reqData = {
-  //         startParams: {
-  //           publicId: data.typebot,
-  //           prefilledVariables: {
-  //             ...data.prefilledVariables,
-  //             remoteJid: data.remoteJid,
-  //             pushName: data.pushName || data.prefilledVariables?.pushName || '',
-  //             instanceName: instance.instanceName,
-  //             serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-  //             apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-  //           },
-  //         },
-  //       };
-  //     }
-  //     const request = await axios.post(url, reqData);
-
-  //     let session = null;
-  //     if (request?.data?.sessionId) {
-  //       session = await this.prismaRepository.typebotSession.create({
-  //         data: {
-  //           remoteJid: data.remoteJid,
-  //           pushName: data.pushName || '',
-  //           sessionId: `${id}-${request.data.sessionId}`,
-  //           status: 'opened',
-  //           prefilledVariables: {
-  //             ...data.prefilledVariables,
-  //             remoteJid: data.remoteJid,
-  //             pushName: data.pushName || '',
-  //             instanceName: instance.instanceName,
-  //             serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-  //             apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-  //           },
-  //           awaitUser: false,
-  //           typebotId: data.typebotId,
-  //           instanceId: instance.instanceId,
-  //         },
-  //       });
-  //     }
-  //     return { ...request.data, session };
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     return;
-  //   }
-  // }
-
-  // public async sendWAMessage(
-  //   instance: InstanceDto,
-  //   session: TypebotSession,
-  //   settings: {
-  //     expire: number;
-  //     keywordFinish: string;
-  //     delayMessage: number;
-  //     unknownMessage: string;
-  //     listeningFromMe: boolean;
-  //     stopBotFromMe: boolean;
-  //     keepOpen: boolean;
-  //   },
-  //   remoteJid: string,
-  //   messages: any,
-  //   input: any,
-  //   clientSideActions: any,
-  // ) {
-  //   processMessages(
-  //     this.waMonitor.waInstances[instance.instanceName],
-  //     session,
-  //     settings,
-  //     messages,
-  //     input,
-  //     clientSideActions,
-  //     applyFormatting,
-  //     this.prismaRepository,
-  //   ).catch((err) => {
-  //     console.error('Erro ao processar mensagens:', err);
-  //   });
-
-  //   function findItemAndGetSecondsToWait(array, targetId) {
-  //     if (!array) return null;
-
-  //     for (const item of array) {
-  //       if (item.lastBubbleBlockId === targetId) {
-  //         return item.wait?.secondsToWaitFor;
-  //       }
-  //     }
-  //     return null;
-  //   }
-
-  //   function applyFormatting(element) {
-  //     let text = '';
-
-  //     if (element.text) {
-  //       text += element.text;
-  //     }
-
-  //     if (element.children && element.type !== 'a') {
-  //       for (const child of element.children) {
-  //         text += applyFormatting(child);
-  //       }
-  //     }
-
-  //     if (element.type === 'p' && element.type !== 'inline-variable') {
-  //       text = text.trim() + '\n';
-  //     }
-
-  //     if (element.type === 'inline-variable') {
-  //       text = text.trim();
-  //     }
-
-  //     if (element.type === 'ol') {
-  //       text =
-  //         '\n' +
-  //         text
-  //           .split('\n')
-  //           .map((line, index) => (line ? `${index + 1}. ${line}` : ''))
-  //           .join('\n');
-  //     }
-
-  //     if (element.type === 'li') {
-  //       text = text
-  //         .split('\n')
-  //         .map((line) => (line ? `  ${line}` : ''))
-  //         .join('\n');
-  //     }
-
-  //     let formats = '';
-
-  //     if (element.bold) {
-  //       formats += '*';
-  //     }
-
-  //     if (element.italic) {
-  //       formats += '_';
-  //     }
-
-  //     if (element.underline) {
-  //       formats += '~';
-  //     }
-
-  //     let formattedText = `${formats}${text}${formats.split('').reverse().join('')}`;
-
-  //     if (element.url) {
-  //       formattedText = element.children[0]?.text ? `[${formattedText}]\n(${element.url})` : `${element.url}`;
-  //     }
-
-  //     return formattedText;
-  //   }
-
-  //   async function processMessages(
-  //     instance: any,
-  //     session: TypebotSession,
-  //     settings: {
-  //       expire: number;
-  //       keywordFinish: string;
-  //       delayMessage: number;
-  //       unknownMessage: string;
-  //       listeningFromMe: boolean;
-  //       stopBotFromMe: boolean;
-  //       keepOpen: boolean;
-  //     },
-  //     messages: any,
-  //     input: any,
-  //     clientSideActions: any,
-  //     applyFormatting: any,
-  //     prismaRepository: PrismaRepository,
-  //   ) {
-  //     for (const message of messages) {
-  //       if (message.type === 'text') {
-  //         let formattedText = '';
-
-  //         for (const richText of message.content.richText) {
-  //           for (const element of richText.children) {
-  //             formattedText += applyFormatting(element);
-  //           }
-  //           formattedText += '\n';
-  //         }
-
-  //         formattedText = formattedText.replace(/\*\*/g, '').replace(/__/, '').replace(/~~/, '').replace(/\n$/, '');
-
-  //         formattedText = formattedText.replace(/\n$/, '');
-
-  //         await instance.textMessage(
-  //           {
-  //             number: remoteJid.split('@')[0],
-  //             delay: settings?.delayMessage || 1000,
-  //             text: formattedText,
-  //           },
-  //           false,
-  //         );
-
-  //         sendTelemetry('/message/sendText');
-  //       }
-
-  //       if (message.type === 'image') {
-  //         await instance.mediaMessage(
-  //           {
-  //             number: remoteJid.split('@')[0],
-  //             delay: settings?.delayMessage || 1000,
-  //             mediatype: 'image',
-  //             media: message.content.url,
-  //           },
-  //           false,
-  //         );
-
-  //         sendTelemetry('/message/sendMedia');
-  //       }
-
-  //       if (message.type === 'video') {
-  //         await instance.mediaMessage(
-  //           {
-  //             number: remoteJid.split('@')[0],
-  //             delay: settings?.delayMessage || 1000,
-  //             mediatype: 'video',
-  //             media: message.content.url,
-  //           },
-  //           false,
-  //         );
-
-  //         sendTelemetry('/message/sendMedia');
-  //       }
-
-  //       if (message.type === 'audio') {
-  //         await instance.audioWhatsapp(
-  //           {
-  //             number: remoteJid.split('@')[0],
-  //             delay: settings?.delayMessage || 1000,
-  //             encoding: true,
-  //             audio: message.content.url,
-  //           },
-  //           false,
-  //         );
-
-  //         sendTelemetry('/message/sendWhatsAppAudio');
-  //       }
-
-  //       const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
-
-  //       if (wait) {
-  //         await new Promise((resolve) => setTimeout(resolve, wait * 1000));
-  //       }
-  //     }
-
-  //     if (input) {
-  //       if (input.type === 'choice input') {
-  //         let formattedText = '';
-
-  //         const items = input.items;
-
-  //         for (const item of items) {
-  //           formattedText += `▶️ ${item.content}\n`;
-  //         }
-
-  //         formattedText = formattedText.replace(/\n$/, '');
-
-  //         await instance.textMessage(
-  //           {
-  //             number: remoteJid.split('@')[0],
-  //             delay: settings?.delayMessage || 1000,
-  //             text: formattedText,
-  //           },
-  //           false,
-  //         );
-
-  //         sendTelemetry('/message/sendText');
-  //       }
-
-  //       await prismaRepository.typebotSession.update({
-  //         where: {
-  //           id: session.id,
-  //         },
-  //         data: {
-  //           awaitUser: true,
-  //         },
-  //       });
-  //     } else {
-  //       if (!settings?.keepOpen) {
-  //         await prismaRepository.typebotSession.deleteMany({
-  //           where: {
-  //             id: session.id,
-  //           },
-  //         });
-  //       } else {
-  //         await prismaRepository.typebotSession.update({
-  //           where: {
-  //             id: session.id,
-  //           },
-  //           data: {
-  //             status: 'closed',
-  //           },
-  //         });
-  //       }
-  //     }
-  //   }
-  // }
-
-  // public async findTypebotByTrigger(content: string, instanceId: string) {
-  //   // Check for triggerType 'all'
-  //   const findTriggerAll = await this.prismaRepository.typebot.findFirst({
-  //     where: {
-  //       enabled: true,
-  //       triggerType: 'all',
-  //       instanceId: instanceId,
-  //     },
-  //   });
-
-  //   if (findTriggerAll) return findTriggerAll;
-
-  //   // Check for exact match
-  //   const findTriggerEquals = await this.prismaRepository.typebot.findFirst({
-  //     where: {
-  //       enabled: true,
-  //       triggerType: 'keyword',
-  //       triggerOperator: 'equals',
-  //       triggerValue: content,
-  //       instanceId: instanceId,
-  //     },
-  //   });
-
-  //   if (findTriggerEquals) return findTriggerEquals;
-
-  //   // Check for regex match
-  //   const findRegex = await this.prismaRepository.typebot.findMany({
-  //     where: {
-  //       enabled: true,
-  //       triggerType: 'keyword',
-  //       triggerOperator: 'regex',
-  //       instanceId: instanceId,
-  //     },
-  //   });
-
-  //   let findTriggerRegex = null;
-
-  //   for (const regex of findRegex) {
-  //     const regexValue = new RegExp(regex.triggerValue);
-
-  //     if (regexValue.test(content)) {
-  //       findTriggerRegex = regex;
-  //       break;
-  //     }
-  //   }
-
-  //   if (findTriggerRegex) return findTriggerRegex;
-
-  //   // Check for startsWith match
-  //   const findTriggerStartsWith = await this.prismaRepository.typebot.findFirst({
-  //     where: {
-  //       enabled: true,
-  //       triggerType: 'keyword',
-  //       triggerOperator: 'startsWith',
-  //       triggerValue: {
-  //         startsWith: content,
-  //       },
-  //       instanceId: instanceId,
-  //     },
-  //   });
-
-  //   if (findTriggerStartsWith) return findTriggerStartsWith;
-
-  //   // Check for endsWith match
-  //   const findTriggerEndsWith = await this.prismaRepository.typebot.findFirst({
-  //     where: {
-  //       enabled: true,
-  //       triggerType: 'keyword',
-  //       triggerOperator: 'endsWith',
-  //       triggerValue: {
-  //         endsWith: content,
-  //       },
-  //       instanceId: instanceId,
-  //     },
-  //   });
-
-  //   if (findTriggerEndsWith) return findTriggerEndsWith;
-
-  //   // Check for contains match
-  //   const findTriggerContains = await this.prismaRepository.typebot.findFirst({
-  //     where: {
-  //       enabled: true,
-  //       triggerType: 'keyword',
-  //       triggerOperator: 'contains',
-  //       triggerValue: {
-  //         contains: content,
-  //       },
-  //       instanceId: instanceId,
-  //     },
-  //   });
-
-  //   if (findTriggerContains) return findTriggerContains;
-
-  //   const fallback = await this.prismaRepository.typebotSetting.findFirst({
-  //     where: {
-  //       instanceId: instanceId,
-  //     },
-  //   });
-
-  //   if (fallback?.typebotIdFallback) {
-  //     const findFallback = await this.prismaRepository.typebot.findFirst({
-  //       where: {
-  //         id: fallback.typebotIdFallback,
-  //       },
-  //     });
-
-  //     if (findFallback) return findFallback;
-  //   }
-
-  //   return null;
-  // }
-
-  // private processDebounce(content: string, remoteJid: string, debounceTime: number, callback: any) {
-  //   if (this.userMessageDebounce[remoteJid]) {
-  //     this.userMessageDebounce[remoteJid].message += ` ${content}`;
-  //     this.logger.log('message debounced: ' + this.userMessageDebounce[remoteJid].message);
-  //     clearTimeout(this.userMessageDebounce[remoteJid].timeoutId);
-  //   } else {
-  //     this.userMessageDebounce[remoteJid] = {
-  //       message: content,
-  //       timeoutId: null,
-  //     };
-  //   }
-
-  //   this.userMessageDebounce[remoteJid].timeoutId = setTimeout(() => {
-  //     const myQuestion = this.userMessageDebounce[remoteJid].message;
-  //     this.logger.log('Debounce complete. Processing message: ' + myQuestion);
-
-  //     delete this.userMessageDebounce[remoteJid];
-  //     callback(myQuestion);
-  //   }, debounceTime * 1000);
-  // }
-
-  // public async sendTypebot(instance: InstanceDto, remoteJid: string, msg: Message) {
-  //   try {
-  //     const settings = await this.prismaRepository.typebotSetting.findFirst({
-  //       where: {
-  //         instanceId: instance.instanceId,
-  //       },
-  //     });
-
-  //     if (settings?.ignoreJids) {
-  //       const ignoreJids: any = settings.ignoreJids;
-
-  //       let ignoreGroups = false;
-  //       let ignoreContacts = false;
-
-  //       if (ignoreJids.includes('@g.us')) {
-  //         ignoreGroups = true;
-  //       }
-
-  //       if (ignoreJids.includes('@s.whatsapp.net')) {
-  //         ignoreContacts = true;
-  //       }
-
-  //       if (ignoreGroups && remoteJid.endsWith('@g.us')) {
-  //         this.logger.warn('Ignoring message from group: ' + remoteJid);
-  //         return;
-  //       }
-
-  //       if (ignoreContacts && remoteJid.endsWith('@s.whatsapp.net')) {
-  //         this.logger.warn('Ignoring message from contact: ' + remoteJid);
-  //         return;
-  //       }
-
-  //       if (ignoreJids.includes(remoteJid)) {
-  //         this.logger.warn('Ignoring message from jid: ' + remoteJid);
-  //         return;
-  //       }
-  //     }
-
-  //     const session = await this.prismaRepository.typebotSession.findFirst({
-  //       where: {
-  //         remoteJid: remoteJid,
-  //       },
-  //     });
-
-  //     const content = this.getConversationMessage(msg);
-
-  //     let findTypebot = null;
-
-  //     if (!session) {
-  //       findTypebot = await this.findTypebotByTrigger(content, instance.instanceId);
-
-  //       if (!findTypebot) {
-  //         return;
-  //       }
-  //     } else {
-  //       findTypebot = await this.prismaRepository.typebot.findFirst({
-  //         where: {
-  //           id: session.typebotId,
-  //         },
-  //       });
-  //     }
-
-  //     const url = findTypebot?.url;
-  //     const typebot = findTypebot?.typebot;
-  //     let expire = findTypebot?.expire;
-  //     let keywordFinish = findTypebot?.keywordFinish;
-  //     let delayMessage = findTypebot?.delayMessage;
-  //     let unknownMessage = findTypebot?.unknownMessage;
-  //     let listeningFromMe = findTypebot?.listeningFromMe;
-  //     let stopBotFromMe = findTypebot?.stopBotFromMe;
-  //     let keepOpen = findTypebot?.keepOpen;
-  //     let debounceTime = findTypebot?.debounceTime;
-
-  //     if (
-  //       !expire ||
-  //       !keywordFinish ||
-  //       !delayMessage ||
-  //       !unknownMessage ||
-  //       !listeningFromMe ||
-  //       !stopBotFromMe ||
-  //       !keepOpen
-  //     ) {
-  //       if (!expire) expire = settings.expire;
-
-  //       if (!keywordFinish) keywordFinish = settings.keywordFinish;
-
-  //       if (!delayMessage) delayMessage = settings.delayMessage;
-
-  //       if (!unknownMessage) unknownMessage = settings.unknownMessage;
-
-  //       if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
-
-  //       if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
-
-  //       if (!keepOpen) keepOpen = settings.keepOpen;
-
-  //       if (!debounceTime) debounceTime = settings.debounceTime;
-  //     }
-
-  //     const key = msg.key as {
-  //       id: string;
-  //       remoteJid: string;
-  //       fromMe: boolean;
-  //       participant: string;
-  //     };
-
-  //     if (!listeningFromMe && key.fromMe) {
-  //       return;
-  //     }
-
-  //     if (stopBotFromMe && listeningFromMe && key.fromMe && session) {
-  //       await this.prismaRepository.typebotSession.deleteMany({
-  //         where: {
-  //           typebotId: findTypebot.id,
-  //           remoteJid: remoteJid,
-  //         },
-  //       });
-  //       return;
-  //     }
-
-  //     if (debounceTime && debounceTime > 0) {
-  //       this.processDebounce(content, remoteJid, debounceTime, async (debouncedContent) => {
-  //         await this.processTypebot(
-  //           instance,
-  //           remoteJid,
-  //           msg,
-  //           session,
-  //           findTypebot,
-  //           url,
-  //           expire,
-  //           typebot,
-  //           keywordFinish,
-  //           delayMessage,
-  //           unknownMessage,
-  //           listeningFromMe,
-  //           stopBotFromMe,
-  //           keepOpen,
-  //           debouncedContent,
-  //         );
-  //       });
-  //     } else {
-  //       await this.processTypebot(
-  //         instance,
-  //         remoteJid,
-  //         msg,
-  //         session,
-  //         findTypebot,
-  //         url,
-  //         expire,
-  //         typebot,
-  //         keywordFinish,
-  //         delayMessage,
-  //         unknownMessage,
-  //         listeningFromMe,
-  //         stopBotFromMe,
-  //         keepOpen,
-  //         content,
-  //       );
-  //     }
-
-  //     // await this.processTypebot(
-  //     //   instance,
-  //     //   remoteJid,
-  //     //   msg,
-  //     //   session,
-  //     //   findTypebot,
-  //     //   url,
-  //     //   expire,
-  //     //   typebot,
-  //     //   keywordFinish,
-  //     //   delayMessage,
-  //     //   unknownMessage,
-  //     //   listeningFromMe,
-  //     //   stopBotFromMe,
-  //     //   keepOpen,
-  //     //   content,
-  //     // );
-
-  //     if (session && !session.awaitUser) return;
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     return;
-  //   }
-  // }
-
-  // private async processTypebot(
-  //   instance: InstanceDto,
-  //   remoteJid: string,
-  //   msg: Message,
-  //   session: TypebotSession,
-  //   findTypebot: TypebotModel,
-  //   url: string,
-  //   expire: number,
-  //   typebot: string,
-  //   keywordFinish: string,
-  //   delayMessage: number,
-  //   unknownMessage: string,
-  //   listeningFromMe: boolean,
-  //   stopBotFromMe: boolean,
-  //   keepOpen: boolean,
-  //   content: string,
-  // ) {
-  //   if (session && expire && expire > 0) {
-  //     const now = Date.now();
-
-  //     const sessionUpdatedAt = new Date(session.updatedAt).getTime();
-
-  //     const diff = now - sessionUpdatedAt;
-
-  //     const diffInMinutes = Math.floor(diff / 1000 / 60);
-
-  //     if (diffInMinutes > expire) {
-  //       await this.prismaRepository.typebotSession.deleteMany({
-  //         where: {
-  //           typebotId: findTypebot.id,
-  //           remoteJid: remoteJid,
-  //         },
-  //       });
-
-  //       const data = await this.createNewSession(instance, {
-  //         enabled: findTypebot.enabled,
-  //         url: url,
-  //         typebot: typebot,
-  //         expire: expire,
-  //         keywordFinish: keywordFinish,
-  //         delayMessage: delayMessage,
-  //         unknownMessage: unknownMessage,
-  //         listeningFromMe: listeningFromMe,
-  //         remoteJid: remoteJid,
-  //         pushName: msg.pushName,
-  //         typebotId: findTypebot.id,
-  //       });
-
-  //       if (data.session) {
-  //         session = data.session;
-  //       }
-
-  //       await this.sendWAMessage(
-  //         instance,
-  //         session,
-  //         {
-  //           expire: expire,
-  //           keywordFinish: keywordFinish,
-  //           delayMessage: delayMessage,
-  //           unknownMessage: unknownMessage,
-  //           listeningFromMe: listeningFromMe,
-  //           stopBotFromMe: stopBotFromMe,
-  //           keepOpen: keepOpen,
-  //         },
-  //         remoteJid,
-  //         data.messages,
-  //         data.input,
-  //         data.clientSideActions,
-  //       );
-
-  //       if (data.messages.length === 0) {
-  //         const content = this.getConversationMessage(msg.message);
-
-  //         if (!content) {
-  //           if (unknownMessage) {
-  //             this.waMonitor.waInstances[instance.instanceName].textMessage(
-  //               {
-  //                 number: remoteJid.split('@')[0],
-  //                 delay: delayMessage || 1000,
-  //                 text: unknownMessage,
-  //               },
-  //               false,
-  //             );
-
-  //             sendTelemetry('/message/sendText');
-  //           }
-  //           return;
-  //         }
-
-  //         if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-  //           await this.prismaRepository.typebotSession.deleteMany({
-  //             where: {
-  //               typebotId: findTypebot.id,
-  //               remoteJid: remoteJid,
-  //             },
-  //           });
-  //           return;
-  //         }
-
-  //         try {
-  //           const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-  //           let urlTypebot: string;
-  //           let reqData: {};
-  //           if (version === 'latest') {
-  //             urlTypebot = `${url}/api/v1/sessions/${data.sessionId}/continueChat`;
-  //             reqData = {
-  //               message: content,
-  //             };
-  //           } else {
-  //             urlTypebot = `${url}/api/v1/sendMessage`;
-  //             reqData = {
-  //               message: content,
-  //               sessionId: data.sessionId,
-  //             };
-  //           }
-
-  //           const request = await axios.post(urlTypebot, reqData);
-
-  //           await this.sendWAMessage(
-  //             instance,
-  //             session,
-  //             {
-  //               expire: expire,
-  //               keywordFinish: keywordFinish,
-  //               delayMessage: delayMessage,
-  //               unknownMessage: unknownMessage,
-  //               listeningFromMe: listeningFromMe,
-  //               stopBotFromMe: stopBotFromMe,
-  //               keepOpen: keepOpen,
-  //             },
-  //             remoteJid,
-  //             request.data.messages,
-  //             request.data.input,
-  //             request.data.clientSideActions,
-  //           );
-  //         } catch (error) {
-  //           this.logger.error(error);
-  //           return;
-  //         }
-  //       }
-
-  //       return;
-  //     }
-  //   }
-
-  //   if (session && session.status !== 'opened') {
-  //     return;
-  //   }
-
-  //   if (!session) {
-  //     const data = await this.createNewSession(instance, {
-  //       enabled: findTypebot?.enabled,
-  //       url: url,
-  //       typebot: typebot,
-  //       expire: expire,
-  //       keywordFinish: keywordFinish,
-  //       delayMessage: delayMessage,
-  //       unknownMessage: unknownMessage,
-  //       listeningFromMe: listeningFromMe,
-  //       remoteJid: remoteJid,
-  //       pushName: msg.pushName,
-  //       typebotId: findTypebot.id,
-  //     });
-
-  //     if (data?.session) {
-  //       session = data.session;
-  //     }
-
-  //     await this.sendWAMessage(
-  //       instance,
-  //       session,
-  //       {
-  //         expire: expire,
-  //         keywordFinish: keywordFinish,
-  //         delayMessage: delayMessage,
-  //         unknownMessage: unknownMessage,
-  //         listeningFromMe: listeningFromMe,
-  //         stopBotFromMe: stopBotFromMe,
-  //         keepOpen: keepOpen,
-  //       },
-  //       remoteJid,
-  //       data?.messages,
-  //       data?.input,
-  //       data?.clientSideActions,
-  //     );
-
-  //     if (data.messages.length === 0) {
-  //       if (!content) {
-  //         if (unknownMessage) {
-  //           this.waMonitor.waInstances[instance.instanceName].textMessage(
-  //             {
-  //               number: remoteJid.split('@')[0],
-  //               delay: delayMessage || 1000,
-  //               text: unknownMessage,
-  //             },
-  //             false,
-  //           );
-
-  //           sendTelemetry('/message/sendText');
-  //         }
-  //         return;
-  //       }
-
-  //       if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-  //         await this.prismaRepository.typebotSession.deleteMany({
-  //           where: {
-  //             typebotId: findTypebot.id,
-  //             remoteJid: remoteJid,
-  //           },
-  //         });
-
-  //         return;
-  //       }
-
-  //       let request: any;
-  //       try {
-  //         const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-  //         let urlTypebot: string;
-  //         let reqData: {};
-  //         if (version === 'latest') {
-  //           urlTypebot = `${url}/api/v1/sessions/${data.sessionId}/continueChat`;
-  //           reqData = {
-  //             message: content,
-  //           };
-  //         } else {
-  //           urlTypebot = `${url}/api/v1/sendMessage`;
-  //           reqData = {
-  //             message: content,
-  //             sessionId: data.sessionId,
-  //           };
-  //         }
-  //         request = await axios.post(urlTypebot, reqData);
-
-  //         await this.sendWAMessage(
-  //           instance,
-  //           session,
-  //           {
-  //             expire: expire,
-  //             keywordFinish: keywordFinish,
-  //             delayMessage: delayMessage,
-  //             unknownMessage: unknownMessage,
-  //             listeningFromMe: listeningFromMe,
-  //             stopBotFromMe: stopBotFromMe,
-  //             keepOpen: keepOpen,
-  //           },
-  //           remoteJid,
-  //           request.data.messages,
-  //           request.data.input,
-  //           request.data.clientSideActions,
-  //         );
-  //       } catch (error) {
-  //         this.logger.error(error);
-  //         return;
-  //       }
-  //     }
-  //     return;
-  //   }
-
-  //   await this.prismaRepository.typebotSession.update({
-  //     where: {
-  //       id: session.id,
-  //     },
-  //     data: {
-  //       status: 'opened',
-  //       awaitUser: false,
-  //     },
-  //   });
-
-  //   if (!content) {
-  //     if (unknownMessage) {
-  //       this.waMonitor.waInstances[instance.instanceName].textMessage(
-  //         {
-  //           number: remoteJid.split('@')[0],
-  //           delay: delayMessage || 1000,
-  //           text: unknownMessage,
-  //         },
-  //         false,
-  //       );
-
-  //       sendTelemetry('/message/sendText');
-  //     }
-  //     return;
-  //   }
-
-  //   if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-  //     await this.prismaRepository.typebotSession.deleteMany({
-  //       where: {
-  //         typebotId: findTypebot.id,
-  //         remoteJid: remoteJid,
-  //       },
-  //     });
-  //     return;
-  //   }
-
-  //   const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
-  //   let urlTypebot: string;
-  //   let reqData: {};
-  //   if (version === 'latest') {
-  //     urlTypebot = `${url}/api/v1/sessions/${session.sessionId.split('-')[1]}/continueChat`;
-  //     reqData = {
-  //       message: content,
-  //     };
-  //   } else {
-  //     urlTypebot = `${url}/api/v1/sendMessage`;
-  //     reqData = {
-  //       message: content,
-  //       sessionId: session.sessionId.split('-')[1],
-  //     };
-  //   }
-  //   const request = await axios.post(urlTypebot, reqData);
-
-  //   await this.sendWAMessage(
-  //     instance,
-  //     session,
-  //     {
-  //       expire: expire,
-  //       keywordFinish: keywordFinish,
-  //       delayMessage: delayMessage,
-  //       unknownMessage: unknownMessage,
-  //       listeningFromMe: listeningFromMe,
-  //       stopBotFromMe: stopBotFromMe,
-  //       keepOpen: keepOpen,
-  //     },
-  //     remoteJid,
-  //     request?.data?.messages,
-  //     request?.data?.input,
-  //     request?.data?.clientSideActions,
-  //   );
-
-  //   return;
-  // }
+  private getTypeMessage(msg: any) {
+    let mediaId: string;
+
+    if (this.configService.get<S3>('S3').ENABLE) mediaId = msg.message.mediaUrl;
+    else mediaId = msg.key.id;
+
+    const types = {
+      conversation: msg?.message?.conversation,
+      extendedTextMessage: msg?.message?.extendedTextMessage?.text,
+      contactMessage: msg?.message?.contactMessage?.displayName,
+      locationMessage: msg?.message?.locationMessage?.degreesLatitude,
+      viewOnceMessageV2:
+        msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
+        msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
+        msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
+      listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
+      responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
+      // Medias
+      audioMessage: msg?.message?.audioMessage ? `audioMessage|${mediaId}` : undefined,
+      imageMessage: msg?.message?.imageMessage ? `imageMessage|${mediaId}` : undefined,
+      videoMessage: msg?.message?.videoMessage ? `videoMessage|${mediaId}` : undefined,
+      documentMessage: msg?.message?.documentMessage ? `documentMessage|${mediaId}` : undefined,
+      documentWithCaptionMessage: msg?.message?.auddocumentWithCaptionMessageioMessage
+        ? `documentWithCaptionMessage|${mediaId}`
+        : undefined,
+    };
+
+    const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';
+
+    return { ...types, messageType };
+  }
+
+  private getMessageContent(types: any) {
+    const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
+
+    const result = typeKey ? types[typeKey] : undefined;
+
+    return result;
+  }
+
+  private getConversationMessage(msg: any) {
+    const types = this.getTypeMessage(msg);
+
+    const messageContent = this.getMessageContent(types);
+
+    return messageContent;
+  }
+
+  public async createNewSession(instance: InstanceDto, data: any) {
+    if (data.remoteJid === 'status@broadcast') return;
+
+    const creds = await this.prismaRepository.openaiCreds.findFirst({
+      where: {
+        id: data.openaiCredsId,
+      },
+    });
+
+    if (!creds) throw new Error('Openai Creds not found');
+
+    try {
+      this.client = new OpenAI({
+        apiKey: creds.apiKey,
+      });
+
+      const threadId = (await this.client.beta.threads.create({})).id;
+
+      let session = null;
+      if (threadId) {
+        session = await this.prismaRepository.openaiSession.create({
+          data: {
+            remoteJid: data.remoteJid,
+            sessionId: threadId,
+            status: 'open',
+            awaitUser: false,
+            openaiBotId: data.openaiBotId,
+            instanceId: instance.instanceId,
+          },
+        });
+      }
+      return { session };
+    } catch (error) {
+      this.logger.error(error);
+      return;
+    }
+  }
+
+  public async findOpenaiByTrigger(content: string, instanceId: string) {
+    // Check for triggerType 'all'
+    const findTriggerAll = await this.prismaRepository.openaiBot.findFirst({
+      where: {
+        enabled: true,
+        triggerType: 'all',
+        instanceId: instanceId,
+      },
+    });
+
+    if (findTriggerAll) return findTriggerAll;
+
+    // Check for exact match
+    const findTriggerEquals = await this.prismaRepository.openaiBot.findFirst({
+      where: {
+        enabled: true,
+        triggerType: 'keyword',
+        triggerOperator: 'equals',
+        triggerValue: content,
+        instanceId: instanceId,
+      },
+    });
+
+    if (findTriggerEquals) return findTriggerEquals;
+
+    // Check for regex match
+    const findRegex = await this.prismaRepository.openaiBot.findMany({
+      where: {
+        enabled: true,
+        triggerType: 'keyword',
+        triggerOperator: 'regex',
+        instanceId: instanceId,
+      },
+    });
+
+    let findTriggerRegex = null;
+
+    for (const regex of findRegex) {
+      const regexValue = new RegExp(regex.triggerValue);
+
+      if (regexValue.test(content)) {
+        findTriggerRegex = regex;
+        break;
+      }
+    }
+
+    if (findTriggerRegex) return findTriggerRegex;
+
+    // Check for startsWith match
+    const findTriggerStartsWith = await this.prismaRepository.openaiBot.findFirst({
+      where: {
+        enabled: true,
+        triggerType: 'keyword',
+        triggerOperator: 'startsWith',
+        triggerValue: {
+          startsWith: content,
+        },
+        instanceId: instanceId,
+      },
+    });
+
+    if (findTriggerStartsWith) return findTriggerStartsWith;
+
+    // Check for endsWith match
+    const findTriggerEndsWith = await this.prismaRepository.openaiBot.findFirst({
+      where: {
+        enabled: true,
+        triggerType: 'keyword',
+        triggerOperator: 'endsWith',
+        triggerValue: {
+          endsWith: content,
+        },
+        instanceId: instanceId,
+      },
+    });
+
+    if (findTriggerEndsWith) return findTriggerEndsWith;
+
+    // Check for contains match
+    const findTriggerContains = await this.prismaRepository.openaiBot.findFirst({
+      where: {
+        enabled: true,
+        triggerType: 'keyword',
+        triggerOperator: 'contains',
+        triggerValue: {
+          contains: content,
+        },
+        instanceId: instanceId,
+      },
+    });
+
+    if (findTriggerContains) return findTriggerContains;
+
+    const fallback = await this.prismaRepository.openaiSetting.findFirst({
+      where: {
+        instanceId: instanceId,
+      },
+    });
+
+    if (fallback?.openaiIdFallback) {
+      const findFallback = await this.prismaRepository.openaiBot.findFirst({
+        where: {
+          id: fallback.openaiIdFallback,
+        },
+      });
+
+      if (findFallback) return findFallback;
+    }
+
+    return null;
+  }
+
+  private processDebounce(content: string, remoteJid: string, debounceTime: number, callback: any) {
+    if (this.userMessageDebounce[remoteJid]) {
+      this.userMessageDebounce[remoteJid].message += ` ${content}`;
+      this.logger.log('message debounced: ' + this.userMessageDebounce[remoteJid].message);
+      clearTimeout(this.userMessageDebounce[remoteJid].timeoutId);
+    } else {
+      this.userMessageDebounce[remoteJid] = {
+        message: content,
+        timeoutId: null,
+      };
+    }
+
+    this.userMessageDebounce[remoteJid].timeoutId = setTimeout(() => {
+      const myQuestion = this.userMessageDebounce[remoteJid].message;
+      this.logger.log('Debounce complete. Processing message: ' + myQuestion);
+
+      delete this.userMessageDebounce[remoteJid];
+      callback(myQuestion);
+    }, debounceTime * 1000);
+  }
+
+  public async sendOpenai(instance: InstanceDto, remoteJid: string, msg: Message) {
+    try {
+      const settings = await this.prismaRepository.openaiSetting.findFirst({
+        where: {
+          instanceId: instance.instanceId,
+        },
+      });
+
+      if (settings?.ignoreJids) {
+        const ignoreJids: any = settings.ignoreJids;
+
+        let ignoreGroups = false;
+        let ignoreContacts = false;
+
+        if (ignoreJids.includes('@g.us')) {
+          ignoreGroups = true;
+        }
+
+        if (ignoreJids.includes('@s.whatsapp.net')) {
+          ignoreContacts = true;
+        }
+
+        if (ignoreGroups && remoteJid.endsWith('@g.us')) {
+          this.logger.warn('Ignoring message from group: ' + remoteJid);
+          return;
+        }
+
+        if (ignoreContacts && remoteJid.endsWith('@s.whatsapp.net')) {
+          this.logger.warn('Ignoring message from contact: ' + remoteJid);
+          return;
+        }
+
+        if (ignoreJids.includes(remoteJid)) {
+          this.logger.warn('Ignoring message from jid: ' + remoteJid);
+          return;
+        }
+      }
+
+      const session = await this.prismaRepository.openaiSession.findFirst({
+        where: {
+          remoteJid: remoteJid,
+        },
+      });
+
+      const content = this.getConversationMessage(msg);
+
+      let findOpenai = null;
+
+      if (!session) {
+        findOpenai = await this.findOpenaiByTrigger(content, instance.instanceId);
+
+        if (!findOpenai) {
+          return;
+        }
+      } else {
+        findOpenai = await this.prismaRepository.openaiBot.findFirst({
+          where: {
+            id: session.openaiBotId,
+          },
+        });
+      }
+
+      if (!findOpenai) return;
+
+      let openaiCredsId = findOpenai.openaiCredsId;
+      let expire = findOpenai.expire;
+      let keywordFinish = findOpenai.keywordFinish;
+      let delayMessage = findOpenai.delayMessage;
+      let unknownMessage = findOpenai.unknownMessage;
+      let listeningFromMe = findOpenai.listeningFromMe;
+      let stopBotFromMe = findOpenai.stopBotFromMe;
+      let keepOpen = findOpenai.keepOpen;
+      let debounceTime = findOpenai.debounceTime;
+
+      if (
+        !openaiCredsId ||
+        !expire ||
+        !keywordFinish ||
+        !delayMessage ||
+        !unknownMessage ||
+        !listeningFromMe ||
+        !stopBotFromMe ||
+        !keepOpen ||
+        !debounceTime
+      ) {
+        if (!openaiCredsId) openaiCredsId = settings.openaiCredsId;
+
+        if (!expire) expire = settings.expire;
+
+        if (!keywordFinish) keywordFinish = settings.keywordFinish;
+
+        if (!delayMessage) delayMessage = settings.delayMessage;
+
+        if (!unknownMessage) unknownMessage = settings.unknownMessage;
+
+        if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
+
+        if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
+
+        if (!keepOpen) keepOpen = settings.keepOpen;
+
+        if (!debounceTime) debounceTime = settings.debounceTime;
+      }
+
+      const key = msg.key as {
+        id: string;
+        remoteJid: string;
+        fromMe: boolean;
+        participant: string;
+      };
+
+      if (!listeningFromMe && key.fromMe) {
+        return;
+      }
+
+      if (stopBotFromMe && listeningFromMe && key.fromMe && session) {
+        await this.prismaRepository.openaiSession.deleteMany({
+          where: {
+            openaiBotId: findOpenai.id,
+            remoteJid: remoteJid,
+          },
+        });
+        return;
+      }
+
+      if (debounceTime && debounceTime > 0) {
+        this.processDebounce(content, remoteJid, debounceTime, async (debouncedContent) => {
+          if (findOpenai.botType === 'assistant') {
+            await this.processOpenaiAssistant(
+              this.waMonitor.waInstances[instance.instanceName],
+              remoteJid,
+              findOpenai,
+              session,
+              settings,
+              debouncedContent,
+            );
+          }
+        });
+      } else {
+        if (findOpenai.botType === 'assistant') {
+          await this.processOpenaiAssistant(
+            this.waMonitor.waInstances[instance.instanceName],
+            remoteJid,
+            findOpenai,
+            session,
+            settings,
+            content,
+          );
+        }
+      }
+
+      return;
+    } catch (error) {
+      this.logger.error(error);
+      return;
+    }
+  }
+
+  private async initNewSession(
+    instance: any,
+    remoteJid: string,
+    openaiBot: OpenaiBot,
+    settings: OpenaiSetting,
+    session: OpenaiSession,
+    content: string,
+  ) {
+    const data = await this.createNewSession(instance, {
+      remoteJid,
+      openaiCredsId: openaiBot.openaiCredsId,
+      openaiBotId: openaiBot.id,
+    });
+
+    if (data.session) {
+      session = data.session;
+    }
+
+    await this.client.beta.threads.messages.create(data.session.sessionId, {
+      role: 'user',
+      content,
+    });
+
+    const runAssistant = await this.client.beta.threads.runs.create(data.session.sessionId, {
+      assistant_id: openaiBot.assistantId,
+    });
+
+    await instance.client.presenceSubscribe(remoteJid);
+
+    await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+    const response = await this.getAIResponse(data.session.sessionId, runAssistant.id);
+
+    await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+    const message = response?.data[0].content[0].text.value;
+
+    await instance.textMessage(
+      {
+        number: remoteJid.split('@')[0],
+        delay: settings?.delayMessage || 1000,
+        text: message,
+      },
+      false,
+    );
+
+    await this.prismaRepository.openaiSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'open',
+        awaitUser: true,
+      },
+    });
+
+    sendTelemetry('/message/sendText');
+
+    return;
+  }
+
+  private async processOpenaiAssistant(
+    instance: any,
+    remoteJid: string,
+    openaiBot: OpenaiBot,
+    session: OpenaiSession,
+    settings: OpenaiSetting,
+    content: string,
+  ) {
+    if (session && session.status !== 'open') {
+      return;
+    }
+
+    if (session && settings.expire && settings.expire > 0) {
+      const now = Date.now();
+
+      const sessionUpdatedAt = new Date(session.updatedAt).getTime();
+
+      const diff = now - sessionUpdatedAt;
+
+      const diffInMinutes = Math.floor(diff / 1000 / 60);
+
+      if (diffInMinutes > settings.expire) {
+        await this.prismaRepository.openaiSession.deleteMany({
+          where: {
+            openaiBotId: openaiBot.id,
+            remoteJid: remoteJid,
+          },
+        });
+
+        await this.initNewSession(instance, remoteJid, openaiBot, settings, session, content);
+        return;
+      }
+    }
+
+    if (!session) {
+      await this.initNewSession(instance, remoteJid, openaiBot, settings, session, content);
+      return;
+    }
+
+    await this.prismaRepository.openaiSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'open',
+        awaitUser: false,
+      },
+    });
+
+    if (!content) {
+      if (settings.unknownMessage) {
+        this.waMonitor.waInstances[instance.instanceName].textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings.delayMessage || 1000,
+            text: settings.unknownMessage,
+          },
+          false,
+        );
+
+        sendTelemetry('/message/sendText');
+      }
+      return;
+    }
+
+    if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
+      await this.prismaRepository.openaiSession.deleteMany({
+        where: {
+          openaiBotId: openaiBot.id,
+          remoteJid: remoteJid,
+        },
+      });
+      return;
+    }
+
+    const creds = await this.prismaRepository.openaiCreds.findFirst({
+      where: {
+        id: openaiBot.openaiCredsId,
+      },
+    });
+
+    if (!creds) throw new Error('Openai Creds not found');
+
+    this.client = new OpenAI({
+      apiKey: creds.apiKey,
+    });
+
+    const threadId = session.sessionId;
+
+    await this.client.beta.threads.messages.create(threadId, {
+      role: 'user',
+      content,
+    });
+
+    const runAssistant = await this.client.beta.threads.runs.create(threadId, {
+      assistant_id: openaiBot.assistantId,
+    });
+
+    await instance.client.presenceSubscribe(remoteJid);
+
+    await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+    const response = await this.getAIResponse(threadId, runAssistant.id);
+
+    await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+    const message = response?.data[0].content[0].text.value;
+
+    await instance.textMessage(
+      {
+        number: remoteJid.split('@')[0],
+        delay: settings?.delayMessage || 1000,
+        text: message,
+      },
+      false,
+    );
+
+    await this.prismaRepository.openaiSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'open',
+        awaitUser: true,
+      },
+    });
+
+    sendTelemetry('/message/sendText');
+
+    return;
+  }
+
+  private async getAIResponse(threadId: string, runId: string) {
+    const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
+
+    switch (getRun.status) {
+      case 'queued':
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return this.getAIResponse(threadId, runId);
+      case 'in_progress':
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return this.getAIResponse(threadId, runId);
+      case 'requires_action':
+        return null;
+      case 'completed':
+        return await this.client.beta.threads.messages.list(threadId, {
+          run_id: runId,
+          limit: 1,
+        });
+    }
+  }
 }

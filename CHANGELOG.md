@@ -1,5 +1,9 @@
 # 2.0.2-beta (beta)
 
+### Feature
+
+* Open AI assistants implemented
+
 ### Fixed
 
 * Fixed the function of saving or not saving data in the database

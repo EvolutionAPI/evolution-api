@@ -69,6 +69,7 @@ import {
   ConfigSessionPhone,
   Database,
   Log,
+  Openai,
   ProviderSession,
   QrCode,
   S3,
@@ -1157,6 +1158,17 @@ export class BaileysStartupService extends ChannelStartupService {
             if (type === 'notify') {
               if (messageRaw.messageType !== 'reactionMessage')
                 await this.typebotService.sendTypebot(
+                  { instanceName: this.instance.name, instanceId: this.instanceId },
+                  messageRaw.key.remoteJid,
+                  messageRaw,
+                );
+            }
+          }
+
+          if (this.configService.get<Openai>('OPENAI').ENABLED) {
+            if (type === 'notify') {
+              if (messageRaw.messageType !== 'reactionMessage')
+                await this.openaiService.sendOpenai(
                   { instanceName: this.instance.name, instanceId: this.instanceId },
                   messageRaw.key.remoteJid,
                   messageRaw,

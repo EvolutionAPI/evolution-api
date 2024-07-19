@@ -56,8 +56,8 @@ export const openaiCredsSchema: JSONSchema7 = {
   properties: {
     apiKey: { type: 'string' },
   },
-  required: ['enabled', 'apiKey'],
-  ...isNotEmpty('enabled', 'apiKey'),
+  required: ['apiKey'],
+  ...isNotEmpty('apiKey'),
 };
 
 export const openaiStatusSchema: JSONSchema7 = {
