@@ -54,10 +54,11 @@ export const openaiCredsSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
   properties: {
+    name: { type: 'string' },
     apiKey: { type: 'string' },
   },
-  required: ['apiKey'],
-  ...isNotEmpty('apiKey'),
+  required: ['name', 'apiKey'],
+  ...isNotEmpty('name', 'apiKey'),
 };
 
 export const openaiStatusSchema: JSONSchema7 = {

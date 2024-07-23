@@ -38,6 +38,16 @@ export class OpenaiRouter extends RouterBroker {
 
         res.status(HttpStatus.OK).json(response);
       })
+      .delete(this.routerPath('creds/:openaiCredsId'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: instanceSchema,
+          ClassRef: InstanceDto,
+          execute: (instance) => openaiController.deleteCreds(instance, req.params.openaiCredsId),
+        });
+
+        res.status(HttpStatus.OK).json(response);
+      })
       .post(this.routerPath('create'), ...guards, async (req, res) => {
         const response = await this.dataValidate<OpenaiDto>({
           request: req,

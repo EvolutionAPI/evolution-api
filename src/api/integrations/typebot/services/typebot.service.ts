@@ -557,6 +557,7 @@ export class TypebotService {
         return await this.prismaRepository.typebotSession.findMany({
           where: {
             remoteJid: remoteJid,
+            instanceId: instanceId,
           },
         });
       }
@@ -583,6 +584,7 @@ export class TypebotService {
         await this.prismaRepository.typebotSession.deleteMany({
           where: {
             remoteJid: remoteJid,
+            instanceId: instanceId,
           },
         });
 
@@ -714,6 +716,7 @@ export class TypebotService {
         where: {
           url: url,
           typebot: typebot,
+          instanceId: instance.instanceId,
         },
       });
 
@@ -738,6 +741,7 @@ export class TypebotService {
       await this.prismaRepository.typebotSession.deleteMany({
         where: {
           remoteJid: remoteJid,
+          instanceId: instance.instanceId,
         },
       });
 

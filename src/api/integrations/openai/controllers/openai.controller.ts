@@ -19,6 +19,12 @@ export class OpenaiController {
     return this.openaiService.findCreds(instance);
   }
 
+  public async deleteCreds(instance: InstanceDto, openaiCredsId: string) {
+    if (!configService.get<Openai>('OPENAI').ENABLED) throw new BadRequestException('Openai is disabled');
+
+    return this.openaiService.deleteCreds(instance, openaiCredsId);
+  }
+
   public async createOpenai(instance: InstanceDto, data: OpenaiDto) {
     if (!configService.get<Openai>('OPENAI').ENABLED) throw new BadRequestException('Openai is disabled');
 

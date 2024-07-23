@@ -32,10 +32,12 @@ export class OpenaiService {
       .then((instance) => instance.id);
 
     if (!data.apiKey) throw new Error('API Key is required');
+    if (!data.name) throw new Error('Name is required');
 
     try {
       const creds = await this.prismaRepository.openaiCreds.create({
         data: {
+          name: data.name,
           apiKey: data.apiKey,
           instanceId: instanceId,
         },
@@ -69,6 +71,43 @@ export class OpenaiService {
     return creds;
   }
 
+  public async deleteCreds(instance: InstanceDto, openaiCredsId: string) {
+    const instanceId = await this.prismaRepository.instance
+      .findFirst({
+        where: {
+          name: instance.instanceName,
+        },
+      })
+      .then((instance) => instance.id);
+
+    const creds = await this.prismaRepository.openaiCreds.findFirst({
+      where: {
+        id: openaiCredsId,
+      },
+    });
+
+    if (!creds) {
+      throw new Error('Openai Creds not found');
+    }
+
+    if (creds.instanceId !== instanceId) {
+      throw new Error('Openai Creds not found');
+    }
+
+    try {
+      await this.prismaRepository.openaiCreds.delete({
+        where: {
+          id: openaiCredsId,
+        },
+      });
+
+      return { openaiCreds: { id: openaiCredsId } };
+    } catch (error) {
+      this.logger.error(error);
+      throw new Error('Error deleting openai creds');
+    }
+  }
+
   public async create(instance: InstanceDto, data: OpenaiDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
@@ -98,9 +137,9 @@ export class OpenaiService {
 
       if (!data.openaiCredsId) data.openaiCredsId = defaultSettingCheck?.openaiCredsId || null;
       if (!data.expire) data.expire = defaultSettingCheck?.expire || 0;
-      if (!data.keywordFinish) data.keywordFinish = defaultSettingCheck?.keywordFinish || '#SAIR';
+      if (!data.keywordFinish) data.keywordFinish = defaultSettingCheck?.keywordFinish || '';
       if (!data.delayMessage) data.delayMessage = defaultSettingCheck?.delayMessage || 1000;
-      if (!data.unknownMessage) data.unknownMessage = defaultSettingCheck?.unknownMessage || 'Desculpe, não entendi';
+      if (!data.unknownMessage) data.unknownMessage = defaultSettingCheck?.unknownMessage || '';
       if (!data.listeningFromMe) data.listeningFromMe = defaultSettingCheck?.listeningFromMe || false;
       if (!data.stopBotFromMe) data.stopBotFromMe = defaultSettingCheck?.stopBotFromMe || false;
       if (!data.keepOpen) data.keepOpen = defaultSettingCheck?.keepOpen || false;
@@ -149,6 +188,7 @@ export class OpenaiService {
       whereDuplication = {
         ...whereDuplication,
         assistantId: data.assistantId,
+        botType: data.botType,
       };
     } else if (data.botType === 'chatCompletion') {
       if (!data.model) throw new Error('Model is required');
@@ -158,6 +198,7 @@ export class OpenaiService {
         ...whereDuplication,
         model: data.model,
         maxTokens: data.maxTokens,
+        botType: data.botType,
       };
     } else {
       throw new Error('Bot type is required');

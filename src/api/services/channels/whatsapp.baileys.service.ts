@@ -416,6 +416,17 @@ export class BaileysStartupService extends ChannelStartupService {
       }
     }
 
+    if (connection === 'connecting') {
+      if (this.configService.get<Database>('DATABASE').ENABLED) {
+        await this.prismaRepository.instance.update({
+          where: { id: this.instanceId },
+          data: {
+            connectionStatus: 'connecting',
+          },
+        });
+      }
+    }
+
     if (connection === 'open') {
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       this.instance.profilePictureUrl = (await this.profilePicture(this.instance.wuid)).profilePictureUrl;

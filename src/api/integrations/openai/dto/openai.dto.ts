@@ -9,6 +9,7 @@ export class Session {
 }
 
 export class OpenaiCredsDto {
+  name: string;
   apiKey: string;
 }
 

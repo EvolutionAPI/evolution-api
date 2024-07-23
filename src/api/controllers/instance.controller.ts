@@ -594,7 +594,8 @@ export class InstanceController {
       switch (state) {
         case 'open':
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instance.clearCacheChatwoot();
-          await instance.reloadConnection();
+          // await instance.reloadConnection();
+          await instance.client?.ws?.close();
           await delay(2000);
 
           return await this.connectionState({ instanceName });

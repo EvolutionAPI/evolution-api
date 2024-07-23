@@ -177,11 +177,11 @@ export class ChatRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('findChats'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<InstanceDto>({
+        const response = await this.dataValidate<Query<Contact>>({
           request: req,
-          schema: null,
-          ClassRef: InstanceDto,
-          execute: (instance) => chatController.fetchChats(instance),
+          schema: contactValidateSchema,
+          ClassRef: Query<Contact>,
+          execute: (instance, data) => chatController.fetchChats(instance, data),
         });
 
         return res.status(HttpStatus.OK).json(response);

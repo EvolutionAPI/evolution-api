@@ -1138,15 +1138,22 @@ export class ChannelStartupService {
   }
 
   public async fetchContacts(query: Query<Contact>) {
-    const remoteJid = query.where?.remoteJid.includes('@')
-      ? query.where?.remoteJid
-      : this.createJid(query.where?.remoteJid);
+    const remoteJid = query?.where?.remoteJid
+      ? query?.where?.remoteJid.includes('@')
+        ? query.where?.remoteJid
+        : this.createJid(query.where?.remoteJid)
+      : null;
+
+    const where = {
+      instanceId: this.instanceId,
+    };
+
+    if (remoteJid) {
+      where['remoteJid'] = remoteJid;
+    }
 
     return await this.prismaRepository.contact.findMany({
-      where: {
-        instanceId: this.instanceId,
-        remoteJid,
-      },
+      where,
     });
   }
 
@@ -1163,8 +1170,6 @@ export class ChannelStartupService {
         ? keyFilters?.remoteJid
         : this.createJid(keyFilters?.remoteJid)
       : null;
-
-    console.log(remoteJid);
 
     const count = await this.prismaRepository.message.count({
       where: {
@@ -1246,9 +1251,47 @@ export class ChannelStartupService {
     });
   }
 
-  public async fetchChats() {
-    return await this.prismaRepository.chat.findMany({
-      where: { instanceId: this.instanceId },
-    });
+  public async fetchChats(query: any) {
+    const remoteJid = query?.where?.remoteJid
+      ? query?.where?.remoteJid.includes('@')
+        ? query.where?.remoteJid
+        : this.createJid(query.where?.remoteJid)
+      : null;
+
+    let result;
+    if (remoteJid) {
+      result = await this.prismaRepository.$queryRaw`
+            SELECT 
+                "Chat"."id",
+                "Chat"."remoteJid",
+                "Chat"."labels",
+                "Chat"."createdAt",
+                "Chat"."updatedAt",
+                "Contact"."pushName",
+                "Contact"."profilePicUrl"
+            FROM "Chat"
+            LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
+            WHERE "Chat"."instanceId" = ${this.instanceId}
+            AND "Chat"."remoteJid" = ${remoteJid}
+            ORDER BY "Chat"."updatedAt" DESC
+        `;
+    } else {
+      result = await this.prismaRepository.$queryRaw`
+            SELECT 
+                "Chat"."id",
+                "Chat"."remoteJid",
+                "Chat"."labels",
+                "Chat"."createdAt",
+                "Chat"."updatedAt",
+                "Contact"."pushName",
+                "Contact"."profilePicUrl"
+            FROM "Chat"
+            LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
+            WHERE "Chat"."instanceId" = ${this.instanceId}
+            ORDER BY "Chat"."updatedAt" DESC
+        `;
+    }
+
+    return result;
   }
 }

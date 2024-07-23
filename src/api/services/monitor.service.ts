@@ -79,6 +79,13 @@ export class WAMonitoringService {
         Sqs: true,
         Websocket: true,
         Setting: true,
+        _count: {
+          select: {
+            Message: true,
+            Contact: true,
+            Chat: true,
+          },
+        },
       },
     });
 

@@ -77,7 +77,7 @@ model Instance {
   TypebotSession   TypebotSession[]
   TypebotSetting   TypebotSetting?
   Media            Media[]
-  OpenaiCreds      OpenaiCreds?
+  OpenaiCreds      OpenaiCreds[]
   OpenaiBot        OpenaiBot[]
   OpenaiSession    OpenaiSession[]
   OpenaiSetting    OpenaiSetting?
@@ -333,14 +333,15 @@ model Media {
 }
 
 model OpenaiCreds {
-  id              String          @id @default(cuid())
-  apiKey          String          @unique @db.VarChar(255)
-  createdAt       DateTime?       @default(now()) @db.Timestamp
-  updatedAt       DateTime        @updatedAt @db.Timestamp
-  Instance        Instance        @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId      String          @unique
+  id              String         @id @default(cuid())
+  name            String?        @unique @db.VarChar(255)
+  apiKey          String?        @unique @db.VarChar(255)
+  createdAt       DateTime?      @default(now()) @db.Timestamp
+  updatedAt       DateTime       @updatedAt @db.Timestamp
+  Instance        Instance       @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
   OpenaiAssistant OpenaiBot[]
-  OpenaiSetting   OpenaiSetting[]
+  OpenaiSetting   OpenaiSetting?
 }
 
 model OpenaiBot {
@@ -404,7 +405,7 @@ model OpenaiSetting {
   createdAt        DateTime?    @default(now()) @db.Timestamp
   updatedAt        DateTime     @updatedAt @db.Timestamp
   OpenaiCreds      OpenaiCreds? @relation(fields: [openaiCredsId], references: [id])
-  openaiCredsId    String
+  openaiCredsId    String       @unique
   Fallback         OpenaiBot?   @relation(fields: [openaiIdFallback], references: [id])
   openaiIdFallback String?      @db.VarChar(100)
   Instance         Instance     @relation(fields: [instanceId], references: [id], onDelete: Cascade)
