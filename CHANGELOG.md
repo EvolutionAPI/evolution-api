@@ -1,3 +1,9 @@
+# 2.0.3-beta (beta)
+
+### Fixed
+
+* Equations and adjustments for the new manager
+
 # 2.0.2-beta (2024-07-18 21:33)
 
 ### Feature
