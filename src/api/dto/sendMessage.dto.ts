@@ -13,6 +13,7 @@ export class Options {
   encoding?: boolean;
   mentionsEveryOne?: boolean;
   mentioned?: string[];
+  webhookUrl?: string;
 }
 
 export class MediaMessage {
@@ -137,6 +138,7 @@ export class SendTemplateDto extends Metadata {
   name: string;
   language: string;
   components: any;
+  webhookUrl?: string;
 }
 export class SendContactDto extends Metadata {
   contact: ContactMessage[];

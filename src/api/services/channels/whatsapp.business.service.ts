@@ -548,6 +548,10 @@ export class BusinessStartupService extends ChannelStartupService {
             await this.prismaRepository.messageUpdate.create({
               data: message,
             });
+
+            if (findMessage.webhookUrl) {
+              await axios.post(findMessage.webhookUrl, message);
+            }
           }
         }
       }
@@ -636,6 +640,7 @@ export class BusinessStartupService extends ChannelStartupService {
   protected async sendMessageWithTyping(number: string, message: any, options?: Options, isIntegration = false) {
     try {
       let quoted: any;
+      let webhookUrl: any;
       const linkPreview = options?.linkPreview != false ? undefined : false;
       if (options?.quoted) {
         const m = options?.quoted;
@@ -647,6 +652,9 @@ export class BusinessStartupService extends ChannelStartupService {
         }
 
         quoted = msg;
+      }
+      if (options?.webhookUrl) {
+        webhookUrl = options.webhookUrl;
       }
 
       let content: any;
@@ -826,6 +834,7 @@ export class BusinessStartupService extends ChannelStartupService {
         messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
         instanceId: this.instanceId,
+        webhookUrl,
         source: 'unknown',
       };
 
@@ -1134,6 +1143,7 @@ export class BusinessStartupService extends ChannelStartupService {
         linkPreview: data?.linkPreview,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        webhookUrl: data?.webhookUrl,
       },
       isIntegration,
     );

@@ -33,6 +33,7 @@ export const templateMessageSchema: JSONSchema7 = {
     name: { type: 'string' },
     language: { type: 'string' },
     components: { type: 'array' },
+    webhookUrl: { type: 'string' },
   },
   required: ['name', 'language'],
 };

@@ -135,6 +135,7 @@ model Message {
   Media                        Media?
   OpenaiSession                OpenaiSession?  @relation(fields: [openaiSessionId], references: [id])
   openaiSessionId              String?
+  webhookUrl                   String?         @db.VarChar(500)
 }
 
 model MessageUpdate {
