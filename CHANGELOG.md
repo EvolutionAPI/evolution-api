@@ -1,5 +1,9 @@
 # 2.0.3-beta (beta)
 
+### Features
+
+* Webhook url by submitted template to send status updates
+
 ### Fixed
 
 * Equations and adjustments for the new manager
