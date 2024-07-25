@@ -3,6 +3,7 @@
 ### Features
 
 * Webhook url by submitted template to send status updates
+* Sending template approval status webhook
 
 ### Fixed
 

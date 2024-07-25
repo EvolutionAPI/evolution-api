@@ -90,7 +90,7 @@ export class InstanceController {
     businessId,
   }: InstanceDto) {
     try {
-      if (token) await this.authService.checkDuplicateToken(token);
+      // if (token) await this.authService.checkDuplicateToken(token);
 
       if (!token && integration === Integration.WHATSAPP_BUSINESS) {
         throw new BadRequestException('token is required');
@@ -623,14 +623,14 @@ export class InstanceController {
     // let arrayReturn = false;
 
     if (env.KEY !== key) {
-      const instanceByKey = await this.prismaRepository.instance.findUnique({
+      const instanceByKey = await this.prismaRepository.instance.findMany({
         where: {
           token: key,
         },
       });
 
       if (instanceByKey) {
-        name = instanceByKey.name;
+        name = instanceByKey[0].name;
         // arrayReturn = true;
       } else {
         throw new UnauthorizedException();

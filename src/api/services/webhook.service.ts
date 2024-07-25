@@ -1,4 +1,5 @@
 import { Webhook } from '@prisma/client';
+import axios from 'axios';
 
 import { Logger } from '../../config/logger.config';
 import { InstanceDto } from '../dto/instance.dto';
@@ -33,6 +34,26 @@ export class WebhookService {
 
   public async receiveWebhook(data: any) {
     if (data.object === 'whatsapp_business_account') {
+      if (data.entry[0]?.changes[0]?.field === 'message_template_status_update') {
+        const template = await this.prismaRepository.template.findFirst({
+          where: { templateId: `${data.entry[0].changes[0].value.message_template_id}` },
+        });
+
+        if (!template) {
+          console.log('template not found');
+          return;
+        }
+
+        const { webhookUrl } = template;
+
+        await axios.post(webhookUrl, data.entry[0].changes[0].value, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        return;
+      }
+
       data.entry?.forEach(async (entry: any) => {
         const numberId = entry.changes[0].value.metadata.phone_number_id;
 

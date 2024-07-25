@@ -59,11 +59,21 @@ export class TemplateService {
 
       const response = await this.requestTemplate(postData, 'POST');
 
-      if (!response) {
-        return response;
+      if (!response || response.error) {
+        throw new Error('Error to create template');
       }
 
-      return response;
+      const template = await this.prismaRepository.template.create({
+        data: {
+          templateId: response.id,
+          name: data.name,
+          template: response,
+          webhookUrl: data.webhookUrl,
+          instanceId: getInstance.id,
+        },
+      });
+
+      return template;
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error to create template');

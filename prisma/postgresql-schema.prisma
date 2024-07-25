@@ -56,7 +56,7 @@ model Instance {
   integration      String?                  @db.VarChar(100)
   number           String?                  @db.VarChar(100)
   businessId       String?                  @db.VarChar(100)
-  token            String?                  @unique @db.VarChar(255)
+  token            String?                  @db.VarChar(255)
   clientName       String?                  @db.VarChar(100)
   createdAt        DateTime?                @default(now()) @db.Timestamp
   updatedAt        DateTime?                @updatedAt @db.Timestamp
@@ -81,6 +81,7 @@ model Instance {
   OpenaiBot        OpenaiBot[]
   OpenaiSession    OpenaiSession[]
   OpenaiSetting    OpenaiSetting?
+  Template         Template[]
 }
 
 model Session {
@@ -411,4 +412,16 @@ model OpenaiSetting {
   openaiIdFallback String?      @db.VarChar(100)
   Instance         Instance     @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId       String       @unique
+}
+
+model Template {
+  id         String    @id @default(cuid())
+  templateId String    @unique @db.VarChar(255)
+  name       String    @unique @db.VarChar(255)
+  template   Json      @db.JsonB
+  webhookUrl String?   @db.VarChar(500)
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
 }

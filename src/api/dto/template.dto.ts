@@ -4,4 +4,5 @@ export class TemplateDto {
   allowCategoryChange: boolean;
   language: string;
   components: any;
+  webhookUrl?: string;
 }

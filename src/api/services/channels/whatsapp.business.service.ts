@@ -126,6 +126,7 @@ export class BusinessStartupService extends ChannelStartupService {
     if (!data) return;
 
     const content = data.entry[0].changes[0].value;
+
     try {
       this.loadWebhook();
       this.loadChatwoot();
@@ -297,6 +298,7 @@ export class BusinessStartupService extends ChannelStartupService {
 
   protected async messageHandle(received: any, database: Database, settings: any) {
     try {
+      console.log(received);
       let messageRaw: any;
       let pushName: any;
 
