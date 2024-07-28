@@ -491,8 +491,6 @@ export class BusinessStartupService extends ChannelStartupService {
             return;
           }
           if (key.remoteJid !== 'status@broadcast' && !key?.remoteJid?.match(/(:\d+)/)) {
-            if (item.status === 'read' && !key.fromMe) return;
-
             const findMessage = await this.prismaRepository.message.findFirst({
               where: {
                 instanceId: this.instanceId,
