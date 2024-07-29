@@ -371,7 +371,7 @@ export class OpenaiService {
       throw new Error('Openai Bot already exists');
     }
 
-    if (data.triggerType !== 'all') {
+    if (data.triggerType === 'keyword') {
       if (!data.triggerOperator || !data.triggerValue) {
         throw new Error('Trigger operator and value are required');
       }
@@ -449,7 +449,6 @@ export class OpenaiService {
     });
 
     if (!openaiBots.length) {
-      this.logger.error('Openai bot not found');
       return null;
     }
 
@@ -618,7 +617,7 @@ export class OpenaiService {
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
-        openaiIdFallback: settings.Fallback,
+        openaiIdFallback: settings.openaiIdFallback,
         fallback: settings.Fallback,
       };
     } catch (error) {
@@ -1152,7 +1151,7 @@ export class OpenaiService {
           data: {
             remoteJid: data.remoteJid,
             sessionId: threadId,
-            status: 'open',
+            status: 'opened',
             awaitUser: false,
             openaiBotId: data.openaiBotId,
             instanceId: instance.instanceId,
@@ -1217,7 +1216,7 @@ export class OpenaiService {
         id: session.id,
       },
       data: {
-        status: 'open',
+        status: 'opened',
         awaitUser: true,
       },
     });
@@ -1255,7 +1254,7 @@ export class OpenaiService {
     settings: OpenaiSetting,
     content: string,
   ) {
-    if (session && session.status !== 'open') {
+    if (session && session.status !== 'opened') {
       return;
     }
 
@@ -1291,7 +1290,7 @@ export class OpenaiService {
         id: session.id,
       },
       data: {
-        status: 'open',
+        status: 'opened',
         awaitUser: false,
       },
     });
@@ -1369,7 +1368,7 @@ export class OpenaiService {
         id: session.id,
       },
       data: {
-        status: 'open',
+        status: 'opened',
         awaitUser: true,
       },
     });
@@ -1397,7 +1396,7 @@ export class OpenaiService {
         data: {
           remoteJid: data.remoteJid,
           sessionId: id,
-          status: 'open',
+          status: 'opened',
           awaitUser: false,
           openaiBotId: data.openaiBotId,
           instanceId: instance.instanceId,
@@ -1497,7 +1496,7 @@ export class OpenaiService {
         id: session.id,
       },
       data: {
-        status: 'open',
+        status: 'opened',
         awaitUser: true,
       },
     });
@@ -1515,7 +1514,7 @@ export class OpenaiService {
     settings: OpenaiSetting,
     content: string,
   ) {
-    if (session && session.status !== 'open') {
+    if (session && session.status !== 'opened') {
       return;
     }
 
@@ -1551,7 +1550,7 @@ export class OpenaiService {
         id: session.id,
       },
       data: {
-        status: 'open',
+        status: 'opened',
         awaitUser: false,
       },
     });
@@ -1659,7 +1658,7 @@ export class OpenaiService {
         id: session.id,
       },
       data: {
-        status: 'open',
+        status: 'opened',
         awaitUser: true,
       },
     });

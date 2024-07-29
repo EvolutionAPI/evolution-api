@@ -36,6 +36,7 @@ enum TypebotSessionStatus {
 enum TriggerType {
   all
   keyword
+  none
 }
 
 enum TriggerOperator {

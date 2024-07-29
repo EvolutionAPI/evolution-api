@@ -28,7 +28,7 @@ enum DeviceMessage {
 }
 
 enum TypebotSessionStatus {
-  open
+  opened
   closed
   paused
 }
@@ -292,7 +292,7 @@ model TypebotSession {
   remoteJid          String    @db.VarChar(100)
   pushName           String?   @db.VarChar(100)
   sessionId          String    @db.VarChar(100)
-  status             String    @db.VarChar(100)
+  status             TypebotSessionStatus
   prefilledVariables Json?     @db.JsonB
   awaitUser          Boolean   @default(false) @db.Boolean
   createdAt          DateTime? @default(now()) @db.Timestamp

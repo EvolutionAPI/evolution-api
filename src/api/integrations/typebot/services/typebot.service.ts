@@ -229,7 +229,7 @@ export class TypebotService {
       throw new Error('Typebot already exists');
     }
 
-    if (data.triggerType !== 'all') {
+    if (data.triggerType === 'keyword') {
       if (!data.triggerOperator || !data.triggerValue) {
         throw new Error('Trigger operator and value are required');
       }
@@ -300,7 +300,6 @@ export class TypebotService {
     });
 
     if (!typebots.length) {
-      this.logger.error('Typebot not found');
       return null;
     }
 
