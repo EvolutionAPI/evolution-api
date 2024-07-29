@@ -863,7 +863,7 @@ export class OpenaiService {
     if (findTriggerRegex) return findTriggerRegex;
 
     // Check for startsWith match
-    const findTriggerStartsWith = await this.prismaRepository.openaiBot.findFirst({
+    const findStartsWith = await this.prismaRepository.openaiBot.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -875,10 +875,19 @@ export class OpenaiService {
       },
     });
 
+    let findTriggerStartsWith = null;
+
+    for (const startsWith of findStartsWith) {
+      if (content.startsWith(startsWith.triggerValue)) {
+        findTriggerStartsWith = startsWith;
+        break;
+      }
+    }
+
     if (findTriggerStartsWith) return findTriggerStartsWith;
 
     // Check for endsWith match
-    const findTriggerEndsWith = await this.prismaRepository.openaiBot.findFirst({
+    const findEndsWith = await this.prismaRepository.openaiBot.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -890,10 +899,19 @@ export class OpenaiService {
       },
     });
 
+    let findTriggerEndsWith = null;
+
+    for (const endsWith of findEndsWith) {
+      if (content.endsWith(endsWith.triggerValue)) {
+        findTriggerEndsWith = endsWith;
+        break;
+      }
+    }
+
     if (findTriggerEndsWith) return findTriggerEndsWith;
 
     // Check for contains match
-    const findTriggerContains = await this.prismaRepository.openaiBot.findFirst({
+    const findContains = await this.prismaRepository.openaiBot.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -904,6 +922,15 @@ export class OpenaiService {
         instanceId: instanceId,
       },
     });
+
+    let findTriggerContains = null;
+
+    for (const contains of findContains) {
+      if (content.includes(contains.triggerValue)) {
+        findTriggerContains = contains;
+        break;
+      }
+    }
 
     if (findTriggerContains) return findTriggerContains;
 
