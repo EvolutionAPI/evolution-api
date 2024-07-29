@@ -1,3 +1,9 @@
+# 2.0.4-beta (beta)
+
+### Fixed
+
+* Update Baileys Version
+
 # 2.0.3-beta (2024-07-29 09:03)
 
 ### Features
