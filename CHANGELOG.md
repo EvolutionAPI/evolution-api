@@ -4,6 +4,8 @@
 
 * Update Baileys Version
 * Adjusts for new manager
+* Corrected openai trigger validation
+* Corrected typebot trigger validation
 
 # 2.0.3-beta (2024-07-29 09:03)
 
