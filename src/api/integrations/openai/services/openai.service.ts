@@ -730,15 +730,42 @@ export class OpenaiService {
         })
         .then((instance) => instance.id);
 
+      const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
+        where: {
+          instanceId,
+        },
+      });
+
       const remoteJid = data.remoteJid;
       const status = data.status;
 
-      if (status === 'closed') {
+      if (status === 'delete') {
         await this.prismaRepository.openaiSession.deleteMany({
           where: {
             remoteJid: remoteJid,
           },
         });
+
+        return { openai: { remoteJid: remoteJid, status: status } };
+      }
+
+      if (status === 'closed') {
+        if (defaultSettingCheck?.keepOpen) {
+          await this.prismaRepository.openaiSession.updateMany({
+            where: {
+              remoteJid: remoteJid,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
+        } else {
+          await this.prismaRepository.openaiSession.deleteMany({
+            where: {
+              remoteJid: remoteJid,
+            },
+          });
+        }
 
         return { openai: { ...instance, openai: { remoteJid: remoteJid, status: status } } };
       } else {
@@ -1085,17 +1112,28 @@ export class OpenaiService {
         participant: string;
       };
 
-      if (!listeningFromMe && key.fromMe) {
+      if (stopBotFromMe && key.fromMe && session) {
+        if (keepOpen) {
+          await this.prismaRepository.openaiSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
+        } else {
+          await this.prismaRepository.openaiSession.deleteMany({
+            where: {
+              openaiBotId: findOpenai.id,
+              remoteJid: remoteJid,
+            },
+          });
+        }
         return;
       }
 
-      if (stopBotFromMe && listeningFromMe && key.fromMe && session) {
-        await this.prismaRepository.openaiSession.deleteMany({
-          where: {
-            openaiBotId: findOpenai.id,
-            remoteJid: remoteJid,
-          },
-        });
+      if (!listeningFromMe && key.fromMe) {
         return;
       }
 
@@ -1295,12 +1333,23 @@ export class OpenaiService {
       const diffInMinutes = Math.floor(diff / 1000 / 60);
 
       if (diffInMinutes > settings.expire) {
-        await this.prismaRepository.openaiSession.deleteMany({
-          where: {
-            openaiBotId: openaiBot.id,
-            remoteJid: remoteJid,
-          },
-        });
+        if (settings.keepOpen) {
+          await this.prismaRepository.openaiSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
+        } else {
+          await this.prismaRepository.openaiSession.deleteMany({
+            where: {
+              openaiBotId: openaiBot.id,
+              remoteJid: remoteJid,
+            },
+          });
+        }
 
         await this.initAssistantNewSession(instance, remoteJid, openaiBot, settings, session, content);
         return;
@@ -1339,12 +1388,23 @@ export class OpenaiService {
     }
 
     if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
-      await this.prismaRepository.openaiSession.deleteMany({
-        where: {
-          openaiBotId: openaiBot.id,
-          remoteJid: remoteJid,
-        },
-      });
+      if (settings.keepOpen) {
+        await this.prismaRepository.openaiSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'closed',
+          },
+        });
+      } else {
+        await this.prismaRepository.openaiSession.deleteMany({
+          where: {
+            openaiBotId: openaiBot.id,
+            remoteJid: remoteJid,
+          },
+        });
+      }
       return;
     }
 
@@ -1555,12 +1615,23 @@ export class OpenaiService {
       const diffInMinutes = Math.floor(diff / 1000 / 60);
 
       if (diffInMinutes > settings.expire) {
-        await this.prismaRepository.openaiSession.deleteMany({
-          where: {
-            openaiBotId: openaiBot.id,
-            remoteJid: remoteJid,
-          },
-        });
+        if (settings.keepOpen) {
+          await this.prismaRepository.openaiSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
+        } else {
+          await this.prismaRepository.openaiSession.deleteMany({
+            where: {
+              openaiBotId: openaiBot.id,
+              remoteJid: remoteJid,
+            },
+          });
+        }
 
         await this.initChatCompletionNewSession(instance, remoteJid, openaiBot, settings, session, content);
         return;
@@ -1599,12 +1670,23 @@ export class OpenaiService {
     }
 
     if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
-      await this.prismaRepository.openaiSession.deleteMany({
-        where: {
-          openaiBotId: openaiBot.id,
-          remoteJid: remoteJid,
-        },
-      });
+      if (settings.keepOpen) {
+        await this.prismaRepository.openaiSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'closed',
+          },
+        });
+      } else {
+        await this.prismaRepository.openaiSession.deleteMany({
+          where: {
+            openaiBotId: openaiBot.id,
+            remoteJid: remoteJid,
+          },
+        });
+      }
       return;
     }
 
