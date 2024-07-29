@@ -1292,47 +1292,65 @@ export class TypebotService {
     if (findTriggerRegex) return findTriggerRegex;
 
     // Check for startsWith match
-    const findTriggerStartsWith = await this.prismaRepository.typebot.findFirst({
+    const findStartsWith = await this.prismaRepository.typebot.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'startsWith',
-        triggerValue: {
-          startsWith: content,
-        },
         instanceId: instanceId,
       },
     });
+
+    let findTriggerStartsWith = null;
+
+    for (const startsWith of findStartsWith) {
+      if (content.startsWith(startsWith.triggerValue)) {
+        findTriggerStartsWith = startsWith;
+        break;
+      }
+    }
 
     if (findTriggerStartsWith) return findTriggerStartsWith;
 
     // Check for endsWith match
-    const findTriggerEndsWith = await this.prismaRepository.typebot.findFirst({
+    const findEndsWith = await this.prismaRepository.typebot.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'endsWith',
-        triggerValue: {
-          endsWith: content,
-        },
         instanceId: instanceId,
       },
     });
+
+    let findTriggerEndsWith = null;
+
+    for (const endsWith of findEndsWith) {
+      if (content.endsWith(endsWith.triggerValue)) {
+        findTriggerEndsWith = endsWith;
+        break;
+      }
+    }
 
     if (findTriggerEndsWith) return findTriggerEndsWith;
 
     // Check for contains match
-    const findTriggerContains = await this.prismaRepository.typebot.findFirst({
+    const findContains = await this.prismaRepository.typebot.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'contains',
-        triggerValue: {
-          contains: content,
-        },
         instanceId: instanceId,
       },
     });
+
+    let findTriggerContains = null;
+
+    for (const contains of findContains) {
+      if (content.includes(contains.triggerValue)) {
+        findTriggerContains = contains;
+        break;
+      }
+    }
 
     if (findTriggerContains) return findTriggerContains;
 
