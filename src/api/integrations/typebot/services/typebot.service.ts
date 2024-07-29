@@ -579,7 +579,13 @@ export class TypebotService {
       const remoteJid = data.remoteJid;
       const status = data.status;
 
-      if (status === 'closed') {
+      const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
+        where: {
+          instanceId,
+        },
+      });
+
+      if (status === 'delete') {
         await this.prismaRepository.typebotSession.deleteMany({
           where: {
             remoteJid: remoteJid,
@@ -588,27 +594,50 @@ export class TypebotService {
         });
 
         return { typebot: { ...instance, typebot: { remoteJid: remoteJid, status: status } } };
-      } else {
-        const session = await this.prismaRepository.typebotSession.updateMany({
-          where: {
-            instanceId: instanceId,
-            remoteJid: remoteJid,
-          },
-          data: {
-            status: status,
-          },
-        });
-
-        const typebotData = {
-          remoteJid: remoteJid,
-          status: status,
-          session,
-        };
-
-        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);
-
-        return { typebot: { ...instance, typebot: typebotData } };
       }
+
+      if (status === 'closed') {
+        if (defaultSettingCheck?.keepOpen) {
+          await this.prismaRepository.typebotSession.updateMany({
+            where: {
+              instanceId: instanceId,
+              remoteJid: remoteJid,
+            },
+            data: {
+              status: status,
+            },
+          });
+        } else {
+          await this.prismaRepository.typebotSession.deleteMany({
+            where: {
+              remoteJid: remoteJid,
+              instanceId: instanceId,
+            },
+          });
+        }
+
+        return { typebot: { ...instance, typebot: { remoteJid: remoteJid, status: status } } };
+      }
+
+      const session = await this.prismaRepository.typebotSession.updateMany({
+        where: {
+          instanceId: instanceId,
+          remoteJid: remoteJid,
+        },
+        data: {
+          status: status,
+        },
+      });
+
+      const typebotData = {
+        remoteJid: remoteJid,
+        status: status,
+        session,
+      };
+
+      this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);
+
+      return { typebot: { ...instance, typebot: typebotData } };
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error changing status');
@@ -719,7 +748,6 @@ export class TypebotService {
     }
 
     if (startSession) {
-      console.log('startSession', startSession);
       let findTypebot: any = await this.prismaRepository.typebot.findFirst({
         where: {
           url: url,
@@ -727,8 +755,6 @@ export class TypebotService {
           instanceId,
         },
       });
-
-      console.log('findTypebot', findTypebot);
 
       if (!findTypebot) {
         findTypebot = await this.prismaRepository.typebot.create({
@@ -748,8 +774,6 @@ export class TypebotService {
           },
         });
       }
-
-      console.log('findTypebot2', findTypebot);
 
       await this.prismaRepository.typebotSession.deleteMany({
         where: {
@@ -1500,17 +1524,28 @@ export class TypebotService {
         participant: string;
       };
 
-      if (!listeningFromMe && key.fromMe) {
+      if (stopBotFromMe && key.fromMe && session) {
+        if (keepOpen) {
+          await this.prismaRepository.typebotSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
+        } else {
+          await this.prismaRepository.typebotSession.deleteMany({
+            where: {
+              typebotId: findTypebot.id,
+              remoteJid: remoteJid,
+            },
+          });
+        }
         return;
       }
 
-      if (stopBotFromMe && listeningFromMe && key.fromMe && session) {
-        await this.prismaRepository.typebotSession.deleteMany({
-          where: {
-            typebotId: findTypebot.id,
-            remoteJid: remoteJid,
-          },
-        });
+      if (!listeningFromMe && key.fromMe) {
         return;
       }
 
@@ -1554,24 +1589,6 @@ export class TypebotService {
         );
       }
 
-      // await this.processTypebot(
-      //   instance,
-      //   remoteJid,
-      //   msg,
-      //   session,
-      //   findTypebot,
-      //   url,
-      //   expire,
-      //   typebot,
-      //   keywordFinish,
-      //   delayMessage,
-      //   unknownMessage,
-      //   listeningFromMe,
-      //   stopBotFromMe,
-      //   keepOpen,
-      //   content,
-      // );
-
       if (session && !session.awaitUser) return;
     } catch (error) {
       this.logger.error(error);
@@ -1606,12 +1623,23 @@ export class TypebotService {
       const diffInMinutes = Math.floor(diff / 1000 / 60);
 
       if (diffInMinutes > expire) {
-        await this.prismaRepository.typebotSession.deleteMany({
-          where: {
-            typebotId: findTypebot.id,
-            remoteJid: remoteJid,
-          },
-        });
+        if (keepOpen) {
+          await this.prismaRepository.typebotSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
+        } else {
+          await this.prismaRepository.typebotSession.deleteMany({
+            where: {
+              typebotId: findTypebot.id,
+              remoteJid: remoteJid,
+            },
+          });
+        }
 
         const data = await this.createNewSession(instance, {
           enabled: findTypebot.enabled,
@@ -1669,12 +1697,23 @@ export class TypebotService {
           }
 
           if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-            await this.prismaRepository.typebotSession.deleteMany({
-              where: {
-                typebotId: findTypebot.id,
-                remoteJid: remoteJid,
-              },
-            });
+            if (keepOpen) {
+              await this.prismaRepository.typebotSession.update({
+                where: {
+                  id: session.id,
+                },
+                data: {
+                  status: 'closed',
+                },
+              });
+            } else {
+              await this.prismaRepository.typebotSession.deleteMany({
+                where: {
+                  typebotId: findTypebot.id,
+                  remoteJid: remoteJid,
+                },
+              });
+            }
             return;
           }
 
@@ -1783,12 +1822,23 @@ export class TypebotService {
         }
 
         if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-          await this.prismaRepository.typebotSession.deleteMany({
-            where: {
-              typebotId: findTypebot.id,
-              remoteJid: remoteJid,
-            },
-          });
+          if (keepOpen) {
+            await this.prismaRepository.typebotSession.update({
+              where: {
+                id: session.id,
+              },
+              data: {
+                status: 'closed',
+              },
+            });
+          } else {
+            await this.prismaRepository.typebotSession.deleteMany({
+              where: {
+                typebotId: findTypebot.id,
+                remoteJid: remoteJid,
+              },
+            });
+          }
 
           return;
         }
@@ -1864,12 +1914,23 @@ export class TypebotService {
     }
 
     if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
-      await this.prismaRepository.typebotSession.deleteMany({
-        where: {
-          typebotId: findTypebot.id,
-          remoteJid: remoteJid,
-        },
-      });
+      if (keepOpen) {
+        await this.prismaRepository.typebotSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'closed',
+          },
+        });
+      } else {
+        await this.prismaRepository.typebotSession.deleteMany({
+          where: {
+            typebotId: findTypebot.id,
+            remoteJid: remoteJid,
+          },
+        });
+      }
       return;
     }
 

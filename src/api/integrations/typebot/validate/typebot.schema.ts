@@ -47,7 +47,7 @@ export const typebotStatusSchema: JSONSchema7 = {
   type: 'object',
   properties: {
     remoteJid: { type: 'string' },
-    status: { type: 'string', enum: ['opened', 'closed', 'paused'] },
+    status: { type: 'string', enum: ['opened', 'closed', 'paused', 'delete'] },
   },
   required: ['remoteJid', 'status'],
   ...isNotEmpty('remoteJid', 'status'),

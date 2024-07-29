@@ -850,15 +850,6 @@ export class BusinessStartupService extends ChannelStartupService {
         );
       }
 
-      if (this.configService.get<Typebot>('TYPEBOT').ENABLED && !isIntegration) {
-        if (messageRaw.messageType !== 'reactionMessage')
-          await this.typebotService.sendTypebot(
-            { instanceName: this.instance.name, instanceId: this.instanceId },
-            messageRaw.key.remoteJid,
-            messageRaw,
-          );
-      }
-
       await this.prismaRepository.message.create({
         data: messageRaw,
       });

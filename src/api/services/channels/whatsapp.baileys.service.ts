@@ -1951,15 +1951,6 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
 
-      if (this.configService.get<Typebot>('TYPEBOT').ENABLED && !isIntegration) {
-        if (messageRaw.messageType !== 'reactionMessage')
-          await this.typebotService.sendTypebot(
-            { instanceName: this.instance.name, instanceId: this.instanceId },
-            messageRaw.key.remoteJid,
-            messageRaw,
-          );
-      }
-
       if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE)
         await this.prismaRepository.message.create({
           data: messageRaw,
