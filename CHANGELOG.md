@@ -3,6 +3,7 @@
 ### Fixed
 
 * Update Baileys Version
+* Adjusts for new manager
 
 # 2.0.3-beta (2024-07-29 09:03)
 
