@@ -619,6 +619,14 @@ export class TypebotService {
   public async startTypebot(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
 
+    const instanceId = await this.prismaRepository.instance
+      .findFirst({
+        where: {
+          name: instance.instanceName,
+        },
+      })
+      .then((instance) => instance.id);
+
     const remoteJid = data.remoteJid;
     const url = data.url;
     const typebot = data.typebot;
@@ -634,7 +642,7 @@ export class TypebotService {
 
     const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
       where: {
-        instanceId: instance.instanceId,
+        instanceId,
       },
     });
 
@@ -712,13 +720,16 @@ export class TypebotService {
     }
 
     if (startSession) {
+      console.log('startSession', startSession);
       let findTypebot: any = await this.prismaRepository.typebot.findFirst({
         where: {
           url: url,
           typebot: typebot,
-          instanceId: instance.instanceId,
+          instanceId,
         },
       });
+
+      console.log('findTypebot', findTypebot);
 
       if (!findTypebot) {
         findTypebot = await this.prismaRepository.typebot.create({
@@ -727,39 +738,48 @@ export class TypebotService {
             url: url,
             typebot: typebot,
             expire: expire,
+            triggerType: 'none',
             keywordFinish: keywordFinish,
             delayMessage: delayMessage,
             unknownMessage: unknownMessage,
             listeningFromMe: listeningFromMe,
             stopBotFromMe: stopBotFromMe,
             keepOpen: keepOpen,
-            instanceId: instance.instanceId,
+            instanceId,
           },
         });
       }
 
+      console.log('findTypebot2', findTypebot);
+
       await this.prismaRepository.typebotSession.deleteMany({
         where: {
           remoteJid: remoteJid,
-          instanceId: instance.instanceId,
+          instanceId,
         },
       });
 
-      const response = await this.createNewSession(instance, {
-        enabled: true,
-        url: url,
-        typebot: typebot,
-        remoteJid: remoteJid,
-        expire: expire,
-        keywordFinish: keywordFinish,
-        delayMessage: delayMessage,
-        unknownMessage: unknownMessage,
-        listeningFromMe: listeningFromMe,
-        stopBotFromMe: stopBotFromMe,
-        keepOpen: keepOpen,
-        prefilledVariables: prefilledVariables,
-        typebotId: findTypebot.id,
-      });
+      const response = await this.createNewSession(
+        {
+          instanceName: instance.instanceName,
+          instanceId: instanceId,
+        },
+        {
+          enabled: true,
+          url: url,
+          typebot: typebot,
+          remoteJid: remoteJid,
+          expire: expire,
+          keywordFinish: keywordFinish,
+          delayMessage: delayMessage,
+          unknownMessage: unknownMessage,
+          listeningFromMe: listeningFromMe,
+          stopBotFromMe: stopBotFromMe,
+          keepOpen: keepOpen,
+          prefilledVariables: prefilledVariables,
+          typebotId: findTypebot.id,
+        },
+      );
 
       if (response.sessionId) {
         await this.sendWAMessage(

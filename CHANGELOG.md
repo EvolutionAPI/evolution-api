@@ -9,6 +9,7 @@
 
 * Equations and adjustments for the new manager
 * Adjust TriggerType for OpenAI and Typebot integrations
+* Fixed Typebot start call with active session
 
 # 2.0.2-beta (2024-07-18 21:33)
 
