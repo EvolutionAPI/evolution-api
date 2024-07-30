@@ -604,7 +604,19 @@ export class OpenaiService {
       });
 
       if (!settings) {
-        throw new Error('Default settings not found');
+        return {
+          openaiCredsId: null,
+          expire: 0,
+          keywordFinish: '',
+          delayMessage: 0,
+          unknownMessage: '',
+          listeningFromMe: false,
+          stopBotFromMe: false,
+          keepOpen: false,
+          ignoreJids: [],
+          openaiIdFallback: null,
+          fallback: null,
+        };
       }
 
       return {

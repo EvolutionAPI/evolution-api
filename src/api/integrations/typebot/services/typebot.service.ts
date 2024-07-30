@@ -451,7 +451,18 @@ export class TypebotService {
       });
 
       if (!settings) {
-        throw new Error('Default settings not found');
+        return {
+          expire: 0,
+          keywordFinish: '',
+          delayMessage: 0,
+          unknownMessage: '',
+          listeningFromMe: false,
+          stopBotFromMe: false,
+          keepOpen: false,
+          ignoreJids: [],
+          typebotIdFallback: null,
+          fallback: null,
+        };
       }
 
       return {

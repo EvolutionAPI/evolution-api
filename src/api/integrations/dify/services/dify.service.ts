@@ -453,7 +453,18 @@ export class DifyService {
       });
 
       if (!settings) {
-        throw new Error('Default settings not found');
+        return {
+          expire: 0,
+          keywordFinish: '',
+          delayMessage: 0,
+          unknownMessage: '',
+          listeningFromMe: false,
+          stopBotFromMe: false,
+          keepOpen: false,
+          ignoreJids: [],
+          difyIdFallback: '',
+          fallback: null,
+        };
       }
 
       return {
