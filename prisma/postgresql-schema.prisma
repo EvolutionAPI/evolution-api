@@ -47,6 +47,18 @@ enum TriggerOperator {
   regex
 }
 
+enum OpenaiBotType {
+  assistant
+  chatCompletion
+}
+
+enum DifyBotType {
+  chatBot
+  textGenerator
+  agent
+  workflow
+}
+
 model Instance {
   id               String                   @id @default(cuid())
   name             String                   @unique @db.VarChar(255)
@@ -83,6 +95,9 @@ model Instance {
   OpenaiSession    OpenaiSession[]
   OpenaiSetting    OpenaiSetting?
   Template         Template[]
+  Dify             Dify[]
+  DifySession      DifySession[]
+  DifySetting      DifySetting?
 }
 
 model Session {
@@ -138,6 +153,8 @@ model Message {
   OpenaiSession                OpenaiSession?  @relation(fields: [openaiSessionId], references: [id])
   openaiSessionId              String?
   webhookUrl                   String?         @db.VarChar(500)
+  DifySession                  DifySession?    @relation(fields: [difySessionId], references: [id])
+  difySessionId                String?
 }
 
 model MessageUpdate {
@@ -288,19 +305,19 @@ model Typebot {
 }
 
 model TypebotSession {
-  id                 String    @id @default(cuid())
-  remoteJid          String    @db.VarChar(100)
-  pushName           String?   @db.VarChar(100)
-  sessionId          String    @db.VarChar(100)
+  id                 String               @id @default(cuid())
+  remoteJid          String               @db.VarChar(100)
+  pushName           String?              @db.VarChar(100)
+  sessionId          String               @db.VarChar(100)
   status             TypebotSessionStatus
-  prefilledVariables Json?     @db.JsonB
-  awaitUser          Boolean   @default(false) @db.Boolean
-  createdAt          DateTime? @default(now()) @db.Timestamp
-  updatedAt          DateTime  @updatedAt @db.Timestamp
-  Typebot            Typebot   @relation(fields: [typebotId], references: [id], onDelete: Cascade)
+  prefilledVariables Json?                @db.JsonB
+  awaitUser          Boolean              @default(false) @db.Boolean
+  createdAt          DateTime?            @default(now()) @db.Timestamp
+  updatedAt          DateTime             @updatedAt @db.Timestamp
+  Typebot            Typebot              @relation(fields: [typebotId], references: [id], onDelete: Cascade)
   typebotId          String
   Message            Message[]
-  Instance           Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  Instance           Instance             @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId         String
 }
 
@@ -350,8 +367,8 @@ model OpenaiCreds {
 model OpenaiBot {
   id                String           @id @default(cuid())
   enabled           Boolean          @default(true) @db.Boolean
-  botType           String           @db.VarChar(100)
-  assistantId       String?          @unique @db.VarChar(255)
+  botType           OpenaiBotType
+  assistantId       String?          @db.VarChar(255)
   model             String?          @db.VarChar(100)
   systemMessages    Json?            @db.JsonB
   assistantMessages Json?            @db.JsonB
@@ -425,4 +442,64 @@ model Template {
   updatedAt  DateTime  @updatedAt @db.Timestamp
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String
+}
+
+model Dify {
+  id              String           @id @default(cuid())
+  enabled         Boolean          @default(true) @db.Boolean
+  botType         DifyBotType
+  apiUrl          String?          @db.VarChar(255)
+  apiKey          String?          @db.VarChar(255)
+  expire          Int?             @default(0) @db.Integer
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
+  ignoreJids      Json?
+  triggerType     TriggerType?
+  triggerOperator TriggerOperator?
+  triggerValue    String?
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime         @updatedAt @db.Timestamp
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
+  DifySession     DifySession[]
+  DifySetting     DifySetting[]
+}
+
+model DifySession {
+  id         String               @id @default(cuid())
+  sessionId  String               @db.VarChar(255)
+  remoteJid  String               @db.VarChar(100)
+  status     TypebotSessionStatus
+  awaitUser  Boolean              @default(false) @db.Boolean
+  createdAt  DateTime?            @default(now()) @db.Timestamp
+  updatedAt  DateTime             @updatedAt @db.Timestamp
+  Dify       Dify                 @relation(fields: [difyId], references: [id], onDelete: Cascade)
+  difyId     String
+  Message    Message[]
+  Instance   Instance             @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
+}
+
+model DifySetting {
+  id              String    @id @default(cuid())
+  expire          Int?      @default(0) @db.Integer
+  keywordFinish   String?   @db.VarChar(100)
+  delayMessage    Int?      @db.Integer
+  unknownMessage  String?   @db.VarChar(100)
+  listeningFromMe Boolean?  @default(false) @db.Boolean
+  stopBotFromMe   Boolean?  @default(false) @db.Boolean
+  keepOpen        Boolean?  @default(false) @db.Boolean
+  debounceTime    Int?      @db.Integer
+  ignoreJids      Json?
+  createdAt       DateTime? @default(now()) @db.Timestamp
+  updatedAt       DateTime  @updatedAt @db.Timestamp
+  Fallback        Dify?     @relation(fields: [difyIdFallback], references: [id])
+  difyIdFallback  String?   @db.VarChar(100)
+  Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String    @unique
 }
