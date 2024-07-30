@@ -1,4 +1,4 @@
-# 2.0.4-rc (release candidate)
+# 2.0.4-rc (2024-07-30 14:13)
 
 ### Features
 
