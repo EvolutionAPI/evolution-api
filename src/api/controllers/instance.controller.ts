@@ -594,11 +594,11 @@ export class InstanceController {
       switch (state) {
         case 'open':
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instance.clearCacheChatwoot();
-          // await instance.reloadConnection();
-          await instance.client?.ws?.close();
-          await delay(2000);
 
-          return await this.connectionState({ instanceName });
+          this.logger.info('Connection closed, restarting instance' + instanceName);
+          instance.client?.ws?.close();
+          instance.client?.end(new Error('restart'));
+          return await this.connectToWhatsapp({ instanceName });
         default:
           return await this.connectionState({ instanceName });
       }
@@ -690,7 +690,6 @@ export class InstanceController {
         this.logger.error(error);
       }
 
-      delete this.waMonitor.waInstances[instanceName];
       this.eventEmitter.emit('remove.instance', instanceName, 'inner');
       return { status: 'SUCCESS', error: false, response: { message: 'Instance deleted' } };
     } catch (error) {

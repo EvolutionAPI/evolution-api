@@ -1,8 +1,8 @@
-# 2.0.4-beta (beta)
+# 2.0.4-rc (release candidate)
 
 ### Features
 
-* New manager v2.0.0
+* New manager v2.0
 
 ### Fixed
 

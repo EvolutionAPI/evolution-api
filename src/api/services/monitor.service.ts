@@ -337,16 +337,16 @@ export class WAMonitoringService {
   private removeInstance() {
     this.eventEmitter.on('remove.instance', async (instanceName: string) => {
       try {
-        this.waInstances[instanceName] = undefined;
-      } catch (error) {
-        this.logger.error(error);
-      }
-
-      try {
         this.cleaningUp(instanceName);
         this.cleaningStoreData(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - REMOVED`);
+      }
+
+      try {
+        delete this.waInstances[instanceName];
+      } catch (error) {
+        this.logger.error(error);
       }
     });
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
