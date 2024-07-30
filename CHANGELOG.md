@@ -1,3 +1,9 @@
+# 2.0.5-rc (release candidate)
+
+### Fixed
+
+* ClientName on infos
+
 # 2.0.4-rc (2024-07-30 14:13)
 
 ### Features
