@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.0.3-beta",
+  "version": "2.0.4-beta",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/src/main.js",
   "scripts": {
@@ -62,7 +62,7 @@
     "dayjs": "^1.11.7",
     "dotenv": "^16.4.5",
     "eventemitter2": "^6.4.9",
-    "evolution-manager": "^0.4.13",
+    "evolution-manager-v2": "^0.0.2",
     "exiftool-vendored": "^22.0.0",
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",

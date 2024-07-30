@@ -1,5 +1,9 @@
 # 2.0.4-beta (beta)
 
+### Features
+
+* New manager v2.0.0
+
 ### Fixed
 
 * Update Baileys Version

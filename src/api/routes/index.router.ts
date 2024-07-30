@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import fs from 'fs';
+import mime from 'mime';
+import path from 'path';
 
 import { configService, WaBusiness } from '../../config/env.config';
 import { authGuard } from '../guards/auth.guard';
@@ -43,6 +45,20 @@ const telemetry = new Telemetry();
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
 if (!serverConfig.DISABLE_MANAGER) router.use('/manager', new ViewsRouter().router);
+
+router.get('/assets/*', (req, res) => {
+  const fileName = req.params[0];
+  const basePath = path.join(__dirname, '../../../manager/dist');
+
+  const filePath = path.join(basePath, 'assets/', fileName);
+
+  if (fs.existsSync(filePath)) {
+    res.set('Content-Type', mime.lookup(filePath) || 'text/css');
+    res.send(fs.readFileSync(filePath));
+  } else {
+    res.status(404).send('File not found');
+  }
+});
 
 router
   .use((req, res, next) => telemetry.collectTelemetry(req, res, next))

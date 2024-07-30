@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 RUN apk update && \
     apk add git ffmpeg wget curl bash
 
-LABEL version="2.0.0" description="Api to control whatsapp features through http requests." 
+LABEL version="2.0.4-beta" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@agenciadgcode.com"
 
@@ -16,7 +16,7 @@ RUN npm install
 COPY ./src ./src
 COPY ./public ./public
 COPY ./prisma ./prisma
-COPY ./views ./views
+COPY ./manager ./manager
 COPY ./.env.example ./.env
 
 COPY ./Docker ./Docker
@@ -43,8 +43,8 @@ RUN npm install --omit=dev
 
 COPY --from=builder /evolution/dist ./dist
 COPY --from=builder /evolution/prisma ./prisma
+COPY --from=builder /evolution/manager ./manager
 COPY --from=builder /evolution/public ./public
-COPY --from=builder /evolution/views ./views
 COPY --from=builder /evolution/.env ./.env
 COPY --from=builder /evolution/Docker ./Docker
 
