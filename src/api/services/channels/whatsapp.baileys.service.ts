@@ -68,6 +68,7 @@ import {
   configService,
   ConfigSessionPhone,
   Database,
+  Dify,
   Log,
   Openai,
   ProviderSession,
@@ -1180,6 +1181,17 @@ export class BaileysStartupService extends ChannelStartupService {
             if (type === 'notify') {
               if (messageRaw.messageType !== 'reactionMessage')
                 await this.openaiService.sendOpenai(
+                  { instanceName: this.instance.name, instanceId: this.instanceId },
+                  messageRaw.key.remoteJid,
+                  messageRaw,
+                );
+            }
+          }
+
+          if (this.configService.get<Dify>('DIFY').ENABLED) {
+            if (type === 'notify') {
+              if (messageRaw.messageType !== 'reactionMessage')
+                await this.difyService.sendDify(
                   { instanceName: this.instance.name, instanceId: this.instanceId },
                   messageRaw.key.remoteJid,
                   messageRaw,

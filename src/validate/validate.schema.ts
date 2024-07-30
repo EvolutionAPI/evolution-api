@@ -1,5 +1,6 @@
 // Integrations Schema
 export * from '../api/integrations/chatwoot/validate/chatwoot.schema';
+export * from '../api/integrations/dify/validate/dify.schema';
 export * from '../api/integrations/openai/validate/openai.schema';
 export * from '../api/integrations/rabbitmq/validate/rabbitmq.schema';
 export * from '../api/integrations/sqs/validate/sqs.schema';

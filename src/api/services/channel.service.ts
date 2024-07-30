@@ -26,6 +26,7 @@ import { SettingsDto } from '../dto/settings.dto';
 import { WebhookDto } from '../dto/webhook.dto';
 import { ChatwootDto } from '../integrations/chatwoot/dto/chatwoot.dto';
 import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
+import { DifyService } from '../integrations/dify/services/dify.service';
 import { OpenaiService } from '../integrations/openai/services/openai.service';
 import { RabbitmqDto } from '../integrations/rabbitmq/dto/rabbitmq.dto';
 import { getAMQP, removeQueues } from '../integrations/rabbitmq/libs/amqp.server';
@@ -70,6 +71,8 @@ export class ChannelStartupService {
   public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository);
 
   public openaiService = new OpenaiService(waMonitor, this.configService, this.prismaRepository);
+
+  public difyService = new DifyService(waMonitor, this.configService, this.prismaRepository);
 
   public setInstance(instance: InstanceDto) {
     this.logger.setInstance(instance.instanceName);

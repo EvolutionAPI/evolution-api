@@ -192,6 +192,7 @@ export type Chatwoot = {
   };
 };
 export type Openai = { ENABLED: boolean; API_KEY_GLOBAL?: string };
+export type Dify = { ENABLED: boolean };
 
 export type S3 = {
   ACCESS_KEY: string;
@@ -226,6 +227,7 @@ export interface Env {
   TYPEBOT: Typebot;
   CHATWOOT: Chatwoot;
   OPENAI: Openai;
+  DIFY: Dify;
   CACHE: CacheConf;
   S3?: S3;
   AUTHENTICATION: Auth;
@@ -436,6 +438,9 @@ export class ConfigService {
       OPENAI: {
         ENABLED: process.env?.OPENAI_ENABLED === 'true',
         API_KEY_GLOBAL: process.env?.OPENAI_API_KEY_GLOBAL || null,
+      },
+      DIFY: {
+        ENABLED: process.env?.DIFY_ENABLED === 'true',
       },
       CACHE: {
         REDIS: {

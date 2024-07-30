@@ -8,6 +8,7 @@ import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import Telemetry from '../guards/telemetry.guard';
 import { ChatwootRouter } from '../integrations/chatwoot/routes/chatwoot.router';
+import { DifyRouter } from '../integrations/dify/routes/dify.router';
 import { OpenaiRouter } from '../integrations/openai/routes/openai.router';
 import { RabbitmqRouter } from '../integrations/rabbitmq/routes/rabbitmq.router';
 import { S3Router } from '../integrations/s3/routes/s3.router';
@@ -88,6 +89,7 @@ router
   .use('/label', new LabelRouter(...guards).router)
   .use('/s3', new S3Router(...guards).router)
   .use('/openai', new OpenaiRouter(...guards).router)
+  .use('/dify', new DifyRouter(...guards).router)
   .get('/webhook/meta', async (req, res) => {
     if (req.query['hub.verify_token'] === configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK)
       res.send(req.query['hub.challenge']);

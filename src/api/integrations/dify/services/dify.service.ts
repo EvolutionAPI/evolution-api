@@ -1,5 +1,5 @@
-import { Message, OpenaiBot, OpenaiSession, OpenaiSetting } from '@prisma/client';
-import OpenAI from 'openai';
+import { Dify, DifySession, DifySetting, Message } from '@prisma/client';
+import axios from 'axios';
 
 import { ConfigService, S3 } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
@@ -7,9 +7,9 @@ import { sendTelemetry } from '../../../../utils/sendTelemetry';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { PrismaRepository } from '../../../repository/repository.service';
 import { WAMonitoringService } from '../../../services/monitor.service';
-import { OpenaiCredsDto, OpenaiDto, OpenaiIgnoreJidDto, OpenaiSettingDto } from '../dto/openai.dto';
+import { DifyDto, DifyIgnoreJidDto, DifySettingDto } from '../dto/dify.dto';
 
-export class OpenaiService {
+export class DifyService {
   constructor(
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
@@ -18,97 +18,9 @@ export class OpenaiService {
 
   private userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
-  private client: OpenAI;
+  private readonly logger = new Logger(DifyService.name);
 
-  private readonly logger = new Logger(OpenaiService.name);
-
-  public async createCreds(instance: InstanceDto, data: OpenaiCredsDto) {
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    if (!data.apiKey) throw new Error('API Key is required');
-    if (!data.name) throw new Error('Name is required');
-
-    try {
-      const creds = await this.prismaRepository.openaiCreds.create({
-        data: {
-          name: data.name,
-          apiKey: data.apiKey,
-          instanceId: instanceId,
-        },
-      });
-
-      return creds;
-    } catch (error) {
-      this.logger.error(error);
-      throw new Error('Error creating openai creds');
-    }
-  }
-
-  public async findCreds(instance: InstanceDto) {
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const creds = await this.prismaRepository.openaiCreds.findMany({
-      where: {
-        instanceId: instanceId,
-      },
-      include: {
-        OpenaiAssistant: true,
-      },
-    });
-
-    return creds;
-  }
-
-  public async deleteCreds(instance: InstanceDto, openaiCredsId: string) {
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: openaiCredsId,
-      },
-    });
-
-    if (!creds) {
-      throw new Error('Openai Creds not found');
-    }
-
-    if (creds.instanceId !== instanceId) {
-      throw new Error('Openai Creds not found');
-    }
-
-    try {
-      await this.prismaRepository.openaiCreds.delete({
-        where: {
-          id: openaiCredsId,
-        },
-      });
-
-      return { openaiCreds: { id: openaiCredsId } };
-    } catch (error) {
-      this.logger.error(error);
-      throw new Error('Error deleting openai creds');
-    }
-  }
-
-  public async create(instance: InstanceDto, data: OpenaiDto) {
+  public async create(instance: InstanceDto, data: DifyDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -118,7 +30,6 @@ export class OpenaiService {
       .then((instance) => instance.id);
 
     if (
-      !data.openaiCredsId ||
       !data.expire ||
       !data.keywordFinish ||
       !data.delayMessage ||
@@ -129,13 +40,12 @@ export class OpenaiService {
       !data.debounceTime ||
       !data.ignoreJids
     ) {
-      const defaultSettingCheck = await this.prismaRepository.openaiSetting.findFirst({
+      const defaultSettingCheck = await this.prismaRepository.difySetting.findFirst({
         where: {
           instanceId: instanceId,
         },
       });
 
-      if (!data.openaiCredsId) data.openaiCredsId = defaultSettingCheck?.openaiCredsId || null;
       if (!data.expire) data.expire = defaultSettingCheck?.expire || 0;
       if (!data.keywordFinish) data.keywordFinish = defaultSettingCheck?.keywordFinish || '';
       if (!data.delayMessage) data.delayMessage = defaultSettingCheck?.delayMessage || 1000;
@@ -146,13 +56,8 @@ export class OpenaiService {
       if (!data.debounceTime) data.debounceTime = defaultSettingCheck?.debounceTime || 0;
       if (!data.ignoreJids) data.ignoreJids = defaultSettingCheck?.ignoreJids || [];
 
-      if (!data.openaiCredsId) {
-        throw new Error('Openai Creds Id is required');
-      }
-
       if (!defaultSettingCheck) {
         await this.setDefaultSettings(instance, {
-          openaiCredsId: data.openaiCredsId,
           expire: data.expire,
           keywordFinish: data.keywordFinish,
           delayMessage: data.delayMessage,
@@ -166,7 +71,7 @@ export class OpenaiService {
       }
     }
 
-    const checkTriggerAll = await this.prismaRepository.openaiBot.findFirst({
+    const checkTriggerAll = await this.prismaRepository.dify.findFirst({
       where: {
         enabled: true,
         triggerType: 'all',
@@ -175,41 +80,20 @@ export class OpenaiService {
     });
 
     if (checkTriggerAll && data.triggerType === 'all') {
-      throw new Error('You already have a openai with an "All" trigger, you cannot have more bots while it is active');
+      throw new Error('You already have a dify with an "All" trigger, you cannot have more bots while it is active');
     }
 
-    let whereDuplication: any = {
-      instanceId: instanceId,
-    };
-
-    if (data.botType === 'assistant') {
-      if (!data.assistantId) throw new Error('Assistant ID is required');
-
-      whereDuplication = {
-        ...whereDuplication,
-        assistantId: data.assistantId,
+    const checkDuplicate = await this.prismaRepository.dify.findFirst({
+      where: {
+        instanceId: instanceId,
         botType: data.botType,
-      };
-    } else if (data.botType === 'chatCompletion') {
-      if (!data.model) throw new Error('Model is required');
-      if (!data.maxTokens) throw new Error('Max tokens is required');
-
-      whereDuplication = {
-        ...whereDuplication,
-        model: data.model,
-        maxTokens: data.maxTokens,
-        botType: data.botType,
-      };
-    } else {
-      throw new Error('Bot type is required');
-    }
-
-    const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
-      where: whereDuplication,
+        apiUrl: data.apiUrl,
+        apiKey: data.apiKey,
+      },
     });
 
     if (checkDuplicate) {
-      throw new Error('Openai Bot already exists');
+      throw new Error('Dify already exists');
     }
 
     if (data.triggerType === 'keyword') {
@@ -217,7 +101,7 @@ export class OpenaiService {
         throw new Error('Trigger operator and value are required');
       }
 
-      const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
+      const checkDuplicate = await this.prismaRepository.dify.findFirst({
         where: {
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
@@ -231,17 +115,12 @@ export class OpenaiService {
     }
 
     try {
-      const openaiBot = await this.prismaRepository.openaiBot.create({
+      const dify = await this.prismaRepository.dify.create({
         data: {
           enabled: data.enabled,
-          openaiCredsId: data.openaiCredsId,
           botType: data.botType,
-          assistantId: data.assistantId,
-          model: data.model,
-          systemMessages: data.systemMessages,
-          assistantMessages: data.assistantMessages,
-          userMessages: data.userMessages,
-          maxTokens: data.maxTokens,
+          apiUrl: data.apiUrl,
+          apiKey: data.apiKey,
           expire: data.expire,
           keywordFinish: data.keywordFinish,
           delayMessage: data.delayMessage,
@@ -258,14 +137,14 @@ export class OpenaiService {
         },
       });
 
-      return openaiBot;
+      return dify;
     } catch (error) {
       this.logger.error(error);
-      throw new Error('Error creating openai bot');
+      throw new Error('Error creating dify');
     }
   }
 
-  public async fetch(instance: InstanceDto, openaiBotId: string) {
+  public async fetch(instance: InstanceDto, difyId: string) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -274,27 +153,27 @@ export class OpenaiService {
       })
       .then((instance) => instance.id);
 
-    const openaiBot = await this.prismaRepository.openaiBot.findFirst({
+    const dify = await this.prismaRepository.dify.findFirst({
       where: {
-        id: openaiBotId,
+        id: difyId,
       },
       include: {
-        OpenaiSession: true,
+        DifySession: true,
       },
     });
 
-    if (!openaiBot) {
-      throw new Error('Openai Bot not found');
+    if (!dify) {
+      throw new Error('Dify not found');
     }
 
-    if (openaiBot.instanceId !== instanceId) {
-      throw new Error('Openai Bot not found');
+    if (dify.instanceId !== instanceId) {
+      throw new Error('Dify not found');
     }
 
-    return openaiBot;
+    return dify;
   }
 
-  public async update(instance: InstanceDto, openaiBotId: string, data: OpenaiDto) {
+  public async update(instance: InstanceDto, difyId: string, data: DifyDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -303,72 +182,51 @@ export class OpenaiService {
       })
       .then((instance) => instance.id);
 
-    const openaiBot = await this.prismaRepository.openaiBot.findFirst({
+    const dify = await this.prismaRepository.dify.findFirst({
       where: {
-        id: openaiBotId,
+        id: difyId,
       },
     });
 
-    if (!openaiBot) {
-      throw new Error('Openai Bot not found');
+    if (!dify) {
+      throw new Error('Dify not found');
     }
 
-    if (openaiBot.instanceId !== instanceId) {
-      throw new Error('Openai Bot not found');
+    if (dify.instanceId !== instanceId) {
+      throw new Error('Dify not found');
     }
 
     if (data.triggerType === 'all') {
-      const checkTriggerAll = await this.prismaRepository.openaiBot.findFirst({
+      const checkTriggerAll = await this.prismaRepository.dify.findFirst({
         where: {
           enabled: true,
           triggerType: 'all',
           id: {
-            not: openaiBotId,
+            not: difyId,
           },
           instanceId: instanceId,
         },
       });
 
       if (checkTriggerAll) {
-        throw new Error(
-          'You already have a openai bot with an "All" trigger, you cannot have more bots while it is active',
-        );
+        throw new Error('You already have a dify with an "All" trigger, you cannot have more bots while it is active');
       }
     }
 
-    let whereDuplication: any = {
-      id: {
-        not: openaiBotId,
+    const checkDuplicate = await this.prismaRepository.dify.findFirst({
+      where: {
+        id: {
+          not: difyId,
+        },
+        instanceId: instanceId,
+        botType: data.botType,
+        apiUrl: data.apiUrl,
+        apiKey: data.apiKey,
       },
-      instanceId: instanceId,
-    };
-
-    if (data.botType === 'assistant') {
-      if (!data.assistantId) throw new Error('Assistant ID is required');
-
-      whereDuplication = {
-        ...whereDuplication,
-        assistantId: data.assistantId,
-      };
-    } else if (data.botType === 'chatCompletion') {
-      if (!data.model) throw new Error('Model is required');
-      if (!data.maxTokens) throw new Error('Max tokens is required');
-
-      whereDuplication = {
-        ...whereDuplication,
-        model: data.model,
-        maxTokens: data.maxTokens,
-      };
-    } else {
-      throw new Error('Bot type is required');
-    }
-
-    const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
-      where: whereDuplication,
     });
 
     if (checkDuplicate) {
-      throw new Error('Openai Bot already exists');
+      throw new Error('Dify already exists');
     }
 
     if (data.triggerType === 'keyword') {
@@ -376,12 +234,12 @@ export class OpenaiService {
         throw new Error('Trigger operator and value are required');
       }
 
-      const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
+      const checkDuplicate = await this.prismaRepository.dify.findFirst({
         where: {
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
           id: {
-            not: openaiBotId,
+            not: difyId,
           },
           instanceId: instanceId,
         },
@@ -392,20 +250,15 @@ export class OpenaiService {
       }
 
       try {
-        const openaiBot = await this.prismaRepository.openaiBot.update({
+        const dify = await this.prismaRepository.dify.update({
           where: {
-            id: openaiBotId,
+            id: difyId,
           },
           data: {
             enabled: data.enabled,
-            openaiCredsId: data.openaiCredsId,
             botType: data.botType,
-            assistantId: data.assistantId,
-            model: data.model,
-            systemMessages: data.systemMessages,
-            assistantMessages: data.assistantMessages,
-            userMessages: data.userMessages,
-            maxTokens: data.maxTokens,
+            apiUrl: data.apiUrl,
+            apiKey: data.apiKey,
             expire: data.expire,
             keywordFinish: data.keywordFinish,
             delayMessage: data.delayMessage,
@@ -422,10 +275,10 @@ export class OpenaiService {
           },
         });
 
-        return openaiBot;
+        return dify;
       } catch (error) {
         this.logger.error(error);
-        throw new Error('Error updating openai bot');
+        throw new Error('Error updating dify');
       }
     }
   }
@@ -439,23 +292,23 @@ export class OpenaiService {
       })
       .then((instance) => instance.id);
 
-    const openaiBots = await this.prismaRepository.openaiBot.findMany({
+    const difys = await this.prismaRepository.dify.findMany({
       where: {
         instanceId: instanceId,
       },
       include: {
-        OpenaiSession: true,
+        DifySession: true,
       },
     });
 
-    if (!openaiBots.length) {
+    if (!difys.length) {
       return null;
     }
 
-    return openaiBots;
+    return difys;
   }
 
-  public async delete(instance: InstanceDto, openaiBotId: string) {
+  public async delete(instance: InstanceDto, difyId: string) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -464,40 +317,40 @@ export class OpenaiService {
       })
       .then((instance) => instance.id);
 
-    const openaiBot = await this.prismaRepository.openaiBot.findFirst({
+    const dify = await this.prismaRepository.dify.findFirst({
       where: {
-        id: openaiBotId,
+        id: difyId,
       },
     });
 
-    if (!openaiBot) {
-      throw new Error('Openai bot not found');
+    if (!dify) {
+      throw new Error('Dify not found');
     }
 
-    if (openaiBot.instanceId !== instanceId) {
-      throw new Error('Openai bot not found');
+    if (dify.instanceId !== instanceId) {
+      throw new Error('Dify not found');
     }
     try {
-      await this.prismaRepository.openaiSession.deleteMany({
+      await this.prismaRepository.difySession.deleteMany({
         where: {
-          openaiBotId: openaiBotId,
+          difyId: difyId,
         },
       });
 
-      await this.prismaRepository.openaiBot.delete({
+      await this.prismaRepository.dify.delete({
         where: {
-          id: openaiBotId,
+          id: difyId,
         },
       });
 
-      return { openaiBot: { id: openaiBotId } };
+      return { dify: { id: difyId } };
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error deleting openai bot');
     }
   }
 
-  public async setDefaultSettings(instance: InstanceDto, data: OpenaiSettingDto) {
+  public async setDefaultSettings(instance: InstanceDto, data: DifySettingDto) {
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -507,19 +360,18 @@ export class OpenaiService {
         })
         .then((instance) => instance.id);
 
-      const settings = await this.prismaRepository.openaiSetting.findFirst({
+      const settings = await this.prismaRepository.difySetting.findFirst({
         where: {
           instanceId: instanceId,
         },
       });
 
       if (settings) {
-        const updateSettings = await this.prismaRepository.openaiSetting.update({
+        const updateSettings = await this.prismaRepository.difySetting.update({
           where: {
             id: settings.id,
           },
           data: {
-            openaiCredsId: data.openaiCredsId,
             expire: data.expire,
             keywordFinish: data.keywordFinish,
             delayMessage: data.delayMessage,
@@ -528,13 +380,12 @@ export class OpenaiService {
             stopBotFromMe: data.stopBotFromMe,
             keepOpen: data.keepOpen,
             debounceTime: data.debounceTime,
-            openaiIdFallback: data.openaiIdFallback,
+            difyIdFallback: data.difyIdFallback,
             ignoreJids: data.ignoreJids,
           },
         });
 
         return {
-          openaiCredsId: updateSettings.openaiCredsId,
           expire: updateSettings.expire,
           keywordFinish: updateSettings.keywordFinish,
           delayMessage: updateSettings.delayMessage,
@@ -543,14 +394,13 @@ export class OpenaiService {
           stopBotFromMe: updateSettings.stopBotFromMe,
           keepOpen: updateSettings.keepOpen,
           debounceTime: updateSettings.debounceTime,
-          openaiIdFallback: updateSettings.openaiIdFallback,
+          difyIdFallback: updateSettings.difyIdFallback,
           ignoreJids: updateSettings.ignoreJids,
         };
       }
 
-      const newSetttings = await this.prismaRepository.openaiSetting.create({
+      const newSetttings = await this.prismaRepository.difySetting.create({
         data: {
-          openaiCredsId: data.openaiCredsId,
           expire: data.expire,
           keywordFinish: data.keywordFinish,
           delayMessage: data.delayMessage,
@@ -559,14 +409,13 @@ export class OpenaiService {
           stopBotFromMe: data.stopBotFromMe,
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
-          openaiIdFallback: data.openaiIdFallback,
+          difyIdFallback: data.difyIdFallback,
           ignoreJids: data.ignoreJids,
           instanceId: instanceId,
         },
       });
 
       return {
-        openaiCredsId: newSetttings.openaiCredsId,
         expire: newSetttings.expire,
         keywordFinish: newSetttings.keywordFinish,
         delayMessage: newSetttings.delayMessage,
@@ -575,7 +424,7 @@ export class OpenaiService {
         stopBotFromMe: newSetttings.stopBotFromMe,
         keepOpen: newSetttings.keepOpen,
         debounceTime: newSetttings.debounceTime,
-        openaiIdFallback: newSetttings.openaiIdFallback,
+        difyIdFallback: newSetttings.difyIdFallback,
         ignoreJids: newSetttings.ignoreJids,
       };
     } catch (error) {
@@ -594,7 +443,7 @@ export class OpenaiService {
         })
         .then((instance) => instance.id);
 
-      const settings = await this.prismaRepository.openaiSetting.findFirst({
+      const settings = await this.prismaRepository.difySetting.findFirst({
         where: {
           instanceId: instanceId,
         },
@@ -608,7 +457,6 @@ export class OpenaiService {
       }
 
       return {
-        openaiCredsId: settings.openaiCredsId,
         expire: settings.expire,
         keywordFinish: settings.keywordFinish,
         delayMessage: settings.delayMessage,
@@ -617,7 +465,7 @@ export class OpenaiService {
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
-        openaiIdFallback: settings.openaiIdFallback,
+        difyIdFallback: settings.difyIdFallback,
         fallback: settings.Fallback,
       };
     } catch (error) {
@@ -626,7 +474,7 @@ export class OpenaiService {
     }
   }
 
-  public async ignoreJid(instance: InstanceDto, data: OpenaiIgnoreJidDto) {
+  public async ignoreJid(instance: InstanceDto, data: DifyIgnoreJidDto) {
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -636,7 +484,7 @@ export class OpenaiService {
         })
         .then((instance) => instance.id);
 
-      const settings = await this.prismaRepository.openaiSetting.findFirst({
+      const settings = await this.prismaRepository.difySetting.findFirst({
         where: {
           instanceId: instanceId,
         },
@@ -656,7 +504,7 @@ export class OpenaiService {
         ignoreJids = ignoreJids.filter((jid) => jid !== data.remoteJid);
       }
 
-      const updateSettings = await this.prismaRepository.openaiSetting.update({
+      const updateSettings = await this.prismaRepository.difySetting.update({
         where: {
           id: settings.id,
         },
@@ -674,7 +522,7 @@ export class OpenaiService {
     }
   }
 
-  public async fetchSessions(instance: InstanceDto, openaiBotId?: string, remoteJid?: string) {
+  public async fetchSessions(instance: InstanceDto, difyId?: string, remoteJid?: string) {
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -684,33 +532,33 @@ export class OpenaiService {
         })
         .then((instance) => instance.id);
 
-      const openaiBot = await this.prismaRepository.openaiBot.findFirst({
+      const dify = await this.prismaRepository.dify.findFirst({
         where: {
-          id: openaiBotId,
+          id: difyId,
         },
       });
 
-      if (!openaiBot) {
-        throw new Error('Openai Bot not found');
+      if (!dify) {
+        throw new Error('Dify not found');
       }
 
-      if (openaiBot.instanceId !== instanceId) {
-        throw new Error('Openai Bot not found');
+      if (dify.instanceId !== instanceId) {
+        throw new Error('Dify not found');
       }
 
-      if (openaiBot) {
-        return await this.prismaRepository.openaiSession.findMany({
+      if (dify) {
+        return await this.prismaRepository.difySession.findMany({
           where: {
-            openaiBotId: openaiBotId,
+            difyId: difyId,
           },
         });
       }
 
       if (remoteJid) {
-        return await this.prismaRepository.openaiSession.findMany({
+        return await this.prismaRepository.difySession.findMany({
           where: {
             remoteJid: remoteJid,
-            openaiBotId: openaiBotId,
+            difyId: difyId,
           },
         });
       }
@@ -730,7 +578,7 @@ export class OpenaiService {
         })
         .then((instance) => instance.id);
 
-      const defaultSettingCheck = await this.prismaRepository.openaiSetting.findFirst({
+      const defaultSettingCheck = await this.prismaRepository.difySetting.findFirst({
         where: {
           instanceId,
         },
@@ -740,18 +588,18 @@ export class OpenaiService {
       const status = data.status;
 
       if (status === 'delete') {
-        await this.prismaRepository.openaiSession.deleteMany({
+        await this.prismaRepository.difySession.deleteMany({
           where: {
             remoteJid: remoteJid,
           },
         });
 
-        return { openai: { remoteJid: remoteJid, status: status } };
+        return { dify: { remoteJid: remoteJid, status: status } };
       }
 
       if (status === 'closed') {
         if (defaultSettingCheck?.keepOpen) {
-          await this.prismaRepository.openaiSession.updateMany({
+          await this.prismaRepository.difySession.updateMany({
             where: {
               remoteJid: remoteJid,
             },
@@ -760,16 +608,16 @@ export class OpenaiService {
             },
           });
         } else {
-          await this.prismaRepository.openaiSession.deleteMany({
+          await this.prismaRepository.difySession.deleteMany({
             where: {
               remoteJid: remoteJid,
             },
           });
         }
 
-        return { openai: { ...instance, openai: { remoteJid: remoteJid, status: status } } };
+        return { dify: { ...instance, dify: { remoteJid: remoteJid, status: status } } };
       } else {
-        const session = await this.prismaRepository.openaiSession.updateMany({
+        const session = await this.prismaRepository.difySession.updateMany({
           where: {
             instanceId: instanceId,
             remoteJid: remoteJid,
@@ -779,13 +627,13 @@ export class OpenaiService {
           },
         });
 
-        const openaiData = {
+        const difyData = {
           remoteJid: remoteJid,
           status: status,
           session,
         };
 
-        return { openai: { ...instance, openai: openaiData } };
+        return { dify: { ...instance, dify: difyData } };
       }
     } catch (error) {
       this.logger.error(error);
@@ -841,9 +689,9 @@ export class OpenaiService {
     return messageContent;
   }
 
-  public async findOpenaiByTrigger(content: string, instanceId: string) {
+  public async findDifyByTrigger(content: string, instanceId: string) {
     // Check for triggerType 'all'
-    const findTriggerAll = await this.prismaRepository.openaiBot.findFirst({
+    const findTriggerAll = await this.prismaRepository.dify.findFirst({
       where: {
         enabled: true,
         triggerType: 'all',
@@ -854,7 +702,7 @@ export class OpenaiService {
     if (findTriggerAll) return findTriggerAll;
 
     // Check for exact match
-    const findTriggerEquals = await this.prismaRepository.openaiBot.findFirst({
+    const findTriggerEquals = await this.prismaRepository.dify.findFirst({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -867,7 +715,7 @@ export class OpenaiService {
     if (findTriggerEquals) return findTriggerEquals;
 
     // Check for regex match
-    const findRegex = await this.prismaRepository.openaiBot.findMany({
+    const findRegex = await this.prismaRepository.dify.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -890,7 +738,7 @@ export class OpenaiService {
     if (findTriggerRegex) return findTriggerRegex;
 
     // Check for startsWith match
-    const findStartsWith = await this.prismaRepository.openaiBot.findMany({
+    const findStartsWith = await this.prismaRepository.dify.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -914,7 +762,7 @@ export class OpenaiService {
     if (findTriggerStartsWith) return findTriggerStartsWith;
 
     // Check for endsWith match
-    const findEndsWith = await this.prismaRepository.openaiBot.findMany({
+    const findEndsWith = await this.prismaRepository.dify.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -938,7 +786,7 @@ export class OpenaiService {
     if (findTriggerEndsWith) return findTriggerEndsWith;
 
     // Check for contains match
-    const findContains = await this.prismaRepository.openaiBot.findMany({
+    const findContains = await this.prismaRepository.dify.findMany({
       where: {
         enabled: true,
         triggerType: 'keyword',
@@ -961,16 +809,16 @@ export class OpenaiService {
 
     if (findTriggerContains) return findTriggerContains;
 
-    const fallback = await this.prismaRepository.openaiSetting.findFirst({
+    const fallback = await this.prismaRepository.difySetting.findFirst({
       where: {
         instanceId: instanceId,
       },
     });
 
-    if (fallback?.openaiIdFallback) {
-      const findFallback = await this.prismaRepository.openaiBot.findFirst({
+    if (fallback?.difyIdFallback) {
+      const findFallback = await this.prismaRepository.dify.findFirst({
         where: {
-          id: fallback.openaiIdFallback,
+          id: fallback.difyIdFallback,
         },
       });
 
@@ -1001,9 +849,9 @@ export class OpenaiService {
     }, debounceTime * 1000);
   }
 
-  public async sendOpenai(instance: InstanceDto, remoteJid: string, msg: Message) {
+  public async sendDify(instance: InstanceDto, remoteJid: string, msg: Message) {
     try {
-      const settings = await this.prismaRepository.openaiSetting.findFirst({
+      const settings = await this.prismaRepository.difySetting.findFirst({
         where: {
           instanceId: instance.instanceId,
         },
@@ -1039,7 +887,7 @@ export class OpenaiService {
         }
       }
 
-      const session = await this.prismaRepository.openaiSession.findFirst({
+      const session = await this.prismaRepository.difySession.findFirst({
         where: {
           remoteJid: remoteJid,
         },
@@ -1047,36 +895,34 @@ export class OpenaiService {
 
       const content = this.getConversationMessage(msg);
 
-      let findOpenai = null;
+      let findDify = null;
 
       if (!session) {
-        findOpenai = await this.findOpenaiByTrigger(content, instance.instanceId);
+        findDify = await this.findDifyByTrigger(content, instance.instanceId);
 
-        if (!findOpenai) {
+        if (!findDify) {
           return;
         }
       } else {
-        findOpenai = await this.prismaRepository.openaiBot.findFirst({
+        findDify = await this.prismaRepository.dify.findFirst({
           where: {
-            id: session.openaiBotId,
+            id: session.difyId,
           },
         });
       }
 
-      if (!findOpenai) return;
+      if (!findDify) return;
 
-      let openaiCredsId = findOpenai.openaiCredsId;
-      let expire = findOpenai.expire;
-      let keywordFinish = findOpenai.keywordFinish;
-      let delayMessage = findOpenai.delayMessage;
-      let unknownMessage = findOpenai.unknownMessage;
-      let listeningFromMe = findOpenai.listeningFromMe;
-      let stopBotFromMe = findOpenai.stopBotFromMe;
-      let keepOpen = findOpenai.keepOpen;
-      let debounceTime = findOpenai.debounceTime;
+      let expire = findDify.expire;
+      let keywordFinish = findDify.keywordFinish;
+      let delayMessage = findDify.delayMessage;
+      let unknownMessage = findDify.unknownMessage;
+      let listeningFromMe = findDify.listeningFromMe;
+      let stopBotFromMe = findDify.stopBotFromMe;
+      let keepOpen = findDify.keepOpen;
+      let debounceTime = findDify.debounceTime;
 
       if (
-        !openaiCredsId ||
         !expire ||
         !keywordFinish ||
         !delayMessage ||
@@ -1086,8 +932,6 @@ export class OpenaiService {
         !keepOpen ||
         !debounceTime
       ) {
-        if (!openaiCredsId) openaiCredsId = settings.openaiCredsId;
-
         if (!expire) expire = settings.expire;
 
         if (!keywordFinish) keywordFinish = settings.keywordFinish;
@@ -1114,7 +958,7 @@ export class OpenaiService {
 
       if (stopBotFromMe && key.fromMe && session) {
         if (keepOpen) {
-          await this.prismaRepository.openaiSession.update({
+          await this.prismaRepository.difySession.update({
             where: {
               id: session.id,
             },
@@ -1123,9 +967,9 @@ export class OpenaiService {
             },
           });
         } else {
-          await this.prismaRepository.openaiSession.deleteMany({
+          await this.prismaRepository.difySession.deleteMany({
             where: {
-              openaiBotId: findOpenai.id,
+              difyId: findDify.id,
               remoteJid: remoteJid,
             },
           });
@@ -1139,50 +983,24 @@ export class OpenaiService {
 
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(content, remoteJid, debounceTime, async (debouncedContent) => {
-          if (findOpenai.botType === 'assistant') {
-            await this.processOpenaiAssistant(
-              this.waMonitor.waInstances[instance.instanceName],
-              remoteJid,
-              findOpenai,
-              session,
-              settings,
-              debouncedContent,
-            );
-          }
-
-          if (findOpenai.botType === 'chatCompletion') {
-            await this.processOpenaiChatCompletion(
-              this.waMonitor.waInstances[instance.instanceName],
-              remoteJid,
-              findOpenai,
-              session,
-              settings,
-              debouncedContent,
-            );
-          }
+          await this.processDify(
+            this.waMonitor.waInstances[instance.instanceName],
+            remoteJid,
+            findDify,
+            session,
+            settings,
+            debouncedContent,
+          );
         });
       } else {
-        if (findOpenai.botType === 'assistant') {
-          await this.processOpenaiAssistant(
-            this.waMonitor.waInstances[instance.instanceName],
-            remoteJid,
-            findOpenai,
-            session,
-            settings,
-            content,
-          );
-        }
-
-        if (findOpenai.botType === 'chatCompletion') {
-          await this.processOpenaiChatCompletion(
-            this.waMonitor.waInstances[instance.instanceName],
-            remoteJid,
-            findOpenai,
-            session,
-            settings,
-            content,
-          );
-        }
+        await this.processDify(
+          this.waMonitor.waInstances[instance.instanceName],
+          remoteJid,
+          findDify,
+          session,
+          settings,
+          content,
+        );
       }
 
       return;
@@ -1192,37 +1010,19 @@ export class OpenaiService {
     }
   }
 
-  public async createAssistantNewSession(instance: InstanceDto, data: any) {
-    if (data.remoteJid === 'status@broadcast') return;
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: data.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
-
+  public async createNewSession(instance: InstanceDto, data: any) {
     try {
-      this.client = new OpenAI({
-        apiKey: creds.apiKey,
+      const session = await this.prismaRepository.difySession.create({
+        data: {
+          remoteJid: data.remoteJid,
+          sessionId: data.remoteJid,
+          status: 'opened',
+          awaitUser: false,
+          difyId: data.difyId,
+          instanceId: instance.instanceId,
+        },
       });
 
-      const threadId = (await this.client.beta.threads.create({})).id;
-
-      let session = null;
-      if (threadId) {
-        session = await this.prismaRepository.openaiSession.create({
-          data: {
-            remoteJid: data.remoteJid,
-            sessionId: threadId,
-            status: 'opened',
-            awaitUser: false,
-            openaiBotId: data.openaiBotId,
-            instanceId: instance.instanceId,
-          },
-        });
-      }
       return { session };
     } catch (error) {
       this.logger.error(error);
@@ -1230,344 +1030,85 @@ export class OpenaiService {
     }
   }
 
-  private async initAssistantNewSession(
+  private async initNewSession(
     instance: any,
     remoteJid: string,
-    openaiBot: OpenaiBot,
-    settings: OpenaiSetting,
-    session: OpenaiSession,
+    dify: Dify,
+    settings: DifySetting,
+    session: DifySession,
     content: string,
   ) {
-    const data = await this.createAssistantNewSession(instance, {
+    const data = await this.createNewSession(instance, {
       remoteJid,
-      openaiCredsId: openaiBot.openaiCredsId,
-      openaiBotId: openaiBot.id,
+      difyId: dify.id,
     });
 
     if (data.session) {
       session = data.session;
     }
 
-    await this.client.beta.threads.messages.create(data.session.sessionId, {
-      role: 'user',
-      content,
-    });
+    let endpoint: string = dify.apiUrl;
+    let payload: any = {};
 
-    const runAssistant = await this.client.beta.threads.runs.create(data.session.sessionId, {
-      assistant_id: openaiBot.assistantId,
-    });
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const response = await this.getAIResponse(data.session.sessionId, runAssistant.id);
-
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = response?.data[0].content[0].text.value;
-
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
-
-    await this.prismaRepository.openaiSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
-
-    return;
-  }
-
-  private async getAIResponse(threadId: string, runId: string) {
-    const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
-
-    switch (getRun.status) {
-      case 'queued':
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId);
-      case 'in_progress':
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId);
-      case 'requires_action':
-        return null;
-      case 'completed':
-        return await this.client.beta.threads.messages.list(threadId, {
-          run_id: runId,
-          limit: 1,
-        });
-    }
-  }
-
-  private async processOpenaiAssistant(
-    instance: any,
-    remoteJid: string,
-    openaiBot: OpenaiBot,
-    session: OpenaiSession,
-    settings: OpenaiSetting,
-    content: string,
-  ) {
-    if (session && session.status !== 'opened') {
-      return;
+    if (dify.botType === 'chatBot') {
+      endpoint += '/chat-messages';
+      payload = {
+        inputs: {},
+        query: content,
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
+      };
     }
 
-    if (session && settings.expire && settings.expire > 0) {
-      const now = Date.now();
-
-      const sessionUpdatedAt = new Date(session.updatedAt).getTime();
-
-      const diff = now - sessionUpdatedAt;
-
-      const diffInMinutes = Math.floor(diff / 1000 / 60);
-
-      if (diffInMinutes > settings.expire) {
-        if (settings.keepOpen) {
-          await this.prismaRepository.openaiSession.update({
-            where: {
-              id: session.id,
-            },
-            data: {
-              status: 'closed',
-            },
-          });
-        } else {
-          await this.prismaRepository.openaiSession.deleteMany({
-            where: {
-              openaiBotId: openaiBot.id,
-              remoteJid: remoteJid,
-            },
-          });
-        }
-
-        await this.initAssistantNewSession(instance, remoteJid, openaiBot, settings, session, content);
-        return;
-      }
-    }
-
-    if (!session) {
-      await this.initAssistantNewSession(instance, remoteJid, openaiBot, settings, session, content);
-      return;
-    }
-
-    await this.prismaRepository.openaiSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: false,
-      },
-    });
-
-    if (!content) {
-      if (settings.unknownMessage) {
-        this.waMonitor.waInstances[instance.instanceName].textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings.delayMessage || 1000,
-            text: settings.unknownMessage,
-          },
-          false,
-        );
-
-        sendTelemetry('/message/sendText');
-      }
-      return;
-    }
-
-    if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
-      if (settings.keepOpen) {
-        await this.prismaRepository.openaiSession.update({
-          where: {
-            id: session.id,
-          },
-          data: {
-            status: 'closed',
-          },
-        });
-      } else {
-        await this.prismaRepository.openaiSession.deleteMany({
-          where: {
-            openaiBotId: openaiBot.id,
-            remoteJid: remoteJid,
-          },
-        });
-      }
-      return;
-    }
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: openaiBot.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
-
-    this.client = new OpenAI({
-      apiKey: creds.apiKey,
-    });
-
-    const threadId = session.sessionId;
-
-    await this.client.beta.threads.messages.create(threadId, {
-      role: 'user',
-      content,
-    });
-
-    const runAssistant = await this.client.beta.threads.runs.create(threadId, {
-      assistant_id: openaiBot.assistantId,
-    });
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const response = await this.getAIResponse(threadId, runAssistant.id);
-
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = response?.data[0].content[0].text.value;
-
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
-
-    await this.prismaRepository.openaiSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
-
-    return;
-  }
-
-  public async createChatCompletionNewSession(instance: InstanceDto, data: any) {
-    if (data.remoteJid === 'status@broadcast') return;
-
-    const id = Math.floor(Math.random() * 10000000000).toString();
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: data.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
-
-    try {
-      const session = await this.prismaRepository.openaiSession.create({
-        data: {
-          remoteJid: data.remoteJid,
-          sessionId: id,
-          status: 'opened',
-          awaitUser: false,
-          openaiBotId: data.openaiBotId,
-          instanceId: instance.instanceId,
+    if (dify.botType === 'textGenerator') {
+      endpoint += '/completion-messages';
+      payload = {
+        inputs: {
+          query: content,
         },
-      });
-
-      return { session, creds };
-    } catch (error) {
-      this.logger.error(error);
-      return;
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
+      };
     }
-  }
 
-  private async initChatCompletionNewSession(
-    instance: any,
-    remoteJid: string,
-    openaiBot: OpenaiBot,
-    settings: OpenaiSetting,
-    session: OpenaiSession,
-    content: string,
-  ) {
-    const data = await this.createChatCompletionNewSession(instance, {
-      remoteJid,
-      openaiCredsId: openaiBot.openaiCredsId,
-      openaiBotId: openaiBot.id,
-    });
-
-    session = data.session;
-    const creds = data.creds;
-
-    this.client = new OpenAI({
-      apiKey: creds.apiKey,
-    });
-
-    const systemMessages: any = openaiBot.systemMessages;
-
-    const messagesSystem: any[] = systemMessages.map((message) => {
-      return {
-        role: 'system',
-        content: message,
+    if (dify.botType === 'agent') {
+      endpoint += '/chat-messages';
+      payload = {
+        inputs: {},
+        query: content,
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
       };
-    });
+    }
 
-    const assistantMessages: any = openaiBot.assistantMessages;
-
-    const messagesAssistant: any[] = assistantMessages.map((message) => {
-      return {
-        role: 'assistant',
-        content: message,
+    if (dify.botType === 'workflow') {
+      endpoint += '/workflows/run';
+      payload = {
+        inputs: {
+          query: content,
+        },
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
       };
-    });
-
-    const userMessages: any = openaiBot.userMessages;
-
-    const messagesUser: any[] = userMessages.map((message) => {
-      return {
-        role: 'user',
-        content: message,
-      };
-    });
-
-    const messages: any[] = [
-      ...messagesSystem,
-      ...messagesAssistant,
-      ...messagesUser,
-      {
-        role: 'user',
-        content: content,
-      },
-    ];
+    }
 
     await instance.client.presenceSubscribe(remoteJid);
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const completions = await this.client.chat.completions.create({
-      model: openaiBot.model,
-      messages: messages,
-      max_tokens: openaiBot.maxTokens,
+    const response = await axios.post(endpoint, payload, {
+      headers: {
+        Authorization: `Bearer ${dify.apiKey}`,
+      },
     });
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 
-    const message = completions.choices[0].message.content;
+    const message = response?.data?.answer;
 
     await instance.textMessage(
       {
@@ -1578,13 +1119,14 @@ export class OpenaiService {
       false,
     );
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.difySession.update({
       where: {
         id: session.id,
       },
       data: {
         status: 'opened',
         awaitUser: true,
+        sessionId: response?.data?.conversation_id,
       },
     });
 
@@ -1593,12 +1135,12 @@ export class OpenaiService {
     return;
   }
 
-  private async processOpenaiChatCompletion(
+  private async processDify(
     instance: any,
     remoteJid: string,
-    openaiBot: OpenaiBot,
-    session: OpenaiSession,
-    settings: OpenaiSetting,
+    dify: Dify,
+    session: DifySession,
+    settings: DifySetting,
     content: string,
   ) {
     if (session && session.status !== 'opened') {
@@ -1616,7 +1158,7 @@ export class OpenaiService {
 
       if (diffInMinutes > settings.expire) {
         if (settings.keepOpen) {
-          await this.prismaRepository.openaiSession.update({
+          await this.prismaRepository.difySession.update({
             where: {
               id: session.id,
             },
@@ -1625,25 +1167,25 @@ export class OpenaiService {
             },
           });
         } else {
-          await this.prismaRepository.openaiSession.deleteMany({
+          await this.prismaRepository.difySession.deleteMany({
             where: {
-              openaiBotId: openaiBot.id,
+              difyId: dify.id,
               remoteJid: remoteJid,
             },
           });
         }
 
-        await this.initChatCompletionNewSession(instance, remoteJid, openaiBot, settings, session, content);
+        await this.initNewSession(instance, remoteJid, dify, settings, session, content);
         return;
       }
     }
 
     if (!session) {
-      await this.initChatCompletionNewSession(instance, remoteJid, openaiBot, settings, session, content);
+      await this.initNewSession(instance, remoteJid, dify, settings, session, content);
       return;
     }
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.difySession.update({
       where: {
         id: session.id,
       },
@@ -1671,7 +1213,7 @@ export class OpenaiService {
 
     if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
       if (settings.keepOpen) {
-        await this.prismaRepository.openaiSession.update({
+        await this.prismaRepository.difySession.update({
           where: {
             id: session.id,
           },
@@ -1680,9 +1222,9 @@ export class OpenaiService {
           },
         });
       } else {
-        await this.prismaRepository.openaiSession.deleteMany({
+        await this.prismaRepository.difySession.deleteMany({
           where: {
-            openaiBotId: openaiBot.id,
+            difyId: dify.id,
             remoteJid: remoteJid,
           },
         });
@@ -1690,68 +1232,68 @@ export class OpenaiService {
       return;
     }
 
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: openaiBot.openaiCredsId,
-      },
-    });
+    let endpoint: string = dify.apiUrl;
+    let payload: any = {};
 
-    if (!creds) throw new Error('Openai Creds not found');
-
-    this.client = new OpenAI({
-      apiKey: creds.apiKey,
-    });
-
-    const systemMessages: any = openaiBot.systemMessages;
-
-    const messagesSystem: any[] = systemMessages.map((message) => {
-      return {
-        role: 'system',
-        content: message,
+    if (dify.botType === 'chatBot') {
+      endpoint += '/chat-messages';
+      payload = {
+        inputs: {},
+        query: content,
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
       };
-    });
+    }
 
-    const assistantMessages: any = openaiBot.assistantMessages;
-
-    const messagesAssistant: any[] = assistantMessages.map((message) => {
-      return {
-        role: 'assistant',
-        content: message,
+    if (dify.botType === 'textGenerator') {
+      endpoint += '/completion-messages';
+      payload = {
+        inputs: {
+          query: content,
+        },
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
       };
-    });
+    }
 
-    const userMessages: any = openaiBot.userMessages;
-
-    const messagesUser: any[] = userMessages.map((message) => {
-      return {
-        role: 'user',
-        content: message,
+    if (dify.botType === 'agent') {
+      endpoint += '/chat-messages';
+      payload = {
+        inputs: {},
+        query: content,
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
       };
-    });
+    }
 
-    const messages: any[] = [
-      ...messagesSystem,
-      ...messagesAssistant,
-      ...messagesUser,
-      {
-        role: 'user',
-        content: content,
-      },
-    ];
+    if (dify.botType === 'workflow') {
+      endpoint += '/workflows/run';
+      payload = {
+        inputs: {
+          query: content,
+        },
+        response_mode: 'blocking',
+        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+        user: remoteJid,
+      };
+    }
 
     await instance.client.presenceSubscribe(remoteJid);
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const completions = await this.client.chat.completions.create({
-      model: openaiBot.model,
-      messages: messages,
-      max_tokens: openaiBot.maxTokens,
+    const response = await axios.post(endpoint, payload, {
+      headers: {
+        Authorization: `Bearer ${dify.apiKey}`,
+      },
     });
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 
-    const message = completions.choices[0].message.content;
+    const message = response?.data?.answer;
 
     await instance.textMessage(
       {
@@ -1762,7 +1304,7 @@ export class OpenaiService {
       false,
     );
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.difySession.update({
       where: {
         id: session.id,
       },
