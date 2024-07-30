@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   evolution_v2:
-    image: atendai/evolution-api:v2.0.0-beta
+    image: atendai/evolution-api:v2.0.4-rc
     volumes:
       - evolution_instances:/evolution/instances
     networks:
