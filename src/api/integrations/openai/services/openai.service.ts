@@ -895,9 +895,6 @@ export class OpenaiService {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'startsWith',
-        triggerValue: {
-          startsWith: content,
-        },
         instanceId: instanceId,
       },
     });
@@ -919,9 +916,6 @@ export class OpenaiService {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'endsWith',
-        triggerValue: {
-          endsWith: content,
-        },
         instanceId: instanceId,
       },
     });
@@ -943,9 +937,6 @@ export class OpenaiService {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'contains',
-        triggerValue: {
-          contains: content,
-        },
         instanceId: instanceId,
       },
     });

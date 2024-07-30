@@ -743,9 +743,6 @@ export class DifyService {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'startsWith',
-        triggerValue: {
-          startsWith: content,
-        },
         instanceId: instanceId,
       },
     });
@@ -767,9 +764,6 @@ export class DifyService {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'endsWith',
-        triggerValue: {
-          endsWith: content,
-        },
         instanceId: instanceId,
       },
     });
@@ -791,9 +785,6 @@ export class DifyService {
         enabled: true,
         triggerType: 'keyword',
         triggerOperator: 'contains',
-        triggerValue: {
-          contains: content,
-        },
         instanceId: instanceId,
       },
     });
@@ -1048,22 +1039,59 @@ export class DifyService {
     }
 
     let endpoint: string = dify.apiUrl;
-    let payload: any = {};
 
     if (dify.botType === 'chatBot') {
       endpoint += '/chat-messages';
-      payload = {
+      const payload = {
         inputs: {},
         query: content,
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.answer;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      await this.prismaRepository.difySession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+          sessionId: response?.data?.conversation_id,
+        },
+      });
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
 
     if (dify.botType === 'textGenerator') {
       endpoint += '/completion-messages';
-      payload = {
+      const payload = {
         inputs: {
           query: content,
         },
@@ -1071,66 +1099,149 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.answer;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      await this.prismaRepository.difySession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+          sessionId: response?.data?.conversation_id,
+        },
+      });
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
 
     if (dify.botType === 'agent') {
       endpoint += '/chat-messages';
-      payload = {
+      const payload = {
         inputs: {},
         query: content,
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.answer;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      await this.prismaRepository.difySession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+          sessionId: response?.data?.conversation_id,
+        },
+      });
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
 
     if (dify.botType === 'workflow') {
       endpoint += '/workflows/run';
-      payload = {
+      const payload = {
         inputs: {
           query: content,
         },
         response_mode: 'blocking',
-        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.data.outputs.text;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      if (settings.keepOpen) {
+        await this.prismaRepository.difySession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'closed',
+          },
+        });
+      } else {
+        await this.prismaRepository.difySession.delete({
+          where: {
+            id: session.id,
+          },
+        });
+      }
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const response = await axios.post(endpoint, payload, {
-      headers: {
-        Authorization: `Bearer ${dify.apiKey}`,
-      },
-    });
-
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = response?.data?.answer;
-
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
-
-    await this.prismaRepository.difySession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-        sessionId: response?.data?.conversation_id,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
 
     return;
   }
@@ -1233,22 +1344,59 @@ export class DifyService {
     }
 
     let endpoint: string = dify.apiUrl;
-    let payload: any = {};
 
     if (dify.botType === 'chatBot') {
       endpoint += '/chat-messages';
-      payload = {
+      const payload = {
         inputs: {},
         query: content,
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.answer;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      await this.prismaRepository.difySession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+          sessionId: response?.data?.conversation_id,
+        },
+      });
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
 
     if (dify.botType === 'textGenerator') {
       endpoint += '/completion-messages';
-      payload = {
+      const payload = {
         inputs: {
           query: content,
         },
@@ -1256,22 +1404,98 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.answer;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      await this.prismaRepository.difySession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+          sessionId: response?.data?.conversation_id,
+        },
+      });
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
 
     if (dify.botType === 'agent') {
       endpoint += '/chat-messages';
-      payload = {
+      const payload = {
         inputs: {},
         query: content,
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.answer;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      await this.prismaRepository.difySession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+          sessionId: response?.data?.conversation_id,
+        },
+      });
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
 
     if (dify.botType === 'workflow') {
       endpoint += '/workflows/run';
-      payload = {
+      const payload = {
         inputs: {
           query: content,
         },
@@ -1279,42 +1503,51 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      await instance.client.presenceSubscribe(remoteJid);
+
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+      const response = await axios.post(endpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${dify.apiKey}`,
+        },
+      });
+
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+      const message = response?.data?.data.outputs.text;
+
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: message,
+        },
+        false,
+      );
+
+      if (settings.keepOpen) {
+        await this.prismaRepository.difySession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'closed',
+          },
+        });
+      } else {
+        await this.prismaRepository.difySession.delete({
+          where: {
+            id: session.id,
+          },
+        });
+      }
+
+      sendTelemetry('/message/sendText');
+
+      return;
     }
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const response = await axios.post(endpoint, payload, {
-      headers: {
-        Authorization: `Bearer ${dify.apiKey}`,
-      },
-    });
-
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = response?.data?.answer;
-
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
-
-    await this.prismaRepository.difySession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
 
     return;
   }
