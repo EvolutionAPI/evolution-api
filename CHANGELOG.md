@@ -3,6 +3,7 @@
 ### Features
 
 * New manager v2.0
+* Dify integration
 
 ### Fixed
 
