@@ -10,7 +10,7 @@ export class ViewsRouter extends RouterBroker {
     super();
     this.router = Router();
 
-    const basePath = path.join(__dirname, '../../../manager/dist');
+    const basePath = path.join(process.cwd(), 'manager', 'dist');
     const indexPath = path.join(basePath, 'index.html');
 
     console.log('Base path:', basePath);

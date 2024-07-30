@@ -22,7 +22,6 @@ import makeWASocket, {
   GroupParticipant,
   isJidBroadcast,
   isJidGroup,
-  isJidNewsletter,
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
@@ -622,7 +621,7 @@ export class BaileysStartupService extends ChannelStartupService {
       shouldIgnoreJid: (jid) => {
         const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
         const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-        const isNewsletter = isJidNewsletter(jid);
+        const isNewsletter = jid.includes('newsletter');
 
         return isGroupJid || isBroadcast || isNewsletter;
       },

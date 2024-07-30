@@ -49,7 +49,7 @@ if (!serverConfig.DISABLE_MANAGER) router.use('/manager', new ViewsRouter().rout
 
 router.get('/assets/*', (req, res) => {
   const fileName = req.params[0];
-  const basePath = path.join(__dirname, '../../../manager/dist');
+  const basePath = path.join(process.cwd(), 'manager', 'dist');
 
   const filePath = path.join(basePath, 'assets/', fileName);
 
