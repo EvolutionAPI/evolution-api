@@ -93,6 +93,7 @@ services:
       - CONFIG_SESSION_PHONE_VERSION=2.2413.51
       - QRCODE_LIMIT=30
       - OPENAI_ENABLED=true
+      - DIFY_ENABLED=true
       - TYPEBOT_ENABLED=true
       - TYPEBOT_API_VERSION=latest
       - CHATWOOT_ENABLED=true
