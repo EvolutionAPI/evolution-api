@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   evolution_v2:
-    image: atendai/evolution-api:v2.0.0-beta
+    image: atendai/evolution-api:v2.0.4-rc
     volumes:
       - evolution_instances:/evolution/instances
     networks:
@@ -10,7 +10,6 @@ services:
     environment:
       - SERVER_URL=https://evo2.site.com
       - DEL_INSTANCE=false
-      - DEL_TEMP_INSTANCES=false
       - PROVIDER_ENABLED=false
       - PROVIDER_HOST=127.0.0.1
       - PROVIDER_PORT=5656
@@ -18,6 +17,13 @@ services:
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://postgres:SENHA@postgres:5432/evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_SAVE_DATA_LABELS=true
+      - DATABASE_SAVE_DATA_HISTORIC=true
       - DATABASE_CONNECTION_CLIENT_NAME=evolution_v2
       - RABBITMQ_ENABLED=false
       - RABBITMQ_URI=amqp://admin:admin@rabbitmq:5672/default
@@ -93,10 +99,13 @@ services:
       - CONFIG_SESSION_PHONE_NAME=Chrome
       - CONFIG_SESSION_PHONE_VERSION=2.2413.51
       - QRCODE_LIMIT=30
+      - OPENAI_ENABLED=true
+      - DIFY_ENABLED=true
       - TYPEBOT_ENABLED=true
       - TYPEBOT_API_VERSION=latest
       - CHATWOOT_ENABLED=true
       - CHATWOOT_MESSAGE_READ=true
+      - CHATWOOT_MESSAGE_DELETE=true
       - CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://postgres:PASSWORD@postgres:5432/chatwoot?sslmode=disable
       - CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE=true
       - CACHE_REDIS_ENABLED=true
