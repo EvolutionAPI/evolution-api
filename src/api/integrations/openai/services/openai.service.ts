@@ -1,7 +1,11 @@
-import { Message, OpenaiBot, OpenaiSession, OpenaiSetting } from '@prisma/client';
+import { Message, OpenaiBot, OpenaiCreds, OpenaiSession, OpenaiSetting } from '@prisma/client';
+import axios from 'axios';
+import { downloadMediaMessage } from 'baileys';
+import FormData from 'form-data';
 import OpenAI from 'openai';
+import P from 'pino';
 
-import { ConfigService, S3 } from '../../../../config/env.config';
+import { ConfigService, Language, S3 } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { sendTelemetry } from '../../../../utils/sendTelemetry';
 import { InstanceDto } from '../../../dto/instance.dto';
@@ -528,6 +532,7 @@ export class OpenaiService {
             stopBotFromMe: data.stopBotFromMe,
             keepOpen: data.keepOpen,
             debounceTime: data.debounceTime,
+            speechToText: data.speechToText,
             openaiIdFallback: data.openaiIdFallback,
             ignoreJids: data.ignoreJids,
           },
@@ -543,6 +548,7 @@ export class OpenaiService {
           stopBotFromMe: updateSettings.stopBotFromMe,
           keepOpen: updateSettings.keepOpen,
           debounceTime: updateSettings.debounceTime,
+          speechToText: updateSettings.speechToText,
           openaiIdFallback: updateSettings.openaiIdFallback,
           ignoreJids: updateSettings.ignoreJids,
         };
@@ -561,6 +567,7 @@ export class OpenaiService {
           debounceTime: data.debounceTime,
           openaiIdFallback: data.openaiIdFallback,
           ignoreJids: data.ignoreJids,
+          speechToText: data.speechToText,
           instanceId: instanceId,
         },
       });
@@ -615,6 +622,7 @@ export class OpenaiService {
           keepOpen: false,
           ignoreJids: [],
           openaiIdFallback: null,
+          speechToText: false,
           fallback: null,
         };
       }
@@ -630,6 +638,7 @@ export class OpenaiService {
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
         openaiIdFallback: settings.openaiIdFallback,
+        speechToText: settings.speechToText,
         fallback: settings.Fallback,
       };
     } catch (error) {
@@ -823,7 +832,11 @@ export class OpenaiService {
       listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       // Medias
-      audioMessage: msg?.message?.audioMessage ? `audioMessage|${mediaId}` : undefined,
+      audioMessage: msg?.message?.speechToText
+        ? msg?.message?.speechToText
+        : msg?.message?.audioMessage
+        ? `audioMessage|${mediaId}`
+        : undefined,
       imageMessage: msg?.message?.imageMessage ? `imageMessage|${mediaId}` : undefined,
       videoMessage: msg?.message?.videoMessage ? `videoMessage|${mediaId}` : undefined,
       documentMessage: msg?.message?.documentMessage ? `documentMessage|${mediaId}` : undefined,
@@ -1778,5 +1791,44 @@ export class OpenaiService {
     sendTelemetry('/message/sendText');
 
     return;
+  }
+
+  public async speechToText(creds: OpenaiCreds, msg: any, updateMediaMessage: any) {
+    let audio;
+
+    if (msg?.message?.mediaUrl) {
+      audio = await axios.get(msg.message.mediaUrl, { responseType: 'arraybuffer' }).then((response) => {
+        return Buffer.from(response.data, 'binary');
+      });
+    } else {
+      audio = await downloadMediaMessage(
+        { key: msg.key, message: msg?.message },
+        'buffer',
+        {},
+        {
+          logger: P({ level: 'error' }) as any,
+          reuploadRequest: updateMediaMessage,
+        },
+      );
+    }
+
+    const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
+      ? 'pt'
+      : this.configService.get<Language>('LANGUAGE');
+
+    const formData = new FormData();
+
+    formData.append('file', audio, 'audio.ogg');
+    formData.append('model', 'whisper-1');
+    formData.append('language', lang);
+
+    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${creds.apiKey}`,
+      },
+    });
+
+    return response?.data?.text;
   }
 }

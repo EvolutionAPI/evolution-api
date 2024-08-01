@@ -1,5 +1,9 @@
 # 2.0.5-rc (release candidate)
 
+### Features
+
+* Speech to Text with Openai
+
 ### Fixed
 
 * ClientName on infos

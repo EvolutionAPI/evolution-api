@@ -670,7 +670,11 @@ export class DifyService {
       listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
       // Medias
-      audioMessage: msg?.message?.audioMessage ? `audioMessage|${mediaId}` : undefined,
+      audioMessage: msg?.message?.speechToText
+        ? msg?.message?.speechToText
+        : msg?.message?.audioMessage
+        ? `audioMessage|${mediaId}`
+        : undefined,
       imageMessage: msg?.message?.imageMessage ? `imageMessage|${mediaId}` : undefined,
       videoMessage: msg?.message?.videoMessage ? `videoMessage|${mediaId}` : undefined,
       documentMessage: msg?.message?.documentMessage ? `documentMessage|${mediaId}` : undefined,

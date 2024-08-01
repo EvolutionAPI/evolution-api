@@ -85,6 +85,7 @@ export const openaiSettingSchema: JSONSchema7 = {
     stopBotFromMe: { type: 'boolean' },
     keepOpen: { type: 'boolean' },
     debounceTime: { type: 'integer' },
+    speechToText: { type: 'boolean' },
     ignoreJids: { type: 'array', items: { type: 'string' } },
     openaiIdFallback: { type: 'string' },
   },

@@ -1161,6 +1161,30 @@ export class BaileysStartupService extends ChannelStartupService {
             messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
           }
 
+          if (this.configService.get<Openai>('OPENAI').ENABLED) {
+            const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+              where: {
+                instanceId: this.instanceId,
+              },
+              include: {
+                OpenaiCreds: true,
+              },
+            });
+
+            if (
+              openAiDefaultSettings &&
+              openAiDefaultSettings.openaiCredsId &&
+              openAiDefaultSettings.speechToText &&
+              received?.message?.audioMessage
+            ) {
+              messageRaw.message.speechToText = await this.openaiService.speechToText(
+                openAiDefaultSettings.OpenaiCreds,
+                received,
+                this.client.updateMediaMessage,
+              );
+            }
+          }
+
           this.logger.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);

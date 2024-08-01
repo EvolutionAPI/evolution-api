@@ -49,6 +49,7 @@ export class OpenaiSettingDto {
   debounceTime?: number;
   openaiIdFallback?: string;
   ignoreJids?: any;
+  speechToText?: boolean;
 }
 
 export class OpenaiIgnoreJidDto {

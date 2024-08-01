@@ -422,6 +422,7 @@ model OpenaiSetting {
   keepOpen         Boolean?     @default(false) @db.Boolean
   debounceTime     Int?         @db.Integer
   ignoreJids       Json?
+  speechToText     Boolean?     @default(false) @db.Boolean
   createdAt        DateTime?    @default(now()) @db.Timestamp
   updatedAt        DateTime     @updatedAt @db.Timestamp
   OpenaiCreds      OpenaiCreds? @relation(fields: [openaiCredsId], references: [id])

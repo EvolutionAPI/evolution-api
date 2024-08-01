@@ -5,7 +5,7 @@ import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import { getMIMEType } from 'node-mime-types';
 
-import { Chatwoot, ConfigService, Database, Typebot, WaBusiness } from '../../../config/env.config';
+import { Chatwoot, ConfigService, Database, Dify, Openai, Typebot, WaBusiness } from '../../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
 import { NumberBusiness } from '../../dto/chat.dto';
 import {
@@ -403,6 +403,30 @@ export class BusinessStartupService extends ChannelStartupService {
           // await this.client.readMessages([received.key]);
         }
 
+        if (this.configService.get<Openai>('OPENAI').ENABLED) {
+          const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+            where: {
+              instanceId: this.instanceId,
+            },
+            include: {
+              OpenaiCreds: true,
+            },
+          });
+
+          if (
+            openAiDefaultSettings &&
+            openAiDefaultSettings.openaiCredsId &&
+            openAiDefaultSettings.speechToText &&
+            received?.message?.audioMessage
+          ) {
+            messageRaw.message.speechToText = await this.openaiService.speechToText(
+              openAiDefaultSettings.OpenaiCreds,
+              received,
+              this.client.updateMediaMessage,
+            );
+          }
+        }
+
         this.logger.log(messageRaw);
 
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
@@ -424,6 +448,24 @@ export class BusinessStartupService extends ChannelStartupService {
         if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
           if (messageRaw.messageType !== 'reactionMessage')
             await this.typebotService.sendTypebot(
+              { instanceName: this.instance.name, instanceId: this.instanceId },
+              messageRaw.key.remoteJid,
+              messageRaw,
+            );
+        }
+
+        if (this.configService.get<Openai>('OPENAI').ENABLED) {
+          if (messageRaw.messageType !== 'reactionMessage')
+            await this.openaiService.sendOpenai(
+              { instanceName: this.instance.name, instanceId: this.instanceId },
+              messageRaw.key.remoteJid,
+              messageRaw,
+            );
+        }
+
+        if (this.configService.get<Dify>('DIFY').ENABLED) {
+          if (messageRaw.messageType !== 'reactionMessage')
+            await this.difyService.sendDify(
               { instanceName: this.instance.name, instanceId: this.instanceId },
               messageRaw.key.remoteJid,
               messageRaw,
