@@ -1,4 +1,4 @@
-# 2.0.5-rc (release candidate)
+# 2.0.5-rc (2024-08-01 18:01)
 
 ### Features
 
