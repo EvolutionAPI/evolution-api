@@ -7,6 +7,7 @@
 ### Fixed
 
 * ClientName on infos
+* Instance screen scroll bar in manager
 
 # 2.0.4-rc (2024-07-30 14:13)
 
