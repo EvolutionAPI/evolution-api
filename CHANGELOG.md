@@ -1,4 +1,4 @@
-# 2.0.6-rc (release candidate)
+# 2.0.6-rc (2024-08-02 19:23)
 
 ### Features
 
@@ -7,6 +7,7 @@
 ### Fixed
 
 * fetchInstances with clientName parameter
+* fixed update typebot, openai and dify
 
 # 2.0.5-rc (2024-08-01 18:01)
 

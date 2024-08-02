@@ -248,36 +248,36 @@ export class TypebotService {
       if (checkDuplicate) {
         throw new Error('Trigger already exists');
       }
+    }
 
-      try {
-        const typebot = await this.prismaRepository.typebot.update({
-          where: {
-            id: typebotId,
-          },
-          data: {
-            enabled: data.enabled,
-            url: data.url,
-            typebot: data.typebot,
-            expire: data.expire,
-            keywordFinish: data.keywordFinish,
-            delayMessage: data.delayMessage,
-            unknownMessage: data.unknownMessage,
-            listeningFromMe: data.listeningFromMe,
-            stopBotFromMe: data.stopBotFromMe,
-            keepOpen: data.keepOpen,
-            debounceTime: data.debounceTime,
-            triggerType: data.triggerType,
-            triggerOperator: data.triggerOperator,
-            triggerValue: data.triggerValue,
-            ignoreJids: data.ignoreJids,
-          },
-        });
+    try {
+      const typebot = await this.prismaRepository.typebot.update({
+        where: {
+          id: typebotId,
+        },
+        data: {
+          enabled: data.enabled,
+          url: data.url,
+          typebot: data.typebot,
+          expire: data.expire,
+          keywordFinish: data.keywordFinish,
+          delayMessage: data.delayMessage,
+          unknownMessage: data.unknownMessage,
+          listeningFromMe: data.listeningFromMe,
+          stopBotFromMe: data.stopBotFromMe,
+          keepOpen: data.keepOpen,
+          debounceTime: data.debounceTime,
+          triggerType: data.triggerType,
+          triggerOperator: data.triggerOperator,
+          triggerValue: data.triggerValue,
+          ignoreJids: data.ignoreJids,
+        },
+      });
 
-        return typebot;
-      } catch (error) {
-        this.logger.error(error);
-        throw new Error('Error updating typebot');
-      }
+      return typebot;
+    } catch (error) {
+      this.logger.error(error);
+      throw new Error('Error updating typebot');
     }
   }
 

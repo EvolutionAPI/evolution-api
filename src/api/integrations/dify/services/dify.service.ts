@@ -248,38 +248,38 @@ export class DifyService {
       if (checkDuplicate) {
         throw new Error('Trigger already exists');
       }
+    }
 
-      try {
-        const dify = await this.prismaRepository.dify.update({
-          where: {
-            id: difyId,
-          },
-          data: {
-            enabled: data.enabled,
-            botType: data.botType,
-            apiUrl: data.apiUrl,
-            apiKey: data.apiKey,
-            expire: data.expire,
-            keywordFinish: data.keywordFinish,
-            delayMessage: data.delayMessage,
-            unknownMessage: data.unknownMessage,
-            listeningFromMe: data.listeningFromMe,
-            stopBotFromMe: data.stopBotFromMe,
-            keepOpen: data.keepOpen,
-            debounceTime: data.debounceTime,
-            instanceId: instanceId,
-            triggerType: data.triggerType,
-            triggerOperator: data.triggerOperator,
-            triggerValue: data.triggerValue,
-            ignoreJids: data.ignoreJids,
-          },
-        });
+    try {
+      const dify = await this.prismaRepository.dify.update({
+        where: {
+          id: difyId,
+        },
+        data: {
+          enabled: data.enabled,
+          botType: data.botType,
+          apiUrl: data.apiUrl,
+          apiKey: data.apiKey,
+          expire: data.expire,
+          keywordFinish: data.keywordFinish,
+          delayMessage: data.delayMessage,
+          unknownMessage: data.unknownMessage,
+          listeningFromMe: data.listeningFromMe,
+          stopBotFromMe: data.stopBotFromMe,
+          keepOpen: data.keepOpen,
+          debounceTime: data.debounceTime,
+          instanceId: instanceId,
+          triggerType: data.triggerType,
+          triggerOperator: data.triggerOperator,
+          triggerValue: data.triggerValue,
+          ignoreJids: data.ignoreJids,
+        },
+      });
 
-        return dify;
-      } catch (error) {
-        this.logger.error(error);
-        throw new Error('Error updating dify');
-      }
+      return dify;
+    } catch (error) {
+      this.logger.error(error);
+      throw new Error('Error updating dify');
     }
   }
 

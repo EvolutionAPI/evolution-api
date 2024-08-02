@@ -394,43 +394,43 @@ export class OpenaiService {
       if (checkDuplicate) {
         throw new Error('Trigger already exists');
       }
+    }
 
-      try {
-        const openaiBot = await this.prismaRepository.openaiBot.update({
-          where: {
-            id: openaiBotId,
-          },
-          data: {
-            enabled: data.enabled,
-            openaiCredsId: data.openaiCredsId,
-            botType: data.botType,
-            assistantId: data.assistantId,
-            model: data.model,
-            systemMessages: data.systemMessages,
-            assistantMessages: data.assistantMessages,
-            userMessages: data.userMessages,
-            maxTokens: data.maxTokens,
-            expire: data.expire,
-            keywordFinish: data.keywordFinish,
-            delayMessage: data.delayMessage,
-            unknownMessage: data.unknownMessage,
-            listeningFromMe: data.listeningFromMe,
-            stopBotFromMe: data.stopBotFromMe,
-            keepOpen: data.keepOpen,
-            debounceTime: data.debounceTime,
-            instanceId: instanceId,
-            triggerType: data.triggerType,
-            triggerOperator: data.triggerOperator,
-            triggerValue: data.triggerValue,
-            ignoreJids: data.ignoreJids,
-          },
-        });
+    try {
+      const openaiBot = await this.prismaRepository.openaiBot.update({
+        where: {
+          id: openaiBotId,
+        },
+        data: {
+          enabled: data.enabled,
+          openaiCredsId: data.openaiCredsId,
+          botType: data.botType,
+          assistantId: data.assistantId,
+          model: data.model,
+          systemMessages: data.systemMessages,
+          assistantMessages: data.assistantMessages,
+          userMessages: data.userMessages,
+          maxTokens: data.maxTokens,
+          expire: data.expire,
+          keywordFinish: data.keywordFinish,
+          delayMessage: data.delayMessage,
+          unknownMessage: data.unknownMessage,
+          listeningFromMe: data.listeningFromMe,
+          stopBotFromMe: data.stopBotFromMe,
+          keepOpen: data.keepOpen,
+          debounceTime: data.debounceTime,
+          instanceId: instanceId,
+          triggerType: data.triggerType,
+          triggerOperator: data.triggerOperator,
+          triggerValue: data.triggerValue,
+          ignoreJids: data.ignoreJids,
+        },
+      });
 
-        return openaiBot;
-      } catch (error) {
-        this.logger.error(error);
-        throw new Error('Error updating openai bot');
-      }
+      return openaiBot;
+    } catch (error) {
+      this.logger.error(error);
+      throw new Error('Error updating openai bot');
     }
   }
 
