@@ -6,6 +6,8 @@
 
 ### Fixed
 
+* fetchInstances with clientName parameter
+
 # 2.0.5-rc (2024-08-01 18:01)
 
 ### Features

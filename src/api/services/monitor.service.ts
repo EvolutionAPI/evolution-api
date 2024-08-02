@@ -68,7 +68,9 @@ export class WAMonitoringService {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
 
-    const where = instanceName ? { name: instanceName } : {};
+    const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
+
+    const where = instanceName ? { name: instanceName, clientName } : { clientName };
 
     const instances = await this.prismaRepository.instance.findMany({
       where,
