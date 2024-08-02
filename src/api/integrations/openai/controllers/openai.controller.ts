@@ -79,6 +79,12 @@ export class OpenaiController {
     return this.openaiService.fetchSessions(instance, openaiBotId);
   }
 
+  public async getModels(instance: InstanceDto) {
+    if (!configService.get<Openai>('OPENAI').ENABLED) throw new BadRequestException('Openai is disabled');
+
+    return this.openaiService.getModels(instance);
+  }
+
   public async ignoreJid(instance: InstanceDto, data: OpenaiIgnoreJidDto) {
     if (!configService.get<Openai>('OPENAI').ENABLED) throw new BadRequestException('Openai is disabled');
 

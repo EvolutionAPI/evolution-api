@@ -147,6 +147,16 @@ export class OpenaiRouter extends RouterBroker {
         });
 
         res.status(HttpStatus.OK).json(response);
+      })
+      .get(this.routerPath('getModels'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: instanceSchema,
+          ClassRef: InstanceDto,
+          execute: (instance) => openaiController.getModels(instance),
+        });
+
+        res.status(HttpStatus.OK).json(response);
       });
   }
 

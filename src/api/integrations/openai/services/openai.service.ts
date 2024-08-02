@@ -647,6 +647,42 @@ export class OpenaiService {
     }
   }
 
+  public async getModels(instance: InstanceDto) {
+    const instanceId = await this.prismaRepository.instance
+      .findFirst({
+        where: {
+          name: instance.instanceName,
+        },
+      })
+      .then((instance) => instance.id);
+
+    if (!instanceId) throw new Error('Instance not found');
+
+    const defaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+      where: {
+        instanceId: instanceId,
+      },
+      include: {
+        OpenaiCreds: true,
+      },
+    });
+
+    if (!defaultSettings) throw new Error('Settings not found');
+
+    const { apiKey } = defaultSettings.OpenaiCreds;
+
+    try {
+      this.client = new OpenAI({ apiKey });
+
+      const models: any = await this.client.models.list();
+
+      return models?.body?.data;
+    } catch (error) {
+      this.logger.error(error);
+      throw new Error('Error fetching models');
+    }
+  }
+
   public async ignoreJid(instance: InstanceDto, data: OpenaiIgnoreJidDto) {
     try {
       const instanceId = await this.prismaRepository.instance

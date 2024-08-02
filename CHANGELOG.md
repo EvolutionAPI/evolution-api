@@ -1,3 +1,11 @@
+# 2.0.6-rc (release candidate)
+
+### Features
+
+* Get models for OpenAI
+
+### Fixed
+
 # 2.0.5-rc (2024-08-01 18:01)
 
 ### Features
