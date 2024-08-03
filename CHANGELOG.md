@@ -1,3 +1,9 @@
+# 2.0.7-rc (release candidate)
+
+### Fixed
+
+* BusinessId added on create instances in manager
+
 # 2.0.6-rc (2024-08-02 19:23)
 
 ### Features
