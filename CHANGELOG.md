@@ -3,6 +3,7 @@
 ### Fixed
 
 * BusinessId added on create instances in manager
+* Adjusts in restart instance
 
 # 2.0.6-rc (2024-08-02 19:23)
 

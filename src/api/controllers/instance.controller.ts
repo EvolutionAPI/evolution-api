@@ -583,6 +583,7 @@ export class InstanceController {
       };
     } catch (error) {
       this.logger.error(error);
+      return { error: true, message: error.toString() };
     }
   }
 
@@ -591,19 +592,26 @@ export class InstanceController {
       const instance = this.waMonitor.waInstances[instanceName];
       const state = instance?.connectionStatus?.state;
 
-      switch (state) {
-        case 'open':
-          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instance.clearCacheChatwoot();
+      if (!state) {
+        throw new BadRequestException('The "' + instanceName + '" instance does not exist');
+      }
 
-          this.logger.info('Connection closed, restarting instance' + instanceName);
-          instance.client?.ws?.close();
-          instance.client?.end(new Error('restart'));
-          return await this.connectToWhatsapp({ instanceName });
-        default:
-          return await this.connectionState({ instanceName });
+      if (state == 'close') {
+        throw new BadRequestException('The "' + instanceName + '" instance is not connected');
+      } else if (state == 'open') {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) instance.clearCacheChatwoot();
+        this.logger.info('restarting instance' + instanceName);
+
+        instance.client?.ws?.close();
+        instance.client?.end(new Error('restart'));
+        return await this.connectToWhatsapp({ instanceName });
+      } else if (state == 'connecting') {
+        instance.client?.end(new Error('restart'));
+        return await this.connectToWhatsapp({ instanceName });
       }
     } catch (error) {
       this.logger.error(error);
+      return { error: true, message: error.toString() };
     }
   }
 
