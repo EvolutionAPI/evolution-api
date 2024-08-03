@@ -5,6 +5,7 @@
 * BusinessId added on create instances in manager
 * Adjusts in restart instance
 * Resolve issue with connecting to instance
+* Session is now individual per instance and remoteJid
 
 # 2.0.6-rc (2024-08-02 19:23)
 
