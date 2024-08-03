@@ -10,6 +10,7 @@ export class Session {
 
 export class DifyDto {
   enabled?: boolean;
+  description?: string;
   botType?: $Enums.DifyBotType;
   apiUrl?: string;
   apiKey?: string;

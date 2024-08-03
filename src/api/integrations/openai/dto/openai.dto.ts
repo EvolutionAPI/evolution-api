@@ -15,6 +15,7 @@ export class OpenaiCredsDto {
 
 export class OpenaiDto {
   enabled?: boolean;
+  description?: string;
   openaiCredsId: string;
   botType?: string;
   assistantId?: string;

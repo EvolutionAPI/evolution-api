@@ -25,6 +25,7 @@ export const openaiSchema: JSONSchema7 = {
   type: 'object',
   properties: {
     enabled: { type: 'boolean' },
+    description: { type: 'string' },
     openaiCredsId: { type: 'string' },
     botType: { type: 'string', enum: ['assistant', 'chatCompletion'] },
     assistantId: { type: 'string' },

@@ -118,6 +118,7 @@ export class DifyService {
       const dify = await this.prismaRepository.dify.create({
         data: {
           enabled: data.enabled,
+          description: data.description,
           botType: data.botType,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,

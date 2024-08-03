@@ -238,6 +238,7 @@ export class OpenaiService {
       const openaiBot = await this.prismaRepository.openaiBot.create({
         data: {
           enabled: data.enabled,
+          description: data.description,
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
           assistantId: data.assistantId,

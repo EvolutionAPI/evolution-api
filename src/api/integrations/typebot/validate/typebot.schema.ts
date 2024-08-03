@@ -25,6 +25,7 @@ export const typebotSchema: JSONSchema7 = {
   type: 'object',
   properties: {
     enabled: { type: 'boolean' },
+    description: { type: 'string' },
     url: { type: 'string' },
     typebot: { type: 'string' },
     triggerType: { type: 'string', enum: ['all', 'keyword', 'none'] },

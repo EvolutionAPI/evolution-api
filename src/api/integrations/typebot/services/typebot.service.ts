@@ -118,6 +118,7 @@ export class TypebotService {
       const typebot = await this.prismaRepository.typebot.create({
         data: {
           enabled: data.enabled,
+          description: data.description,
           url: data.url,
           typebot: data.typebot,
           expire: data.expire,

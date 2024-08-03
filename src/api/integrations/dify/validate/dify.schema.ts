@@ -25,6 +25,7 @@ export const difySchema: JSONSchema7 = {
   type: 'object',
   properties: {
     enabled: { type: 'boolean' },
+    description: { type: 'string' },
     botType: { type: 'string', enum: ['chatBot', 'textGenerator', 'agent', 'workflow'] },
     apiUrl: { type: 'string' },
     apiKey: { type: 'string' },

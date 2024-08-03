@@ -18,6 +18,7 @@ export class PrefilledVariables {
 
 export class TypebotDto {
   enabled?: boolean;
+  description?: string;
   url: string;
   typebot?: string;
   expire?: number;

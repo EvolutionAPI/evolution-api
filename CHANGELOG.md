@@ -7,6 +7,7 @@
 * Resolve issue with connecting to instance
 * Session is now individual per instance and remoteJid
 * Credentials verify on manager login
+* Added description column on typebot, dify and openai
 
 # 2.0.6-rc (2024-08-02 19:23)
 

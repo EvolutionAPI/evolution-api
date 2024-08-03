@@ -282,6 +282,7 @@ model Websocket {
 model Typebot {
   id              String           @id @default(cuid())
   enabled         Boolean          @default(true) @db.Boolean
+  description     String?          @db.VarChar(255)
   url             String           @db.VarChar(500)
   typebot         String           @db.VarChar(100)
   expire          Int?             @default(0) @db.Integer
