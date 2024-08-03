@@ -74,6 +74,12 @@ router
       documentation: `https://doc.evolution-api.com`,
     });
   })
+  .post('/verify-creds', authGuard['apikey'], async (req, res) => {
+    return res.status(HttpStatus.OK).json({
+      status: HttpStatus.OK,
+      message: 'Credentials are valid',
+    });
+  })
   .use('/instance', new InstanceRouter(configService, ...guards).router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
