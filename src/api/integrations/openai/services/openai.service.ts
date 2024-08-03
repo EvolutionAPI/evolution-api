@@ -1094,6 +1094,7 @@ export class OpenaiService {
       const session = await this.prismaRepository.openaiSession.findFirst({
         where: {
           remoteJid: remoteJid,
+          instanceId: instance.instanceId,
         },
       });
 

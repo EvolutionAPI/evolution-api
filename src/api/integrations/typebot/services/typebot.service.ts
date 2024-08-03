@@ -1474,6 +1474,7 @@ export class TypebotService {
       const session = await this.prismaRepository.typebotSession.findFirst({
         where: {
           remoteJid: remoteJid,
+          instanceId: instance.instanceId,
         },
       });
 

@@ -896,6 +896,7 @@ export class DifyService {
       const session = await this.prismaRepository.difySession.findFirst({
         where: {
           remoteJid: remoteJid,
+          instanceId: instance.instanceId,
         },
       });
 
