@@ -16,51 +16,51 @@
 
 ## Evolution API
 
-This project is based on the [CodeChat](https://github.com/code-chat-br/whatsapp-api). The original project is an implementation of [Baileys](https://github.com/WhiskeySockets/Baileys), serving as a Restful API service that controls WhatsApp functions.</br> 
-The code allows the creation of multiservice chats, service bots, or any other system that utilizes WhatsApp. The documentation provides instructions on how to set up and use the project, as well as additional information about its features and configuration options.
+Evolution API began as a WhatsApp controller API based on [CodeChat](https://github.com/code-chat-br/whatsapp-api), which in turn implemented the [Baileys](https://github.com/WhiskeySockets/Baileys) library. While originally focused on WhatsApp, Evolution API has grown into a comprehensive platform supporting multiple messaging services and integrations. We continue to acknowledge CodeChat for laying the groundwork.
+
+Today, Evolution API is not limited to WhatsApp. It integrates with various platforms such as Typebot, Chatwoot, Dify, and OpenAI, offering a broad array of functionalities beyond messaging. Evolution API supports both the Baileys-based WhatsApp API and the official WhatsApp Business API, with upcoming support for Instagram and Messenger.
 
 ## Types of Connections
 
-The Evolution API supports multiple types of connections to WhatsApp, allowing for flexible and powerful integration options:
+Evolution API supports multiple types of connections to WhatsApp, enabling flexible and powerful integration options:
 
-- **WhatsApp API - Baileys**:
-  - A free WhatsApp API based on WhatsApp Web, leveraging the [Baileys library](https://github.com/WhiskeySockets/Baileys).
-  - This connection type allows you to control WhatsApp Web functionalities through a RESTful API, making it suitable for multi-service chats, service bots, or any other systems utilizing WhatsApp.
+- *WhatsApp API - Baileys*:
+  - A free API based on WhatsApp Web, leveraging the [Baileys library](https://github.com/WhiskeySockets/Baileys).
+  - This connection type allows control over WhatsApp Web functionalities through a RESTful API, suitable for multi-service chats, service bots, and other WhatsApp-integrated systems.
   - Note: This method relies on the web version of WhatsApp and may have limitations compared to official APIs.
 
-- **WhatsApp Cloud API**:
-  - The official WhatsApp API provided by Meta (formerly Facebook).
-  - This connection type offers a more robust and reliable solution, designed for businesses needing higher volumes of messaging and better integration support.
+- *WhatsApp Cloud API*:
+  - The official API provided by Meta (formerly Facebook).
+  - This connection type offers a robust and reliable solution designed for businesses needing higher volumes of messaging and better integration support.
   - The Cloud API supports features such as end-to-end encryption, advanced analytics, and more comprehensive customer service tools.
   - To use this API, you must comply with Meta's policies and potentially pay for usage based on message volume and other factors.
-
 
 ## Integrations
 
 Evolution API supports various integrations to enhance its functionality. Below is a list of available integrations and their uses:
 
-- [Typebot](https://typebot.io/)
+- [Typebot](https://typebot.io/):
   - Build conversational bots using Typebot, integrated directly into Evolution with trigger management.
 
-- [Chatwoot](https://www.chatwoot.com/)
+- [Chatwoot](https://www.chatwoot.com/):
   - Direct integration with Chatwoot for handling customer service for your business.
 
-- [RabbitMQ](https://www.rabbitmq.com/)
+- [RabbitMQ](https://www.rabbitmq.com/):
   - Receive events from the Evolution API via RabbitMQ.
 
-- [Amazon SQS](https://aws.amazon.com/pt/sqs/)
+- [Amazon SQS](https://aws.amazon.com/pt/sqs/):
   - Receive events from the Evolution API via Amazon SQS.
 
-- [Socket.io](https://socket.io/)
+- [Socket.io](https://socket.io/):
   - Receive events from the Evolution API via WebSocket.
 
-- [Dify](https://dify.ai/)
+- [Dify](https://dify.ai/):
   - Integrate your Evolution API directly with Dify AI for seamless trigger management and multiple agents.
 
-- [OpenAI](https://openai.com/)
+- [OpenAI](https://openai.com/):
   - Integrate your Evolution API with OpenAI for AI capabilities, including audio-to-text conversion, available across all Evolution integrations.
 
-- Amazon S3 / Minio
+- Amazon S3 / Minio:
   - Store media files received in [Amazon S3](https://aws.amazon.com/pt/s3/) or [Minio](https://min.io/).
 
 ## Telemetry Notice
