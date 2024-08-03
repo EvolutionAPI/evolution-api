@@ -367,6 +367,7 @@ model OpenaiCreds {
 model OpenaiBot {
   id                String           @id @default(cuid())
   enabled           Boolean          @default(true) @db.Boolean
+  description       String?          @db.VarChar(255)
   botType           OpenaiBotType
   assistantId       String?          @db.VarChar(255)
   model             String?          @db.VarChar(100)
@@ -448,6 +449,7 @@ model Template {
 model Dify {
   id              String           @id @default(cuid())
   enabled         Boolean          @default(true) @db.Boolean
+  description     String?          @db.VarChar(255)
   botType         DifyBotType
   apiUrl          String?          @db.VarChar(255)
   apiKey          String?          @db.VarChar(255)
