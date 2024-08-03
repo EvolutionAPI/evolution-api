@@ -366,6 +366,13 @@ export class BaileysStartupService extends ChannelStartupService {
             qrcode,
         ),
       );
+
+      await this.prismaRepository.instance.update({
+        where: { id: this.instanceId },
+        data: {
+          connectionStatus: 'connecting',
+        },
+      });
     }
 
     if (connection) {
