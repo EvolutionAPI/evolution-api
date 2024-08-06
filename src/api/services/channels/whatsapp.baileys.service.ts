@@ -397,6 +397,9 @@ export class BaileysStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
           status: 'closed',
+          disconnectionAt: new Date(),
+          disconnectionReasonCode: statusCode,
+          disconnectionObject: JSON.stringify(lastDisconnect),
         });
 
         if (this.configService.get<Database>('DATABASE').ENABLED) {
@@ -404,6 +407,9 @@ export class BaileysStartupService extends ChannelStartupService {
             where: { id: this.instanceId },
             data: {
               connectionStatus: 'close',
+              disconnectionAt: new Date(),
+              disconnectionReasonCode: statusCode,
+              disconnectionObject: JSON.stringify(lastDisconnect),
             },
           });
         }
