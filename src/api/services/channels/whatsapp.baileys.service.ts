@@ -1266,15 +1266,14 @@ export class BaileysStartupService extends ChannelStartupService {
               where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
               data: contactRaw,
             });
-            return;
+          } else {
+            this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
+
+            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
+              await this.prismaRepository.contact.create({
+                data: contactRaw,
+              });
           }
-
-          this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
-
-          if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
-            await this.prismaRepository.contact.create({
-              data: contactRaw,
-            });
         }
       } catch (error) {
         this.logger.error(error);
