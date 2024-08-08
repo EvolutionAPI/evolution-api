@@ -19,7 +19,5 @@ export const sendTelemetry = async (route: string): Promise<void> => {
   axios
     .post('https://log.evolution-api.com/telemetry', telemetry)
     .then(() => {})
-    .catch((error) => {
-      console.error('Telemetry error', error);
-    });
+    .catch(() => {});
 };
