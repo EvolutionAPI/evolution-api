@@ -60,44 +60,47 @@ enum DifyBotType {
 }
 
 model Instance {
-  id               String                   @id @default(cuid())
-  name             String                   @unique @db.VarChar(255)
-  connectionStatus InstanceConnectionStatus @default(open)
-  ownerJid         String?                  @db.VarChar(100)
-  profileName      String?                  @db.VarChar(100)
-  profilePicUrl    String?                  @db.VarChar(500)
-  integration      String?                  @db.VarChar(100)
-  number           String?                  @db.VarChar(100)
-  businessId       String?                  @db.VarChar(100)
-  token            String?                  @db.VarChar(255)
-  clientName       String?                  @db.VarChar(100)
-  createdAt        DateTime?                @default(now()) @db.Timestamp
-  updatedAt        DateTime?                @updatedAt @db.Timestamp
-  Chat             Chat[]
-  Contact          Contact[]
-  Message          Message[]
-  Webhook          Webhook?
-  Chatwoot         Chatwoot?
-  Label            Label[]
-  Proxy            Proxy?
-  Setting          Setting?
-  Rabbitmq         Rabbitmq?
-  Sqs              Sqs?
-  Websocket        Websocket?
-  Typebot          Typebot[]
-  Session          Session?
-  MessageUpdate    MessageUpdate[]
-  TypebotSession   TypebotSession[]
-  TypebotSetting   TypebotSetting?
-  Media            Media[]
-  OpenaiCreds      OpenaiCreds[]
-  OpenaiBot        OpenaiBot[]
-  OpenaiSession    OpenaiSession[]
-  OpenaiSetting    OpenaiSetting?
-  Template         Template[]
-  Dify             Dify[]
-  DifySession      DifySession[]
-  DifySetting      DifySetting?
+  id                      String                   @id @default(cuid())
+  name                    String                   @unique @db.VarChar(255)
+  connectionStatus        InstanceConnectionStatus @default(open)
+  ownerJid                String?                  @db.VarChar(100)
+  profileName             String?                  @db.VarChar(100)
+  profilePicUrl           String?                  @db.VarChar(500)
+  integration             String?                  @db.VarChar(100)
+  number                  String?                  @db.VarChar(100)
+  businessId              String?                  @db.VarChar(100)
+  token                   String?                  @db.VarChar(255)
+  clientName              String?                  @db.VarChar(100)
+  disconnectionReasonCode Int?                     @db.Integer
+  disconnectionObject     Json?                    @db.JsonB
+  disconnectionAt         DateTime?                @db.Timestamp
+  createdAt               DateTime?                @default(now()) @db.Timestamp
+  updatedAt               DateTime?                @updatedAt @db.Timestamp
+  Chat                    Chat[]
+  Contact                 Contact[]
+  Message                 Message[]
+  Webhook                 Webhook?
+  Chatwoot                Chatwoot?
+  Label                   Label[]
+  Proxy                   Proxy?
+  Setting                 Setting?
+  Rabbitmq                Rabbitmq?
+  Sqs                     Sqs?
+  Websocket               Websocket?
+  Typebot                 Typebot[]
+  Session                 Session?
+  MessageUpdate           MessageUpdate[]
+  TypebotSession          TypebotSession[]
+  TypebotSetting          TypebotSetting?
+  Media                   Media[]
+  OpenaiCreds             OpenaiCreds[]
+  OpenaiBot               OpenaiBot[]
+  OpenaiSession           OpenaiSession[]
+  OpenaiSetting           OpenaiSetting?
+  Template                Template[]
+  Dify                    Dify[]
+  DifySession             DifySession[]
+  DifySetting             DifySetting?
 }
 
 model Session {
