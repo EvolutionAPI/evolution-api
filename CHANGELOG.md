@@ -4,6 +4,7 @@
 
 * Variables passed to the input in dify
 * OwnerJid passed to typebot
+* Function for openai assistant added
 
 # 2.0.7-rc (2024-08-03 14:04)
 

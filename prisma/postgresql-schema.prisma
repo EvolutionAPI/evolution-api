@@ -374,6 +374,7 @@ model OpenaiBot {
   description       String?          @db.VarChar(255)
   botType           OpenaiBotType
   assistantId       String?          @db.VarChar(255)
+  functionUrl       String?          @db.VarChar(500)
   model             String?          @db.VarChar(100)
   systemMessages    Json?            @db.JsonB
   assistantMessages Json?            @db.JsonB

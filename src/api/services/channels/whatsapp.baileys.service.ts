@@ -3345,6 +3345,11 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const group = await this.client.groupMetadata(id.groupJid);
 
+      if (!group) {
+        this.logger.error('Group not found');
+        return null;
+      }
+
       const picture = await this.profilePicture(group.id);
 
       return {

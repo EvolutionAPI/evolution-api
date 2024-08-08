@@ -19,6 +19,7 @@ export class OpenaiDto {
   openaiCredsId: string;
   botType?: string;
   assistantId?: string;
+  functionUrl?: string;
   model?: string;
   systemMessages?: string[];
   assistantMessages?: string[];

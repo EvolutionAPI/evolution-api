@@ -242,6 +242,7 @@ export class OpenaiService {
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
           assistantId: data.assistantId,
+          functionUrl: data.functionUrl,
           model: data.model,
           systemMessages: data.systemMessages,
           assistantMessages: data.assistantMessages,
@@ -407,6 +408,7 @@ export class OpenaiService {
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
           assistantId: data.assistantId,
+          functionUrl: data.functionUrl,
           model: data.model,
           systemMessages: data.systemMessages,
           assistantMessages: data.assistantMessages,
@@ -1315,7 +1317,7 @@ export class OpenaiService {
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const response = await this.getAIResponse(data.session.sessionId, runAssistant.id);
+    const response = await this.getAIResponse(data.session.sessionId, runAssistant.id, openaiBot.functionUrl);
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 
@@ -1345,18 +1347,73 @@ export class OpenaiService {
     return;
   }
 
-  private async getAIResponse(threadId: string, runId: string) {
+  private isJSON(str: string): boolean {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  private async getAIResponse(threadId: string, runId: string, functionUrl: string) {
     const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
+    let toolCalls;
 
     switch (getRun.status) {
+      case 'requires_action':
+        toolCalls = getRun?.required_action?.submit_tool_outputs?.tool_calls;
+
+        if (toolCalls) {
+          for (const toolCall of toolCalls) {
+            const id = toolCall.id;
+            const functionName = toolCall?.function?.name;
+            const functionArgument = this.isJSON(toolCall?.function?.arguments)
+              ? JSON.parse(toolCall?.function?.arguments)
+              : toolCall?.function?.arguments;
+
+            let output = null;
+
+            try {
+              const { data } = await axios.post(functionUrl, {
+                name: functionName,
+                arguments: functionArgument,
+              });
+
+              output = JSON.stringify(data)
+                .replace(/\\/g, '\\\\')
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r')
+                .replace(/\t/g, '\\t');
+            } catch (error) {
+              output = JSON.stringify(error)
+                .replace(/\\/g, '\\\\')
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r')
+                .replace(/\t/g, '\\t');
+            }
+
+            await this.client.beta.threads.runs.submitToolOutputs(threadId, runId, {
+              tool_outputs: [
+                {
+                  tool_call_id: id,
+                  output,
+                },
+              ],
+            });
+          }
+        }
+
+        return null;
+
       case 'queued':
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId);
+        return this.getAIResponse(threadId, runId, functionUrl);
       case 'in_progress':
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId);
-      case 'requires_action':
-        return null;
+        return this.getAIResponse(threadId, runId, functionUrl);
       case 'completed':
         return await this.client.beta.threads.messages.list(threadId, {
           run_id: runId,
@@ -1489,7 +1546,7 @@ export class OpenaiService {
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const response = await this.getAIResponse(threadId, runAssistant.id);
+    const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl);
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 

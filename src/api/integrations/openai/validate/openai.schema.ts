@@ -29,6 +29,7 @@ export const openaiSchema: JSONSchema7 = {
     openaiCredsId: { type: 'string' },
     botType: { type: 'string', enum: ['assistant', 'chatCompletion'] },
     assistantId: { type: 'string' },
+    functionUrl: { type: 'string' },
     model: { type: 'string' },
     systemMessages: { type: 'array', items: { type: 'string' } },
     assistantMessages: { type: 'array', items: { type: 'string' } },
