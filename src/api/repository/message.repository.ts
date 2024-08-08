@@ -1,4 +1,5 @@
 import { opendirSync, readFileSync, rmSync } from 'fs';
+import { SortOrder } from 'mongoose';
 import { join } from 'path';
 
 import { ConfigService, StoreConf } from '../../config/env.config';
@@ -10,6 +11,7 @@ export class MessageQuery {
   select?: MessageRawSelect;
   where: MessageRaw;
   limit?: number;
+  sort?: { [key: string]: SortOrder };
 }
 
 export class MessageRepository extends Repository {
@@ -22,6 +24,10 @@ export class MessageRepository extends Repository {
   public buildQuery(query: MessageQuery): MessageQuery {
     for (const [o, p] of Object.entries(query?.where || {})) {
       if (typeof p === 'object' && p !== null && !Array.isArray(p)) {
+        if (o === 'messageTimestamp') {
+          this.logger.verbose("Don't touch the messageTimestamp in where clause");
+          continue;
+        }
         for (const [k, v] of Object.entries(p)) {
           query.where[`${o}.${k}`] = v;
         }
@@ -119,7 +125,7 @@ export class MessageRepository extends Repository {
         return await this.messageModel
           .find({ ...query.where })
           .select(query.select || {})
-          .sort({ messageTimestamp: -1 })
+          .sort(query?.sort ?? { messageTimestamp: -1 })
           .limit(query?.limit ?? 0);
       }
 

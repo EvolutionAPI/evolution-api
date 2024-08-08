@@ -7,6 +7,7 @@ export class ChatRaw {
   id?: string;
   owner: string;
   lastMsgTimestamp?: number;
+  lastAllMsgTimestamp?: number | Long.Long;
   labels?: string[];
 }
 

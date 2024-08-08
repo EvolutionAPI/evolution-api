@@ -17,6 +17,7 @@ import { ChamaaiService } from './integrations/chamaai/services/chamaai.service'
 import { ChatwootController } from './integrations/chatwoot/controllers/chatwoot.controller';
 import { ChatwootRepository } from './integrations/chatwoot/repository/chatwoot.repository';
 import { ChatwootService } from './integrations/chatwoot/services/chatwoot.service';
+import { KwikController } from './integrations/kwik/controllers/kwik.controller';
 import { RabbitmqController } from './integrations/rabbitmq/controllers/rabbitmq.controller';
 import { RabbitmqRepository } from './integrations/rabbitmq/repository/rabbitmq.repository';
 import { RabbitmqService } from './integrations/rabbitmq/services/rabbitmq.service';
@@ -182,5 +183,6 @@ export const sendMessageController = new SendMessageController(waMonitor);
 export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
 export const labelController = new LabelController(waMonitor);
+export const kwikController = new KwikController(waMonitor);
 
 logger.info('Module - ON');

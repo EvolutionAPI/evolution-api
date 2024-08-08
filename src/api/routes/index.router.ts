@@ -6,6 +6,7 @@ import { authGuard } from '../guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '../guards/instance.guard';
 import { ChamaaiRouter } from '../integrations/chamaai/routes/chamaai.router';
 import { ChatwootRouter } from '../integrations/chatwoot/routes/chatwoot.router';
+import { KwikRouter } from '../integrations/kwik/routes/kwik.router';
 import { RabbitmqRouter } from '../integrations/rabbitmq/routes/rabbitmq.router';
 import { SqsRouter } from '../integrations/sqs/routes/sqs.router';
 import { TypebotRouter } from '../integrations/typebot/routes/typebot.router';
@@ -63,6 +64,7 @@ router
   .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
   .use('/chamaai', new ChamaaiRouter(...guards).router)
-  .use('/label', new LabelRouter(...guards).router);
+  .use('/label', new LabelRouter(...guards).router)
+  .use('/kwik', new KwikRouter(...guards).router);
 
 export { HttpStatus, router };
