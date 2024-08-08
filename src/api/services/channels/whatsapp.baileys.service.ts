@@ -636,7 +636,7 @@ export class BaileysStartupService extends ChannelStartupService {
       shouldIgnoreJid: (jid) => {
         const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
         const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-        const isNewsletter = jid.includes('newsletter');
+        const isNewsletter = jid ? jid.includes('newsletter') : false;
 
         return isGroupJid || isBroadcast || isNewsletter;
       },
