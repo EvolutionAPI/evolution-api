@@ -1406,8 +1406,7 @@ export class OpenaiService {
           }
         }
 
-        return null;
-
+        return this.getAIResponse(threadId, runId, functionUrl);
       case 'queued':
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return this.getAIResponse(threadId, runId, functionUrl);
