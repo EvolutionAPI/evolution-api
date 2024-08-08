@@ -2,7 +2,7 @@ import { Dify, DifySession, DifySetting, Message } from '@prisma/client';
 import axios from 'axios';
 import { Readable } from 'stream';
 
-import { ConfigService, S3 } from '../../../../config/env.config';
+import { Auth, ConfigService, HttpServer, S3 } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { sendTelemetry } from '../../../../utils/sendTelemetry';
 import { InstanceDto } from '../../../dto/instance.dto';
@@ -999,6 +999,7 @@ export class DifyService {
             session,
             settings,
             debouncedContent,
+            msg?.pushName,
           );
         });
       } else {
@@ -1009,6 +1010,7 @@ export class DifyService {
           session,
           settings,
           content,
+          msg?.pushName,
         );
       }
 
@@ -1046,6 +1048,7 @@ export class DifyService {
     settings: DifySetting,
     session: DifySession,
     content: string,
+    pushName?: string,
   ) {
     const data = await this.createNewSession(instance, {
       remoteJid,
@@ -1061,7 +1064,13 @@ export class DifyService {
     if (dify.botType === 'chatBot') {
       endpoint += '/chat-messages';
       const payload = {
-        inputs: {},
+        inputs: {
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        },
         query: content,
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
@@ -1112,6 +1121,11 @@ export class DifyService {
       const payload = {
         inputs: {
           query: content,
+          pushName: pushName,
+          remoteJid: remoteJid,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
         },
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
@@ -1160,7 +1174,13 @@ export class DifyService {
     if (dify.botType === 'agent') {
       endpoint += '/chat-messages';
       const payload = {
-        inputs: {},
+        inputs: {
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        },
         query: content,
         response_mode: 'streaming',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
@@ -1238,6 +1258,11 @@ export class DifyService {
       const payload = {
         inputs: {
           query: content,
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
         },
         response_mode: 'blocking',
         user: remoteJid,
@@ -1298,6 +1323,7 @@ export class DifyService {
     session: DifySession,
     settings: DifySetting,
     content: string,
+    pushName?: string,
   ) {
     if (session && session.status !== 'opened') {
       return;
@@ -1331,13 +1357,13 @@ export class DifyService {
           });
         }
 
-        await this.initNewSession(instance, remoteJid, dify, settings, session, content);
+        await this.initNewSession(instance, remoteJid, dify, settings, session, content, pushName);
         return;
       }
     }
 
     if (!session) {
-      await this.initNewSession(instance, remoteJid, dify, settings, session, content);
+      await this.initNewSession(instance, remoteJid, dify, settings, session, content, pushName);
       return;
     }
 
@@ -1393,7 +1419,13 @@ export class DifyService {
     if (dify.botType === 'chatBot') {
       endpoint += '/chat-messages';
       const payload = {
-        inputs: {},
+        inputs: {
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        },
         query: content,
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
@@ -1444,6 +1476,11 @@ export class DifyService {
       const payload = {
         inputs: {
           query: content,
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
         },
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
@@ -1492,7 +1529,13 @@ export class DifyService {
     if (dify.botType === 'agent') {
       endpoint += '/chat-messages';
       const payload = {
-        inputs: {},
+        inputs: {
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        },
         query: content,
         response_mode: 'streaming',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
@@ -1572,6 +1615,11 @@ export class DifyService {
       const payload = {
         inputs: {
           query: content,
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
         },
         response_mode: 'blocking',
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,

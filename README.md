@@ -90,9 +90,7 @@ Join our Evolution Pro community for expert support and a weekly call to answer 
 #### Buy me coffe - PIX
 
 <div align="center">
-  <a href="https://bmc.link/evolutionapi" target="_blank" rel="noopener noreferrer">
-    <img src="./public/images/qrcode-pix.png" style="width: 50% !important;">
-  </a>
+  <img src="./public/images/qrcode-pix.png" style="width: 50% !important;">
   <p><b>CHAVE PIX (Telefone):</b> (74)99987-9409</p>
 </div>
 

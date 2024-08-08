@@ -1,3 +1,10 @@
+# 2.0.8-rc (release candidate)
+
+### Features
+
+* Variables passed to the input in dify
+* OwnerJid passed to typebot
+
 # 2.0.7-rc (2024-08-03 14:04)
 
 ### Fixed

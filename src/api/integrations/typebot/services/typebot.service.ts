@@ -1,4 +1,4 @@
-import { Message, Typebot as TypebotModel, TypebotSession } from '@prisma/client';
+import { Instance, Message, Typebot as TypebotModel, TypebotSession } from '@prisma/client';
 import axios from 'axios';
 
 import { Auth, ConfigService, HttpServer, S3, Typebot } from '../../../../config/env.config';
@@ -659,13 +659,13 @@ export class TypebotService {
   public async startTypebot(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
 
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
+    const instanceData = await this.prismaRepository.instance.findFirst({
+      where: {
+        name: instance.instanceName,
+      },
+    });
+
+    if (!instanceData) throw new Error('Instance not found');
 
     const remoteJid = data.remoteJid;
     const url = data.url;
@@ -682,7 +682,7 @@ export class TypebotService {
 
     const defaultSettingCheck = await this.prismaRepository.typebotSetting.findFirst({
       where: {
-        instanceId,
+        instanceId: instanceData.id,
       },
     });
 
@@ -751,6 +751,7 @@ export class TypebotService {
       instanceName: instance.instanceName,
       serverUrl: this.configService.get<HttpServer>('SERVER').URL,
       apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+      ownerJid: instanceData.number,
     };
 
     if (variables?.length) {
@@ -764,7 +765,7 @@ export class TypebotService {
         where: {
           url: url,
           typebot: typebot,
-          instanceId,
+          instanceId: instanceData.id,
         },
       });
 
@@ -782,7 +783,7 @@ export class TypebotService {
             listeningFromMe: listeningFromMe,
             stopBotFromMe: stopBotFromMe,
             keepOpen: keepOpen,
-            instanceId,
+            instanceId: instanceData.id,
           },
         });
       }
@@ -790,35 +791,29 @@ export class TypebotService {
       await this.prismaRepository.typebotSession.deleteMany({
         where: {
           remoteJid: remoteJid,
-          instanceId,
+          instanceId: instanceData.id,
         },
       });
 
-      const response = await this.createNewSession(
-        {
-          instanceName: instance.instanceName,
-          instanceId: instanceId,
-        },
-        {
-          enabled: true,
-          url: url,
-          typebot: typebot,
-          remoteJid: remoteJid,
-          expire: expire,
-          keywordFinish: keywordFinish,
-          delayMessage: delayMessage,
-          unknownMessage: unknownMessage,
-          listeningFromMe: listeningFromMe,
-          stopBotFromMe: stopBotFromMe,
-          keepOpen: keepOpen,
-          prefilledVariables: prefilledVariables,
-          typebotId: findTypebot.id,
-        },
-      );
+      const response = await this.createNewSession(instanceData, {
+        enabled: true,
+        url: url,
+        typebot: typebot,
+        remoteJid: remoteJid,
+        expire: expire,
+        keywordFinish: keywordFinish,
+        delayMessage: delayMessage,
+        unknownMessage: unknownMessage,
+        listeningFromMe: listeningFromMe,
+        stopBotFromMe: stopBotFromMe,
+        keepOpen: keepOpen,
+        prefilledVariables: prefilledVariables,
+        typebotId: findTypebot.id,
+      });
 
       if (response.sessionId) {
         await this.sendWAMessage(
-          instance,
+          instanceData,
           response.session,
           {
             expire: expire,
@@ -871,7 +866,7 @@ export class TypebotService {
         const request = await axios.post(url, reqData);
 
         await this.sendWAMessage(
-          instance,
+          instanceData,
           null,
           {
             expire: expire,
@@ -966,7 +961,7 @@ export class TypebotService {
     return messageContent;
   }
 
-  public async createNewSession(instance: InstanceDto, data: any) {
+  public async createNewSession(instance: Instance, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
     const id = Math.floor(Math.random() * 10000000000).toString();
 
@@ -982,9 +977,10 @@ export class TypebotService {
             ...data.prefilledVariables,
             remoteJid: data.remoteJid,
             pushName: data.pushName || data.prefilledVariables?.pushName || '',
-            instanceName: instance.instanceName,
+            instanceName: instance.name,
             serverUrl: this.configService.get<HttpServer>('SERVER').URL,
             apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+            ownerJid: instance.number,
           },
         };
       } else {
@@ -997,9 +993,10 @@ export class TypebotService {
               ...data.prefilledVariables,
               remoteJid: data.remoteJid,
               pushName: data.pushName || data.prefilledVariables?.pushName || '',
-              instanceName: instance.instanceName,
+              instanceName: instance.name,
               serverUrl: this.configService.get<HttpServer>('SERVER').URL,
               apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+              ownerJid: instance.number,
             },
           },
         };
@@ -1018,13 +1015,14 @@ export class TypebotService {
               ...data.prefilledVariables,
               remoteJid: data.remoteJid,
               pushName: data.pushName || '',
-              instanceName: instance.instanceName,
+              instanceName: instance.name,
               serverUrl: this.configService.get<HttpServer>('SERVER').URL,
               apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+              ownerJid: instance.number,
             },
             awaitUser: false,
             typebotId: data.typebotId,
-            instanceId: instance.instanceId,
+            instanceId: instance.id,
           },
         });
       }
@@ -1036,7 +1034,7 @@ export class TypebotService {
   }
 
   public async sendWAMessage(
-    instance: InstanceDto,
+    instance: Instance,
     session: TypebotSession,
     settings: {
       expire: number;
@@ -1053,7 +1051,7 @@ export class TypebotService {
     clientSideActions: any,
   ) {
     processMessages(
-      this.waMonitor.waInstances[instance.instanceName],
+      this.waMonitor.waInstances[instance.name],
       session,
       settings,
       messages,
@@ -1436,6 +1434,14 @@ export class TypebotService {
 
   public async sendTypebot(instance: InstanceDto, remoteJid: string, msg: Message) {
     try {
+      const instanceData = await this.prismaRepository.instance.findFirst({
+        where: {
+          name: instance.instanceName,
+        },
+      });
+
+      if (!instanceData) throw new Error('Instance not found');
+
       const settings = await this.prismaRepository.typebotSetting.findFirst({
         where: {
           instanceId: instance.instanceId,
@@ -1569,7 +1575,7 @@ export class TypebotService {
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(content, remoteJid, debounceTime, async (debouncedContent) => {
           await this.processTypebot(
-            instance,
+            instanceData,
             remoteJid,
             msg,
             session,
@@ -1588,7 +1594,7 @@ export class TypebotService {
         });
       } else {
         await this.processTypebot(
-          instance,
+          instanceData,
           remoteJid,
           msg,
           session,
@@ -1614,7 +1620,7 @@ export class TypebotService {
   }
 
   private async processTypebot(
-    instance: InstanceDto,
+    instance: Instance,
     remoteJid: string,
     msg: Message,
     session: TypebotSession,
@@ -1699,7 +1705,7 @@ export class TypebotService {
 
           if (!content) {
             if (unknownMessage) {
-              this.waMonitor.waInstances[instance.instanceName].textMessage(
+              this.waMonitor.waInstances[instance.name].textMessage(
                 {
                   number: remoteJid.split('@')[0],
                   delay: delayMessage || 1000,
@@ -1824,7 +1830,7 @@ export class TypebotService {
       if (data.messages.length === 0) {
         if (!content) {
           if (unknownMessage) {
-            this.waMonitor.waInstances[instance.instanceName].textMessage(
+            this.waMonitor.waInstances[instance.name].textMessage(
               {
                 number: remoteJid.split('@')[0],
                 delay: delayMessage || 1000,
@@ -1916,7 +1922,7 @@ export class TypebotService {
 
     if (!content) {
       if (unknownMessage) {
-        this.waMonitor.waInstances[instance.instanceName].textMessage(
+        this.waMonitor.waInstances[instance.name].textMessage(
           {
             number: remoteJid.split('@')[0],
             delay: delayMessage || 1000,
