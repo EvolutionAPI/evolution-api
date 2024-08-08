@@ -6,6 +6,10 @@
 * OwnerJid passed to typebot
 * Function for openai assistant added
 
+### Fixed
+
+* Adjusts in telemetry
+
 # 2.0.7-rc (2024-08-03 14:04)
 
 ### Fixed
