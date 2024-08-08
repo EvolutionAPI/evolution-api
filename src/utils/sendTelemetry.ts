@@ -17,6 +17,10 @@ export const sendTelemetry = async (route: string): Promise<void> => {
     return;
   }
 
+  if (route === '/') {
+    return;
+  }
+
   const telemetry: TelemetryData = {
     route,
     apiVersion: `${packageJson.version}`,
