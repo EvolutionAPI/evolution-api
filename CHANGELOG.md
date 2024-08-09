@@ -3,6 +3,7 @@
 ### Features
 
 * Added general session button in typebot, dify and openai in manager
+* Added compatibility with mysql through prisma
 
 ### Fixed
 
@@ -10,6 +11,7 @@
 * Fix conversationId when is dify agent
 * Fixed loading of selects in the manager
 * Add restart button to sessions screen
+* Adjustments to docker files
 
 # 2.0.8-rc (2024-08-08 20:23)
 
