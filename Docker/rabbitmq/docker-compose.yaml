@@ -1,0 +1,25 @@
+version: '3.3'
+
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:management
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=33H2CdkzF5WrnJ4ud6nkUdRTKXvbCHeFjvVL71p
+      - RABBITMQ_DEFAULT_VHOST=default
+      - RABBITMQ_DEFAULT_USER=USER
+      - RABBITMQ_DEFAULT_PASS=PASSWORD
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+volumes:
+  rabbitmq_data:
+
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge

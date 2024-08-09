@@ -1,22 +1,25 @@
 version: '3.3'
 
 services:
-
   api:
     container_name: evolution_api
-    image: atendai/evolution-api
+    image: atendai/evolution-api:v2.0.9-rc
     restart: always
     ports:
       - 8080:8080
     volumes:
       - evolution_instances:/evolution/instances
-      - evolution_store:/evolution/store
+    networks:
+      - evolution-net
     env_file:
       - .env
-    command: ['node', './dist/src/main.js']
     expose:
       - 8080
 
 volumes:
   evolution_instances:
-  evolution_store:
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge
