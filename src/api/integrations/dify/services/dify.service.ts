@@ -551,11 +551,7 @@ export class DifyService {
         },
       });
 
-      if (!dify) {
-        throw new Error('Dify not found');
-      }
-
-      if (dify.instanceId !== instanceId) {
+      if (dify && dify.instanceId !== instanceId) {
         throw new Error('Dify not found');
       }
 
@@ -563,6 +559,9 @@ export class DifyService {
         return await this.prismaRepository.difySession.findMany({
           where: {
             difyId: difyId,
+          },
+          include: {
+            Dify: true,
           },
         });
       }
@@ -573,8 +572,20 @@ export class DifyService {
             remoteJid: remoteJid,
             difyId: difyId,
           },
+          include: {
+            Dify: true,
+          },
         });
       }
+
+      return await this.prismaRepository.difySession.findMany({
+        where: {
+          instanceId: instanceId,
+        },
+        include: {
+          Dify: true,
+        },
+      });
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error fetching sessions');
@@ -1199,7 +1210,7 @@ export class DifyService {
       });
 
       let completeMessage = '';
-      let conversationId
+      let conversationId;
 
       const stream = response.data;
       const reader = new Readable().wrap(stream);
@@ -1211,7 +1222,7 @@ export class DifyService {
           const event = JSON.parse(data);
           if (event.event === 'agent_message') {
             completeMessage += event.answer;
-            conversationId = conversationId ?? event?.conversation_id
+            conversationId = conversationId ?? event?.conversation_id;
 
             console.log('completeMessage:', completeMessage);
           }
@@ -1241,8 +1252,8 @@ export class DifyService {
           data: {
             status: 'opened',
             awaitUser: true,
-            sessionId: conversationId
-          }
+            sessionId: conversationId,
+          },
         });
 
         sendTelemetry('/message/sendText');
@@ -1556,7 +1567,7 @@ export class DifyService {
       });
 
       let completeMessage = '';
-      let conversationId
+      let conversationId;
 
       const stream = response.data;
       const reader = new Readable().wrap(stream);
@@ -1572,7 +1583,7 @@ export class DifyService {
               const event = JSON.parse(jsonString);
               if (event.event === 'agent_message') {
                 completeMessage += event.answer;
-                conversationId = conversationId ?? event?.conversation_id
+                conversationId = conversationId ?? event?.conversation_id;
               }
             } catch (error) {
               console.error('Error parsing stream data:', error);
@@ -1600,8 +1611,8 @@ export class DifyService {
           data: {
             status: 'opened',
             awaitUser: true,
-            sessionId: conversationId
-          }
+            sessionId: conversationId,
+          },
         });
 
         sendTelemetry('/message/sendText');

@@ -1,8 +1,15 @@
 # 2.0.9-rc (release candidate)
 
+### Features
+
+* Added general session button in typebot, dify and openai in manager
+
 ### Fixed
 
 * Import contacts with image in chatwoot
+* Fix conversationId when is dify agent
+* Fixed loading of selects in the manager
+* Add restart button to sessions screen
 
 # 2.0.8-rc (2024-08-08 20:23)
 

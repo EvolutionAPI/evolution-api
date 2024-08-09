@@ -548,11 +548,7 @@ export class TypebotService {
         },
       });
 
-      if (!typebot) {
-        throw new Error('Typebot not found');
-      }
-
-      if (typebot.instanceId !== instanceId) {
+      if (typebot && typebot.instanceId !== instanceId) {
         throw new Error('Typebot not found');
       }
 
@@ -560,6 +556,9 @@ export class TypebotService {
         return await this.prismaRepository.typebotSession.findMany({
           where: {
             typebotId: typebotId,
+          },
+          include: {
+            Typebot: true,
           },
         });
       }
@@ -570,8 +569,20 @@ export class TypebotService {
             remoteJid: remoteJid,
             instanceId: instanceId,
           },
+          include: {
+            Typebot: true,
+          },
         });
       }
+
+      return await this.prismaRepository.typebotSession.findMany({
+        where: {
+          instanceId: instanceId,
+        },
+        include: {
+          Typebot: true,
+        },
+      });
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error fetching sessions');

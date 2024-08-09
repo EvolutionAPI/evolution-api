@@ -750,11 +750,7 @@ export class OpenaiService {
         },
       });
 
-      if (!openaiBot) {
-        throw new Error('Openai Bot not found');
-      }
-
-      if (openaiBot.instanceId !== instanceId) {
+      if (openaiBot && openaiBot.instanceId !== instanceId) {
         throw new Error('Openai Bot not found');
       }
 
@@ -762,6 +758,9 @@ export class OpenaiService {
         return await this.prismaRepository.openaiSession.findMany({
           where: {
             openaiBotId: openaiBotId,
+          },
+          include: {
+            OpenaiBot: true,
           },
         });
       }
@@ -772,8 +771,20 @@ export class OpenaiService {
             remoteJid: remoteJid,
             openaiBotId: openaiBotId,
           },
+          include: {
+            OpenaiBot: true,
+          },
         });
       }
+
+      return await this.prismaRepository.openaiSession.findMany({
+        where: {
+          instanceId: instanceId,
+        },
+        include: {
+          OpenaiBot: true,
+        },
+      });
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error fetching sessions');
