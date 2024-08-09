@@ -12,7 +12,6 @@ export interface TelemetryData {
 export const sendTelemetry = async (route: string): Promise<void> => {
   const enabled = process.env.TELEMETRY_ENABLED === undefined || process.env.TELEMETRY_ENABLED === 'true';
 
-  console.log('Telemetry enabled:', enabled);
   if (!enabled) {
     return;
   }

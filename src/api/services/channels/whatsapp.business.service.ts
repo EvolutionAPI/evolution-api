@@ -4,8 +4,9 @@ import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import { getMIMEType } from 'node-mime-types';
+import { join } from 'path';
 
-import { Chatwoot, ConfigService, Database, Dify, Openai, Typebot, WaBusiness } from '../../../config/env.config';
+import { Chatwoot, ConfigService, Database, Dify, Openai, S3, Typebot, WaBusiness } from '../../../config/env.config';
 import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
 import { NumberBusiness } from '../../dto/chat.dto';
 import {
@@ -22,6 +23,7 @@ import {
   SendTemplateDto,
   SendTextDto,
 } from '../../dto/sendMessage.dto';
+import * as s3Service from '../../integrations/s3/libs/minio.server';
 import { ProviderFiles } from '../../provider/sessions';
 import { PrismaRepository } from '../../repository/repository.service';
 import { Events, wa } from '../../types/wa.types';
@@ -316,20 +318,78 @@ export class BusinessStartupService extends ChannelStartupService {
           received?.messages[0].audio ||
           received?.messages[0].video
         ) {
-          const buffer = await this.downloadMediaMessage(received?.messages[0]);
           messageRaw = {
             key,
             pushName,
-            message: {
-              ...this.messageMediaJson(received),
-              base64: buffer ? buffer.toString('base64') : undefined,
-            },
+            message: this.messageMediaJson(received),
             contextInfo: this.messageMediaJson(received)?.contextInfo,
             messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
             instanceId: this.instanceId,
           };
+
+          if (this.configService.get<S3>('S3').ENABLE) {
+            try {
+              const message: any = received;
+
+              const id = message[message.type].id;
+              let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
+              const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
+              urlServer = `${urlServer}/${version}/${id}`;
+              const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+              const result = await axios.get(urlServer, { headers });
+
+              const buffer = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
+
+              const mediaType = message.messages[0].document
+                ? 'document'
+                : message.messages[0].image
+                ? 'image'
+                : message.messages[0].audio
+                ? 'audio'
+                : 'video';
+
+              const mimetype = result.headers['content-type'];
+
+              const contentDisposition = result.headers['content-disposition'];
+              let fileName = `${message.messages[0].id}.${mimetype.split('/')[1]}`;
+              if (contentDisposition) {
+                const match = contentDisposition.match(/filename="(.+?)"/);
+                if (match) {
+                  fileName = match[1];
+                }
+              }
+
+              const size = result.headers['content-length'] || buffer.data.byteLength;
+
+              const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
+
+              await s3Service.uploadFile(fullName, buffer.data, size, {
+                'Content-Type': mimetype,
+              });
+
+              await this.prismaRepository.media.create({
+                data: {
+                  messageId: received.messages[0].id,
+                  instanceId: this.instanceId,
+                  type: mediaType,
+                  fileName: fullName,
+                  mimetype,
+                },
+              });
+
+              const mediaUrl = await s3Service.getObjectUrl(fullName);
+
+              messageRaw.message.mediaUrl = mediaUrl;
+            } catch (error) {
+              this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
+            }
+          } else {
+            const buffer = await this.downloadMediaMessage(received?.messages[0]);
+
+            messageRaw.message.base64 = buffer.toString('base64');
+          }
         } else if (received?.messages[0].interactive) {
           messageRaw = {
             key,
@@ -395,11 +455,7 @@ export class BusinessStartupService extends ChannelStartupService {
           };
         }
 
-        if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
-          // await this.client.readMessages([received.key]);
-        }
-
-        if (this.localSettings.readStatus && received.key.id === 'status@broadcast') {
+        if (this.localSettings.readMessages) {
           // await this.client.readMessages([received.key]);
         }
 

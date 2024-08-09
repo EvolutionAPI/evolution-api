@@ -1,3 +1,9 @@
+# 2.0.9-rc (release candidate)
+
+### Fixed
+
+* Import contacts with image in chatwoot
+
 # 2.0.8-rc (2024-08-08 20:23)
 
 ### Features

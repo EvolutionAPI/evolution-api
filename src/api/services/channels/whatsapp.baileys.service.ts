@@ -818,14 +818,25 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (updatedContacts.length > 0) {
           await Promise.all(
-            updatedContacts.map((contact) =>
-              this.prismaRepository.contact.updateMany({
+            updatedContacts.map(async function (contact) {
+              const update = this.prismaRepository.contact.updateMany({
                 where: { remoteJid: contact.remoteJid, instanceId: this.instanceId },
                 data: {
                   profilePicUrl: contact.profilePicUrl,
                 },
-              }),
-            ),
+              });
+
+              const instance = { instanceName: this.instance.name, instanceId: this.instance.id };
+
+              const findParticipant = await this.findContact(instance, contact.remoteJid.split('@')[0]);
+
+              this.chatwootService.updateContact(instance, findParticipant.id, {
+                name: contact.pushName,
+                avatar_url: contact.profilePicUrl,
+              });
+
+              return update;
+            }),
           );
         }
       } catch (error) {
@@ -1636,10 +1647,12 @@ export class BaileysStartupService extends ChannelStartupService {
   public async profilePicture(number: string) {
     const jid = this.createJid(number);
 
+    const profilePictureUrl = await this.client.profilePictureUrl(jid, 'image');
+
     try {
       return {
         wuid: jid,
-        profilePictureUrl: await this.client.profilePictureUrl(jid, 'image'),
+        profilePictureUrl,
       };
     } catch (error) {
       return {
