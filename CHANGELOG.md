@@ -12,6 +12,7 @@
 * Fixed loading of selects in the manager
 * Add restart button to sessions screen
 * Adjustments to docker files
+* StopBotFromMe working with chatwoot
 
 # 2.0.8-rc (2024-08-08 20:23)
 

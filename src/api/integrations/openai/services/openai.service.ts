@@ -1180,23 +1180,14 @@ export class OpenaiService {
       };
 
       if (stopBotFromMe && key.fromMe && session) {
-        if (keepOpen) {
-          await this.prismaRepository.openaiSession.update({
-            where: {
-              id: session.id,
-            },
-            data: {
-              status: 'closed',
-            },
-          });
-        } else {
-          await this.prismaRepository.openaiSession.deleteMany({
-            where: {
-              openaiBotId: findOpenai.id,
-              remoteJid: remoteJid,
-            },
-          });
-        }
+        await this.prismaRepository.openaiSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'paused',
+          },
+        });
         return;
       }
 

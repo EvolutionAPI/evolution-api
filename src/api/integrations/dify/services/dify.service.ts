@@ -977,23 +977,14 @@ export class DifyService {
       };
 
       if (stopBotFromMe && key.fromMe && session) {
-        if (keepOpen) {
-          await this.prismaRepository.difySession.update({
-            where: {
-              id: session.id,
-            },
-            data: {
-              status: 'closed',
-            },
-          });
-        } else {
-          await this.prismaRepository.difySession.deleteMany({
-            where: {
-              difyId: findDify.id,
-              remoteJid: remoteJid,
-            },
-          });
-        }
+        await this.prismaRepository.difySession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'paused',
+          },
+        });
         return;
       }
 

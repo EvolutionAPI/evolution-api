@@ -1559,23 +1559,14 @@ export class TypebotService {
       };
 
       if (stopBotFromMe && key.fromMe && session) {
-        if (keepOpen) {
-          await this.prismaRepository.typebotSession.update({
-            where: {
-              id: session.id,
-            },
-            data: {
-              status: 'closed',
-            },
-          });
-        } else {
-          await this.prismaRepository.typebotSession.deleteMany({
-            where: {
-              typebotId: findTypebot.id,
-              remoteJid: remoteJid,
-            },
-          });
-        }
+        await this.prismaRepository.typebotSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'paused',
+          },
+        });
         return;
       }
 

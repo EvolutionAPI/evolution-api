@@ -948,6 +948,35 @@ export class BusinessStartupService extends ChannelStartupService {
         );
       }
 
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && isIntegration) {
+        if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
+          if (messageRaw.messageType !== 'reactionMessage')
+            await this.typebotService.sendTypebot(
+              { instanceName: this.instance.name, instanceId: this.instanceId },
+              messageRaw.key.remoteJid,
+              messageRaw,
+            );
+        }
+
+        if (this.configService.get<Openai>('OPENAI').ENABLED) {
+          if (messageRaw.messageType !== 'reactionMessage')
+            await this.openaiService.sendOpenai(
+              { instanceName: this.instance.name, instanceId: this.instanceId },
+              messageRaw.key.remoteJid,
+              messageRaw,
+            );
+        }
+
+        if (this.configService.get<Dify>('DIFY').ENABLED) {
+          if (messageRaw.messageType !== 'reactionMessage')
+            await this.difyService.sendDify(
+              { instanceName: this.instance.name, instanceId: this.instanceId },
+              messageRaw.key.remoteJid,
+              messageRaw,
+            );
+        }
+      }
+
       await this.prismaRepository.message.create({
         data: messageRaw,
       });
