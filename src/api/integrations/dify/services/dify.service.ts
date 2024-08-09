@@ -1199,6 +1199,7 @@ export class DifyService {
       });
 
       let completeMessage = '';
+      let conversationId
 
       const stream = response.data;
       const reader = new Readable().wrap(stream);
@@ -1210,6 +1211,7 @@ export class DifyService {
           const event = JSON.parse(data);
           if (event.event === 'agent_message') {
             completeMessage += event.answer;
+            conversationId = conversationId ?? event?.conversation_id
 
             console.log('completeMessage:', completeMessage);
           }
@@ -1239,8 +1241,8 @@ export class DifyService {
           data: {
             status: 'opened',
             awaitUser: true,
-            sessionId: response?.data?.conversation_id,
-          },
+            sessionId: conversationId
+          }
         });
 
         sendTelemetry('/message/sendText');
@@ -1554,6 +1556,7 @@ export class DifyService {
       });
 
       let completeMessage = '';
+      let conversationId
 
       const stream = response.data;
       const reader = new Readable().wrap(stream);
@@ -1569,6 +1572,7 @@ export class DifyService {
               const event = JSON.parse(jsonString);
               if (event.event === 'agent_message') {
                 completeMessage += event.answer;
+                conversationId = conversationId ?? event?.conversation_id
               }
             } catch (error) {
               console.error('Error parsing stream data:', error);
@@ -1596,8 +1600,8 @@ export class DifyService {
           data: {
             status: 'opened',
             awaitUser: true,
-            sessionId: response?.data?.conversation_id,
-          },
+            sessionId: conversationId
+          }
         });
 
         sendTelemetry('/message/sendText');
