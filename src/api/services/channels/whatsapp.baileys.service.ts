@@ -2034,7 +2034,6 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (this.configService.get<Dify>('DIFY').ENABLED) {
-          console.log('DIFY messageRaw', messageRaw);
           if (messageRaw.messageType !== 'reactionMessage')
             await this.difyService.sendDify(
               { instanceName: this.instance.name, instanceId: this.instanceId },
