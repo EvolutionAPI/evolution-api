@@ -1209,7 +1209,6 @@ export class DifyService {
         responseType: 'stream',
       });
 
-      let completeMessage = '';
       let conversationId;
 
       const stream = response.data;
@@ -1221,10 +1220,7 @@ export class DifyService {
         try {
           const event = JSON.parse(data);
           if (event.event === 'agent_message') {
-            completeMessage += event.answer;
             conversationId = conversationId ?? event?.conversation_id;
-
-            console.log('completeMessage:', completeMessage);
           }
         } catch (error) {
           console.error('Error parsing stream data:', error);

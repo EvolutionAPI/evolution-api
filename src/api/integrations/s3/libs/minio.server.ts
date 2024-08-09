@@ -50,7 +50,8 @@ const createBucket = async () => {
       logger.info(`S3 Bucket ${bucketName} - ON`);
       return true;
     } catch (error) {
-      console.log('S3 ERROR: ', error);
+      logger.error('S3 ERROR:');
+      logger.error(error);
       return false;
     }
   }
@@ -65,7 +66,7 @@ const uploadFile = async (fileName: string, file: Buffer | Transform | Readable,
       metadata['custom-header-application'] = 'evolution-api';
       return await minioClient.putObject(bucketName, objectName, file, size, metadata);
     } catch (error) {
-      console.log('ERROR: ', error);
+      logger.error(error);
       return error;
     }
   }

@@ -13,9 +13,6 @@ export class ViewsRouter extends RouterBroker {
     const basePath = path.join(process.cwd(), 'manager', 'dist');
     const indexPath = path.join(basePath, 'index.html');
 
-    console.log('Base path:', basePath);
-    console.log('Index path:', indexPath);
-
     this.router.use(express.static(basePath));
 
     this.router.get('*', (req, res) => {

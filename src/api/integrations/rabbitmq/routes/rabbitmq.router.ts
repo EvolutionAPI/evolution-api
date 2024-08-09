@@ -12,7 +12,6 @@ export class RabbitmqRouter extends RouterBroker {
     super();
     this.router
       .post(this.routerPath('set'), ...guards, async (req, res) => {
-        console.log('RabbitmqRouter -> constructor -> req', req.body);
         const response = await this.dataValidate<RabbitmqDto>({
           request: req,
           schema: rabbitmqSchema,
