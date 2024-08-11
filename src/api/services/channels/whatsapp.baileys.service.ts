@@ -722,7 +722,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const chatsToInsert = chats
         .filter((chat) => !existingChatIdSet.has(chat.id))
-        .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId }));
+        .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name }));
 
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
 
@@ -754,10 +754,9 @@ export class BaileysStartupService extends ChannelStartupService {
           where: {
             instanceId: this.instanceId,
             remoteJid: chat.id,
+            name: chat.name,
           },
-          data: {
-            remoteJid: chat.id,
-          },
+          data: { remoteJid: chat.id },
         });
       }
     },
@@ -900,7 +899,7 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         }
 
-        const chatsRaw: any[] = [];
+        const chatsRaw: { remoteJid: string; instanceId: string; name?: string }[] = [];
         const chatsRepository = new Set(
           (
             await this.prismaRepository.chat.findMany({
@@ -917,6 +916,7 @@ export class BaileysStartupService extends ChannelStartupService {
           chatsRaw.push({
             remoteJid: chat.id,
             instanceId: this.instanceId,
+            name: chat.name,
           });
         }
 

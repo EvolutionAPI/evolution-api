@@ -114,6 +114,7 @@ model Session {
 model Chat {
   id         String    @id @default(cuid())
   remoteJid  String    @db.VarChar(100)
+  name       String?   @db.VarChar(100)
   labels     Json?     @db.Json
   createdAt  DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
   updatedAt  DateTime? @updatedAt @db.Timestamp
