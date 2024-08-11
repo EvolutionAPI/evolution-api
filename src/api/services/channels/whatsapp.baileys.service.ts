@@ -227,11 +227,16 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.client?.ws?.close();
 
-    await this.prismaRepository.session.delete({
-      where: {
-        sessionId: this.instanceId,
-      },
+    const sessionExists = await this.prismaRepository.session.findFirst({
+      where: { sessionId: this.instanceId },
     });
+    if (sessionExists) {
+      await this.prismaRepository.session.delete({
+        where: {
+          sessionId: this.instanceId,
+        },
+      });
+    }
   }
 
   public async getProfileName() {
