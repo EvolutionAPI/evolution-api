@@ -1267,6 +1267,7 @@ export class ChannelStartupService {
             SELECT 
                 "Chat"."id",
                 "Chat"."remoteJid",
+                "Chat"."name",
                 "Chat"."labels",
                 "Chat"."createdAt",
                 "Chat"."updatedAt",
@@ -1283,6 +1284,7 @@ export class ChannelStartupService {
             SELECT 
                 "Chat"."id",
                 "Chat"."remoteJid",
+                "Chat"."name",
                 "Chat"."labels",
                 "Chat"."createdAt",
                 "Chat"."updatedAt",
