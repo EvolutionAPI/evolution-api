@@ -725,6 +725,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS)
           await this.prismaRepository.chat.createMany({
             data: chatsToInsert,
+            skipDuplicates: true,
           });
       }
     },
@@ -845,7 +846,12 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'contacts.update': async (contacts: Partial<Contact>[]) => {
-      const contactsRaw: any = [];
+      const contactsRaw: {
+        remoteJid: string;
+        pushName?: string;
+        profilePicUrl?: string;
+        instanceId: string;
+      }[] = [];
       for await (const contact of contacts) {
         contactsRaw.push({
           remoteJid: contact.id,
@@ -857,10 +863,14 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
-      this.prismaRepository.contact.updateMany({
-        where: { instanceId: this.instanceId },
-        data: contactsRaw,
-      });
+      const updateTransactions = contactsRaw.map((contact) =>
+        this.prismaRepository.contact.upsert({
+          where: { remoteJid_instanceId: { remoteJid: contact.remoteJid, instanceId: contact.instanceId } },
+          create: contact,
+          update: contact,
+        }),
+      );
+      await this.prismaRepository.$transaction(updateTransactions);
     },
   };
 
@@ -1252,19 +1262,19 @@ export class BaileysStartupService extends ChannelStartupService {
             where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
           });
 
-          const contactRaw: any = {
+          const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
             remoteJid: received.key.remoteJid,
             pushName: received.pushName,
             profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
             instanceId: this.instanceId,
           };
 
-          if (contactRaw.id === 'status@broadcast') {
+          if (contactRaw.remoteJid === 'status@broadcast') {
             return;
           }
 
           if (contact) {
-            const contactRaw: any = {
+            const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
               remoteJid: received.key.remoteJid,
               pushName: contact.pushName,
               profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
@@ -1291,8 +1301,15 @@ export class BaileysStartupService extends ChannelStartupService {
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
-            await this.prismaRepository.contact.create({
-              data: contactRaw,
+            await this.prismaRepository.contact.upsert({
+              where: {
+                remoteJid_instanceId: {
+                  remoteJid: contactRaw.remoteJid,
+                  instanceId: contactRaw.instanceId,
+                },
+              },
+              update: contactRaw,
+              create: contactRaw,
             });
         }
       } catch (error) {
