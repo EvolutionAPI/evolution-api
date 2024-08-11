@@ -10,12 +10,11 @@
     "dev:server": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./src/main.ts",
     "test": "clear && tsnd --files --transpile-only --respawn --ignore-watch node_modules ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src",
-    "db:generate:postgres": "npx prisma generate --schema ./prisma/postgresql-schema.prisma",
-    "db:generate:mysql": "npx prisma generate --schema ./prisma/mysql-schema.prisma",
-    "db:deploy:postgres": "rm -rf ./prisma/migrations && cp -r ./prisma/postgresql-migrations ./prisma/migrations && npx prisma migrate deploy --schema ./prisma/postgresql-schema.prisma",
-    "db:deploy:mysql": "rm -rf ./prisma/migrations && cp -r ./prisma/mysql-migrations ./prisma/migrations && npx prisma migrate deploy --schema ./prisma/mysql-schema.prisma",
-    "db:studio:postgres": "npx prisma studio --schema ./prisma/postgresql-schema.prisma",
-    "db:studio:mysql": "npx prisma studio --schema ./prisma/mysql-schema.prisma"
+
+    "db:generate": "node runWithProvider.js \"npx prisma generate --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
+    "db:deploy": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate deploy --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
+    "db:studio": "node runWithProvider.js \"npx prisma studio --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
+    "db:migrate:dev": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate dev --schema ./prisma/DATABASE_PROVIDER-schema.prisma && cp -r ./prisma/migrations/* ./prisma/DATABASE_PROVIDER-migrations\""
   },
   "repository": {
     "type": "git",
