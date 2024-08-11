@@ -130,6 +130,8 @@ model Contact {
   updatedAt     DateTime? @updatedAt @db.Timestamp
   Instance      Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId    String
+
+  @@unique([remoteJid, instanceId])
 }
 
 model Message {
