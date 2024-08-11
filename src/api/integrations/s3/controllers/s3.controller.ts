@@ -1,6 +1,6 @@
-import { InstanceDto } from '../../../dto/instance.dto';
-import { MediaDto } from '../dto/media.dto';
-import { S3Service } from '../services/s3.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { MediaDto } from '@api/integrations/s3/dto/media.dto';
+import { S3Service } from '@api/integrations/s3/services/s3.service';
 
 export class S3Controller {
   constructor(private readonly s3Service: S3Service) {}

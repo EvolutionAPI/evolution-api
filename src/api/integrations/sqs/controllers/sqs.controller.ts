@@ -1,8 +1,8 @@
-import { configService, Sqs } from '../../../../config/env.config';
-import { BadRequestException } from '../../../../exceptions';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { SqsDto } from '../dto/sqs.dto';
-import { SqsService } from '../services/sqs.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { SqsDto } from '@api/integrations/sqs/dto/sqs.dto';
+import { SqsService } from '@api/integrations/sqs/services/sqs.service';
+import { configService, Sqs } from '@config/env.config';
+import { BadRequestException } from '@exceptions';
 
 export class SqsController {
   constructor(private readonly sqsService: SqsService) {}

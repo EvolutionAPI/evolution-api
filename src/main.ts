@@ -1,23 +1,22 @@
 import 'express-async-errors';
 
+import { initAMQP, initGlobalQueues } from '@api/integrations/rabbitmq/libs/amqp.server';
+import { initSQS } from '@api/integrations/sqs/libs/sqs.server';
+import { initIO } from '@api/integrations/websocket/libs/socket.server';
+import { ProviderFiles } from '@api/provider/sessions';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { HttpStatus, router } from '@api/routes/index.router';
+import { waMonitor } from '@api/server.module';
+import { Auth, configService, Cors, HttpServer, ProviderSession, Rabbitmq, Sqs, Webhook } from '@config/env.config';
+import { onUnexpectedError } from '@config/error.config';
+import { Logger } from '@config/logger.config';
+import { ROOT_DIR } from '@config/path.config';
+import { ServerUP } from '@utils/server-up';
 import axios from 'axios';
 import compression from 'compression';
 import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
-
-import { initAMQP, initGlobalQueues } from './api/integrations/rabbitmq/libs/amqp.server';
-import { initSQS } from './api/integrations/sqs/libs/sqs.server';
-import { initIO } from './api/integrations/websocket/libs/socket.server';
-import { ProviderFiles } from './api/provider/sessions';
-import { PrismaRepository } from './api/repository/repository.service';
-import { HttpStatus, router } from './api/routes/index.router';
-import { waMonitor } from './api/server.module';
-import { Auth, configService, Cors, HttpServer, ProviderSession, Rabbitmq, Sqs, Webhook } from './config/env.config';
-import { onUnexpectedError } from './config/error.config';
-import { Logger } from './config/logger.config';
-import { ROOT_DIR } from './config/path.config';
-import { ServerUP } from './utils/server-up';
 
 function initWA() {
   waMonitor.loadInstance();

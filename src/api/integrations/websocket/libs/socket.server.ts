@@ -1,8 +1,7 @@
+import { configService, Cors, Websocket } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { Server } from 'http';
 import { Server as SocketIO } from 'socket.io';
-
-import { configService, Cors, Websocket } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
 
 const logger = new Logger('Socket');
 

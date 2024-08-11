@@ -1,7 +1,8 @@
-import { CacheEngine } from '../cache/cacheengine';
-import { Chatwoot, configService, ProviderSession } from '../config/env.config';
-import { eventEmitter } from '../config/event.config';
-import { Logger } from '../config/logger.config';
+import { CacheEngine } from '@cache/cacheengine';
+import { Chatwoot, configService, ProviderSession } from '@config/env.config';
+import { eventEmitter } from '@config/event.config';
+import { Logger } from '@config/logger.config';
+
 import { ChatController } from './controllers/chat.controller';
 import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';

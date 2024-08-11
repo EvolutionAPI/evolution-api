@@ -1,11 +1,11 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { WebhookDto } from '@api/dto/webhook.dto';
+import { webhookController } from '@api/server.module';
+import { ConfigService } from '@config/env.config';
+import { instanceSchema, webhookSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
-import { ConfigService } from '../../config/env.config';
-import { instanceSchema, webhookSchema } from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
-import { InstanceDto } from '../dto/instance.dto';
-import { WebhookDto } from '../dto/webhook.dto';
-import { webhookController } from '../server.module';
 import { HttpStatus } from './index.router';
 
 export class WebhookRouter extends RouterBroker {
@@ -34,5 +34,5 @@ export class WebhookRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

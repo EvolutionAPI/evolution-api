@@ -1,11 +1,10 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { RabbitmqDto } from '@api/integrations/rabbitmq/dto/rabbitmq.dto';
+import { HttpStatus } from '@api/routes/index.router';
+import { rabbitmqController } from '@api/server.module';
+import { instanceSchema, rabbitmqSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
-
-import { instanceSchema, rabbitmqSchema } from '../../../../validate/validate.schema';
-import { RouterBroker } from '../../../abstract/abstract.router';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routes/index.router';
-import { rabbitmqController } from '../../../server.module';
-import { RabbitmqDto } from '../dto/rabbitmq.dto';
 
 export class RabbitmqRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -33,5 +32,5 @@ export class RabbitmqRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

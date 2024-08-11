@@ -58,7 +58,11 @@ enum Background {
 
 export class Logger {
   private readonly configService = configService;
-  constructor(private context = 'Logger') {}
+  private context: string;
+
+  constructor(context = 'Logger') {
+    this.context = context;
+  }
 
   private instance = null;
 

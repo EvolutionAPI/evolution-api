@@ -1,14 +1,14 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ProxyDto } from '@api/dto/proxy.dto';
+import { Logger } from '@config/logger.config';
 import { Proxy } from '@prisma/client';
 
-import { Logger } from '../../config/logger.config';
-import { InstanceDto } from '../dto/instance.dto';
-import { ProxyDto } from '../dto/proxy.dto';
 import { WAMonitoringService } from './monitor.service';
 
 export class ProxyService {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
-  private readonly logger = new Logger(ProxyService.name);
+  private readonly logger = new Logger('ProxyService');
 
   public create(instance: InstanceDto, data: ProxyDto) {
     this.waMonitor.waInstances[instance.instanceName].setProxy(data);

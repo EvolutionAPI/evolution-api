@@ -11,9 +11,9 @@ import {
   GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
-} from '../dto/group.dto';
-import { InstanceDto } from '../dto/instance.dto';
-import { WAMonitoringService } from '../services/monitor.service';
+} from '@api/dto/group.dto';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { WAMonitoringService } from '@api/services/monitor.service';
 
 export class GroupController {
   constructor(private readonly waMonitor: WAMonitoringService) {}

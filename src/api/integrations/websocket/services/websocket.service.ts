@@ -1,14 +1,13 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { WebsocketDto } from '@api/integrations/websocket/dto/websocket.dto';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { Logger } from '@config/logger.config';
 import { Websocket } from '@prisma/client';
-
-import { Logger } from '../../../../config/logger.config';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { WAMonitoringService } from '../../../services/monitor.service';
-import { WebsocketDto } from '../dto/websocket.dto';
 
 export class WebsocketService {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
-  private readonly logger = new Logger(WebsocketService.name);
+  private readonly logger = new Logger('WebsocketService');
 
   public create(instance: InstanceDto, data: WebsocketDto) {
     this.waMonitor.waInstances[instance.instanceName].setWebsocket(data);

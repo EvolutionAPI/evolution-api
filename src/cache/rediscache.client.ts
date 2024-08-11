@@ -1,10 +1,9 @@
+import { CacheConf, CacheConfRedis, configService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { createClient, RedisClientType } from 'redis';
 
-import { CacheConf, CacheConfRedis, configService } from '../config/env.config';
-import { Logger } from '../config/logger.config';
-
 class Redis {
-  private logger = new Logger(Redis.name);
+  private logger = new Logger('Redis');
   private client: RedisClientType = null;
   private conf: CacheConfRedis;
   private connected = false;

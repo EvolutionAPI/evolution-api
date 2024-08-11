@@ -1,6 +1,6 @@
-import { InstanceDto } from '../../../dto/instance.dto';
-import { WebsocketDto } from '../dto/websocket.dto';
-import { WebsocketService } from '../services/websocket.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { WebsocketDto } from '@api/integrations/websocket/dto/websocket.dto';
+import { WebsocketService } from '@api/integrations/websocket/services/websocket.service';
 
 export class WebsocketController {
   constructor(private readonly websocketService: WebsocketService) {}

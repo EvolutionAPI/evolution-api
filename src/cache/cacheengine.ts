@@ -1,6 +1,7 @@
-import { ICache } from '../api/abstract/abstract.cache';
-import { CacheConf, ConfigService } from '../config/env.config';
-import { Logger } from '../config/logger.config';
+import { ICache } from '@api/abstract/abstract.cache';
+import { CacheConf, ConfigService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+
 import { LocalCache } from './localcache';
 import { RedisCache } from './rediscache';
 

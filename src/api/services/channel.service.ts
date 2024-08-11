@@ -1,3 +1,25 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ProxyDto } from '@api/dto/proxy.dto';
+import { SettingsDto } from '@api/dto/settings.dto';
+import { WebhookDto } from '@api/dto/webhook.dto';
+import { ChatwootDto } from '@api/integrations/chatwoot/dto/chatwoot.dto';
+import { ChatwootService } from '@api/integrations/chatwoot/services/chatwoot.service';
+import { DifyService } from '@api/integrations/dify/services/dify.service';
+import { OpenaiService } from '@api/integrations/openai/services/openai.service';
+import { RabbitmqDto } from '@api/integrations/rabbitmq/dto/rabbitmq.dto';
+import { getAMQP, removeQueues } from '@api/integrations/rabbitmq/libs/amqp.server';
+import { SqsDto } from '@api/integrations/sqs/dto/sqs.dto';
+import { getSQS, removeQueues as removeQueuesSQS } from '@api/integrations/sqs/libs/sqs.server';
+import { TypebotService } from '@api/integrations/typebot/services/typebot.service';
+import { WebsocketDto } from '@api/integrations/websocket/dto/websocket.dto';
+import { getIO } from '@api/integrations/websocket/libs/socket.server';
+import { PrismaRepository, Query } from '@api/repository/repository.service';
+import { waMonitor } from '@api/server.module';
+import { Events, wa } from '@api/types/wa.types';
+import { Auth, Chatwoot, ConfigService, HttpServer, Log, Rabbitmq, Sqs, Webhook, Websocket } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+import { ROOT_DIR } from '@config/path.config';
+import { NotFoundException } from '@exceptions';
 import { Contact, Message } from '@prisma/client';
 import axios from 'axios';
 import { WASocket } from 'baileys';
@@ -6,38 +28,6 @@ import EventEmitter2 from 'eventemitter2';
 import { join } from 'path';
 import { v4 } from 'uuid';
 
-import {
-  Auth,
-  Chatwoot,
-  ConfigService,
-  HttpServer,
-  Log,
-  Rabbitmq,
-  Sqs,
-  Webhook,
-  Websocket,
-} from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { ROOT_DIR } from '../../config/path.config';
-import { NotFoundException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
-import { ProxyDto } from '../dto/proxy.dto';
-import { SettingsDto } from '../dto/settings.dto';
-import { WebhookDto } from '../dto/webhook.dto';
-import { ChatwootDto } from '../integrations/chatwoot/dto/chatwoot.dto';
-import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
-import { DifyService } from '../integrations/dify/services/dify.service';
-import { OpenaiService } from '../integrations/openai/services/openai.service';
-import { RabbitmqDto } from '../integrations/rabbitmq/dto/rabbitmq.dto';
-import { getAMQP, removeQueues } from '../integrations/rabbitmq/libs/amqp.server';
-import { SqsDto } from '../integrations/sqs/dto/sqs.dto';
-import { getSQS, removeQueues as removeQueuesSQS } from '../integrations/sqs/libs/sqs.server';
-import { TypebotService } from '../integrations/typebot/services/typebot.service';
-import { WebsocketDto } from '../integrations/websocket/dto/websocket.dto';
-import { getIO } from '../integrations/websocket/libs/socket.server';
-import { PrismaRepository, Query } from '../repository/repository.service';
-import { waMonitor } from '../server.module';
-import { Events, wa } from '../types/wa.types';
 import { CacheService } from './cache.service';
 
 export class ChannelStartupService {
@@ -48,7 +38,7 @@ export class ChannelStartupService {
     public readonly chatwootCache: CacheService,
   ) {}
 
-  public readonly logger = new Logger(ChannelStartupService.name);
+  public readonly logger = new Logger('ChannelStartupService');
 
   public client: WASocket;
   public readonly instance: wa.Instance = {};

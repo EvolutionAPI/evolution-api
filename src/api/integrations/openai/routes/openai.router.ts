@@ -1,5 +1,13 @@
-import { RequestHandler, Router } from 'express';
-
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import {
+  OpenaiCredsDto,
+  OpenaiDto,
+  OpenaiIgnoreJidDto,
+  OpenaiSettingDto,
+} from '@api/integrations/openai/dto/openai.dto';
+import { HttpStatus } from '@api/routes/index.router';
+import { openaiController } from '@api/server.module';
 import {
   instanceSchema,
   openaiCredsSchema,
@@ -7,12 +15,8 @@ import {
   openaiSchema,
   openaiSettingSchema,
   openaiStatusSchema,
-} from '../../../../validate/validate.schema';
-import { RouterBroker } from '../../../abstract/abstract.router';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routes/index.router';
-import { openaiController } from '../../../server.module';
-import { OpenaiCredsDto, OpenaiDto, OpenaiIgnoreJidDto, OpenaiSettingDto } from '../dto/openai.dto';
+} from '@validate/validate.schema';
+import { RequestHandler, Router } from 'express';
 
 export class OpenaiRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -160,5 +164,5 @@ export class OpenaiRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

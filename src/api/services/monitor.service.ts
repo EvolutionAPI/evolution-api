@@ -1,16 +1,16 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ProviderFiles } from '@api/provider/sessions';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { Integration } from '@api/types/wa.types';
+import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+import { INSTANCE_DIR, STORE_DIR } from '@config/path.config';
+import { NotFoundException } from '@exceptions';
 import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
 import { rmSync } from 'fs';
 import { join } from 'path';
 
-import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import { NotFoundException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
-import { ProviderFiles } from '../provider/sessions';
-import { PrismaRepository } from '../repository/repository.service';
-import { Integration } from '../types/wa.types';
 import { CacheService } from './cache.service';
 import { BaileysStartupService } from './channels/whatsapp.baileys.service';
 import { BusinessStartupService } from './channels/whatsapp.business.service';
@@ -35,7 +35,7 @@ export class WAMonitoringService {
   private readonly db: Partial<Database> = {};
   private readonly redis: Partial<CacheConf> = {};
 
-  private readonly logger = new Logger(WAMonitoringService.name);
+  private readonly logger = new Logger('WAMonitoringService');
   public readonly waInstances: Record<string, BaileysStartupService | BusinessStartupService> = {};
 
   private readonly providerSession = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));

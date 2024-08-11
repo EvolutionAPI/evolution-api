@@ -1,17 +1,16 @@
-import { RequestHandler, Router } from 'express';
-
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { DifyDto, DifyIgnoreJidDto, DifySettingDto } from '@api/integrations/dify/dto/dify.dto';
+import { HttpStatus } from '@api/routes/index.router';
+import { difyController } from '@api/server.module';
 import {
   difyIgnoreJidSchema,
   difySchema,
   difySettingSchema,
   difyStatusSchema,
   instanceSchema,
-} from '../../../../validate/validate.schema';
-import { RouterBroker } from '../../../abstract/abstract.router';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routes/index.router';
-import { difyController } from '../../../server.module';
-import { DifyDto, DifyIgnoreJidDto, DifySettingDto } from '../dto/dify.dto';
+} from '@validate/validate.schema';
+import { RequestHandler, Router } from 'express';
 
 export class DifyRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -119,5 +118,5 @@ export class DifyRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

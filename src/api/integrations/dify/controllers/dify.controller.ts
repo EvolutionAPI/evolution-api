@@ -1,8 +1,8 @@
-import { configService, Dify } from '../../../../config/env.config';
-import { BadRequestException } from '../../../../exceptions';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { DifyDto, DifyIgnoreJidDto } from '../dto/dify.dto';
-import { DifyService } from '../services/dify.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { DifyDto, DifyIgnoreJidDto } from '@api/integrations/dify/dto/dify.dto';
+import { DifyService } from '@api/integrations/dify/services/dify.service';
+import { configService, Dify } from '@config/env.config';
+import { BadRequestException } from '@exceptions';
 
 export class DifyController {
   constructor(private readonly difyService: DifyService) {}

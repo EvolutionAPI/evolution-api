@@ -1,3 +1,14 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '@api/dto/sendMessage.dto';
+import { ChatwootDto } from '@api/integrations/chatwoot/dto/chatwoot.dto';
+import { postgresClient } from '@api/integrations/chatwoot/libs/postgres.client';
+import { chatwootImport } from '@api/integrations/chatwoot/utils/chatwoot-import-helper';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { CacheService } from '@api/services/cache.service';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { Events } from '@api/types/wa.types';
+import { Chatwoot, ConfigService, HttpServer } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import ChatwootClient, {
   ChatwootAPIConfig,
   contact,
@@ -9,28 +20,16 @@ import ChatwootClient, {
 } from '@figuro/chatwoot-sdk';
 import { request as chatwootRequest } from '@figuro/chatwoot-sdk/dist/core/request';
 import { Chatwoot as ChatwootModel, Contact as ContactModel, Message as MessageModel } from '@prisma/client';
+import i18next from '@utils/i18n';
+import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { proto } from 'baileys';
 import FormData from 'form-data';
 import Jimp from 'jimp';
 import Long from 'long';
-import mimeTypes from 'mime-types';
+import mime from 'mime';
 import path from 'path';
 import { Readable } from 'stream';
-
-import { Chatwoot, ConfigService, HttpServer } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import i18next from '../../../../utils/i18n';
-import { sendTelemetry } from '../../../../utils/sendTelemetry';
-import { ICache } from '../../../abstract/abstract.cache';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '../../../dto/sendMessage.dto';
-import { PrismaRepository } from '../../../repository/repository.service';
-import { WAMonitoringService } from '../../../services/monitor.service';
-import { Events } from '../../../types/wa.types';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { postgresClient } from '../libs/postgres.client';
-import { chatwootImport } from '../utils/chatwoot-import-helper';
 
 interface ChatwootMessage {
   messageId?: number;
@@ -41,7 +40,7 @@ interface ChatwootMessage {
 }
 
 export class ChatwootService {
-  private readonly logger = new Logger(ChatwootService.name);
+  private readonly logger = new Logger('ChatwootService');
 
   private provider: any;
 
@@ -49,7 +48,7 @@ export class ChatwootService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
-    private readonly cache: ICache,
+    private readonly cache: CacheService,
   ) {}
 
   private pgClient = postgresClient.getChatwootConnection();
@@ -997,7 +996,7 @@ export class ChatwootService {
   public async sendAttachment(waInstance: any, number: string, media: any, caption?: string, options?: Options) {
     try {
       const parsedMedia = path.parse(decodeURIComponent(media));
-      let mimeType = mimeTypes.lookup(parsedMedia?.ext) || '';
+      let mimeType = mime.getType(parsedMedia?.ext) || '';
       let fileName = parsedMedia?.name + parsedMedia?.ext;
 
       if (!mimeType) {
@@ -1837,9 +1836,7 @@ export class ChatwootService {
           }
 
           if (!nameFile) {
-            nameFile = `${Math.random().toString(36).substring(7)}.${
-              mimeTypes.extension(downloadBase64.mimetype) || ''
-            }`;
+            nameFile = `${Math.random().toString(36).substring(7)}.${mime.getExtension(downloadBase64.mimetype) || ''}`;
           }
 
           const fileData = Buffer.from(downloadBase64.base64, 'base64');
@@ -1927,8 +1924,8 @@ export class ChatwootService {
         if (adsMessage) {
           const imgBuffer = await axios.get(adsMessage.thumbnailUrl, { responseType: 'arraybuffer' });
 
-          const extension = mimeTypes.extension(imgBuffer.headers['content-type']);
-          const mimeType = extension && mimeTypes.lookup(extension);
+          const extension = mime.getExtension(imgBuffer.headers['content-type']);
+          const mimeType = extension && mime.getType(extension);
 
           if (!mimeType) {
             this.logger.warn('mimetype of Ads message not found');
@@ -1936,7 +1933,7 @@ export class ChatwootService {
           }
 
           const random = Math.random().toString(36).substring(7);
-          const nameFile = `${random}.${mimeTypes.extension(mimeType)}`;
+          const nameFile = `${random}.${mime.getExtension(mimeType)}`;
           const fileData = Buffer.from(imgBuffer.data, 'binary');
 
           const img = await Jimp.read(fileData);

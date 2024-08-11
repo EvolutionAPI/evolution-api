@@ -1,10 +1,9 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { MediaDto } from '@api/integrations/s3/dto/media.dto';
+import { s3Schema, s3UrlSchema } from '@api/integrations/s3/validate/s3.schema';
+import { HttpStatus } from '@api/routes/index.router';
+import { s3Controller } from '@api/server.module';
 import { RequestHandler, Router } from 'express';
-
-import { RouterBroker } from '../../../abstract/abstract.router';
-import { HttpStatus } from '../../../routes/index.router';
-import { s3Controller } from '../../../server.module';
-import { MediaDto } from '../dto/media.dto';
-import { s3Schema, s3UrlSchema } from '../validate/s3.schema';
 
 export class S3Router extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -32,5 +31,5 @@ export class S3Router extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

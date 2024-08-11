@@ -1,14 +1,13 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ChatwootDto } from '@api/integrations/chatwoot/dto/chatwoot.dto';
+import { ChatwootService } from '@api/integrations/chatwoot/services/chatwoot.service';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { waMonitor } from '@api/server.module';
+import { CacheService } from '@api/services/cache.service';
+import { CacheEngine } from '@cache/cacheengine';
+import { Chatwoot, ConfigService, HttpServer } from '@config/env.config';
+import { BadRequestException } from '@exceptions';
 import { isURL } from 'class-validator';
-
-import { CacheEngine } from '../../../../cache/cacheengine';
-import { Chatwoot, ConfigService, HttpServer } from '../../../../config/env.config';
-import { BadRequestException } from '../../../../exceptions';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { PrismaRepository } from '../../../repository/repository.service';
-import { waMonitor } from '../../../server.module';
-import { CacheService } from '../../../services/cache.service';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { ChatwootService } from '../services/chatwoot.service';
 
 export class ChatwootController {
   constructor(

@@ -1,7 +1,6 @@
+import { Integration } from '@api/types/wa.types';
 import { JSONSchema7 } from 'json-schema';
 import { v4 } from 'uuid';
-
-import { Integration } from '../api/types/wa.types';
 
 const isNotEmpty = (...propertyNames: string[]): JSONSchema7 => {
   const properties = {};

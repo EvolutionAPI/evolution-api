@@ -1,17 +1,21 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import {
+  OpenaiCredsDto,
+  OpenaiDto,
+  OpenaiIgnoreJidDto,
+  OpenaiSettingDto,
+} from '@api/integrations/openai/dto/openai.dto';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { ConfigService, Language, S3 } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { Message, OpenaiBot, OpenaiCreds, OpenaiSession, OpenaiSetting } from '@prisma/client';
+import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { downloadMediaMessage } from 'baileys';
 import FormData from 'form-data';
 import OpenAI from 'openai';
 import P from 'pino';
-
-import { ConfigService, Language, S3 } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import { sendTelemetry } from '../../../../utils/sendTelemetry';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { PrismaRepository } from '../../../repository/repository.service';
-import { WAMonitoringService } from '../../../services/monitor.service';
-import { OpenaiCredsDto, OpenaiDto, OpenaiIgnoreJidDto, OpenaiSettingDto } from '../dto/openai.dto';
 
 export class OpenaiService {
   constructor(
@@ -24,7 +28,7 @@ export class OpenaiService {
 
   private client: OpenAI;
 
-  private readonly logger = new Logger(OpenaiService.name);
+  private readonly logger = new Logger('OpenaiService');
 
   public async createCreds(instance: InstanceDto, data: OpenaiCredsDto) {
     const instanceId = await this.prismaRepository.instance

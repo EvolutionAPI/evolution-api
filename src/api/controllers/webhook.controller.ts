@@ -1,10 +1,9 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { WebhookDto } from '@api/dto/webhook.dto';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { WebhookService } from '@api/services/webhook.service';
+import { BadRequestException } from '@exceptions';
 import { isURL } from 'class-validator';
-
-import { BadRequestException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
-import { WebhookDto } from '../dto/webhook.dto';
-import { WAMonitoringService } from '../services/monitor.service';
-import { WebhookService } from '../services/webhook.service';
 
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService, private readonly waMonitor: WAMonitoringService) {}

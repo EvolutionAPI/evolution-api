@@ -1,10 +1,9 @@
+import { ConfigService, S3 } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+import { BadRequestException } from '@exceptions';
 import * as MinIo from 'minio';
 import { join } from 'path';
 import { Readable, Transform } from 'stream';
-
-import { ConfigService, S3 } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import { BadRequestException } from '../../../../exceptions';
 
 const logger = new Logger('S3 Service');
 

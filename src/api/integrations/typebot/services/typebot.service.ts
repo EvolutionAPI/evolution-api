@@ -1,14 +1,13 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { TypebotDto, TypebotIgnoreJidDto } from '@api/integrations/typebot/dto/typebot.dto';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { Events } from '@api/types/wa.types';
+import { Auth, ConfigService, HttpServer, S3, Typebot } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { Instance, Message, Typebot as TypebotModel, TypebotSession } from '@prisma/client';
+import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
-
-import { Auth, ConfigService, HttpServer, S3, Typebot } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import { sendTelemetry } from '../../../../utils/sendTelemetry';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { PrismaRepository } from '../../../repository/repository.service';
-import { WAMonitoringService } from '../../../services/monitor.service';
-import { Events } from '../../../types/wa.types';
-import { TypebotDto, TypebotIgnoreJidDto } from '../dto/typebot.dto';
 
 export class TypebotService {
   constructor(
@@ -19,7 +18,7 @@ export class TypebotService {
 
   private userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
-  private readonly logger = new Logger(TypebotService.name);
+  private readonly logger = new Logger('TypebotService');
 
   public async create(instance: InstanceDto, data: TypebotDto) {
     const instanceId = await this.prismaRepository.instance

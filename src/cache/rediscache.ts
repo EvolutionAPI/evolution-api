@@ -1,13 +1,13 @@
+import { ICache } from '@api/abstract/abstract.cache';
+import { CacheConf, CacheConfRedis, ConfigService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { BufferJSON } from 'baileys';
 import { RedisClientType } from 'redis';
 
-import { ICache } from '../api/abstract/abstract.cache';
-import { CacheConf, CacheConfRedis, ConfigService } from '../config/env.config';
-import { Logger } from '../config/logger.config';
 import { redisClient } from './rediscache.client';
 
 export class RedisCache implements ICache {
-  private readonly logger = new Logger(RedisCache.name);
+  private readonly logger = new Logger('RedisCache');
   private client: RedisClientType;
   private conf: CacheConfRedis;
 

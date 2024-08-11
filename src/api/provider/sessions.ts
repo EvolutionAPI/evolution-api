@@ -1,8 +1,7 @@
+import { Auth, ConfigService, ProviderSession } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import axios from 'axios';
 import { execSync } from 'child_process';
-
-import { Auth, ConfigService, ProviderSession } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
 
 type ResponseSuccess = { status: number; data?: any };
 type ResponseProvider = Promise<[ResponseSuccess?, Error?]>;
@@ -13,7 +12,7 @@ export class ProviderFiles {
     this.globalApiToken = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
   }
 
-  private readonly logger = new Logger(ProviderFiles.name);
+  private readonly logger = new Logger('ProviderFiles');
 
   private baseUrl: string;
   private globalApiToken: string;

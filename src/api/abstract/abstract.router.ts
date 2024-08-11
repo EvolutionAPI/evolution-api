@@ -1,13 +1,12 @@
 import 'express-async-errors';
 
+import { GetParticipant, GroupInvite } from '@api/dto/group.dto';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { Logger } from '@config/logger.config';
+import { BadRequestException } from '@exceptions';
 import { Request } from 'express';
 import { JSONSchema7 } from 'json-schema';
 import { validate } from 'jsonschema';
-
-import { Logger } from '../../config/logger.config';
-import { BadRequestException } from '../../exceptions';
-import { GetParticipant, GroupInvite } from '../dto/group.dto';
-import { InstanceDto } from '../dto/instance.dto';
 
 type DataValidate<T> = {
   request: Request;

@@ -1,8 +1,8 @@
-import { configService, Openai } from '../../../../config/env.config';
-import { BadRequestException } from '../../../../exceptions';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { OpenaiCredsDto, OpenaiDto, OpenaiIgnoreJidDto } from '../dto/openai.dto';
-import { OpenaiService } from '../services/openai.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { OpenaiCredsDto, OpenaiDto, OpenaiIgnoreJidDto } from '@api/integrations/openai/dto/openai.dto';
+import { OpenaiService } from '@api/integrations/openai/services/openai.service';
+import { configService, Openai } from '@config/env.config';
+import { BadRequestException } from '@exceptions';
 
 export class OpenaiController {
   constructor(private readonly openaiService: OpenaiService) {}

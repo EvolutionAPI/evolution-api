@@ -1,11 +1,11 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { TemplateDto } from '@api/dto/template.dto';
+import { templateController } from '@api/server.module';
+import { ConfigService } from '@config/env.config';
+import { instanceSchema, templateSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
-import { ConfigService } from '../../config/env.config';
-import { instanceSchema, templateSchema } from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
-import { InstanceDto } from '../dto/instance.dto';
-import { TemplateDto } from '../dto/template.dto';
-import { templateController } from '../server.module';
 import { HttpStatus } from './index.router';
 
 export class TemplateRouter extends RouterBroker {
@@ -34,5 +34,5 @@ export class TemplateRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

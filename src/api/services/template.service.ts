@@ -1,10 +1,10 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { TemplateDto } from '@api/dto/template.dto';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { ConfigService, WaBusiness } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import axios from 'axios';
 
-import { ConfigService, WaBusiness } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { InstanceDto } from '../dto/instance.dto';
-import { TemplateDto } from '../dto/template.dto';
-import { PrismaRepository } from '../repository/repository.service';
 import { WAMonitoringService } from './monitor.service';
 
 export class TemplateService {
@@ -14,7 +14,7 @@ export class TemplateService {
     private readonly configService: ConfigService,
   ) {}
 
-  private readonly logger = new Logger(TemplateService.name);
+  private readonly logger = new Logger('TemplateService');
 
   private businessId: string;
   private token: string;
