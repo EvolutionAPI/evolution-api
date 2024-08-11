@@ -300,7 +300,6 @@ export class BusinessStartupService extends ChannelStartupService {
 
   protected async messageHandle(received: any, database: Database, settings: any) {
     try {
-      console.log(received);
       let messageRaw: any;
       let pushName: any;
 
@@ -983,7 +982,6 @@ export class BusinessStartupService extends ChannelStartupService {
 
       return messageRaw;
     } catch (error) {
-      console.log(error.response.data);
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }

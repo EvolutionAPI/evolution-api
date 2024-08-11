@@ -923,12 +923,10 @@ export class BaileysStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          const chatsSaved = await this.prismaRepository.chat.createMany({
+          await this.prismaRepository.chat.createMany({
             data: chatsRaw,
             skipDuplicates: true,
           });
-
-          console.log('chatsSaved', chatsSaved);
         }
 
         const messagesRaw: any[] = [];
@@ -987,12 +985,10 @@ export class BaileysStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          const messagesSaved = await this.prismaRepository.message.createMany({
+          await this.prismaRepository.message.createMany({
             data: messagesRaw,
             skipDuplicates: true,
           });
-
-          console.log('messagesSaved', messagesSaved);
         }
 
         if (
