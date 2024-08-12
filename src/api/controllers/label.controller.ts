@@ -1,6 +1,6 @@
-import { InstanceDto } from '../dto/instance.dto';
-import { HandleLabelDto } from '../dto/label.dto';
-import { WAMonitoringService } from '../services/monitor.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { HandleLabelDto } from '@api/dto/label.dto';
+import { WAMonitoringService } from '@api/services/monitor.service';
 
 export class LabelController {
   constructor(private readonly waMonitor: WAMonitoringService) {}

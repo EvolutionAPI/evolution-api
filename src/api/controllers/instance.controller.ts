@@ -1,27 +1,27 @@
+import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
+import { ChatwootService } from '@api/integrations/chatwoot/services/chatwoot.service';
+import { RabbitmqService } from '@api/integrations/rabbitmq/services/rabbitmq.service';
+import { SqsService } from '@api/integrations/sqs/services/sqs.service';
+import { WebsocketService } from '@api/integrations/websocket/services/websocket.service';
+import { ProviderFiles } from '@api/provider/sessions';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { AuthService } from '@api/services/auth.service';
+import { CacheService } from '@api/services/cache.service';
+import { BaileysStartupService } from '@api/services/channels/whatsapp.baileys.service';
+import { BusinessStartupService } from '@api/services/channels/whatsapp.business.service';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { SettingsService } from '@api/services/settings.service';
+import { WebhookService } from '@api/services/webhook.service';
+import { Events, Integration, wa } from '@api/types/wa.types';
+import { Auth, Chatwoot, ConfigService, HttpServer, WaBusiness } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '@exceptions';
 import { JsonValue } from '@prisma/client/runtime/library';
 import { delay } from 'baileys';
 import { isArray, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
-import { Auth, Chatwoot, ConfigService, HttpServer, WaBusiness } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { BadRequestException, InternalServerErrorException, UnauthorizedException } from '../../exceptions';
-import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
-import { ChatwootService } from '../integrations/chatwoot/services/chatwoot.service';
-import { RabbitmqService } from '../integrations/rabbitmq/services/rabbitmq.service';
-import { SqsService } from '../integrations/sqs/services/sqs.service';
-import { WebsocketService } from '../integrations/websocket/services/websocket.service';
-import { ProviderFiles } from '../provider/sessions';
-import { PrismaRepository } from '../repository/repository.service';
-import { AuthService } from '../services/auth.service';
-import { CacheService } from '../services/cache.service';
-import { BaileysStartupService } from '../services/channels/whatsapp.baileys.service';
-import { BusinessStartupService } from '../services/channels/whatsapp.business.service';
-import { WAMonitoringService } from '../services/monitor.service';
-import { SettingsService } from '../services/settings.service';
-import { WebhookService } from '../services/webhook.service';
-import { Events, Integration, wa } from '../types/wa.types';
 import { ProxyController } from './proxy.controller';
 
 export class InstanceController {
@@ -44,7 +44,7 @@ export class InstanceController {
     private readonly providerFiles: ProviderFiles,
   ) {}
 
-  private readonly logger = new Logger(InstanceController.name);
+  private readonly logger = new Logger('InstanceController');
 
   public async createInstance({
     instanceName,

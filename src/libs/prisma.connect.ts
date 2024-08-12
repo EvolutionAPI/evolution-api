@@ -1,7 +1,6 @@
+import { configService, Database } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { PrismaClient } from '@prisma/client';
-
-import { configService, Database } from '../config/env.config';
-import { Logger } from '../config/logger.config';
 
 const logger = new Logger('Prisma');
 

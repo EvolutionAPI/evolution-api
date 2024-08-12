@@ -1,14 +1,4 @@
-import axios from 'axios';
-import { arrayUnique, isURL } from 'class-validator';
-import EventEmitter2 from 'eventemitter2';
-import FormData from 'form-data';
-import { createReadStream } from 'fs';
-import { getMIMEType } from 'node-mime-types';
-import { join } from 'path';
-
-import { Chatwoot, ConfigService, Database, Dify, Openai, S3, Typebot, WaBusiness } from '../../../config/env.config';
-import { BadRequestException, InternalServerErrorException } from '../../../exceptions';
-import { NumberBusiness } from '../../dto/chat.dto';
+import { NumberBusiness } from '@api/dto/chat.dto';
 import {
   ContactMessage,
   MediaMessage,
@@ -22,13 +12,22 @@ import {
   SendReactionDto,
   SendTemplateDto,
   SendTextDto,
-} from '../../dto/sendMessage.dto';
-import * as s3Service from '../../integrations/s3/libs/minio.server';
-import { ProviderFiles } from '../../provider/sessions';
-import { PrismaRepository } from '../../repository/repository.service';
-import { Events, wa } from '../../types/wa.types';
-import { CacheService } from './../cache.service';
-import { ChannelStartupService } from './../channel.service';
+} from '@api/dto/sendMessage.dto';
+import * as s3Service from '@api/integrations/s3/libs/minio.server';
+import { ProviderFiles } from '@api/provider/sessions';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { CacheService } from '@api/services/cache.service';
+import { ChannelStartupService } from '@api/services/channel.service';
+import { Events, wa } from '@api/types/wa.types';
+import { Chatwoot, ConfigService, Database, Dify, Openai, S3, Typebot, WaBusiness } from '@config/env.config';
+import { BadRequestException, InternalServerErrorException } from '@exceptions';
+import axios from 'axios';
+import { arrayUnique, isURL } from 'class-validator';
+import EventEmitter2 from 'eventemitter2';
+import FormData from 'form-data';
+import { createReadStream } from 'fs';
+import mime from 'mime';
+import { join } from 'path';
 
 export class BusinessStartupService extends ChannelStartupService {
   constructor(
@@ -1059,11 +1058,11 @@ export class BusinessStartupService extends ChannelStartupService {
       };
 
       if (isURL(mediaMessage.media)) {
-        mimetype = getMIMEType(mediaMessage.media);
+        mimetype = mime.getType(mediaMessage.media);
         prepareMedia.id = mediaMessage.media;
         prepareMedia.type = 'link';
       } else {
-        mimetype = getMIMEType(mediaMessage.fileName);
+        mimetype = mime.getType(mediaMessage.fileName);
         const id = await this.getIdMedia(prepareMedia);
         prepareMedia.id = id;
         prepareMedia.type = 'id';
@@ -1109,11 +1108,11 @@ export class BusinessStartupService extends ChannelStartupService {
     };
 
     if (isURL(audio)) {
-      mimetype = getMIMEType(audio);
+      mimetype = mime.getType(audio);
       prepareMedia.id = audio;
       prepareMedia.type = 'link';
     } else {
-      mimetype = getMIMEType(prepareMedia.fileName);
+      mimetype = mime.getType(prepareMedia.fileName);
       const id = await this.getIdMedia(prepareMedia);
       prepareMedia.id = id;
       prepareMedia.type = 'id';

@@ -1,10 +1,9 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { prismaRepository } from '@api/server.module';
+import { Auth, configService, Database } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+import { ForbiddenException, UnauthorizedException } from '@exceptions';
 import { NextFunction, Request, Response } from 'express';
-
-import { Auth, configService, Database } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { ForbiddenException, UnauthorizedException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
-import { prismaRepository } from '../server.module';
 
 const logger = new Logger('GUARD');
 

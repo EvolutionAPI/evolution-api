@@ -1,14 +1,13 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { DifyDto, DifyIgnoreJidDto, DifySettingDto } from '@api/integrations/dify/dto/dify.dto';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { Auth, ConfigService, HttpServer, S3 } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { Dify, DifySession, DifySetting, Message } from '@prisma/client';
+import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { Readable } from 'stream';
-
-import { Auth, ConfigService, HttpServer, S3 } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import { sendTelemetry } from '../../../../utils/sendTelemetry';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { PrismaRepository } from '../../../repository/repository.service';
-import { WAMonitoringService } from '../../../services/monitor.service';
-import { DifyDto, DifyIgnoreJidDto, DifySettingDto } from '../dto/dify.dto';
 
 export class DifyService {
   constructor(
@@ -19,7 +18,7 @@ export class DifyService {
 
   private userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
-  private readonly logger = new Logger(DifyService.name);
+  private readonly logger = new Logger('DifyService');
 
   public async create(instance: InstanceDto, data: DifyDto) {
     const instanceId = await this.prismaRepository.instance

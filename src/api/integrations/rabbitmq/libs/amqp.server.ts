@@ -1,8 +1,7 @@
+import { configService, Rabbitmq } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { JsonValue } from '@prisma/client/runtime/library';
 import * as amqp from 'amqplib/callback_api';
-
-import { configService, Rabbitmq } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
 
 const logger = new Logger('AMQP');
 

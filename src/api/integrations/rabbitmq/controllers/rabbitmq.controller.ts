@@ -1,8 +1,8 @@
-import { configService, Rabbitmq } from '../../../../config/env.config';
-import { BadRequestException } from '../../../../exceptions';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { RabbitmqDto } from '../dto/rabbitmq.dto';
-import { RabbitmqService } from '../services/rabbitmq.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { RabbitmqDto } from '@api/integrations/rabbitmq/dto/rabbitmq.dto';
+import { RabbitmqService } from '@api/integrations/rabbitmq/services/rabbitmq.service';
+import { configService, Rabbitmq } from '@config/env.config';
+import { BadRequestException } from '@exceptions';
 
 export class RabbitmqController {
   constructor(private readonly rabbitmqService: RabbitmqService) {}

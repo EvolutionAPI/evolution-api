@@ -1,11 +1,10 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { SqsDto } from '@api/integrations/sqs/dto/sqs.dto';
+import { HttpStatus } from '@api/routes/index.router';
+import { sqsController } from '@api/server.module';
+import { instanceSchema, sqsSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
-
-import { instanceSchema, sqsSchema } from '../../../../validate/validate.schema';
-import { RouterBroker } from '../../../abstract/abstract.router';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routes/index.router';
-import { sqsController } from '../../../server.module';
-import { SqsDto } from '../dto/sqs.dto';
 
 export class SqsRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -33,5 +32,5 @@ export class SqsRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

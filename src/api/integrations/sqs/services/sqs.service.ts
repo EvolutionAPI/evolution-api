@@ -1,15 +1,14 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { SqsDto } from '@api/integrations/sqs/dto/sqs.dto';
+import { initQueues } from '@api/integrations/sqs/libs/sqs.server';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { Logger } from '@config/logger.config';
 import { Sqs } from '@prisma/client';
-
-import { Logger } from '../../../../config/logger.config';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { WAMonitoringService } from '../../../services/monitor.service';
-import { SqsDto } from '../dto/sqs.dto';
-import { initQueues } from '../libs/sqs.server';
 
 export class SqsService {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
-  private readonly logger = new Logger(SqsService.name);
+  private readonly logger = new Logger('SqsService');
 
   public create(instance: InstanceDto, data: SqsDto) {
     this.waMonitor.waInstances[instance.instanceName].setSqs(data);

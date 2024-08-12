@@ -1,8 +1,8 @@
-import { configService, Typebot } from '../../../../config/env.config';
-import { BadRequestException } from '../../../../exceptions';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { TypebotDto, TypebotIgnoreJidDto } from '../dto/typebot.dto';
-import { TypebotService } from '../services/typebot.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { TypebotDto, TypebotIgnoreJidDto } from '@api/integrations/typebot/dto/typebot.dto';
+import { TypebotService } from '@api/integrations/typebot/services/typebot.service';
+import { configService, Typebot } from '@config/env.config';
+import { BadRequestException } from '@exceptions';
 
 export class TypebotController {
   constructor(private readonly typebotService: TypebotService) {}

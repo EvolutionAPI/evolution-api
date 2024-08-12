@@ -1,7 +1,6 @@
+import { ConfigService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { PrismaClient } from '@prisma/client';
-
-import { ConfigService } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
 
 export class Query<T> {
   where?: T;
@@ -15,7 +14,7 @@ export class PrismaRepository extends PrismaClient {
     super();
   }
 
-  private readonly logger = new Logger(PrismaRepository.name);
+  private readonly logger = new Logger('PrismaRepository');
 
   public async onModuleInit() {
     await this.$connect();

@@ -1,11 +1,10 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ChatwootDto } from '@api/integrations/chatwoot/dto/chatwoot.dto';
+import { HttpStatus } from '@api/routes/index.router';
+import { chatwootController } from '@api/server.module';
+import { chatwootSchema, instanceSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
-
-import { chatwootSchema, instanceSchema } from '../../../../validate/validate.schema';
-import { RouterBroker } from '../../../abstract/abstract.router';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routes/index.router';
-import { chatwootController } from '../../../server.module';
-import { ChatwootDto } from '../dto/chatwoot.dto';
 
 export class ChatwootRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -43,5 +42,5 @@ export class ChatwootRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

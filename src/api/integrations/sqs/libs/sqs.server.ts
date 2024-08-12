@@ -1,8 +1,7 @@
 import { SQS } from '@aws-sdk/client-sqs';
+import { configService, Sqs } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { JsonValue } from '@prisma/client/runtime/library';
-
-import { configService, Sqs } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
 
 const logger = new Logger('SQS');
 

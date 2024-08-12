@@ -1,6 +1,6 @@
-import { InstanceDto } from '../dto/instance.dto';
-import { SettingsDto } from '../dto/settings.dto';
-import { SettingsService } from '../services/settings.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { SettingsDto } from '@api/dto/settings.dto';
+import { SettingsService } from '@api/services/settings.service';
 
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}

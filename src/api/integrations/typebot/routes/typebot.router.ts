@@ -1,5 +1,8 @@
-import { RequestHandler, Router } from 'express';
-
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { TypebotDto, TypebotIgnoreJidDto, TypebotSettingDto } from '@api/integrations/typebot/dto/typebot.dto';
+import { HttpStatus } from '@api/routes/index.router';
+import { typebotController } from '@api/server.module';
 import {
   instanceSchema,
   typebotIgnoreJidSchema,
@@ -7,12 +10,8 @@ import {
   typebotSettingSchema,
   typebotStartSchema,
   typebotStatusSchema,
-} from '../../../../validate/validate.schema';
-import { RouterBroker } from '../../../abstract/abstract.router';
-import { InstanceDto } from '../../../dto/instance.dto';
-import { HttpStatus } from '../../../routes/index.router';
-import { typebotController } from '../../../server.module';
-import { TypebotDto, TypebotIgnoreJidDto, TypebotSettingDto } from '../dto/typebot.dto';
+} from '@validate/validate.schema';
+import { RequestHandler, Router } from 'express';
 
 export class TypebotRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -130,5 +129,5 @@ export class TypebotRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

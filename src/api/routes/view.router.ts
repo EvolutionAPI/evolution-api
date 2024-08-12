@@ -1,7 +1,6 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
 import express, { Router } from 'express';
 import path from 'path';
-
-import { RouterBroker } from '../abstract/abstract.router';
 
 export class ViewsRouter extends RouterBroker {
   public readonly router: Router;

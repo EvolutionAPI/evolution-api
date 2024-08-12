@@ -1,12 +1,11 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ProxyDto } from '@api/dto/proxy.dto';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { ProxyService } from '@api/services/proxy.service';
+import { Logger } from '@config/logger.config';
+import { BadRequestException, NotFoundException } from '@exceptions';
+import { makeProxyAgent } from '@utils/makeProxyAgent';
 import axios from 'axios';
-
-import { Logger } from '../../config/logger.config';
-import { BadRequestException, NotFoundException } from '../../exceptions';
-import { makeProxyAgent } from '../../utils/makeProxyAgent';
-import { InstanceDto } from '../dto/instance.dto';
-import { ProxyDto } from '../dto/proxy.dto';
-import { WAMonitoringService } from '../services/monitor.service';
-import { ProxyService } from '../services/proxy.service';
 
 const logger = new Logger('ProxyController');
 

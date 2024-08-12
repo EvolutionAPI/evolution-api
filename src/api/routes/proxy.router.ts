@@ -1,10 +1,10 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ProxyDto } from '@api/dto/proxy.dto';
+import { proxyController } from '@api/server.module';
+import { instanceSchema, proxySchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
-import { instanceSchema, proxySchema } from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
-import { InstanceDto } from '../dto/instance.dto';
-import { ProxyDto } from '../dto/proxy.dto';
-import { proxyController } from '../server.module';
 import { HttpStatus } from './index.router';
 
 export class ProxyRouter extends RouterBroker {
@@ -33,5 +33,5 @@ export class ProxyRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

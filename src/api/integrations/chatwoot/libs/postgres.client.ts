@@ -1,12 +1,11 @@
+import { Chatwoot, configService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import postgresql from 'pg';
-
-import { Chatwoot, configService } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
 
 const { Pool } = postgresql;
 
 class Postgres {
-  private logger = new Logger(Postgres.name);
+  private logger = new Logger('Postgres');
   private pool;
   private connected = false;
 

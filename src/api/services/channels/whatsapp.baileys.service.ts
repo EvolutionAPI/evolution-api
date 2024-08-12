@@ -1,6 +1,83 @@
+import {
+  ArchiveChatDto,
+  BlockUserDto,
+  DeleteMessage,
+  getBase64FromMediaMessageDto,
+  LastMessage,
+  MarkChatUnreadDto,
+  NumberBusiness,
+  OnWhatsAppDto,
+  PrivacySettingDto,
+  ReadMessageDto,
+  SendPresenceDto,
+  UpdateMessageDto,
+  WhatsAppNumberDto,
+} from '@api/dto/chat.dto';
+import {
+  AcceptGroupInvite,
+  CreateGroupDto,
+  GetParticipant,
+  GroupDescriptionDto,
+  GroupInvite,
+  GroupJid,
+  GroupPictureDto,
+  GroupSendInvite,
+  GroupSubjectDto,
+  GroupToggleEphemeralDto,
+  GroupUpdateParticipantDto,
+  GroupUpdateSettingDto,
+} from '@api/dto/group.dto';
+import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
+import { HandleLabelDto, LabelDto } from '@api/dto/label.dto';
+import {
+  ContactMessage,
+  MediaMessage,
+  Options,
+  SendAudioDto,
+  SendContactDto,
+  SendListDto,
+  SendLocationDto,
+  SendMediaDto,
+  SendPollDto,
+  SendReactionDto,
+  SendStatusDto,
+  SendStickerDto,
+  SendTextDto,
+  StatusMessage,
+} from '@api/dto/sendMessage.dto';
+import { chatwootImport } from '@api/integrations/chatwoot/utils/chatwoot-import-helper';
+import * as s3Service from '@api/integrations/s3/libs/minio.server';
+import { ProviderFiles } from '@api/provider/sessions';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { waMonitor } from '@api/server.module';
+import { CacheService } from '@api/services/cache.service';
+import { ChannelStartupService } from '@api/services/channel.service';
+import { Events, MessageSubtype, TypeMediaMessage, wa } from '@api/types/wa.types';
+import { CacheEngine } from '@cache/cacheengine';
+import {
+  CacheConf,
+  Chatwoot,
+  ConfigService,
+  configService,
+  ConfigSessionPhone,
+  Database,
+  Dify,
+  Log,
+  Openai,
+  ProviderSession,
+  QrCode,
+  S3,
+  Typebot,
+} from '@config/env.config';
+import { INSTANCE_DIR } from '@config/path.config';
+import { BadRequestException, InternalServerErrorException, NotFoundException } from '@exceptions';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
 import { Instance } from '@prisma/client';
+import { makeProxyAgent } from '@utils/makeProxyAgent';
+import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
+import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
+import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
 import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
@@ -49,7 +126,6 @@ import { existsSync, readFileSync } from 'fs';
 import Long from 'long';
 import mime from 'mime';
 import NodeCache from 'node-cache';
-import { getMIMEType } from 'node-mime-types';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
@@ -58,84 +134,6 @@ import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 import { PassThrough } from 'stream';
 import { v4 } from 'uuid';
-
-import { CacheEngine } from '../../../cache/cacheengine';
-import {
-  CacheConf,
-  Chatwoot,
-  ConfigService,
-  configService,
-  ConfigSessionPhone,
-  Database,
-  Dify,
-  Log,
-  Openai,
-  ProviderSession,
-  QrCode,
-  S3,
-  Typebot,
-} from '../../../config/env.config';
-import { INSTANCE_DIR } from '../../../config/path.config';
-import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
-import { makeProxyAgent } from '../../../utils/makeProxyAgent';
-import useMultiFileAuthStatePrisma from '../../../utils/use-multi-file-auth-state-prisma';
-import { AuthStateProvider } from '../../../utils/use-multi-file-auth-state-provider-files';
-import { useMultiFileAuthStateRedisDb } from '../../../utils/use-multi-file-auth-state-redis-db';
-import {
-  ArchiveChatDto,
-  BlockUserDto,
-  DeleteMessage,
-  getBase64FromMediaMessageDto,
-  LastMessage,
-  MarkChatUnreadDto,
-  NumberBusiness,
-  OnWhatsAppDto,
-  PrivacySettingDto,
-  ReadMessageDto,
-  SendPresenceDto,
-  UpdateMessageDto,
-  WhatsAppNumberDto,
-} from '../../dto/chat.dto';
-import {
-  AcceptGroupInvite,
-  CreateGroupDto,
-  GetParticipant,
-  GroupDescriptionDto,
-  GroupInvite,
-  GroupJid,
-  GroupPictureDto,
-  GroupSendInvite,
-  GroupSubjectDto,
-  GroupToggleEphemeralDto,
-  GroupUpdateParticipantDto,
-  GroupUpdateSettingDto,
-} from '../../dto/group.dto';
-import { InstanceDto, SetPresenceDto } from '../../dto/instance.dto';
-import { HandleLabelDto, LabelDto } from '../../dto/label.dto';
-import {
-  ContactMessage,
-  MediaMessage,
-  Options,
-  SendAudioDto,
-  SendContactDto,
-  SendListDto,
-  SendLocationDto,
-  SendMediaDto,
-  SendPollDto,
-  SendReactionDto,
-  SendStatusDto,
-  SendStickerDto,
-  SendTextDto,
-  StatusMessage,
-} from '../../dto/sendMessage.dto';
-import { chatwootImport } from '../../integrations/chatwoot/utils/chatwoot-import-helper';
-import * as s3Service from '../../integrations/s3/libs/minio.server';
-import { ProviderFiles } from '../../provider/sessions';
-import { PrismaRepository } from '../../repository/repository.service';
-import { waMonitor } from '../../server.module';
-import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
-import { CacheService } from './../cache.service';
-import { ChannelStartupService } from './../channel.service';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
@@ -1015,7 +1013,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         await this.contactHandle['contacts.upsert'](
           contacts
-            .filter((c) => !!c.notify ?? !!c.name)
+            .filter((c) => !!c.notify || !!c.name)
             .map((c) => ({
               id: c.id,
               name: c.name ?? c.notify,
@@ -1156,7 +1154,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
                   const { buffer, mediaType, fileName, size } = media;
 
-                  const mimetype = mime.lookup(fileName).toString();
+                  const mimetype = mime.getType(fileName).toString();
 
                   const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
 
@@ -2319,7 +2317,7 @@ export class BaileysStartupService extends ChannelStartupService {
       if (mediaMessage.mimetype) {
         mimetype = mediaMessage.mimetype;
       } else {
-        mimetype = getMIMEType(mediaMessage.fileName);
+        mimetype = mime.getType(mediaMessage.fileName);
 
         if (!mimetype && isURL(mediaMessage.media)) {
           let config: any = {
@@ -2983,7 +2981,7 @@ export class BaileysStartupService extends ChannelStartupService {
       );
       const typeMessage = getContentType(msg.message);
 
-      const ext = mime.extension(mediaMessage?.['mimetype']);
+      const ext = mime.getExtension(mediaMessage?.['mimetype']);
 
       const fileName = mediaMessage?.['fileName'] || `${msg.key.id}.${ext}` || `${v4()}.${ext}`;
 

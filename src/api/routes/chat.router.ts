@@ -1,6 +1,24 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import {
+  ArchiveChatDto,
+  BlockUserDto,
+  DeleteMessage,
+  getBase64FromMediaMessageDto,
+  MarkChatUnreadDto,
+  NumberDto,
+  PrivacySettingDto,
+  ProfileNameDto,
+  ProfilePictureDto,
+  ProfileStatusDto,
+  ReadMessageDto,
+  SendPresenceDto,
+  UpdateMessageDto,
+  WhatsAppNumberDto,
+} from '@api/dto/chat.dto';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { Query } from '@api/repository/repository.service';
+import { chatController } from '@api/server.module';
 import { Contact, Message, MessageUpdate } from '@prisma/client';
-import { RequestHandler, Router } from 'express';
-
 import {
   archiveChatSchema,
   blockUserSchema,
@@ -18,27 +36,9 @@ import {
   readMessageSchema,
   updateMessageSchema,
   whatsappNumberSchema,
-} from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
-import {
-  ArchiveChatDto,
-  BlockUserDto,
-  DeleteMessage,
-  getBase64FromMediaMessageDto,
-  MarkChatUnreadDto,
-  NumberDto,
-  PrivacySettingDto,
-  ProfileNameDto,
-  ProfilePictureDto,
-  ProfileStatusDto,
-  ReadMessageDto,
-  SendPresenceDto,
-  UpdateMessageDto,
-  WhatsAppNumberDto,
-} from '../dto/chat.dto';
-import { InstanceDto } from '../dto/instance.dto';
-import { Query } from '../repository/repository.service';
-import { chatController } from '../server.module';
+} from '@validate/validate.schema';
+import { RequestHandler, Router } from 'express';
+
 import { HttpStatus } from './index.router';
 
 export class ChatRouter extends RouterBroker {
@@ -270,5 +270,5 @@ export class ChatRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

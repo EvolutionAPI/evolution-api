@@ -1,13 +1,12 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ChatwootDto } from '@api/integrations/chatwoot/dto/chatwoot.dto';
+import { postgresClient } from '@api/integrations/chatwoot/libs/postgres.client';
+import { ChatwootService } from '@api/integrations/chatwoot/services/chatwoot.service';
+import { Chatwoot, configService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { inbox } from '@figuro/chatwoot-sdk';
 import { Chatwoot as ChatwootModel, Contact, Message } from '@prisma/client';
 import { proto } from 'baileys';
-
-import { InstanceDto } from '../../../../api/dto/instance.dto';
-import { Chatwoot, configService } from '../../../../config/env.config';
-import { Logger } from '../../../../config/logger.config';
-import { ChatwootDto } from '../dto/chatwoot.dto';
-import { postgresClient } from '../libs/postgres.client';
-import { ChatwootService } from '../services/chatwoot.service';
 
 type ChatwootUser = {
   user_type: string;
@@ -28,7 +27,7 @@ type firstLastTimestamp = {
 type IWebMessageInfo = Omit<proto.IWebMessageInfo, 'key'> & Partial<Pick<proto.IWebMessageInfo, 'key'>>;
 
 class ChatwootImport {
-  private logger = new Logger(ChatwootImport.name);
+  private logger = new Logger('ChatwootImport');
   private repositoryMessagesCache = new Map<string, Set<string>>();
   private historyMessages = new Map<string, Message[]>();
   private historyContacts = new Map<string, Contact[]>();

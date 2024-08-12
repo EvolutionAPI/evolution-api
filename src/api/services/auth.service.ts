@@ -1,5 +1,5 @@
-import { BadRequestException } from '../../exceptions';
-import { PrismaRepository } from '../repository/repository.service';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { BadRequestException } from '@exceptions';
 
 export class AuthService {
   constructor(private readonly prismaRepository: PrismaRepository) {}

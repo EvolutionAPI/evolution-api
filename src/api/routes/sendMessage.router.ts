@@ -1,20 +1,4 @@
-import { RequestHandler, Router } from 'express';
-
-import {
-  audioMessageSchema,
-  buttonMessageSchema,
-  contactMessageSchema,
-  listMessageSchema,
-  locationMessageSchema,
-  mediaMessageSchema,
-  pollMessageSchema,
-  reactionMessageSchema,
-  statusMessageSchema,
-  stickerMessageSchema,
-  templateMessageSchema,
-  textMessageSchema,
-} from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
+import { RouterBroker } from '@api/abstract/abstract.router';
 import {
   SendAudioDto,
   SendButtonDto,
@@ -28,8 +12,24 @@ import {
   SendStickerDto,
   SendTemplateDto,
   SendTextDto,
-} from '../dto/sendMessage.dto';
-import { sendMessageController } from '../server.module';
+} from '@api/dto/sendMessage.dto';
+import { sendMessageController } from '@api/server.module';
+import {
+  audioMessageSchema,
+  buttonMessageSchema,
+  contactMessageSchema,
+  listMessageSchema,
+  locationMessageSchema,
+  mediaMessageSchema,
+  pollMessageSchema,
+  reactionMessageSchema,
+  statusMessageSchema,
+  stickerMessageSchema,
+  templateMessageSchema,
+  textMessageSchema,
+} from '@validate/validate.schema';
+import { RequestHandler, Router } from 'express';
+
 import { HttpStatus } from './index.router';
 
 export class MessageRouter extends RouterBroker {
@@ -159,5 +159,5 @@ export class MessageRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

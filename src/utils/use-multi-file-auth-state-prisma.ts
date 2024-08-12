@@ -1,10 +1,9 @@
+import { CacheService } from '@api/services/cache.service';
+import { INSTANCE_DIR } from '@config/path.config';
+import { prismaServer } from '@libs/prisma.connect';
 import { AuthenticationState, BufferJSON, initAuthCreds, WAProto as proto } from 'baileys';
 import fs from 'fs/promises';
 import path from 'path';
-
-import { CacheService } from '../api/services/cache.service';
-import { INSTANCE_DIR } from '../config/path.config';
-import { prismaServer } from '../libs/prisma.connect';
 
 const prisma = prismaServer;
 

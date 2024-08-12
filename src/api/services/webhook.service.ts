@@ -1,16 +1,16 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { WebhookDto } from '@api/dto/webhook.dto';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { Logger } from '@config/logger.config';
 import { Webhook } from '@prisma/client';
 import axios from 'axios';
 
-import { Logger } from '../../config/logger.config';
-import { InstanceDto } from '../dto/instance.dto';
-import { WebhookDto } from '../dto/webhook.dto';
-import { PrismaRepository } from '../repository/repository.service';
 import { WAMonitoringService } from './monitor.service';
 
 export class WebhookService {
   constructor(private readonly waMonitor: WAMonitoringService, public readonly prismaRepository: PrismaRepository) {}
 
-  private readonly logger = new Logger(WebhookService.name);
+  private readonly logger = new Logger('WebhookService');
 
   public create(instance: InstanceDto, data: WebhookDto) {
     this.waMonitor.waInstances[instance.instanceName].setWebhook(data);

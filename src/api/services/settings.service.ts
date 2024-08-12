@@ -1,12 +1,13 @@
-import { Logger } from '../../config/logger.config';
-import { InstanceDto } from '../dto/instance.dto';
-import { SettingsDto } from '../dto/settings.dto';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { SettingsDto } from '@api/dto/settings.dto';
+import { Logger } from '@config/logger.config';
+
 import { WAMonitoringService } from './monitor.service';
 
 export class SettingsService {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
-  private readonly logger = new Logger(SettingsService.name);
+  private readonly logger = new Logger('SettingsService');
 
   public async create(instance: InstanceDto, data: SettingsDto) {
     await this.waMonitor.waInstances[instance.instanceName].setSettings(data);
