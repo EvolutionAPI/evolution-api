@@ -743,6 +743,7 @@ export class BusinessStartupService extends ChannelStartupService {
               [message['type']]: message['id'],
               preview_url: linkPreview,
               caption: message['caption'],
+              filename: message['fileName'],
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
@@ -1212,7 +1213,7 @@ export class BusinessStartupService extends ChannelStartupService {
     try {
       const msg = data.message;
       this.logger.verbose('Getting base64 from media message');
-      const messageType = msg.messageType + 'Message';
+      const messageType = msg.messageType.includes('Message') ? msg.messageType : msg.messageType + 'Message';
       const mediaMessage = msg.message[messageType];
 
       this.logger.verbose('Media message downloaded');
