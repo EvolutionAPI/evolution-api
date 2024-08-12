@@ -1345,7 +1345,7 @@ export class BusinessStartupService extends ChannelStartupService {
   public async getBase64FromMediaMessage(data: any) {
     try {
       const msg = data.message;
-      const messageType = msg.messageType + 'Message';
+      const messageType = msg.messageType.includes('Message') ? msg.messageType : msg.messageType + 'Message';
       const mediaMessage = msg.message[messageType];
 
       return {

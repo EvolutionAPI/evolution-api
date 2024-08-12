@@ -1,3 +1,13 @@
+# 2.0.9 (pre release)
+
+### Fixed
+
+* Path mapping & deps fix & bundler changed to tsup
+* Improve database scripts to retrieve the provider from env file
+* Update contacts database with unique index
+* Save chat name
+* Correction of media as attachments in chatwoot when using a Meta API Instance and not Baileys
+
 # 2.0.9-rc (release candidate)
 
 ### Features
