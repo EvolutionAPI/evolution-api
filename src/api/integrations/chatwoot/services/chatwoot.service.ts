@@ -741,7 +741,6 @@ export class ChatwootService {
       findByName = inbox.payload.find((inbox) => inbox.name === this.getClientCwConfig().name_inbox.split('-cwId-')[0]);
     }
 
-
     if (!findByName) {
       this.logger.warn('inbox not found');
       return null;
@@ -1907,7 +1906,8 @@ export class ChatwootService {
 
           let nameFile: string;
           const messageBody = body?.message[body?.messageType];
-          const originalFilename = messageBody?.fileName || messageBody?.message?.documentMessage?.fileName;
+          const originalFilename =
+            messageBody?.fileName || messageBody?.filename || messageBody?.message?.documentMessage?.fileName;
           if (originalFilename) {
             const parsedFile = path.parse(originalFilename);
             if (parsedFile.name && parsedFile.ext) {
