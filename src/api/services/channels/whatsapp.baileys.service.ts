@@ -227,11 +227,16 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.client?.ws?.close();
 
-    await this.prismaRepository.session.delete({
-      where: {
-        sessionId: this.instanceId,
-      },
+    const sessionExists = await this.prismaRepository.session.findFirst({
+      where: { sessionId: this.instanceId },
     });
+    if (sessionExists) {
+      await this.prismaRepository.session.delete({
+        where: {
+          sessionId: this.instanceId,
+        },
+      });
+    }
   }
 
   public async getProfileName() {
@@ -717,7 +722,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const chatsToInsert = chats
         .filter((chat) => !existingChatIdSet.has(chat.id))
-        .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId }));
+        .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name }));
 
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
 
@@ -749,10 +754,9 @@ export class BaileysStartupService extends ChannelStartupService {
           where: {
             instanceId: this.instanceId,
             remoteJid: chat.id,
+            name: chat.name,
           },
-          data: {
-            remoteJid: chat.id,
-          },
+          data: { remoteJid: chat.id },
         });
       }
     },
@@ -895,7 +899,7 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         }
 
-        const chatsRaw: any[] = [];
+        const chatsRaw: { remoteJid: string; instanceId: string; name?: string }[] = [];
         const chatsRepository = new Set(
           (
             await this.prismaRepository.chat.findMany({
@@ -912,18 +916,17 @@ export class BaileysStartupService extends ChannelStartupService {
           chatsRaw.push({
             remoteJid: chat.id,
             instanceId: this.instanceId,
+            name: chat.name,
           });
         }
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          const chatsSaved = await this.prismaRepository.chat.createMany({
+          await this.prismaRepository.chat.createMany({
             data: chatsRaw,
             skipDuplicates: true,
           });
-
-          console.log('chatsSaved', chatsSaved);
         }
 
         const messagesRaw: any[] = [];
@@ -982,12 +985,10 @@ export class BaileysStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          const messagesSaved = await this.prismaRepository.message.createMany({
+          await this.prismaRepository.message.createMany({
             data: messagesRaw,
             skipDuplicates: true,
           });
-
-          console.log('messagesSaved', messagesSaved);
         }
 
         if (
