@@ -120,6 +120,7 @@ export class WAMonitoringService {
   }
 
   public async cleaningUp(instanceName: string) {
+    let instanceDbId: string;
     if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
       const instance = await this.prismaRepository.instance.update({
         where: { name: instanceName },
@@ -130,13 +131,15 @@ export class WAMonitoringService {
 
       rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
 
+      instanceDbId = instance.id;
       await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
-      return;
     }
 
     if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
       await this.cache.delete(instanceName);
-      return;
+      if (instanceDbId) {
+        await this.cache.delete(instanceDbId);
+      }
     }
 
     if (this.providerSession?.ENABLED) {
