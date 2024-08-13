@@ -136,7 +136,6 @@ export class WAMonitoringService {
     }
 
     if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
-      console.log({ instanceName, instanceDbId });
       await this.cache.delete(instanceName);
       if (instanceDbId) {
         await this.cache.delete(instanceDbId);
