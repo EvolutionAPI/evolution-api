@@ -216,7 +216,7 @@ model Chatwoot {
 
 model Label {
   id           String    @id @default(cuid())
-  labelId      String?   @unique @db.VarChar(100)
+  labelId      String?   @db.VarChar(100)
   name         String    @db.VarChar(100)
   color        String    @db.VarChar(100)
   predefinedId String?   @db.VarChar(100)
@@ -224,6 +224,8 @@ model Label {
   updatedAt    DateTime  @updatedAt @db.Timestamp
   Instance     Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId   String
+
+  @@unique([labelId, instanceId])
 }
 
 model Proxy {
