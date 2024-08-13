@@ -1455,7 +1455,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const savedLabel = labelsRepository.find((l) => l.labelId === label.id);
       if (label.deleted && savedLabel) {
         await this.prismaRepository.label.delete({
-          where: { instanceId: this.instanceId, labelId: label.id },
+          where: { labelId_instanceId: { instanceId: this.instanceId, labelId: label.id } },
         });
         this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
         return;
@@ -1463,16 +1463,25 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const labelName = label.name.replace(/[^\x20-\x7E]/g, '');
       if (!savedLabel || savedLabel.color !== `${label.color}` || savedLabel.name !== labelName) {
-        if (this.configService.get<Database>('DATABASE').SAVE_DATA.LABELS)
-          await this.prismaRepository.label.create({
-            data: {
-              color: `${label.color}`,
-              name: labelName,
-              labelId: label.id,
-              predefinedId: label.predefinedId,
-              instanceId: this.instanceId,
+        if (this.configService.get<Database>('DATABASE').SAVE_DATA.LABELS) {
+          const labelData = {
+            color: `${label.color}`,
+            name: labelName,
+            labelId: label.id,
+            predefinedId: label.predefinedId,
+            instanceId: this.instanceId,
+          };
+          await this.prismaRepository.label.upsert({
+            where: {
+              labelId_instanceId: {
+                instanceId: labelData.instanceId,
+                labelId: labelData.labelId,
+              },
             },
+            update: labelData,
+            create: labelData,
           });
+        }
         this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
       }
     },
