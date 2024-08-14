@@ -12,7 +12,7 @@
 * Changed labels to be unique on the same instance
 * Remove instance from redis even if using database
 
-# 2.0.9-rc (release candidate)
+# 2.0.9-rc (2024-08-09 18:00)
 
 ### Features
 
