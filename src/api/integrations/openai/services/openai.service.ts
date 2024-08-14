@@ -9,7 +9,7 @@ import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { ConfigService, Language, S3 } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { Message, OpenaiBot, OpenaiCreds, OpenaiSession, OpenaiSetting } from '@prisma/client';
+import { IntegrationSession, Message, OpenaiBot, OpenaiCreds, OpenaiSetting } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { downloadMediaMessage } from 'baileys';
@@ -289,7 +289,7 @@ export class OpenaiService {
         id: openaiBotId,
       },
       include: {
-        OpenaiSession: true,
+        sessions: true,
       },
     });
 
@@ -455,7 +455,7 @@ export class OpenaiService {
         instanceId: instanceId,
       },
       include: {
-        OpenaiSession: true,
+        sessions: true,
       },
     });
 
@@ -489,7 +489,7 @@ export class OpenaiService {
       throw new Error('Openai bot not found');
     }
     try {
-      await this.prismaRepository.openaiSession.deleteMany({
+      await this.prismaRepository.integrationSession.deleteMany({
         where: {
           openaiBotId: openaiBotId,
         },
@@ -758,32 +758,11 @@ export class OpenaiService {
         throw new Error('Openai Bot not found');
       }
 
-      if (openaiBot) {
-        return await this.prismaRepository.openaiSession.findMany({
-          where: {
-            openaiBotId: openaiBotId,
-          },
-          include: {
-            OpenaiBot: true,
-          },
-        });
-      }
-
-      if (remoteJid) {
-        return await this.prismaRepository.openaiSession.findMany({
-          where: {
-            remoteJid: remoteJid,
-            openaiBotId: openaiBotId,
-          },
-          include: {
-            OpenaiBot: true,
-          },
-        });
-      }
-
-      return await this.prismaRepository.openaiSession.findMany({
+      return await this.prismaRepository.integrationSession.findMany({
         where: {
           instanceId: instanceId,
+          remoteJid,
+          openaiBotId: openaiBot ? openaiBotId : { not: null },
         },
         include: {
           OpenaiBot: true,
@@ -815,9 +794,10 @@ export class OpenaiService {
       const status = data.status;
 
       if (status === 'delete') {
-        await this.prismaRepository.openaiSession.deleteMany({
+        await this.prismaRepository.integrationSession.deleteMany({
           where: {
             remoteJid: remoteJid,
+            openaiBotId: { not: null },
           },
         });
 
@@ -826,16 +806,18 @@ export class OpenaiService {
 
       if (status === 'closed') {
         if (defaultSettingCheck?.keepOpen) {
-          await this.prismaRepository.openaiSession.updateMany({
+          await this.prismaRepository.integrationSession.updateMany({
             where: {
               remoteJid: remoteJid,
+              openaiBotId: { not: null },
+              status: { not: 'closed' },
             },
             data: {
               status: 'closed',
             },
           });
         } else {
-          await this.prismaRepository.openaiSession.deleteMany({
+          await this.prismaRepository.integrationSession.deleteMany({
             where: {
               remoteJid: remoteJid,
             },
@@ -844,10 +826,11 @@ export class OpenaiService {
 
         return { openai: { ...instance, openai: { remoteJid: remoteJid, status: status } } };
       } else {
-        const session = await this.prismaRepository.openaiSession.updateMany({
+        const session = await this.prismaRepository.integrationSession.updateMany({
           where: {
             instanceId: instanceId,
             remoteJid: remoteJid,
+            openaiBotId: { not: null },
           },
           data: {
             status: status,
@@ -1109,12 +1092,22 @@ export class OpenaiService {
         }
       }
 
-      const session = await this.prismaRepository.openaiSession.findFirst({
+      let session = await this.prismaRepository.integrationSession.findFirst({
         where: {
           remoteJid: remoteJid,
           instanceId: instance.instanceId,
         },
+        orderBy: { createdAt: 'desc' },
       });
+
+      if (session) {
+        if (session.status !== 'closed' && !session.openaiBotId) {
+          this.logger.warn('Session is already opened in another integration');
+          return;
+        } else if (!session.openaiBotId) {
+          session = null;
+        }
+      }
 
       const content = this.getConversationMessage(msg);
 
@@ -1184,7 +1177,7 @@ export class OpenaiService {
       };
 
       if (stopBotFromMe && key.fromMe && session) {
-        await this.prismaRepository.openaiSession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1274,7 +1267,7 @@ export class OpenaiService {
 
       let session = null;
       if (threadId) {
-        session = await this.prismaRepository.openaiSession.create({
+        session = await this.prismaRepository.integrationSession.create({
           data: {
             remoteJid: data.remoteJid,
             sessionId: threadId,
@@ -1297,7 +1290,7 @@ export class OpenaiService {
     remoteJid: string,
     openaiBot: OpenaiBot,
     settings: OpenaiSetting,
-    session: OpenaiSession,
+    session: IntegrationSession,
     content: string,
   ) {
     const data = await this.createAssistantNewSession(instance, {
@@ -1338,7 +1331,7 @@ export class OpenaiService {
       false,
     );
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.integrationSession.update({
       where: {
         id: session.id,
       },
@@ -1431,7 +1424,7 @@ export class OpenaiService {
     instance: any,
     remoteJid: string,
     openaiBot: OpenaiBot,
-    session: OpenaiSession,
+    session: IntegrationSession,
     settings: OpenaiSetting,
     content: string,
   ) {
@@ -1450,7 +1443,7 @@ export class OpenaiService {
 
       if (diffInMinutes > settings.expire) {
         if (settings.keepOpen) {
-          await this.prismaRepository.openaiSession.update({
+          await this.prismaRepository.integrationSession.update({
             where: {
               id: session.id,
             },
@@ -1459,7 +1452,7 @@ export class OpenaiService {
             },
           });
         } else {
-          await this.prismaRepository.openaiSession.deleteMany({
+          await this.prismaRepository.integrationSession.deleteMany({
             where: {
               openaiBotId: openaiBot.id,
               remoteJid: remoteJid,
@@ -1477,7 +1470,7 @@ export class OpenaiService {
       return;
     }
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.integrationSession.update({
       where: {
         id: session.id,
       },
@@ -1505,7 +1498,7 @@ export class OpenaiService {
 
     if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
       if (settings.keepOpen) {
-        await this.prismaRepository.openaiSession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1514,7 +1507,7 @@ export class OpenaiService {
           },
         });
       } else {
-        await this.prismaRepository.openaiSession.deleteMany({
+        await this.prismaRepository.integrationSession.deleteMany({
           where: {
             openaiBotId: openaiBot.id,
             remoteJid: remoteJid,
@@ -1566,7 +1559,7 @@ export class OpenaiService {
       false,
     );
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.integrationSession.update({
       where: {
         id: session.id,
       },
@@ -1595,7 +1588,7 @@ export class OpenaiService {
     if (!creds) throw new Error('Openai Creds not found');
 
     try {
-      const session = await this.prismaRepository.openaiSession.create({
+      const session = await this.prismaRepository.integrationSession.create({
         data: {
           remoteJid: data.remoteJid,
           sessionId: id,
@@ -1618,7 +1611,7 @@ export class OpenaiService {
     remoteJid: string,
     openaiBot: OpenaiBot,
     settings: OpenaiSetting,
-    session: OpenaiSession,
+    session: IntegrationSession,
     content: string,
   ) {
     const data = await this.createChatCompletionNewSession(instance, {
@@ -1694,7 +1687,7 @@ export class OpenaiService {
       false,
     );
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.integrationSession.update({
       where: {
         id: session.id,
       },
@@ -1713,7 +1706,7 @@ export class OpenaiService {
     instance: any,
     remoteJid: string,
     openaiBot: OpenaiBot,
-    session: OpenaiSession,
+    session: IntegrationSession,
     settings: OpenaiSetting,
     content: string,
   ) {
@@ -1732,7 +1725,7 @@ export class OpenaiService {
 
       if (diffInMinutes > settings.expire) {
         if (settings.keepOpen) {
-          await this.prismaRepository.openaiSession.update({
+          await this.prismaRepository.integrationSession.update({
             where: {
               id: session.id,
             },
@@ -1741,7 +1734,7 @@ export class OpenaiService {
             },
           });
         } else {
-          await this.prismaRepository.openaiSession.deleteMany({
+          await this.prismaRepository.integrationSession.deleteMany({
             where: {
               openaiBotId: openaiBot.id,
               remoteJid: remoteJid,
@@ -1759,7 +1752,7 @@ export class OpenaiService {
       return;
     }
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.integrationSession.update({
       where: {
         id: session.id,
       },
@@ -1787,7 +1780,7 @@ export class OpenaiService {
 
     if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
       if (settings.keepOpen) {
-        await this.prismaRepository.openaiSession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1796,7 +1789,7 @@ export class OpenaiService {
           },
         });
       } else {
-        await this.prismaRepository.openaiSession.deleteMany({
+        await this.prismaRepository.integrationSession.deleteMany({
           where: {
             openaiBotId: openaiBot.id,
             remoteJid: remoteJid,
@@ -1878,7 +1871,7 @@ export class OpenaiService {
       false,
     );
 
-    await this.prismaRepository.openaiSession.update({
+    await this.prismaRepository.integrationSession.update({
       where: {
         id: session.id,
       },

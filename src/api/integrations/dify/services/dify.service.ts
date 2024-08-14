@@ -4,7 +4,7 @@ import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Auth, ConfigService, HttpServer, S3 } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { Dify, DifySession, DifySetting, Message } from '@prisma/client';
+import { Dify, DifySetting, IntegrationSession, Message } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { Readable } from 'stream';
@@ -159,7 +159,7 @@ export class DifyService {
         id: difyId,
       },
       include: {
-        DifySession: true,
+        sessions: true,
       },
     });
 
@@ -298,7 +298,7 @@ export class DifyService {
         instanceId: instanceId,
       },
       include: {
-        DifySession: true,
+        sessions: true,
       },
     });
 
@@ -332,7 +332,7 @@ export class DifyService {
       throw new Error('Dify not found');
     }
     try {
-      await this.prismaRepository.difySession.deleteMany({
+      await this.prismaRepository.integrationSession.deleteMany({
         where: {
           difyId: difyId,
         },
@@ -554,35 +554,14 @@ export class DifyService {
         throw new Error('Dify not found');
       }
 
-      if (dify) {
-        return await this.prismaRepository.difySession.findMany({
-          where: {
-            difyId: difyId,
-          },
-          include: {
-            Dify: true,
-          },
-        });
-      }
-
-      if (remoteJid) {
-        return await this.prismaRepository.difySession.findMany({
-          where: {
-            remoteJid: remoteJid,
-            difyId: difyId,
-          },
-          include: {
-            Dify: true,
-          },
-        });
-      }
-
-      return await this.prismaRepository.difySession.findMany({
+      return await this.prismaRepository.integrationSession.findMany({
         where: {
           instanceId: instanceId,
+          remoteJid,
+          difyId: dify ? difyId : { not: null },
         },
         include: {
-          Dify: true,
+          DifyBot: true,
         },
       });
     } catch (error) {
@@ -611,9 +590,10 @@ export class DifyService {
       const status = data.status;
 
       if (status === 'delete') {
-        await this.prismaRepository.difySession.deleteMany({
+        await this.prismaRepository.integrationSession.deleteMany({
           where: {
             remoteJid: remoteJid,
+            difyId: { not: null },
           },
         });
 
@@ -622,28 +602,31 @@ export class DifyService {
 
       if (status === 'closed') {
         if (defaultSettingCheck?.keepOpen) {
-          await this.prismaRepository.difySession.updateMany({
+          await this.prismaRepository.integrationSession.updateMany({
             where: {
               remoteJid: remoteJid,
+              difyId: { not: null },
             },
             data: {
               status: 'closed',
             },
           });
         } else {
-          await this.prismaRepository.difySession.deleteMany({
+          await this.prismaRepository.integrationSession.deleteMany({
             where: {
               remoteJid: remoteJid,
+              difyId: { not: null },
             },
           });
         }
 
         return { dify: { ...instance, dify: { remoteJid: remoteJid, status: status } } };
       } else {
-        const session = await this.prismaRepository.difySession.updateMany({
+        const session = await this.prismaRepository.integrationSession.updateMany({
           where: {
             instanceId: instanceId,
             remoteJid: remoteJid,
+            difyId: { not: null },
           },
           data: {
             status: status,
@@ -905,12 +888,22 @@ export class DifyService {
         }
       }
 
-      const session = await this.prismaRepository.difySession.findFirst({
+      let session = await this.prismaRepository.integrationSession.findFirst({
         where: {
           remoteJid: remoteJid,
           instanceId: instance.instanceId,
         },
+        orderBy: { createdAt: 'desc' },
       });
+
+      if (session) {
+        if (session.status !== 'closed' && !session.difyId) {
+          this.logger.warn('Session is already opened in another integration');
+          return;
+        } else if (!session.difyId) {
+          session = null;
+        }
+      }
 
       const content = this.getConversationMessage(msg);
 
@@ -976,7 +969,7 @@ export class DifyService {
       };
 
       if (stopBotFromMe && key.fromMe && session) {
-        await this.prismaRepository.difySession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1024,7 +1017,7 @@ export class DifyService {
 
   public async createNewSession(instance: InstanceDto, data: any) {
     try {
-      const session = await this.prismaRepository.difySession.create({
+      const session = await this.prismaRepository.integrationSession.create({
         data: {
           remoteJid: data.remoteJid,
           sessionId: data.remoteJid,
@@ -1047,7 +1040,7 @@ export class DifyService {
     remoteJid: string,
     dify: Dify,
     settings: DifySetting,
-    session: DifySession,
+    session: IntegrationSession,
     content: string,
     pushName?: string,
   ) {
@@ -1101,7 +1094,7 @@ export class DifyService {
         false,
       );
 
-      await this.prismaRepository.difySession.update({
+      await this.prismaRepository.integrationSession.update({
         where: {
           id: session.id,
         },
@@ -1156,7 +1149,7 @@ export class DifyService {
         false,
       );
 
-      await this.prismaRepository.difySession.update({
+      await this.prismaRepository.integrationSession.update({
         where: {
           id: session.id,
         },
@@ -1231,7 +1224,7 @@ export class DifyService {
           false,
         );
 
-        await this.prismaRepository.difySession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1291,7 +1284,7 @@ export class DifyService {
       );
 
       if (settings.keepOpen) {
-        await this.prismaRepository.difySession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1300,7 +1293,7 @@ export class DifyService {
           },
         });
       } else {
-        await this.prismaRepository.difySession.delete({
+        await this.prismaRepository.integrationSession.delete({
           where: {
             id: session.id,
           },
@@ -1319,7 +1312,7 @@ export class DifyService {
     instance: any,
     remoteJid: string,
     dify: Dify,
-    session: DifySession,
+    session: IntegrationSession,
     settings: DifySetting,
     content: string,
     pushName?: string,
@@ -1339,7 +1332,7 @@ export class DifyService {
 
       if (diffInMinutes > settings.expire) {
         if (settings.keepOpen) {
-          await this.prismaRepository.difySession.update({
+          await this.prismaRepository.integrationSession.update({
             where: {
               id: session.id,
             },
@@ -1348,7 +1341,7 @@ export class DifyService {
             },
           });
         } else {
-          await this.prismaRepository.difySession.deleteMany({
+          await this.prismaRepository.integrationSession.deleteMany({
             where: {
               difyId: dify.id,
               remoteJid: remoteJid,
@@ -1366,7 +1359,7 @@ export class DifyService {
       return;
     }
 
-    await this.prismaRepository.difySession.update({
+    await this.prismaRepository.integrationSession.update({
       where: {
         id: session.id,
       },
@@ -1394,7 +1387,7 @@ export class DifyService {
 
     if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
       if (settings.keepOpen) {
-        await this.prismaRepository.difySession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1403,7 +1396,7 @@ export class DifyService {
           },
         });
       } else {
-        await this.prismaRepository.difySession.deleteMany({
+        await this.prismaRepository.integrationSession.deleteMany({
           where: {
             difyId: dify.id,
             remoteJid: remoteJid,
@@ -1454,7 +1447,7 @@ export class DifyService {
         false,
       );
 
-      await this.prismaRepository.difySession.update({
+      await this.prismaRepository.integrationSession.update({
         where: {
           id: session.id,
         },
@@ -1509,7 +1502,7 @@ export class DifyService {
         false,
       );
 
-      await this.prismaRepository.difySession.update({
+      await this.prismaRepository.integrationSession.update({
         where: {
           id: session.id,
         },
@@ -1590,7 +1583,7 @@ export class DifyService {
           false,
         );
 
-        await this.prismaRepository.difySession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1651,7 +1644,7 @@ export class DifyService {
       );
 
       if (settings.keepOpen) {
-        await this.prismaRepository.difySession.update({
+        await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1660,7 +1653,7 @@ export class DifyService {
           },
         });
       } else {
-        await this.prismaRepository.difySession.delete({
+        await this.prismaRepository.integrationSession.delete({
           where: {
             id: session.id,
           },
