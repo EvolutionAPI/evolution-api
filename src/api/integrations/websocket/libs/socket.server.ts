@@ -13,7 +13,7 @@ export const initIO = (httpServer: Server) => {
   if (configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
     io = new SocketIO(httpServer, {
       cors: {
-        origin: cors,
+        origin: cors.includes('*') ? '*' : cors,
       },
     });
 
