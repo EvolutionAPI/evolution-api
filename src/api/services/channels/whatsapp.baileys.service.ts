@@ -35,7 +35,6 @@ import {
   Options,
   SendAudioDto,
   SendContactDto,
-  SendListDto,
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
@@ -1551,7 +1550,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (events['messaging-history.set']) {
           const payload = events['messaging-history.set'];
-          this.messageHandle['messaging-history.set'](payload);
+          this.messageHandle['messaging-history.set'](payload as any);
         }
 
         if (events['messages.upsert']) {
@@ -2608,27 +2607,8 @@ export class BaileysStartupService extends ChannelStartupService {
     );
   }
 
-  public async listMessage(data: SendListDto) {
-    return await this.sendMessageWithTyping(
-      data.number,
-      {
-        listMessage: {
-          title: data.title,
-          description: data?.description,
-          buttonText: data?.buttonText,
-          footerText: data?.footerText,
-          sections: data.sections,
-          listType: 2,
-        },
-      },
-      {
-        delay: data?.delay,
-        presence: 'composing',
-        quoted: data?.quoted,
-        mentionsEveryOne: data?.mentionsEveryOne,
-        mentioned: data?.mentioned,
-      },
-    );
+  public async listMessage() {
+    throw new BadRequestException('Method not available on WhatsApp Baileys');
   }
 
   public async contactMessage(data: SendContactDto) {

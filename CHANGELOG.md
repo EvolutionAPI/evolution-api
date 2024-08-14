@@ -7,6 +7,7 @@
 * Update contacts database with unique index
 * Save chat name
 * Correction of media as attachments in chatwoot when using a Meta API Instance and not Baileys
+* Update Baileys version 6.7.6
 
 # 2.0.9-rc (release candidate)
 
