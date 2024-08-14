@@ -8,6 +8,9 @@
 * Save chat name
 * Correction of media as attachments in chatwoot when using a Meta API Instance and not Baileys
 * Update Baileys version 6.7.6
+* Deprecate buttons and list in new Baileys version
+* Changed labels to be unique on the same instance
+* Remove instance from redis even if using database
 
 # 2.0.9-rc (release candidate)
 
