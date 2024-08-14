@@ -5,10 +5,10 @@ import path from 'path';
 import { ConfigService, HttpServer } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
 import { InstanceDto } from '../../../dto/instance.dto';
+import { ChamaaiDto } from '../../../integrations/chamaai/dto/chamaai.dto';
 import { ChamaaiRaw } from '../../../models';
 import { WAMonitoringService } from '../../../services/monitor.service';
 import { Events } from '../../../types/wa.types';
-import { ChamaaiDto } from '../dto/chamaai.dto';
 
 export class ChamaaiService {
   constructor(private readonly waMonitor: WAMonitoringService, private readonly configService: ConfigService) {}

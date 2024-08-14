@@ -1,6 +1,6 @@
 // import { Logger } from '../../../../config/logger.config';
-import { WAMonitoringService } from '../../../../services/monitor.service';
 import { InstanceDto } from '../../../dto/instance.dto';
+import { WAMonitoringService } from '../../../services/monitor.service';
 
 // const logger = new Logger('KwikController');
 
@@ -27,7 +27,9 @@ export class KwikController {
         });
 
         return {
-          ...chat._doc,
+          id: chat.id,
+          labels: chat.labels,
+          owner: chat.owner,
           lastAllMsgTimestamp: lastMsg[0].messageTimestamp,
         };
       }),
