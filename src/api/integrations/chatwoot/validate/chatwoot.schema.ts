@@ -38,6 +38,7 @@ export const chatwootSchema: JSONSchema7 = {
     mergeBrazilContacts: { type: 'boolean', enum: [true, false] },
     importMessages: { type: 'boolean', enum: [true, false] },
     daysLimitImportMessages: { type: 'number' },
+    ignoreJids: { type: 'array', items: { type: 'string' } },
   },
   required: ['enabled', 'accountId', 'token', 'url', 'signMsg', 'reopenConversation', 'conversationPending'],
   ...isNotEmpty('enabled', 'accountId', 'token', 'url', 'signMsg', 'reopenConversation', 'conversationPending'),

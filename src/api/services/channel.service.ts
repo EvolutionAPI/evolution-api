@@ -345,6 +345,7 @@ export class ChannelStartupService {
           daysLimitImportMessages: data.daysLimitImportMessages,
           organization: data.organization,
           logo: data.logo,
+          ignoreJids: data.ignoreJids,
         },
       });
 
@@ -369,6 +370,9 @@ export class ChannelStartupService {
         importContacts: data.importContacts,
         importMessages: data.importMessages,
         daysLimitImportMessages: data.daysLimitImportMessages,
+        organization: data.organization,
+        logo: data.logo,
+        ignoreJids: data.ignoreJids,
         instanceId: this.instanceId,
       },
     });
@@ -378,7 +382,7 @@ export class ChannelStartupService {
     this.clearCacheChatwoot();
   }
 
-  public async findChatwoot() {
+  public async findChatwoot(): Promise<ChatwootDto> {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
       return null;
     }
@@ -392,6 +396,8 @@ export class ChannelStartupService {
     if (!data) {
       return null;
     }
+
+    const ignoreJidsArray = Array.isArray(data.ignoreJids) ? data.ignoreJids.map((event) => String(event)) : [];
 
     return {
       enabled: data.enabled,
@@ -407,6 +413,9 @@ export class ChannelStartupService {
       importContacts: data.importContacts,
       importMessages: data.importMessages,
       daysLimitImportMessages: data.daysLimitImportMessages,
+      organization: data.organization,
+      logo: data.logo,
+      ignoreJids: ignoreJidsArray,
     };
   }
 

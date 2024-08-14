@@ -1,5 +1,9 @@
 # 2.0.9 (pre release)
 
+### Features
+
+* Added ignoreJids in chatwoot settings
+
 ### Fixed
 
 * Path mapping & deps fix & bundler changed to tsup
