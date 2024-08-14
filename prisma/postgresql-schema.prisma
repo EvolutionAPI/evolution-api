@@ -88,7 +88,7 @@ model Instance {
   Sqs                     Sqs?
   Websocket               Websocket?
   Typebot                 Typebot[]
-  sessions                Session?
+  Session                 Session?
   MessageUpdate           MessageUpdate[]
   TypebotSetting          TypebotSetting?
   Media                   Media[]
@@ -155,7 +155,7 @@ model Message {
   webhookUrl                   String?         @db.VarChar(500)
 
   sessionId String?
-  sessions  IntegrationSession? @relation(fields: [sessionId], references: [id])
+  session   IntegrationSession? @relation(fields: [sessionId], references: [id])
 }
 
 model MessageUpdate {
