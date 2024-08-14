@@ -1738,6 +1738,36 @@ export class ChatwootService {
         return null;
       }
 
+      if (this.provider?.ignoreJids && this.provider?.ignoreJids.length > 0) {
+        const ignoreJids: any = this.provider?.ignoreJids;
+
+        let ignoreGroups = false;
+        let ignoreContacts = false;
+
+        if (ignoreJids.includes('@g.us')) {
+          ignoreGroups = true;
+        }
+
+        if (ignoreJids.includes('@s.whatsapp.net')) {
+          ignoreContacts = true;
+        }
+
+        if (ignoreGroups && body?.key?.remoteJid.endsWith('@g.us')) {
+          this.logger.warn('Ignoring message from group: ' + body?.key?.remoteJid);
+          return;
+        }
+
+        if (ignoreContacts && body?.key?.remoteJid.endsWith('@s.whatsapp.net')) {
+          this.logger.warn('Ignoring message from contact: ' + body?.key?.remoteJid);
+          return;
+        }
+
+        if (ignoreJids.includes(body?.key?.remoteJid)) {
+          this.logger.warn('Ignoring message from jid: ' + body?.key?.remoteJid);
+          return;
+        }
+      }
+
       if (event === 'contact.is_not_in_wpp') {
         const getConversation = await this.createConversation(instance, body);
 

@@ -114,3 +114,5 @@ We are proud to collaborate with the following content creators who have contrib
 - [dSantana Automações](https://www.youtube.com/channel/UCG7DjUmAxtYyURlOGAIryNQ?view_as=subscriber)
 - [Edison Martins](https://www.youtube.com/@edisonmartinsmkt)
 - [Astra Online](https://www.youtube.com/@astraonlineweb)
+- [MKT Seven Automações](https://www.youtube.com/@sevenautomacoes)
+- [Vamos automatizar](https://www.youtube.com/vamosautomatizar)

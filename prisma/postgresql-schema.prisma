@@ -208,6 +208,7 @@ model Chatwoot {
   daysLimitImportMessages Int?      @db.Integer
   organization            String?   @db.VarChar(100)
   logo                    String?   @db.VarChar(500)
+  ignoreJids              Json?
   createdAt               DateTime? @default(now()) @db.Timestamp
   updatedAt               DateTime  @updatedAt @db.Timestamp
   Instance                Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)

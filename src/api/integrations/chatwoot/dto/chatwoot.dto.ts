@@ -16,4 +16,5 @@ export class ChatwootDto {
   autoCreate?: boolean;
   organization?: string;
   logo?: string;
+  ignoreJids?: string[];
 }
