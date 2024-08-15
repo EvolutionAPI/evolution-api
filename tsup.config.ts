@@ -8,4 +8,7 @@ export default defineConfig({
   clean: true,
   minify: true,
   format: ['cjs', 'esm'],
+  loader: {
+    '.json': 'file',
+  },
 });
