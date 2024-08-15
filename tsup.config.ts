@@ -1,3 +1,5 @@
+import { cpSync } from 'node:fs';
+
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
@@ -8,6 +10,9 @@ export default defineConfig({
   clean: true,
   minify: true,
   format: ['cjs', 'esm'],
+  onSuccess: async () => {
+    cpSync('src/utils/translations', 'dist/translations', { recursive: true });
+  },
   loader: {
     '.json': 'file',
   },
