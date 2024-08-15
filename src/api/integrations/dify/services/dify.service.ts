@@ -670,11 +670,27 @@ export class DifyService {
         : msg?.message?.audioMessage
         ? `audioMessage|${mediaId}`
         : undefined,
-      imageMessage: msg?.message?.imageMessage ? `imageMessage|${mediaId}` : undefined,
-      videoMessage: msg?.message?.videoMessage ? `videoMessage|${mediaId}` : undefined,
-      documentMessage: msg?.message?.documentMessage ? `documentMessage|${mediaId}` : undefined,
-      documentWithCaptionMessage: msg?.message?.auddocumentWithCaptionMessageioMessage
-        ? `documentWithCaptionMessage|${mediaId}`
+      imageMessage: msg?.message?.imageMessage
+        ? `imageMessage|${mediaId}${
+            msg?.message?.imageMessage?.caption ? `|${msg?.message?.imageMessage?.caption}` : ''
+          }`
+        : undefined,
+      videoMessage: msg?.message?.videoMessage
+        ? `videoMessage|${mediaId}${
+            msg?.message?.videoMessage?.caption ? `|${msg?.message?.videoMessage?.caption}` : ''
+          }`
+        : undefined,
+      documentMessage: msg?.message?.documentMessage
+        ? `documentMessage|${mediaId}${
+            msg?.message?.documentMessage?.caption ? `|${msg?.message?.documentMessage?.caption}` : ''
+          }`
+        : undefined,
+      documentWithCaptionMessage: msg?.message?.documentWithCaptionMessage?.message?.documentMessage
+        ? `documentWithCaptionMessage|${mediaId}${
+            msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
+              ? `|${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption}`
+              : ''
+          }`
         : undefined,
     };
 
@@ -1035,6 +1051,10 @@ export class DifyService {
     }
   }
 
+  private isImageMessage(content: string) {
+    return content.includes('imageMessage');
+  }
+
   private async initNewSession(
     instance: any,
     remoteJid: string,
@@ -1057,7 +1077,7 @@ export class DifyService {
 
     if (dify.botType === 'chatBot') {
       endpoint += '/chat-messages';
-      const payload = {
+      const payload: any = {
         inputs: {
           remoteJid: remoteJid,
           pushName: pushName,
@@ -1070,6 +1090,19 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 
@@ -1112,7 +1145,7 @@ export class DifyService {
 
     if (dify.botType === 'textGenerator') {
       endpoint += '/completion-messages';
-      const payload = {
+      const payload: any = {
         inputs: {
           query: content,
           pushName: pushName,
@@ -1125,6 +1158,19 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.inputs.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 
@@ -1167,7 +1213,7 @@ export class DifyService {
 
     if (dify.botType === 'agent') {
       endpoint += '/chat-messages';
-      const payload = {
+      const payload: any = {
         inputs: {
           remoteJid: remoteJid,
           pushName: pushName,
@@ -1180,6 +1226,19 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 
@@ -1247,7 +1306,7 @@ export class DifyService {
 
     if (dify.botType === 'workflow') {
       endpoint += '/workflows/run';
-      const payload = {
+      const payload: any = {
         inputs: {
           query: content,
           remoteJid: remoteJid,
@@ -1259,6 +1318,19 @@ export class DifyService {
         response_mode: 'blocking',
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.inputs.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 
@@ -1410,7 +1482,7 @@ export class DifyService {
 
     if (dify.botType === 'chatBot') {
       endpoint += '/chat-messages';
-      const payload = {
+      const payload: any = {
         inputs: {
           remoteJid: remoteJid,
           pushName: pushName,
@@ -1423,6 +1495,19 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 
@@ -1465,7 +1550,7 @@ export class DifyService {
 
     if (dify.botType === 'textGenerator') {
       endpoint += '/completion-messages';
-      const payload = {
+      const payload: any = {
         inputs: {
           query: content,
           remoteJid: remoteJid,
@@ -1478,6 +1563,19 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.inputs.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 
@@ -1520,7 +1618,7 @@ export class DifyService {
 
     if (dify.botType === 'agent') {
       endpoint += '/chat-messages';
-      const payload = {
+      const payload: any = {
         inputs: {
           remoteJid: remoteJid,
           pushName: pushName,
@@ -1533,6 +1631,19 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 
@@ -1606,7 +1717,7 @@ export class DifyService {
 
     if (dify.botType === 'workflow') {
       endpoint += '/workflows/run';
-      const payload = {
+      const payload: any = {
         inputs: {
           query: content,
           remoteJid: remoteJid,
@@ -1619,6 +1730,19 @@ export class DifyService {
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
         user: remoteJid,
       };
+
+      if (this.isImageMessage(content)) {
+        const contentSplit = content.split('|');
+
+        payload.files = [
+          {
+            type: 'image',
+            transfer_method: 'remote_url',
+            url: contentSplit[1].split('?')[0],
+          },
+        ];
+        payload.inputs.query = contentSplit[2];
+      }
 
       await instance.client.presenceSubscribe(remoteJid);
 

@@ -3,6 +3,7 @@
 ### Features
 
 * Added ignoreJids in chatwoot settings
+* Dify now identifies images
 
 ### Fixed
 
