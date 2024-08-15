@@ -4,6 +4,7 @@
 
 * Added ignoreJids in chatwoot settings
 * Dify now identifies images
+* Openai now identifies images
 
 ### Fixed
 
@@ -16,6 +17,7 @@
 * Deprecate buttons and list in new Baileys version
 * Changed labels to be unique on the same instance
 * Remove instance from redis even if using database
+* Unified integration session system so they don't overlap
 
 # 2.0.9-rc (2024-08-09 18:00)
 

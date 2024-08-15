@@ -874,11 +874,27 @@ export class OpenaiService {
         : msg?.message?.audioMessage
         ? `audioMessage|${mediaId}`
         : undefined,
-      imageMessage: msg?.message?.imageMessage ? `imageMessage|${mediaId}` : undefined,
-      videoMessage: msg?.message?.videoMessage ? `videoMessage|${mediaId}` : undefined,
-      documentMessage: msg?.message?.documentMessage ? `documentMessage|${mediaId}` : undefined,
-      documentWithCaptionMessage: msg?.message?.auddocumentWithCaptionMessageioMessage
-        ? `documentWithCaptionMessage|${mediaId}`
+      imageMessage: msg?.message?.imageMessage
+        ? `imageMessage|${mediaId}${
+            msg?.message?.imageMessage?.caption ? `|${msg?.message?.imageMessage?.caption}` : ''
+          }`
+        : undefined,
+      videoMessage: msg?.message?.videoMessage
+        ? `videoMessage|${mediaId}${
+            msg?.message?.videoMessage?.caption ? `|${msg?.message?.videoMessage?.caption}` : ''
+          }`
+        : undefined,
+      documentMessage: msg?.message?.documentMessage
+        ? `documentMessage|${mediaId}${
+            msg?.message?.documentMessage?.caption ? `|${msg?.message?.documentMessage?.caption}` : ''
+          }`
+        : undefined,
+      documentWithCaptionMessage: msg?.message?.documentWithCaptionMessage?.message?.documentMessage
+        ? `documentWithCaptionMessage|${mediaId}${
+            msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
+              ? `|${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption}`
+              : ''
+          }`
         : undefined,
     };
 
@@ -1303,10 +1319,28 @@ export class OpenaiService {
       session = data.session;
     }
 
-    await this.client.beta.threads.messages.create(data.session.sessionId, {
+    const messageData: any = {
       role: 'user',
-      content,
-    });
+      content: [{ type: 'text', text: content }],
+    };
+
+    if (this.isImageMessage(content)) {
+      const contentSplit = content.split('|');
+
+      const url = contentSplit[1].split('?')[0];
+
+      messageData.content = [
+        { type: 'text', text: contentSplit[2] || content },
+        {
+          type: 'image_url',
+          image_url: {
+            url: url,
+          },
+        },
+      ];
+    }
+
+    await this.client.beta.threads.messages.create(data.session.sessionId, messageData);
 
     const runAssistant = await this.client.beta.threads.runs.create(data.session.sessionId, {
       assistant_id: openaiBot.assistantId,
@@ -1420,6 +1454,10 @@ export class OpenaiService {
     }
   }
 
+  private isImageMessage(content: string) {
+    return content.includes('imageMessage');
+  }
+
   private async processOpenaiAssistant(
     instance: any,
     remoteJid: string,
@@ -1531,10 +1569,28 @@ export class OpenaiService {
 
     const threadId = session.sessionId;
 
-    await this.client.beta.threads.messages.create(threadId, {
+    const messageData: any = {
       role: 'user',
-      content,
-    });
+      content: [{ type: 'text', text: content }],
+    };
+
+    if (this.isImageMessage(content)) {
+      const contentSplit = content.split('|');
+
+      const url = contentSplit[1].split('?')[0];
+
+      messageData.content = [
+        { type: 'text', text: contentSplit[2] || content },
+        {
+          type: 'image_url',
+          image_url: {
+            url: url,
+          },
+        },
+      ];
+    }
+
+    await this.client.beta.threads.messages.create(threadId, messageData);
 
     const runAssistant = await this.client.beta.threads.runs.create(threadId, {
       assistant_id: openaiBot.assistantId,
@@ -1654,15 +1710,28 @@ export class OpenaiService {
       };
     });
 
-    const messages: any[] = [
-      ...messagesSystem,
-      ...messagesAssistant,
-      ...messagesUser,
-      {
-        role: 'user',
-        content: content,
-      },
-    ];
+    const messageData: any = {
+      role: 'user',
+      content: [{ type: 'text', text: content }],
+    };
+
+    if (this.isImageMessage(content)) {
+      const contentSplit = content.split('|');
+
+      const url = contentSplit[1].split('?')[0];
+
+      messageData.content = [
+        { type: 'text', text: contentSplit[2] || content },
+        {
+          type: 'image_url',
+          image_url: {
+            url: url,
+          },
+        },
+      ];
+    }
+
+    const messages: any[] = [...messagesSystem, ...messagesAssistant, ...messagesUser, messageData];
 
     await instance.client.presenceSubscribe(remoteJid);
 
@@ -1838,15 +1907,28 @@ export class OpenaiService {
       };
     });
 
-    const messages: any[] = [
-      ...messagesSystem,
-      ...messagesAssistant,
-      ...messagesUser,
-      {
-        role: 'user',
-        content: content,
-      },
-    ];
+    const messageData: any = {
+      role: 'user',
+      content: [{ type: 'text', text: content }],
+    };
+
+    if (this.isImageMessage(content)) {
+      const contentSplit = content.split('|');
+
+      const url = contentSplit[1].split('?')[0];
+
+      messageData.content = [
+        { type: 'text', text: contentSplit[2] || content },
+        {
+          type: 'image_url',
+          image_url: {
+            url: url,
+          },
+        },
+      ];
+    }
+
+    const messages: any[] = [...messagesSystem, ...messagesAssistant, ...messagesUser, messageData];
 
     await instance.client.presenceSubscribe(remoteJid);
 

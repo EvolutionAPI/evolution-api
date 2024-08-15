@@ -1101,7 +1101,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.query = contentSplit[2];
+        payload.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
@@ -1169,7 +1169,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.inputs.query = contentSplit[2];
+        payload.inputs.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
@@ -1237,7 +1237,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.query = contentSplit[2];
+        payload.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
@@ -1329,7 +1329,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.inputs.query = contentSplit[2];
+        payload.inputs.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
@@ -1506,7 +1506,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.query = contentSplit[2];
+        payload.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
@@ -1574,7 +1574,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.inputs.query = contentSplit[2];
+        payload.inputs.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
@@ -1642,7 +1642,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.query = contentSplit[2];
+        payload.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
@@ -1741,7 +1741,7 @@ export class DifyService {
             url: contentSplit[1].split('?')[0],
           },
         ];
-        payload.inputs.query = contentSplit[2];
+        payload.inputs.query = contentSplit[2] || content;
       }
 
       await instance.client.presenceSubscribe(remoteJid);
