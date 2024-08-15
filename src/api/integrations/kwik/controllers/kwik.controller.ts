@@ -30,7 +30,7 @@ export class KwikController {
           id: chat.id,
           labels: chat.labels,
           owner: chat.owner,
-          lastAllMsgTimestamp: lastMsg[0].messageTimestamp,
+          lastAllMsgTimestamp: lastMsg.length > 0 ? lastMsg[0].messageTimestamp : 0,
         };
       }),
     );
