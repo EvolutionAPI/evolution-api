@@ -10,16 +10,16 @@ if [[ "$DATABASE_PROVIDER" == "postgresql" || "$DATABASE_PROVIDER" == "mysql" ]]
     export DATABASE_URL
     echo "Deploying migrations for $DATABASE_PROVIDER"
     echo "Database URL: $DATABASE_URL"
-    rm -rf ./prisma/migrations
-    cp -r ./prisma/$DATABASE_PROVIDER-migrations ./prisma/migrations
-    npx prisma migrate deploy --schema ./prisma/$DATABASE_PROVIDER-schema.prisma
+    # rm -rf ./prisma/migrations
+    # cp -r ./prisma/$DATABASE_PROVIDER-migrations ./prisma/migrations
+    npm run db:deploy
     if [ $? -ne 0 ]; then
         echo "Migration failed"
         exit 1
     else
         echo "Migration succeeded"
     fi
-    npx prisma generate --schema ./prisma/$DATABASE_PROVIDER-schema.prisma
+    npm run db:generate
     if [ $? -ne 0 ]; then
         echo "Prisma generate failed"
         exit 1

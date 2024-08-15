@@ -5,7 +5,7 @@
   "main": "./dist/main.js",
   "type": "commonjs",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup src/main.ts --out-dir dist",
     "start": "tsnd -r tsconfig-paths/register --files --transpile-only ./src/main.ts",
     "start:prod": "node dist/main",
     "dev:server": "clear && tsnd -r tsconfig-paths/register --files --transpile-only --respawn --ignore-watch node_modules ./src/main.ts",
