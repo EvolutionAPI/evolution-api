@@ -21,6 +21,7 @@ const minioClient = (() => {
       useSSL: BUCKET.USE_SSL,
       accessKey: BUCKET.ACCESS_KEY,
       secretKey: BUCKET.SECRET_KEY,
+      region: BUCKET.REGION
     });
   }
 })();
