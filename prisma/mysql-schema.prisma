@@ -334,7 +334,7 @@ model IntegrationSession {
   pushName   String?
   status     SessionStatus
   awaitUser  Boolean       @default(false)
-  createdAt  DateTime?     @default(now()) @db.Timestamp
+  createdAt  DateTime?     @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
   updatedAt  DateTime      @updatedAt @db.Timestamp
   Message    Message[]
   Instance   Instance      @relation(fields: [instanceId], references: [id], onDelete: Cascade)
