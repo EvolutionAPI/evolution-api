@@ -18,6 +18,7 @@
 * Changed labels to be unique on the same instance
 * Remove instance from redis even if using database
 * Unified integration session system so they don't overlap
+* Temporary fix for pictureUrl bug in groups
 
 # 2.0.9-rc (2024-08-09 18:00)
 
