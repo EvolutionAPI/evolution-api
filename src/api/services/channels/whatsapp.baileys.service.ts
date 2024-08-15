@@ -1157,7 +1157,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
                   const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
 
-                  await s3Service.uploadFile(fullName, buffer, size.fileLength, {
+                  await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
                     'Content-Type': mimetype,
                   });
 
