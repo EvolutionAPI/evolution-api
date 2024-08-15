@@ -105,7 +105,7 @@
     "@types/express": "^4.17.17",
     "@types/js-yaml": "^4.0.5",
     "@types/json-schema": "^7.0.15",
-    "@types/mime": "^4.0.0",
+    "@types/mime": "3.0.0",
     "@types/node": "^18.15.11",
     "@types/node-windows": "^0.1.2",
     "@types/qrcode": "^1.5.0",
