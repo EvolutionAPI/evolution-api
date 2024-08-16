@@ -1,3 +1,15 @@
+# 2.1.0 (develop)
+
+### Features
+
+* OpenAI send images when markdown
+* Dify send images when markdown
+* Sentry implemented
+
+### Fixed
+
+* Fix on get profilePicture
+
 # 2.0.9 (2024-08-15 12:31)
 
 ### Features

@@ -121,7 +121,7 @@ export class WAMonitoringService {
 
   public async cleaningUp(instanceName: string) {
     let instanceDbId: string;
-    if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+    if (this.db.SAVE_DATA.INSTANCE) {
       const instance = await this.prismaRepository.instance.update({
         where: { name: instanceName },
         data: { connectionStatus: 'close' },
@@ -181,7 +181,7 @@ export class WAMonitoringService {
     try {
       if (this.providerSession?.ENABLED) {
         await this.loadInstancesFromProvider();
-      } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+      } else if (this.db.SAVE_DATA.INSTANCE) {
         await this.loadInstancesFromDatabasePostgres();
       } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
         await this.loadInstancesFromRedis();
@@ -193,21 +193,19 @@ export class WAMonitoringService {
 
   public async saveInstance(data: any) {
     try {
-      if (this.db.ENABLED) {
-        const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
-        await this.prismaRepository.instance.create({
-          data: {
-            id: data.instanceId,
-            name: data.instanceName,
-            connectionStatus: data.integration && data.integration === Integration.WHATSAPP_BUSINESS ? 'open' : 'close',
-            number: data.number,
-            integration: data.integration || Integration.WHATSAPP_BAILEYS,
-            token: data.hash,
-            clientName: clientName,
-            businessId: data.businessId,
-          },
-        });
-      }
+      const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
+      await this.prismaRepository.instance.create({
+        data: {
+          id: data.instanceId,
+          name: data.instanceName,
+          connectionStatus: data.integration && data.integration === Integration.WHATSAPP_BUSINESS ? 'open' : 'close',
+          number: data.number,
+          integration: data.integration || Integration.WHATSAPP_BAILEYS,
+          token: data.hash,
+          clientName: clientName,
+          businessId: data.businessId,
+        },
+      });
     } catch (error) {
       this.logger.error(error);
     }

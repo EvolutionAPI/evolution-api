@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   evolution_v2:
-    image: atendai/evolution-api:v2.0.9-rc
+    image: atendai/evolution-api:v2.0.9
     volumes:
       - evolution_instances:/evolution/instances
     networks:
@@ -10,7 +10,6 @@ services:
     environment:
       - SERVER_URL=https://evo2.site.com
       - DEL_INSTANCE=false
-      - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://postgres:SENHA@postgres:5432/evolution
       - DATABASE_SAVE_DATA_INSTANCE=true
