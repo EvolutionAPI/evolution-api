@@ -9,6 +9,7 @@
 ### Fixed
 
 * Fix on get profilePicture
+* Added S3_REGION on minio settings
 
 # 2.0.9 (2024-08-15 12:31)
 
