@@ -27,7 +27,6 @@ import { SqsService } from './integrations/sqs/services/sqs.service';
 import { TypebotController } from './integrations/typebot/controllers/typebot.controller';
 import { TypebotService } from './integrations/typebot/services/typebot.service';
 import { WebsocketController } from './integrations/websocket/controllers/websocket.controller';
-import { WebsocketService } from './integrations/websocket/services/websocket.service';
 import { ProviderFiles } from './provider/sessions';
 import { PrismaRepository } from './repository/repository.service';
 import { AuthService } from './services/auth.service';
@@ -85,8 +84,7 @@ export const webhookController = new WebhookController(webhookService, waMonitor
 const templateService = new TemplateService(waMonitor, prismaRepository, configService);
 export const templateController = new TemplateController(templateService);
 
-const websocketService = new WebsocketService(waMonitor);
-export const websocketController = new WebsocketController(websocketService);
+export const websocketController = new WebsocketController(prismaRepository, waMonitor);
 
 const proxyService = new ProxyService(waMonitor);
 export const proxyController = new ProxyController(proxyService, waMonitor);
@@ -112,7 +110,7 @@ export const instanceController = new InstanceController(
   webhookService,
   chatwootService,
   settingsService,
-  websocketService,
+  websocketController,
   rabbitmqService,
   sqsService,
   proxyController,

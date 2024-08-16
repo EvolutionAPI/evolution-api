@@ -15,7 +15,7 @@ export class WebsocketRouter extends RouterBroker {
           request: req,
           schema: websocketSchema,
           ClassRef: WebsocketDto,
-          execute: (instance, data) => websocketController.createWebsocket(instance, data),
+          execute: (instance, data) => websocketController.set(instance.instanceName, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -25,7 +25,7 @@ export class WebsocketRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => websocketController.findWebsocket(instance),
+          execute: (instance) => websocketController.get(instance.instanceName),
         });
 
         res.status(HttpStatus.OK).json(response);

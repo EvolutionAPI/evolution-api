@@ -131,7 +131,6 @@ export class BusinessStartupService extends ChannelStartupService {
     try {
       this.loadWebhook();
       this.loadChatwoot();
-      this.loadWebsocket();
       this.loadRabbitmq();
       this.loadSqs();
 
