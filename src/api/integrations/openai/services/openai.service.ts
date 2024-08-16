@@ -1356,14 +1356,51 @@ export class OpenaiService {
 
     const message = response?.data[0].content[0].text.value;
 
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
+    const regex = /!?\[(.*?)\]\((.*?)\)/g;
+
+    const result = [];
+    let lastIndex = 0;
+
+    let match;
+    while ((match = regex.exec(message)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ text: message.slice(lastIndex, match.index).trim() });
+      }
+
+      result.push({ caption: match[1], url: match[2] });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < message.length) {
+      result.push({ text: message.slice(lastIndex).trim() });
+    }
+
+    for (const item of result) {
+      if (item.text) {
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: item.text,
+          },
+          false,
+        );
+      }
+
+      if (item.url) {
+        await instance.mediaMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            mediatype: 'image',
+            media: item.url,
+            caption: item.caption,
+          },
+          false,
+        );
+      }
+    }
 
     await this.prismaRepository.integrationSession.update({
       where: {
@@ -1606,14 +1643,51 @@ export class OpenaiService {
 
     const message = response?.data[0].content[0].text.value;
 
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
+    const regex = /!?\[(.*?)\]\((.*?)\)/g;
+
+    const result = [];
+    let lastIndex = 0;
+
+    let match;
+    while ((match = regex.exec(message)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ text: message.slice(lastIndex, match.index).trim() });
+      }
+
+      result.push({ caption: match[1], url: match[2] });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < message.length) {
+      result.push({ text: message.slice(lastIndex).trim() });
+    }
+
+    for (const item of result) {
+      if (item.text) {
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: item.text,
+          },
+          false,
+        );
+      }
+
+      if (item.url) {
+        await instance.mediaMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            mediatype: 'image',
+            media: item.url,
+            caption: item.caption,
+          },
+          false,
+        );
+      }
+    }
 
     await this.prismaRepository.integrationSession.update({
       where: {
@@ -1747,14 +1821,51 @@ export class OpenaiService {
 
     const message = completions.choices[0].message.content;
 
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
+    const regex = /!?\[(.*?)\]\((.*?)\)/g;
+
+    const result = [];
+    let lastIndex = 0;
+
+    let match;
+    while ((match = regex.exec(message)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ text: message.slice(lastIndex, match.index).trim() });
+      }
+
+      result.push({ caption: match[1], url: match[2] });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < message.length) {
+      result.push({ text: message.slice(lastIndex).trim() });
+    }
+
+    for (const item of result) {
+      if (item.text) {
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: item.text,
+          },
+          false,
+        );
+      }
+
+      if (item.url) {
+        await instance.mediaMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            mediatype: 'image',
+            media: item.url,
+            caption: item.caption,
+          },
+          false,
+        );
+      }
+    }
 
     await this.prismaRepository.integrationSession.update({
       where: {
@@ -1944,14 +2055,51 @@ export class OpenaiService {
 
     const message = completions.choices[0].message.content;
 
-    await instance.textMessage(
-      {
-        number: remoteJid.split('@')[0],
-        delay: settings?.delayMessage || 1000,
-        text: message,
-      },
-      false,
-    );
+    const regex = /!?\[(.*?)\]\((.*?)\)/g;
+
+    const result = [];
+    let lastIndex = 0;
+
+    let match;
+    while ((match = regex.exec(message)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ text: message.slice(lastIndex, match.index).trim() });
+      }
+
+      result.push({ caption: match[1], url: match[2] });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < message.length) {
+      result.push({ text: message.slice(lastIndex).trim() });
+    }
+
+    for (const item of result) {
+      if (item.text) {
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: item.text,
+          },
+          false,
+        );
+      }
+
+      if (item.url) {
+        await instance.mediaMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            mediatype: 'image',
+            media: item.url,
+            caption: item.caption,
+          },
+          false,
+        );
+      }
+    }
 
     await this.prismaRepository.integrationSession.update({
       where: {
