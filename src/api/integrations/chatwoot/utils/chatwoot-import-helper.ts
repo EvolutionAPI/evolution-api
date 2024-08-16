@@ -289,7 +289,12 @@ class ChatwootImport {
       this.deleteHistoryMessages(instance);
       this.deleteRepositoryMessagesCache(instance);
 
-      this.importHistoryContacts(instance, provider);
+      const providerData: ChatwootDto = {
+        ...provider,
+        ignoreJids: Array.isArray(provider.ignoreJids) ? provider.ignoreJids.map((event) => String(event)) : [],
+      };
+
+      this.importHistoryContacts(instance, providerData);
 
       return totalMessagesImported;
     } catch (error) {

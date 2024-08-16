@@ -51,7 +51,6 @@ export type DBConnection = {
 };
 export type Database = {
   CONNECTION: DBConnection;
-  ENABLED: boolean;
   PROVIDER: string;
   SAVE_DATA: SaveData;
 };
@@ -202,6 +201,7 @@ export type S3 = {
   ENABLE: boolean;
   PORT?: number;
   USE_SSL?: boolean;
+  REGION?: string;
 };
 
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
@@ -285,7 +285,6 @@ export class ConfigService {
           URI: process.env.DATABASE_CONNECTION_URI || '',
           CLIENT_NAME: process.env.DATABASE_CONNECTION_CLIENT_NAME || 'evolution',
         },
-        ENABLED: process.env?.DATABASE_ENABLED === 'true',
         PROVIDER: process.env.DATABASE_PROVIDER || 'postgresql',
         SAVE_DATA: {
           INSTANCE: process.env?.DATABASE_SAVE_DATA_INSTANCE === 'true',
@@ -464,6 +463,7 @@ export class ConfigService {
         ENABLE: process.env?.S3_ENABLED === 'true',
         PORT: Number.parseInt(process.env?.S3_PORT || '9000'),
         USE_SSL: process.env?.S3_USE_SSL === 'true',
+        REGION: process.env?.S3_REGION,
       },
       AUTHENTICATION: {
         API_KEY: {

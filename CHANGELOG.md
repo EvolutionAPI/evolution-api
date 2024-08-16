@@ -1,9 +1,23 @@
-# 2.0.9 (pre release)
+# 2.0.10 (2024-08-16 16:23)
+
+### Features
+
+* OpenAI send images when markdown
+* Dify send images when markdown
+* Sentry implemented
+
+### Fixed
+
+* Fix on get profilePicture
+* Added S3_REGION on minio settings
+
+# 2.0.9 (2024-08-15 12:31)
 
 ### Features
 
 * Added ignoreJids in chatwoot settings
 * Dify now identifies images
+* Openai now identifies images
 
 ### Fixed
 
@@ -16,6 +30,9 @@
 * Deprecate buttons and list in new Baileys version
 * Changed labels to be unique on the same instance
 * Remove instance from redis even if using database
+* Unified integration session system so they don't overlap
+* Temporary fix for pictureUrl bug in groups
+* Fix on migrations
 
 # 2.0.9-rc (2024-08-09 18:00)
 

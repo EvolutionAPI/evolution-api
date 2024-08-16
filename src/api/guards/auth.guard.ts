@@ -34,7 +34,7 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
         return next();
       }
     } else {
-      if (req.originalUrl.includes('/instance/fetchInstances') && db.ENABLED) {
+      if (req.originalUrl.includes('/instance/fetchInstances') && db.SAVE_DATA.INSTANCE) {
         const instanceByKey = await prismaRepository.instance.findFirst({
           where: { token: key },
         });

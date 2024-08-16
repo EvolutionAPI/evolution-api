@@ -538,7 +538,7 @@ export class InstanceController {
       if (state == 'close') {
         await instance.connectToWhatsapp(number);
 
-        await delay(5000);
+        await delay(2000);
         return instance.qrCode;
       }
 

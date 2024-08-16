@@ -354,7 +354,7 @@ export class ChatwootService {
 
       return contact;
     } catch (error) {
-      this.logger.error(error);
+      return null;
     }
   }
 

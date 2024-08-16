@@ -1,5 +1,3 @@
-import 'express-async-errors';
-
 import { initAMQP, initGlobalQueues } from '@api/integrations/rabbitmq/libs/amqp.server';
 import { initSQS } from '@api/integrations/sqs/libs/sqs.server';
 import { ProviderFiles } from '@api/provider/sessions';
@@ -10,6 +8,7 @@ import { Auth, configService, Cors, HttpServer, ProviderSession, Rabbitmq, Sqs, 
 import { onUnexpectedError } from '@config/error.config';
 import { Logger } from '@config/logger.config';
 import { ROOT_DIR } from '@config/path.config';
+import * as Sentry from '@sentry/node';
 import { ServerUP } from '@utils/server-up';
 import axios from 'axios';
 import compression from 'compression';
@@ -24,6 +23,19 @@ function initWA() {
 async function bootstrap() {
   const logger = new Logger('SERVER');
   const app = express();
+  const dsn = process.env.SENTRY_DSN;
+
+  if (dsn) {
+    logger.info('Sentry - ON');
+    Sentry.init({
+      dsn: dsn,
+      environment: process.env.NODE_ENV || 'development',
+      tracesSampleRate: 1.0,
+    });
+    app.use(Sentry.Handlers.requestHandler());
+    app.use(Sentry.Handlers.tracingHandler());
+    app.use(Sentry.Handlers.errorHandler());
+  }
 
   let providerFiles: ProviderFiles = null;
   if (configService.get<ProviderSession>('PROVIDER').ENABLED) {

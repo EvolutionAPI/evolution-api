@@ -1,13 +1,12 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { cache, waMonitor } from '@api/server.module';
-import { CacheConf, configService, Database } from '@config/env.config';
+import { CacheConf, configService } from '@config/env.config';
 import { BadRequestException, ForbiddenException, InternalServerErrorException, NotFoundException } from '@exceptions';
 import { prismaServer } from '@libs/prisma.connect';
 import { NextFunction, Request, Response } from 'express';
 
 async function getInstance(instanceName: string) {
   try {
-    const db = configService.get<Database>('DATABASE');
     const cacheConf = configService.get<CacheConf>('CACHE');
 
     const exists = !!waMonitor.waInstances[instanceName];
@@ -18,13 +17,9 @@ async function getInstance(instanceName: string) {
       return exists || keyExists;
     }
 
-    if (db.ENABLED) {
-      const prisma = prismaServer;
+    const prisma = prismaServer;
 
-      return exists || (await prisma.instance.findMany({ where: { name: instanceName } })).length > 0;
-    }
-
-    return false;
+    return exists || (await prisma.instance.findMany({ where: { name: instanceName } })).length > 0;
   } catch (error) {
     throw new InternalServerErrorException(error?.toString());
   }
