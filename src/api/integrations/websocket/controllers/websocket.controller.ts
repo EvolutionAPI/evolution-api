@@ -2,7 +2,7 @@ import { WebsocketDto } from '@api/integrations/websocket/dto/websocket.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { wa } from '@api/types/wa.types';
-import { Auth, configService, Cors, HttpServer, Log, Websocket } from '@config/env.config';
+import { configService, Cors, HttpServer, Log, Websocket } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import { Server } from 'http';
@@ -14,7 +14,7 @@ export class WebsocketController {
   private waMonitor: WAMonitoringService;
   private corsConfig: Array<any>;
   private readonly logger = new Logger('SocketStartupService');
-  public readonly monitorEvents = ['REMOVE_INSTANCE', 'LOGOUT_INSTANCE', 'NO_CONNECTION'];
+  public readonly monitorEvents = ['REMOVE_INSTANCE', 'LOGOUT_INSTANCE'];
   public readonly events = [
     'APPLICATION_STARTUP',
     'QRCODE_UPDATED',

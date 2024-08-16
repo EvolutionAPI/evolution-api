@@ -382,13 +382,6 @@ export class WAMonitoringService {
   private noConnection() {
     this.eventEmitter.on('no.connection', async (instanceName) => {
       try {
-        await websocketController.emit({
-          instanceName,
-          origin: WAMonitoringService.name,
-          event: 'no.connection',
-          data: null,
-        });
-
         await this.waInstances[instanceName]?.client?.logout('Log out instance: ' + instanceName);
 
         this.waInstances[instanceName]?.client?.ws?.close();
