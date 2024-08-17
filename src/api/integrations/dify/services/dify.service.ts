@@ -5,6 +5,7 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { Auth, ConfigService, HttpServer, S3 } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { Dify, DifySetting, IntegrationSession, Message } from '@prisma/client';
+import { advancedOperatorsSearch } from '@utils/advancedOperatorsSearch';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { Readable } from 'stream';
@@ -104,6 +105,23 @@ export class DifyService {
       const checkDuplicate = await this.prismaRepository.dify.findFirst({
         where: {
           triggerOperator: data.triggerOperator,
+          triggerValue: data.triggerValue,
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.dify.findFirst({
+        where: {
           triggerValue: data.triggerValue,
           instanceId: instanceId,
         },
@@ -239,9 +257,25 @@ export class DifyService {
         where: {
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
-          id: {
-            not: difyId,
-          },
+          id: { not: difyId },
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.dify.findFirst({
+        where: {
+          triggerValue: data.triggerValue,
+          id: { not: difyId },
           instanceId: instanceId,
         },
       });
@@ -726,6 +760,19 @@ export class DifyService {
     });
 
     if (findTriggerAll) return findTriggerAll;
+
+    const findTriggerAdvanced = await this.prismaRepository.dify.findMany({
+      where: {
+        enabled: true,
+        triggerType: 'advanced',
+        instanceId: instanceId,
+      },
+    });
+    for (const advanced of findTriggerAdvanced) {
+      if (advancedOperatorsSearch(content, advanced.triggerValue)) {
+        return advanced;
+      }
+    }
 
     // Check for exact match
     const findTriggerEquals = await this.prismaRepository.dify.findFirst({

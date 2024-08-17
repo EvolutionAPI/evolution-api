@@ -10,6 +10,7 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { ConfigService, Language, S3 } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { IntegrationSession, Message, OpenaiBot, OpenaiCreds, OpenaiSetting } from '@prisma/client';
+import { advancedOperatorsSearch } from '@utils/advancedOperatorsSearch';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { downloadMediaMessage } from 'baileys';
@@ -238,6 +239,23 @@ export class OpenaiService {
       }
     }
 
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
+        where: {
+          triggerValue: data.triggerValue,
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
     try {
       const openaiBot = await this.prismaRepository.openaiBot.create({
         data: {
@@ -390,9 +408,25 @@ export class OpenaiService {
         where: {
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
-          id: {
-            not: openaiBotId,
-          },
+          id: { not: openaiBotId },
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
+        where: {
+          triggerValue: data.triggerValue,
+          id: { not: openaiBotId },
           instanceId: instanceId,
         },
       });
@@ -600,13 +634,14 @@ export class OpenaiService {
 
   public async fetchDefaultSettings(instance: InstanceDto) {
     try {
-      const instanceId = await this.prismaRepository.instance
-        .findFirst({
+      const instanceId = (
+        await this.prismaRepository.instance.findFirst({
+          select: { id: true },
           where: {
             name: instance.instanceName,
           },
         })
-        .then((instance) => instance.id);
+      )?.id;
 
       const settings = await this.prismaRepository.openaiSetting.findFirst({
         where: {
@@ -930,6 +965,19 @@ export class OpenaiService {
     });
 
     if (findTriggerAll) return findTriggerAll;
+
+    const findTriggerAdvanced = await this.prismaRepository.openaiBot.findMany({
+      where: {
+        enabled: true,
+        triggerType: 'advanced',
+        instanceId: instanceId,
+      },
+    });
+    for (const advanced of findTriggerAdvanced) {
+      if (advancedOperatorsSearch(content, advanced.triggerValue)) {
+        return advanced;
+      }
+    }
 
     // Check for exact match
     const findTriggerEquals = await this.prismaRepository.openaiBot.findFirst({
