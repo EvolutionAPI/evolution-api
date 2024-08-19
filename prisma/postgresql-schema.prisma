@@ -37,6 +37,7 @@ enum TriggerType {
   all
   keyword
   none
+  advanced
 }
 
 enum TriggerOperator {
