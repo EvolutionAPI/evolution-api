@@ -452,7 +452,7 @@ export class OpenaiService {
 
     const openaiBots = await this.prismaRepository.openaiBot.findMany({
       where: {
-        instanceId: instanceId,
+        instanceId,
       },
       include: {
         sessions: true,
@@ -1350,7 +1350,7 @@ export class OpenaiService {
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const response = await this.getAIResponse(data.session.sessionId, runAssistant.id, openaiBot.functionUrl);
+    const response = await this.getAIResponse(data.session.sessionId, runAssistant.id, openaiBot.functionUrl, remoteJid);
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 
@@ -1426,12 +1426,20 @@ export class OpenaiService {
     }
   }
 
-  private async getAIResponse(threadId: string, runId: string, functionUrl: string) {
+  private async getAIResponse(threadId: string, runId: string, functionUrl: string, remoteJid: string) {
     const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
     let toolCalls;
-
     switch (getRun.status) {
       case 'requires_action':
+        const contactPushName = await this.prismaRepository.contact.findFirst({
+          where: {
+            remoteJid,
+          },
+          select: {
+            pushName: true,
+          },
+        })   
+        .then((contact) => contact.pushName);
         toolCalls = getRun?.required_action?.submit_tool_outputs?.tool_calls;
 
         if (toolCalls) {
@@ -1447,7 +1455,7 @@ export class OpenaiService {
             try {
               const { data } = await axios.post(functionUrl, {
                 name: functionName,
-                arguments: functionArgument,
+                arguments: { ...functionArgument, remoteJid, contactPushName },
               });
 
               output = JSON.stringify(data)
@@ -1476,13 +1484,13 @@ export class OpenaiService {
           }
         }
 
-        return this.getAIResponse(threadId, runId, functionUrl);
+        return this.getAIResponse(threadId, runId, functionUrl, remoteJid);
       case 'queued':
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId, functionUrl);
+        return this.getAIResponse(threadId, runId, functionUrl, remoteJid);
       case 'in_progress':
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId, functionUrl);
+        return this.getAIResponse(threadId, runId, functionUrl, remoteJid);
       case 'completed':
         return await this.client.beta.threads.messages.list(threadId, {
           run_id: runId,
@@ -1628,16 +1636,28 @@ export class OpenaiService {
     }
 
     await this.client.beta.threads.messages.create(threadId, messageData);
-
+    const contactPushName = await this.prismaRepository.contact.findFirst({
+      where: {
+        remoteJid,
+      },
+      select: {
+        pushName: true,
+      },
+    })   
+    .then((contact) => contact.pushName);
     const runAssistant = await this.client.beta.threads.runs.create(threadId, {
       assistant_id: openaiBot.assistantId,
+      additional_instructions: `WhatsappApiInfo:
+      Name: ${contactPushName}
+      RemoteJid: ${remoteJid}
+      `
     });
 
     await instance.client.presenceSubscribe(remoteJid);
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl);
+    const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl, remoteJid);
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 
