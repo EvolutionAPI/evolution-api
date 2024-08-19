@@ -513,6 +513,7 @@ export class BusinessStartupService extends ChannelStartupService {
             await this.openaiService.sendOpenai(
               { instanceName: this.instance.name, instanceId: this.instanceId },
               messageRaw.key.remoteJid,
+              pushName,
               messageRaw,
             );
         }
@@ -961,6 +962,7 @@ export class BusinessStartupService extends ChannelStartupService {
             await this.openaiService.sendOpenai(
               { instanceName: this.instance.name, instanceId: this.instanceId },
               messageRaw.key.remoteJid,
+              messageRaw.pushName,
               messageRaw,
             );
         }
