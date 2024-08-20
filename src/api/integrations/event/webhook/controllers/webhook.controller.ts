@@ -65,7 +65,7 @@ export class WebhookController extends EventController {
     });
 
     if (!data) {
-      throw new NotFoundException('Webhook not found');
+      return null;
     }
 
     return data;
@@ -98,7 +98,7 @@ export class WebhookController extends EventController {
 
     const instanceWebhook = await this.get(instanceName);
     const webhookGlobal = configService.get<Webhook>('WEBHOOK');
-    const webhookLocal = instanceWebhook.events;
+    const webhookLocal = instanceWebhook?.events;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const enabledLog = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
@@ -107,7 +107,7 @@ export class WebhookController extends EventController {
       event,
       instance: instanceName,
       data,
-      destination: instanceWebhook.url,
+      destination: instanceWebhook?.url,
       date_time: dateTime,
       sender,
       server_url: serverUrl,
@@ -117,10 +117,10 @@ export class WebhookController extends EventController {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;
 
-        if (instanceWebhook.webhookByEvents) {
-          baseURL = `${instanceWebhook.url}/${transformedWe}`;
+        if (instanceWebhook?.webhookByEvents) {
+          baseURL = `${instanceWebhook?.url}/${transformedWe}`;
         } else {
-          baseURL = instanceWebhook.url;
+          baseURL = instanceWebhook?.url;
         }
 
         if (enabledLog) {
@@ -134,7 +134,7 @@ export class WebhookController extends EventController {
         }
 
         try {
-          if (instanceWebhook.enabled && isURL(instanceWebhook.url, { require_tld: false })) {
+          if (instanceWebhook?.enabled && isURL(instanceWebhook.url, { require_tld: false })) {
             const httpService = axios.create({ baseURL });
 
             await httpService.post('', webhookData);

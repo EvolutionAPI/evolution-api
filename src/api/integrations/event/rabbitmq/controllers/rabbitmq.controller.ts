@@ -15,12 +15,12 @@ export class RabbitmqController extends EventController {
     super(prismaRepository, waMonitor);
   }
 
-  public init(): void {
+  public async init(): Promise<void> {
     if (!configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) {
       return;
     }
 
-    new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const uri = configService.get<Rabbitmq>('RABBITMQ').URI;
       amqp.connect(uri, (error, connection) => {
         if (error) {
@@ -101,7 +101,7 @@ export class RabbitmqController extends EventController {
     });
 
     if (!data) {
-      throw new NotFoundException('Rabbitmq not found');
+      return null;
     }
 
     return data;
@@ -131,7 +131,7 @@ export class RabbitmqController extends EventController {
     }
 
     const instanceRabbitmq = await this.get(instanceName);
-    const rabbitmqLocal = instanceRabbitmq.events;
+    const rabbitmqLocal = instanceRabbitmq?.events;
     const rabbitmqGlobal = configService.get<Rabbitmq>('RABBITMQ').GLOBAL_ENABLED;
     const rabbitmqEvents = configService.get<Rabbitmq>('RABBITMQ').EVENTS;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
@@ -147,7 +147,7 @@ export class RabbitmqController extends EventController {
       apikey: apiKey,
     };
 
-    if (instanceRabbitmq.enabled && this.amqpChannel) {
+    if (instanceRabbitmq?.enabled && this.amqpChannel) {
       if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
         const exchangeName = instanceName ?? 'evolution_exchange';
 

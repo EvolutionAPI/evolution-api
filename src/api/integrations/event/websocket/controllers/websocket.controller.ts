@@ -98,7 +98,7 @@ export class WebsocketController extends EventController {
     });
 
     if (!data) {
-      throw new NotFoundException('Websocket not found');
+      return null;
     }
 
     return data;
@@ -153,11 +153,11 @@ export class WebsocketController extends EventController {
     try {
       const instanceSocket = await this.get(instanceName);
 
-      if (!instanceSocket.enabled) {
+      if (!instanceSocket?.enabled) {
         return;
       }
 
-      if (Array.isArray(instanceSocket.events) && instanceSocket.events.includes(configEv)) {
+      if (Array.isArray(instanceSocket?.events) && instanceSocket?.events.includes(configEv)) {
         this.socket.of(`/${instanceName}`).emit(event, message);
 
         if (logEnabled) {

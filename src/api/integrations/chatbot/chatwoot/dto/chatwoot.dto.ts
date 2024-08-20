@@ -1,3 +1,5 @@
+import { Constructor } from '@api/dto/integration.dto';
+
 export class ChatwootDto {
   enabled?: boolean;
   accountId?: string;
@@ -17,4 +19,22 @@ export class ChatwootDto {
   organization?: string;
   logo?: string;
   ignoreJids?: string[];
+}
+
+export function ChatwootInstanceMixin<TBase extends Constructor>(Base: TBase) {
+  return class extends Base {
+    chatwootAccountId?: string;
+    chatwootToken?: string;
+    chatwootUrl?: string;
+    chatwootSignMsg?: boolean;
+    chatwootReopenConversation?: boolean;
+    chatwootConversationPending?: boolean;
+    chatwootMergeBrazilContacts?: boolean;
+    chatwootImportContacts?: boolean;
+    chatwootImportMessages?: boolean;
+    chatwootDaysLimitImportMessages?: number;
+    chatwootNameInbox?: string;
+    chatwootOrganization?: string;
+    chatwootLogo?: string;
+  };
 }

@@ -87,7 +87,7 @@ export class SqsController extends EventController {
     });
 
     if (!data) {
-      throw new NotFoundException('Sqs not found');
+      return null;
     }
 
     return data;
@@ -117,10 +117,10 @@ export class SqsController extends EventController {
     }
 
     const instanceSqs = await this.get(instanceName);
-    const sqsLocal = instanceSqs.events;
+    const sqsLocal = instanceSqs?.events;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
 
-    if (instanceSqs.enabled) {
+    if (instanceSqs?.enabled) {
       if (this.sqs) {
         if (Array.isArray(sqsLocal) && sqsLocal.includes(we)) {
           const eventFormatted = `${event.replace('.', '_').toLowerCase()}`;
