@@ -12,6 +12,7 @@ export class MessageQuery {
   where: MessageRaw;
   limit?: number;
   sort?: { [key: string]: SortOrder };
+  skip?: number;
 }
 
 export class MessageRepository extends Repository {
@@ -126,6 +127,7 @@ export class MessageRepository extends Repository {
           .find({ ...query.where })
           .select(query.select || {})
           .sort(query?.sort ?? { messageTimestamp: -1 })
+          .skip(query?.skip ?? 0)
           .limit(query?.limit ?? 0);
       }
 

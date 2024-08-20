@@ -1256,6 +1256,7 @@ export class ChannelStartupService {
           owner: this.instance.name,
         },
         limit: query?.limit,
+        skip: query?.skip,
       };
     }
     return await this.repository.message.find(query);
