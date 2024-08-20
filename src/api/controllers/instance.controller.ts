@@ -1,11 +1,11 @@
 import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
+import { BaileysStartupService } from '@api/integrations/channel/whatsapp/baileys/whatsapp.baileys.service';
+import { BusinessStartupService } from '@api/integrations/channel/whatsapp/business/whatsapp.business.service';
 import { ChatwootService } from '@api/integrations/chatbot/chatwoot/services/chatwoot.service';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { eventController } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
-import { BaileysStartupService } from '@api/services/channels/whatsapp.baileys.service';
-import { BusinessStartupService } from '@api/services/channels/whatsapp.business.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { SettingsService } from '@api/services/settings.service';
 import { Events, Integration, wa } from '@api/types/wa.types';

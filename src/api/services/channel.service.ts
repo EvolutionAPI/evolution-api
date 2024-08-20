@@ -11,12 +11,10 @@ import { eventController, waMonitor } from '@api/server.module';
 import { Events, wa } from '@api/types/wa.types';
 import { Auth, Chatwoot, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { ROOT_DIR } from '@config/path.config';
 import { NotFoundException } from '@exceptions';
 import { Contact, Message } from '@prisma/client';
 import { WASocket } from 'baileys';
 import EventEmitter2 from 'eventemitter2';
-import { join } from 'path';
 import { v4 } from 'uuid';
 
 import { CacheService } from './cache.service';
@@ -36,7 +34,6 @@ export class ChannelStartupService {
   public readonly localChatwoot: wa.LocalChatwoot = {};
   public readonly localProxy: wa.LocalProxy = {};
   public readonly localSettings: wa.LocalSettings = {};
-  public readonly storePath = join(ROOT_DIR, 'store');
 
   public chatwootService = new ChatwootService(
     waMonitor,

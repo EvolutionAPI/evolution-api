@@ -1,4 +1,6 @@
 import { InstanceDto } from '@api/dto/instance.dto';
+import { BaileysStartupService } from '@api/integrations/channel/whatsapp/baileys/whatsapp.baileys.service';
+import { BusinessStartupService } from '@api/integrations/channel/whatsapp/business/whatsapp.business.service';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { Events, Integration } from '@api/types/wa.types';
@@ -12,8 +14,6 @@ import { rmSync } from 'fs';
 import { join } from 'path';
 
 import { CacheService } from './cache.service';
-import { BaileysStartupService } from './channels/whatsapp.baileys.service';
-import { BusinessStartupService } from './channels/whatsapp.business.service';
 
 export class WAMonitoringService {
   constructor(
