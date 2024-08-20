@@ -10,6 +10,7 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { ConfigService, Language, S3 } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { IntegrationSession, Message, OpenaiBot, OpenaiCreds, OpenaiSetting } from '@prisma/client';
+import { advancedOperatorsSearch } from '@utils/advancedOperatorsSearch';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { downloadMediaMessage } from 'baileys';
@@ -238,6 +239,23 @@ export class OpenaiService {
       }
     }
 
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
+        where: {
+          triggerValue: data.triggerValue,
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
     try {
       const openaiBot = await this.prismaRepository.openaiBot.create({
         data: {
@@ -390,9 +408,25 @@ export class OpenaiService {
         where: {
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
-          id: {
-            not: openaiBotId,
-          },
+          id: { not: openaiBotId },
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.openaiBot.findFirst({
+        where: {
+          triggerValue: data.triggerValue,
+          id: { not: openaiBotId },
           instanceId: instanceId,
         },
       });
@@ -452,7 +486,7 @@ export class OpenaiService {
 
     const openaiBots = await this.prismaRepository.openaiBot.findMany({
       where: {
-        instanceId: instanceId,
+        instanceId,
       },
       include: {
         sessions: true,
@@ -600,13 +634,14 @@ export class OpenaiService {
 
   public async fetchDefaultSettings(instance: InstanceDto) {
     try {
-      const instanceId = await this.prismaRepository.instance
-        .findFirst({
+      const instanceId = (
+        await this.prismaRepository.instance.findFirst({
+          select: { id: true },
           where: {
             name: instance.instanceName,
           },
         })
-        .then((instance) => instance.id);
+      )?.id;
 
       const settings = await this.prismaRepository.openaiSetting.findFirst({
         where: {
@@ -931,6 +966,19 @@ export class OpenaiService {
 
     if (findTriggerAll) return findTriggerAll;
 
+    const findTriggerAdvanced = await this.prismaRepository.openaiBot.findMany({
+      where: {
+        enabled: true,
+        triggerType: 'advanced',
+        instanceId: instanceId,
+      },
+    });
+    for (const advanced of findTriggerAdvanced) {
+      if (advancedOperatorsSearch(content, advanced.triggerValue)) {
+        return advanced;
+      }
+    }
+
     // Check for exact match
     const findTriggerEquals = await this.prismaRepository.openaiBot.findFirst({
       where: {
@@ -1070,7 +1118,7 @@ export class OpenaiService {
     }, debounceTime * 1000);
   }
 
-  public async sendOpenai(instance: InstanceDto, remoteJid: string, msg: Message) {
+  public async sendOpenai(instance: InstanceDto, remoteJid: string, pushName: string, msg: Message) {
     try {
       const settings = await this.prismaRepository.openaiSetting.findFirst({
         where: {
@@ -1193,7 +1241,7 @@ export class OpenaiService {
       };
 
       if (stopBotFromMe && key.fromMe && session) {
-        await this.prismaRepository.integrationSession.update({
+        session = await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1201,7 +1249,6 @@ export class OpenaiService {
             status: 'paused',
           },
         });
-        return;
       }
 
       if (!listeningFromMe && key.fromMe) {
@@ -1214,6 +1261,8 @@ export class OpenaiService {
             await this.processOpenaiAssistant(
               this.waMonitor.waInstances[instance.instanceName],
               remoteJid,
+              pushName,
+              key.fromMe,
               findOpenai,
               session,
               settings,
@@ -1237,6 +1286,8 @@ export class OpenaiService {
           await this.processOpenaiAssistant(
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
+            pushName,
+            key.fromMe,
             findOpenai,
             session,
             settings,
@@ -1304,6 +1355,8 @@ export class OpenaiService {
   private async initAssistantNewSession(
     instance: any,
     remoteJid: string,
+    pushName: string,
+    fromMe: boolean,
     openaiBot: OpenaiBot,
     settings: OpenaiSetting,
     session: IntegrationSession,
@@ -1320,7 +1373,7 @@ export class OpenaiService {
     }
 
     const messageData: any = {
-      role: 'user',
+      role: fromMe ? 'assistant' : 'user',
       content: [{ type: 'text', text: content }],
     };
 
@@ -1342,6 +1395,11 @@ export class OpenaiService {
 
     await this.client.beta.threads.messages.create(data.session.sessionId, messageData);
 
+    if (fromMe) {
+      sendTelemetry('/message/sendText');
+      return;
+    }
+
     const runAssistant = await this.client.beta.threads.runs.create(data.session.sessionId, {
       assistant_id: openaiBot.assistantId,
     });
@@ -1350,7 +1408,13 @@ export class OpenaiService {
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const response = await this.getAIResponse(data.session.sessionId, runAssistant.id, openaiBot.functionUrl);
+    const response = await this.getAIResponse(
+      data.session.sessionId,
+      runAssistant.id,
+      openaiBot.functionUrl,
+      remoteJid,
+      pushName,
+    );
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 
@@ -1426,10 +1490,15 @@ export class OpenaiService {
     }
   }
 
-  private async getAIResponse(threadId: string, runId: string, functionUrl: string) {
+  private async getAIResponse(
+    threadId: string,
+    runId: string,
+    functionUrl: string,
+    remoteJid: string,
+    pushName: string,
+  ) {
     const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
     let toolCalls;
-
     switch (getRun.status) {
       case 'requires_action':
         toolCalls = getRun?.required_action?.submit_tool_outputs?.tool_calls;
@@ -1447,7 +1516,7 @@ export class OpenaiService {
             try {
               const { data } = await axios.post(functionUrl, {
                 name: functionName,
-                arguments: functionArgument,
+                arguments: { ...functionArgument, remoteJid, pushName },
               });
 
               output = JSON.stringify(data)
@@ -1476,13 +1545,13 @@ export class OpenaiService {
           }
         }
 
-        return this.getAIResponse(threadId, runId, functionUrl);
+        return this.getAIResponse(threadId, runId, functionUrl, remoteJid, pushName);
       case 'queued':
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId, functionUrl);
+        return this.getAIResponse(threadId, runId, functionUrl, remoteJid, pushName);
       case 'in_progress':
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId, functionUrl);
+        return this.getAIResponse(threadId, runId, functionUrl, remoteJid, pushName);
       case 'completed':
         return await this.client.beta.threads.messages.list(threadId, {
           run_id: runId,
@@ -1498,12 +1567,14 @@ export class OpenaiService {
   private async processOpenaiAssistant(
     instance: any,
     remoteJid: string,
+    pushName: string,
+    fromMe: boolean,
     openaiBot: OpenaiBot,
     session: IntegrationSession,
     settings: OpenaiSetting,
     content: string,
   ) {
-    if (session && session.status !== 'opened') {
+    if (session && session.status === 'closed') {
       return;
     }
 
@@ -1535,25 +1606,35 @@ export class OpenaiService {
           });
         }
 
-        await this.initAssistantNewSession(instance, remoteJid, openaiBot, settings, session, content);
+        await this.initAssistantNewSession(
+          instance,
+          remoteJid,
+          pushName,
+          fromMe,
+          openaiBot,
+          settings,
+          session,
+          content,
+        );
         return;
       }
     }
 
     if (!session) {
-      await this.initAssistantNewSession(instance, remoteJid, openaiBot, settings, session, content);
+      await this.initAssistantNewSession(instance, remoteJid, pushName, fromMe, openaiBot, settings, session, content);
       return;
     }
 
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: false,
-      },
-    });
+    if (session.status !== 'paused')
+      await this.prismaRepository.integrationSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: false,
+        },
+      });
 
     if (!content) {
       if (settings.unknownMessage) {
@@ -1607,7 +1688,7 @@ export class OpenaiService {
     const threadId = session.sessionId;
 
     const messageData: any = {
-      role: 'user',
+      role: fromMe ? 'assistant' : 'user',
       content: [{ type: 'text', text: content }],
     };
 
@@ -1629,15 +1710,24 @@ export class OpenaiService {
 
     await this.client.beta.threads.messages.create(threadId, messageData);
 
+    if (fromMe || session?.status === 'paused') {
+      sendTelemetry('/message/sendText');
+      return;
+    }
+
     const runAssistant = await this.client.beta.threads.runs.create(threadId, {
       assistant_id: openaiBot.assistantId,
+      additional_instructions: `WhatsappApiInfo:
+      Name: ${pushName}
+      RemoteJid: ${remoteJid}
+      `,
     });
 
     await instance.client.presenceSubscribe(remoteJid);
 
     await instance.client.sendPresenceUpdate('composing', remoteJid);
 
-    const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl);
+    const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl, remoteJid, pushName);
 
     await instance.client.sendPresenceUpdate('paused', remoteJid);
 

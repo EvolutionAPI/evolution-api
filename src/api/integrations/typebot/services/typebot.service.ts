@@ -6,6 +6,7 @@ import { Events } from '@api/types/wa.types';
 import { Auth, ConfigService, HttpServer, S3, Typebot } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { Instance, IntegrationSession, Message, Typebot as TypebotModel } from '@prisma/client';
+import { advancedOperatorsSearch } from '@utils/advancedOperatorsSearch';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 
@@ -103,6 +104,23 @@ export class TypebotService {
       const checkDuplicate = await this.prismaRepository.typebot.findFirst({
         where: {
           triggerOperator: data.triggerOperator,
+          triggerValue: data.triggerValue,
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.typebot.findFirst({
+        where: {
           triggerValue: data.triggerValue,
           instanceId: instanceId,
         },
@@ -241,6 +259,24 @@ export class TypebotService {
           id: {
             not: typebotId,
           },
+          instanceId: instanceId,
+        },
+      });
+
+      if (checkDuplicate) {
+        throw new Error('Trigger already exists');
+      }
+    }
+
+    if (data.triggerType === 'advanced') {
+      if (!data.triggerValue) {
+        throw new Error('Trigger value is required');
+      }
+
+      const checkDuplicate = await this.prismaRepository.typebot.findFirst({
+        where: {
+          triggerValue: data.triggerValue,
+          id: { not: typebotId },
           instanceId: instanceId,
         },
       });
@@ -1286,6 +1322,19 @@ export class TypebotService {
     });
 
     if (findTriggerAll) return findTriggerAll;
+
+    const findTriggerAdvanced = await this.prismaRepository.typebot.findMany({
+      where: {
+        enabled: true,
+        triggerType: 'advanced',
+        instanceId: instanceId,
+      },
+    });
+    for (const advanced of findTriggerAdvanced) {
+      if (advancedOperatorsSearch(content, advanced.triggerValue)) {
+        return advanced;
+      }
+    }
 
     // Check for exact match
     const findTriggerEquals = await this.prismaRepository.typebot.findFirst({

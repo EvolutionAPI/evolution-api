@@ -78,6 +78,9 @@ router
     return res.status(HttpStatus.OK).json({
       status: HttpStatus.OK,
       message: 'Credentials are valid',
+      facebookAppId: process.env.FACEBOOK_APP_ID,
+      facebookConfigId: process.env.FACEBOOK_CONFIG_ID,
+      facebookUserToken: process.env.FACEBOOK_USER_TOKEN,
     });
   })
   .use('/instance', new InstanceRouter(configService, ...guards).router)

@@ -1243,6 +1243,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 await this.openaiService.sendOpenai(
                   { instanceName: this.instance.name, instanceId: this.instanceId },
                   messageRaw.key.remoteJid,
+                  messageRaw.pushName,
                   messageRaw,
                 );
             }
@@ -2056,6 +2057,7 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.openaiService.sendOpenai(
               { instanceName: this.instance.name, instanceId: this.instanceId },
               messageRaw.key.remoteJid,
+              messageRaw.pushName,
               messageRaw,
             );
         }
