@@ -3,6 +3,7 @@ import { BaileysStartupService } from '@api/integrations/channel/whatsapp/bailey
 import { BusinessStartupService } from '@api/integrations/channel/whatsapp/business/whatsapp.business.service';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
+import { channelController } from '@api/server.module';
 import { Events, Integration } from '@api/types/wa.types';
 import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '@config/env.config';
 import { Logger } from '@config/logger.config';
@@ -209,47 +210,24 @@ export class WAMonitoringService {
   }
 
   private async setInstance(instanceData: InstanceDto) {
-    let instance: BaileysStartupService | BusinessStartupService;
+    const instance = channelController.init(instanceData.integration, {
+      configService: this.configService,
+      eventEmitter: this.eventEmitter,
+      prismaRepository: this.prismaRepository,
+      cache: this.cache,
+      chatwootCache: this.chatwootCache,
+      baileysCache: this.baileysCache,
+      providerFiles: this.providerFiles,
+    });
 
-    if (instanceData.integration && instanceData.integration === Integration.WHATSAPP_BUSINESS) {
-      instance = new BusinessStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.prismaRepository,
-        this.cache,
-        this.chatwootCache,
-        this.baileysCache,
-        this.providerFiles,
-      );
-
-      instance.setInstance({
-        instanceId: instanceData.instanceId,
-        instanceName: instanceData.instanceName,
-        integration: instanceData.integration,
-        token: instanceData.token,
-        number: instanceData.number,
-        businessId: instanceData.businessId,
-      });
-    } else {
-      instance = new BaileysStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.prismaRepository,
-        this.cache,
-        this.chatwootCache,
-        this.baileysCache,
-        this.providerFiles,
-      );
-
-      instance.setInstance({
-        instanceId: instanceData.instanceId,
-        instanceName: instanceData.instanceName,
-        integration: instanceData.integration,
-        token: instanceData.token,
-        number: instanceData.number,
-        businessId: instanceData.businessId,
-      });
-    }
+    instance.setInstance({
+      instanceId: instanceData.instanceId,
+      instanceName: instanceData.instanceName,
+      integration: instanceData.integration,
+      token: instanceData.token,
+      number: instanceData.number,
+      businessId: instanceData.businessId,
+    });
 
     await instance.connectToWhatsapp();
 

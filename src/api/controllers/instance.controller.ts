@@ -1,10 +1,8 @@
 import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
-import { BaileysStartupService } from '@api/integrations/channel/whatsapp/baileys/whatsapp.baileys.service';
-import { BusinessStartupService } from '@api/integrations/channel/whatsapp/business/whatsapp.business.service';
 import { ChatwootService } from '@api/integrations/chatbot/chatwoot/services/chatwoot.service';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
-import { eventController } from '@api/server.module';
+import { channelController, eventController } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { SettingsService } from '@api/services/settings.service';
@@ -42,28 +40,15 @@ export class InstanceController {
         throw new BadRequestException('token is required');
       }
 
-      let instance: BaileysStartupService | BusinessStartupService;
-      if (instanceData.integration === Integration.WHATSAPP_BUSINESS) {
-        instance = new BusinessStartupService(
-          this.configService,
-          this.eventEmitter,
-          this.prismaRepository,
-          this.cache,
-          this.chatwootCache,
-          this.baileysCache,
-          this.providerFiles,
-        );
-      } else {
-        instance = new BaileysStartupService(
-          this.configService,
-          this.eventEmitter,
-          this.prismaRepository,
-          this.cache,
-          this.chatwootCache,
-          this.baileysCache,
-          this.providerFiles,
-        );
-      }
+      const instance = channelController.init(instanceData.integration, {
+        configService: this.configService,
+        eventEmitter: this.eventEmitter,
+        prismaRepository: this.prismaRepository,
+        cache: this.cache,
+        chatwootCache: this.chatwootCache,
+        baileysCache: this.baileysCache,
+        providerFiles: this.providerFiles,
+      });
 
       const instanceId = v4();
 
