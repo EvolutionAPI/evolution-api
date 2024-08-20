@@ -11,12 +11,10 @@ import { getAMQP, removeQueues } from '@api/integrations/rabbitmq/libs/amqp.serv
 import { SqsDto } from '@api/integrations/sqs/dto/sqs.dto';
 import { getSQS, removeQueues as removeQueuesSQS } from '@api/integrations/sqs/libs/sqs.server';
 import { TypebotService } from '@api/integrations/typebot/services/typebot.service';
-import { WebsocketDto } from '@api/integrations/websocket/dto/websocket.dto';
-import { getIO } from '@api/integrations/websocket/libs/socket.server';
 import { PrismaRepository, Query } from '@api/repository/repository.service';
-import { waMonitor } from '@api/server.module';
+import { waMonitor, websocketController } from '@api/server.module';
 import { Events, wa } from '@api/types/wa.types';
-import { Auth, Chatwoot, ConfigService, HttpServer, Log, Rabbitmq, Sqs, Webhook, Websocket } from '@config/env.config';
+import { Auth, Chatwoot, ConfigService, HttpServer, Log, Rabbitmq, Sqs, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { ROOT_DIR } from '@config/path.config';
 import { NotFoundException } from '@exceptions';
@@ -44,7 +42,6 @@ export class ChannelStartupService {
   public readonly instance: wa.Instance = {};
   public readonly localWebhook: wa.LocalWebHook = {};
   public readonly localChatwoot: wa.LocalChatwoot = {};
-  public readonly localWebsocket: wa.LocalWebsocket = {};
   public readonly localRabbitmq: wa.LocalRabbitmq = {};
   public readonly localSqs: wa.LocalSqs = {};
   public readonly localProxy: wa.LocalProxy = {};
@@ -425,43 +422,6 @@ export class ChannelStartupService {
     }
   }
 
-  public async loadWebsocket() {
-    const data = await this.prismaRepository.websocket.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    this.localWebsocket.enabled = data?.enabled;
-    this.localWebsocket.events = data?.events;
-  }
-
-  public async setWebsocket(data: WebsocketDto) {
-    await this.prismaRepository.websocket.create({
-      data: {
-        enabled: data.enabled,
-        events: data.events,
-        instanceId: this.instanceId,
-      },
-    });
-
-    Object.assign(this.localWebsocket, data);
-  }
-
-  public async findWebsocket() {
-    const data = await this.prismaRepository.websocket.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Websocket not found');
-    }
-
-    return data;
-  }
-
   public async loadRabbitmq() {
     const data = await this.prismaRepository.rabbitmq.findUnique({
       where: {
@@ -640,7 +600,6 @@ export class ChannelStartupService {
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
-    const websocketLocal = this.localWebsocket.events;
     const rabbitmqLocal = this.localRabbitmq.events;
     const sqsLocal = this.localSqs.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
@@ -862,72 +821,16 @@ export class ChannelStartupService {
       }
     }
 
-    if (this.configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
-      const io = getIO();
-
-      const message = {
-        event,
-        instance: this.instance.name,
-        data,
-        server_url: serverUrl,
-        date_time: now,
+    await websocketController.emit({
+      instanceName: this.instance.name,
+      origin: ChannelStartupService.name,
+      event,
+      data: {
+        ...data,
         sender: this.wuid,
-      };
-
-      if (expose && instanceApikey) {
-        message['apikey'] = instanceApikey;
-      }
-
-      if (this.configService.get<Websocket>('WEBSOCKET')?.GLOBAL_EVENTS) {
-        io.emit(event, message);
-
-        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          const logData = {
-            local: ChannelStartupService.name + '.sendData-WebsocketGlobal',
-            event,
-            instance: this.instance.name,
-            data,
-            server_url: serverUrl,
-            apikey: (expose && instanceApikey) || null,
-            date_time: now,
-            sender: this.wuid,
-          };
-
-          if (expose && instanceApikey) {
-            logData['apikey'] = instanceApikey;
-          }
-
-          this.logger.log(logData);
-        }
-      }
-
-      if (this.localWebsocket.enabled && Array.isArray(websocketLocal) && websocketLocal.includes(we)) {
-        io.of(`/${this.instance.name}`).emit(event, message);
-
-        if (this.configService.get<Websocket>('WEBSOCKET')?.GLOBAL_EVENTS) {
-          io.emit(event, message);
-        }
-
-        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          const logData = {
-            local: ChannelStartupService.name + '.sendData-Websocket',
-            event,
-            instance: this.instance.name,
-            data,
-            server_url: serverUrl,
-            apikey: (expose && instanceApikey) || null,
-            date_time: now,
-            sender: this.wuid,
-          };
-
-          if (expose && instanceApikey) {
-            logData['apikey'] = instanceApikey;
-          }
-
-          this.logger.log(logData);
-        }
-      }
-    }
+        apikey: (expose && instanceApikey) || null,
+      },
+    });
 
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 

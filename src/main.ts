@@ -1,10 +1,9 @@
 import { initAMQP, initGlobalQueues } from '@api/integrations/rabbitmq/libs/amqp.server';
 import { initSQS } from '@api/integrations/sqs/libs/sqs.server';
-import { initIO } from '@api/integrations/websocket/libs/socket.server';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { HttpStatus, router } from '@api/routes/index.router';
-import { waMonitor } from '@api/server.module';
+import { waMonitor, websocketController } from '@api/server.module';
 import { Auth, configService, Cors, HttpServer, ProviderSession, Rabbitmq, Sqs, Webhook } from '@config/env.config';
 import { onUnexpectedError } from '@config/error.config';
 import { Logger } from '@config/logger.config';
@@ -142,11 +141,11 @@ async function bootstrap() {
   ServerUP.app = app;
   const server = ServerUP[httpServer.TYPE];
 
+  websocketController.init(server);
+
   server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
   initWA();
-
-  initIO(server);
 
   if (configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) {
     initAMQP().then(() => {

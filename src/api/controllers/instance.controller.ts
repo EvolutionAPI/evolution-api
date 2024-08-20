@@ -2,7 +2,7 @@ import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
 import { ChatwootService } from '@api/integrations/chatwoot/services/chatwoot.service';
 import { RabbitmqService } from '@api/integrations/rabbitmq/services/rabbitmq.service';
 import { SqsService } from '@api/integrations/sqs/services/sqs.service';
-import { WebsocketService } from '@api/integrations/websocket/services/websocket.service';
+import { WebsocketController } from '@api/integrations/websocket/controllers/websocket.controller';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { AuthService } from '@api/services/auth.service';
@@ -34,7 +34,7 @@ export class InstanceController {
     private readonly webhookService: WebhookService,
     private readonly chatwootService: ChatwootService,
     private readonly settingsService: SettingsService,
-    private readonly websocketService: WebsocketService,
+    private readonly websocketController: WebsocketController,
     private readonly rabbitmqService: RabbitmqService,
     private readonly sqsService: SqsService,
     private readonly proxyService: ProxyController,
@@ -205,44 +205,12 @@ export class InstanceController {
 
       if (websocketEnabled) {
         try {
-          let newEvents: string[] = [];
-          if (websocketEvents.length === 0) {
-            newEvents = [
-              'APPLICATION_STARTUP',
-              'QRCODE_UPDATED',
-              'MESSAGES_SET',
-              'MESSAGES_UPSERT',
-              'MESSAGES_EDITED',
-              'MESSAGES_UPDATE',
-              'MESSAGES_DELETE',
-              'SEND_MESSAGE',
-              'CONTACTS_SET',
-              'CONTACTS_UPSERT',
-              'CONTACTS_UPDATE',
-              'PRESENCE_UPDATE',
-              'CHATS_SET',
-              'CHATS_UPSERT',
-              'CHATS_UPDATE',
-              'CHATS_DELETE',
-              'GROUPS_UPSERT',
-              'GROUP_UPDATE',
-              'GROUP_PARTICIPANTS_UPDATE',
-              'CONNECTION_UPDATE',
-              'LABELS_EDIT',
-              'LABELS_ASSOCIATION',
-              'CALL',
-              'TYPEBOT_START',
-              'TYPEBOT_CHANGE_STATUS',
-            ];
-          } else {
-            newEvents = websocketEvents;
-          }
-          this.websocketService.create(instance, {
+          await this.websocketController.set(instance.instanceName, {
             enabled: true,
-            events: newEvents,
+            events: websocketEvents,
           });
 
-          const websocketEventsJson: JsonValue = (await this.websocketService.find(instance)).events;
+          const websocketEventsJson: JsonValue = (await this.websocketController.get(instance.instanceName)).events;
 
           getWebsocketEvents = Array.isArray(websocketEventsJson)
             ? websocketEventsJson.map((event) => String(event))

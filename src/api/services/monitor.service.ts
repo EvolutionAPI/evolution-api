@@ -1,6 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
+import { websocketController } from '@api/server.module';
 import { Integration } from '@api/types/wa.types';
 import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '@config/env.config';
 import { Logger } from '@config/logger.config';
@@ -52,10 +53,9 @@ export class WAMonitoringService {
               this.waInstances[instance]?.client?.end(undefined);
             }
             this.waInstances[instance]?.removeRabbitmqQueues();
-            delete this.waInstances[instance];
+            this.eventEmitter.emit('remove.instance', instance, 'inner');
           } else {
             this.waInstances[instance]?.removeRabbitmqQueues();
-            delete this.waInstances[instance];
             this.eventEmitter.emit('remove.instance', instance, 'inner');
           }
         }
@@ -340,6 +340,13 @@ export class WAMonitoringService {
   private removeInstance() {
     this.eventEmitter.on('remove.instance', async (instanceName: string) => {
       try {
+        await websocketController.emit({
+          instanceName,
+          origin: WAMonitoringService.name,
+          event: 'remove.instance',
+          data: null,
+        });
+
         this.cleaningUp(instanceName);
         this.cleaningStoreData(instanceName);
       } finally {
@@ -354,7 +361,17 @@ export class WAMonitoringService {
     });
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       try {
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) this.waInstances[instanceName]?.clearCacheChatwoot();
+        await websocketController.emit({
+          instanceName,
+          origin: WAMonitoringService.name,
+          event: 'logout.instance',
+          data: null,
+        });
+
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+          this.waInstances[instanceName]?.clearCacheChatwoot();
+        }
+
         this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - LOGOUT`);

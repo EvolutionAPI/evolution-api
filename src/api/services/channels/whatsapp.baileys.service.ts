@@ -657,7 +657,6 @@ export class BaileysStartupService extends ChannelStartupService {
       this.loadWebhook();
       this.loadChatwoot();
       this.loadSettings();
-      this.loadWebsocket();
       this.loadRabbitmq();
       this.loadSqs();
       this.loadProxy();

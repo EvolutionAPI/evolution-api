@@ -20,7 +20,7 @@ export type Cors = {
 
 export type LogBaileys = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
-export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK' | 'WEBHOOKS';
+export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK' | 'WEBHOOKS' | 'WEBSOCKET';
 
 export type Log = {
   LEVEL: LogLevel[];
@@ -358,6 +358,7 @@ export class ConfigService {
           'VERBOSE',
           'DARK',
           'WEBHOOKS',
+          'WEBSOCKET',
         ],
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
