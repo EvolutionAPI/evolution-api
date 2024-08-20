@@ -129,10 +129,7 @@ export class BusinessStartupService extends ChannelStartupService {
     const content = data.entry[0].changes[0].value;
 
     try {
-      this.loadWebhook();
       this.loadChatwoot();
-      this.loadRabbitmq();
-      this.loadSqs();
 
       this.eventHandler(content);
 

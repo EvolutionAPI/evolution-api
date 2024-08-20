@@ -15,7 +15,7 @@ export class SqsRouter extends RouterBroker {
           request: req,
           schema: sqsSchema,
           ClassRef: SqsDto,
-          execute: (instance, data) => sqsController.createSqs(instance, data),
+          execute: (instance, data) => sqsController.set(instance.instanceName, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -25,7 +25,7 @@ export class SqsRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => sqsController.findSqs(instance),
+          execute: (instance) => sqsController.get(instance.instanceName),
         });
 
         res.status(HttpStatus.OK).json(response);

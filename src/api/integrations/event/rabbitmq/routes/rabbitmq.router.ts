@@ -15,7 +15,7 @@ export class RabbitmqRouter extends RouterBroker {
           request: req,
           schema: rabbitmqSchema,
           ClassRef: RabbitmqDto,
-          execute: (instance, data) => rabbitmqController.createRabbitmq(instance, data),
+          execute: (instance, data) => rabbitmqController.set(instance.instanceName, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -25,7 +25,7 @@ export class RabbitmqRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => rabbitmqController.findRabbitmq(instance),
+          execute: (instance) => rabbitmqController.get(instance.instanceName),
         });
 
         res.status(HttpStatus.OK).json(response);

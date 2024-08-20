@@ -654,11 +654,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async connectToWhatsapp(number?: string): Promise<WASocket> {
     try {
-      this.loadWebhook();
       this.loadChatwoot();
       this.loadSettings();
-      this.loadRabbitmq();
-      this.loadSqs();
       this.loadProxy();
 
       return await this.createClient(number);
@@ -1184,7 +1181,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (isMedia && !this.configService.get<S3>('S3').ENABLE && this.localWebhook.webhookBase64 === true) {
+          if (isMedia && !this.configService.get<S3>('S3').ENABLE) {
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
               'buffer',

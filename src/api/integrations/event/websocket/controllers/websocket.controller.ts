@@ -3,7 +3,7 @@ import { WebsocketDto } from '@api/integrations/event/websocket/dto/websocket.dt
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { wa } from '@api/types/wa.types';
-import { configService, Cors, HttpServer, Log, Websocket } from '@config/env.config';
+import { configService, Cors, Log, Websocket } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import { Server } from 'http';
@@ -109,11 +109,19 @@ export class WebsocketController extends EventController {
     origin,
     event,
     data,
+    serverUrl,
+    dateTime,
+    sender,
+    apiKey,
   }: {
     instanceName: string;
     origin: string;
     event: string;
     data: Object;
+    serverUrl: string;
+    dateTime: string;
+    sender: string;
+    apiKey?: string;
   }): Promise<void> {
     if (!configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
       return;
@@ -121,14 +129,14 @@ export class WebsocketController extends EventController {
 
     const configEv = event.replace(/[.-]/gm, '_').toUpperCase();
     const logEnabled = configService.get<Log>('LOG').LEVEL.includes('WEBSOCKET');
-    const serverUrl = configService.get<HttpServer>('SERVER').URL;
-    const date = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString();
     const message = {
       event,
-      instanceName,
+      instance: instanceName,
       data,
-      serverUrl,
-      date,
+      server_url: serverUrl,
+      date_time: dateTime,
+      sender,
+      apikey: apiKey,
     };
 
     if (configService.get<Websocket>('WEBSOCKET')?.GLOBAL_EVENTS) {

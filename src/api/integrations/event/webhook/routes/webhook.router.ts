@@ -1,12 +1,12 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { WebhookDto } from '@api/dto/webhook.dto';
+import { HttpStatus } from '@api/routes/index.router';
 import { webhookController } from '@api/server.module';
 import { ConfigService } from '@config/env.config';
 import { instanceSchema, webhookSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
-import { HttpStatus } from './index.router';
+import { WebhookDto } from '../dto/webhook.dto';
 
 export class WebhookRouter extends RouterBroker {
   constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
@@ -17,7 +17,7 @@ export class WebhookRouter extends RouterBroker {
           request: req,
           schema: webhookSchema,
           ClassRef: WebhookDto,
-          execute: (instance, data) => webhookController.createWebhook(instance, data),
+          execute: (instance, data) => webhookController.set(instance.instanceName, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -27,7 +27,7 @@ export class WebhookRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => webhookController.findWebhook(instance),
+          execute: (instance) => webhookController.get(instance.instanceName),
         });
 
         res.status(HttpStatus.OK).json(response);

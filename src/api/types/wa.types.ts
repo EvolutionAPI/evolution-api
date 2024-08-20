@@ -33,6 +33,8 @@ export enum Events {
   LABELS_ASSOCIATION = 'labels.association',
   CREDS_UPDATE = 'creds.update',
   MESSAGING_HISTORY_SET = 'messaging-history.set',
+  REMOVE_INSTANCE = 'remove.instance',
+  LOGOUT_INSTANCE = 'logout.instance',
 }
 
 export declare namespace wa {

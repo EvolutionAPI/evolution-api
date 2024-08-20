@@ -1,9 +1,8 @@
 import { RabbitmqRouter } from '@api/integrations/event/rabbitmq/routes/rabbitmq.router';
 import { SqsRouter } from '@api/integrations/event/sqs/routes/sqs.router';
+import { WebhookRouter } from '@api/integrations/event/webhook/routes/webhook.router';
 import { WebsocketRouter } from '@api/integrations/event/websocket/routes/websocket.router';
 import { Router } from 'express';
-
-import { WebhookRouter } from './webhook.router';
 
 export class EventRouter {
   public readonly router: Router;

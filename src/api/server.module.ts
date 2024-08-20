@@ -12,7 +12,6 @@ import { ProxyController } from './controllers/proxy.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { TemplateController } from './controllers/template.controller';
-import { WebhookController } from './controllers/webhook.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
 import { DifyController } from './integrations/chatbot/dify/controllers/dify.controller';
@@ -22,21 +21,18 @@ import { OpenaiService } from './integrations/chatbot/openai/services/openai.ser
 import { TypebotController } from './integrations/chatbot/typebot/controllers/typebot.controller';
 import { TypebotService } from './integrations/chatbot/typebot/services/typebot.service';
 import { RabbitmqController } from './integrations/event/rabbitmq/controllers/rabbitmq.controller';
-import { RabbitmqService } from './integrations/event/rabbitmq/services/rabbitmq.service';
 import { SqsController } from './integrations/event/sqs/controllers/sqs.controller';
-import { SqsService } from './integrations/event/sqs/services/sqs.service';
+import { WebhookController } from './integrations/event/webhook/controllers/webhook.controller';
 import { WebsocketController } from './integrations/event/websocket/controllers/websocket.controller';
 import { S3Controller } from './integrations/storage/s3/controllers/s3.controller';
 import { S3Service } from './integrations/storage/s3/services/s3.service';
 import { ProviderFiles } from './provider/sessions';
 import { PrismaRepository } from './repository/repository.service';
-import { AuthService } from './services/auth.service';
 import { CacheService } from './services/cache.service';
 import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { SettingsService } from './services/settings.service';
 import { TemplateService } from './services/template.service';
-import { WebhookService } from './services/webhook.service';
 
 const logger = new Logger('WA MODULE');
 
@@ -65,8 +61,6 @@ export const waMonitor = new WAMonitoringService(
   baileysCache,
 );
 
-const authService = new AuthService(prismaRepository);
-
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
 export const typebotController = new TypebotController(typebotService);
 
@@ -79,24 +73,18 @@ export const difyController = new DifyController(difyService);
 const s3Service = new S3Service(prismaRepository);
 export const s3Controller = new S3Controller(s3Service);
 
-const webhookService = new WebhookService(waMonitor, prismaRepository);
-export const webhookController = new WebhookController(webhookService, waMonitor);
-
 const templateService = new TemplateService(waMonitor, prismaRepository, configService);
 export const templateController = new TemplateController(templateService);
 
 export const eventController = new EventController(prismaRepository, waMonitor);
 
 export const websocketController = new WebsocketController(prismaRepository, waMonitor);
+export const rabbitmqController = new RabbitmqController(prismaRepository, waMonitor);
+export const sqsController = new SqsController(prismaRepository, waMonitor);
+export const webhookController = new WebhookController(prismaRepository, waMonitor);
 
 const proxyService = new ProxyService(waMonitor);
 export const proxyController = new ProxyController(proxyService, waMonitor);
-
-const rabbitmqService = new RabbitmqService(waMonitor);
-export const rabbitmqController = new RabbitmqController(rabbitmqService);
-
-const sqsService = new SqsService(waMonitor);
-export const sqsController = new SqsController(sqsService);
 
 const chatwootService = new ChatwootService(waMonitor, configService, prismaRepository, chatwootCache);
 export const chatwootController = new ChatwootController(chatwootService, configService, prismaRepository);
@@ -109,13 +97,8 @@ export const instanceController = new InstanceController(
   configService,
   prismaRepository,
   eventEmitter,
-  authService,
-  webhookService,
   chatwootService,
   settingsService,
-  websocketController,
-  rabbitmqService,
-  sqsService,
   proxyController,
   cache,
   chatwootCache,
