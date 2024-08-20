@@ -14,7 +14,6 @@ export class WebsocketController {
   private waMonitor: WAMonitoringService;
   private corsConfig: Array<any>;
   private readonly logger = new Logger('SocketStartupService');
-  public readonly monitorEvents = ['REMOVE_INSTANCE', 'LOGOUT_INSTANCE'];
   public readonly events = [
     'APPLICATION_STARTUP',
     'QRCODE_UPDATED',
@@ -41,6 +40,8 @@ export class WebsocketController {
     'CALL',
     'TYPEBOT_START',
     'TYPEBOT_CHANGE_STATUS',
+    'REMOVE_INSTANCE',
+    'LOGOUT_INSTANCE',
   ];
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
@@ -195,10 +196,7 @@ export class WebsocketController {
         return;
       }
 
-      if (
-        this.monitorEvents.includes(configEv) ||
-        (Array.isArray(instanceSocket.events) && instanceSocket.events.includes(configEv))
-      ) {
+      if (Array.isArray(instanceSocket.events) && instanceSocket.events.includes(configEv)) {
         this.socket.of(`/${instanceName}`).emit(event, message);
 
         if (logEnabled) {
