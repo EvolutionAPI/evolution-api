@@ -1,7 +1,7 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { TypebotDto, TypebotIgnoreJidDto, TypebotSettingDto } from '@api/integrations/chatbot/typebot/dto/typebot.dto';
-import { typebotController } from '@api/integrations/integration.module';
+import { typebotController } from '@api/server.module';
 import { HttpStatus } from '@api/routes/index.router';
 import {
   instanceSchema,

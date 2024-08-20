@@ -1,7 +1,7 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { WebsocketDto } from '@api/integrations/event/websocket/dto/websocket.dto';
-import { websocketController } from '@api/integrations/integration.module';
+import { websocketController } from '@api/server.module';
 import { HttpStatus } from '@api/routes/index.router';
 import { instanceSchema, websocketSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';

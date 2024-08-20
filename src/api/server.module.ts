@@ -14,7 +14,17 @@ import { TemplateController } from './controllers/template.controller';
 import { ChatbotController } from './integrations/chatbot/chatbot.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
+import { DifyController } from './integrations/chatbot/dify/controllers/dify.controller';
+import { DifyService } from './integrations/chatbot/dify/services/dify.service';
+import { OpenaiController } from './integrations/chatbot/openai/controllers/openai.controller';
+import { OpenaiService } from './integrations/chatbot/openai/services/openai.service';
+import { TypebotController } from './integrations/chatbot/typebot/controllers/typebot.controller';
+import { TypebotService } from './integrations/chatbot/typebot/services/typebot.service';
 import { EventController } from './integrations/event/event.controller';
+import { RabbitmqController } from './integrations/event/rabbitmq/controllers/rabbitmq.controller';
+import { SqsController } from './integrations/event/sqs/controllers/sqs.controller';
+import { WebhookController } from './integrations/event/webhook/controllers/webhook.controller';
+import { WebsocketController } from './integrations/event/websocket/controllers/websocket.controller';
 import { S3Controller } from './integrations/storage/s3/controllers/s3.controller';
 import { S3Service } from './integrations/storage/s3/services/s3.service';
 import { ProviderFiles } from './provider/sessions';
@@ -58,9 +68,6 @@ export const s3Controller = new S3Controller(s3Service);
 const templateService = new TemplateService(waMonitor, prismaRepository, configService);
 export const templateController = new TemplateController(templateService);
 
-export const eventController = new EventController(prismaRepository, waMonitor);
-export const chatbotController = new ChatbotController(prismaRepository, waMonitor);
-
 const proxyService = new ProxyService(waMonitor);
 export const proxyController = new ProxyController(proxyService, waMonitor);
 
@@ -87,5 +94,24 @@ export const sendMessageController = new SendMessageController(waMonitor);
 export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
 export const labelController = new LabelController(waMonitor);
+
+export const eventController = new EventController(prismaRepository, waMonitor);
+export const chatbotController = new ChatbotController(prismaRepository, waMonitor);
+
+// events
+export const websocketController = new WebsocketController(prismaRepository, waMonitor);
+export const rabbitmqController = new RabbitmqController(prismaRepository, waMonitor);
+export const sqsController = new SqsController(prismaRepository, waMonitor);
+export const webhookController = new WebhookController(prismaRepository, waMonitor);
+
+// chatbots
+const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
+export const typebotController = new TypebotController(typebotService);
+
+const openaiService = new OpenaiService(waMonitor, configService, prismaRepository);
+export const openaiController = new OpenaiController(openaiService);
+
+const difyService = new DifyService(waMonitor, configService, prismaRepository);
+export const difyController = new DifyController(difyService);
 
 logger.info('Module - ON');

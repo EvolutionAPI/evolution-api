@@ -1,11 +1,6 @@
 import { InstanceDto } from '@api/dto/instance.dto';
-import {
-  difyController,
-  openaiController,
-  typebotController,
-  websocketController,
-} from '@api/integrations/integration.module';
 import { PrismaRepository } from '@api/repository/repository.service';
+import { difyController, openaiController, typebotController, websocketController } from '@api/server.module';
 import { WAMonitoringService } from '@api/services/monitor.service';
 
 export class ChatbotController {

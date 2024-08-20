@@ -1,10 +1,5 @@
-import {
-  rabbitmqController,
-  sqsController,
-  webhookController,
-  websocketController,
-} from '@api/integrations/integration.module';
 import { PrismaRepository } from '@api/repository/repository.service';
+import { rabbitmqController, sqsController, webhookController, websocketController } from '@api/server.module';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Server } from 'http';
 

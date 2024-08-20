@@ -1,7 +1,7 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { RabbitmqDto } from '@api/integrations/event/rabbitmq/dto/rabbitmq.dto';
-import { rabbitmqController } from '@api/integrations/integration.module';
+import { rabbitmqController } from '@api/server.module';
 import { HttpStatus } from '@api/routes/index.router';
 import { instanceSchema, rabbitmqSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';

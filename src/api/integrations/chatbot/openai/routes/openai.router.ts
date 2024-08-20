@@ -6,8 +6,8 @@ import {
   OpenaiIgnoreJidDto,
   OpenaiSettingDto,
 } from '@api/integrations/chatbot/openai/dto/openai.dto';
-import { openaiController } from '@api/integrations/integration.module';
 import { HttpStatus } from '@api/routes/index.router';
+import { openaiController } from '@api/server.module';
 import {
   instanceSchema,
   openaiCredsSchema,

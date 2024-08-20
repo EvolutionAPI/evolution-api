@@ -1,7 +1,7 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { SqsDto } from '@api/integrations/event/sqs/dto/sqs.dto';
-import { sqsController } from '@api/integrations/integration.module';
+import { sqsController } from '@api/server.module';
 import { HttpStatus } from '@api/routes/index.router';
 import { instanceSchema, sqsSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';

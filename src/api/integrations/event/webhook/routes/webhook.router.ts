@@ -1,6 +1,6 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { webhookController } from '@api/integrations/integration.module';
+import { webhookController } from '@api/server.module';
 import { HttpStatus } from '@api/routes/index.router';
 import { ConfigService, WaBusiness } from '@config/env.config';
 import { instanceSchema, webhookSchema } from '@validate/validate.schema';
