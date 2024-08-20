@@ -30,27 +30,24 @@ export class WebhookController extends EventController {
       }
     }
 
-    try {
-      await this.get(instanceName);
-
-      return this.prisma.webhook.update({
-        where: {
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-        data,
-      });
-    } catch (err) {
-      return this.prisma.webhook.create({
-        data: {
-          enabled: data.enabled,
-          events: data.events,
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-          url: data.url,
-          webhookBase64: data.webhookBase64,
-          webhookByEvents: data.webhookByEvents,
-        },
-      });
-    }
+    await this.get(instanceName);
+    
+    return this.prisma.webhook.upsert({
+      where: {
+        instanceId: this.monitor.waInstances[instanceName].instanceId,
+      },
+      update: {
+        ...data,
+      },
+      create: {
+        enabled: data.enabled,
+        events: data.events,
+        instanceId: this.monitor.waInstances[instanceName].instanceId,
+        url: data.url,
+        webhookBase64: data.webhookBase64,
+        webhookByEvents: data.webhookByEvents,
+      },
+    });
   }
 
   public async get(instanceName: string): Promise<wa.LocalWebHook> {
