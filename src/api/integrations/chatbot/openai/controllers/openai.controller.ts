@@ -90,4 +90,20 @@ export class OpenaiController {
 
     return this.openaiService.ignoreJid(instance, data);
   }
+
+  public async emit({
+    instance,
+    remoteJid,
+    msg,
+    pushName,
+  }: {
+    instance: InstanceDto;
+    remoteJid: string;
+    msg: any;
+    pushName?: string;
+  }) {
+    if (!configService.get<Openai>('OPENAI').ENABLED) return;
+
+    await this.openaiService.sendOpenai(instance, remoteJid, pushName, msg);
+  }
 }

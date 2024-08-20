@@ -4,7 +4,6 @@ import { eventEmitter } from '@config/event.config';
 import { Logger } from '@config/logger.config';
 
 import { ChatController } from './controllers/chat.controller';
-import { EventController } from './controllers/event.controller';
 import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';
 import { LabelController } from './controllers/label.controller';
@@ -12,18 +11,10 @@ import { ProxyController } from './controllers/proxy.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { TemplateController } from './controllers/template.controller';
+import { ChatbotController } from './integrations/chatbot/chatbot.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
-import { DifyController } from './integrations/chatbot/dify/controllers/dify.controller';
-import { DifyService } from './integrations/chatbot/dify/services/dify.service';
-import { OpenaiController } from './integrations/chatbot/openai/controllers/openai.controller';
-import { OpenaiService } from './integrations/chatbot/openai/services/openai.service';
-import { TypebotController } from './integrations/chatbot/typebot/controllers/typebot.controller';
-import { TypebotService } from './integrations/chatbot/typebot/services/typebot.service';
-import { RabbitmqController } from './integrations/event/rabbitmq/controllers/rabbitmq.controller';
-import { SqsController } from './integrations/event/sqs/controllers/sqs.controller';
-import { WebhookController } from './integrations/event/webhook/controllers/webhook.controller';
-import { WebsocketController } from './integrations/event/websocket/controllers/websocket.controller';
+import { EventController } from './integrations/event/event.controller';
 import { S3Controller } from './integrations/storage/s3/controllers/s3.controller';
 import { S3Service } from './integrations/storage/s3/services/s3.service';
 import { ProviderFiles } from './provider/sessions';
@@ -61,15 +52,6 @@ export const waMonitor = new WAMonitoringService(
   baileysCache,
 );
 
-const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
-export const typebotController = new TypebotController(typebotService);
-
-const openaiService = new OpenaiService(waMonitor, configService, prismaRepository);
-export const openaiController = new OpenaiController(openaiService);
-
-const difyService = new DifyService(waMonitor, configService, prismaRepository);
-export const difyController = new DifyController(difyService);
-
 const s3Service = new S3Service(prismaRepository);
 export const s3Controller = new S3Controller(s3Service);
 
@@ -77,11 +59,7 @@ const templateService = new TemplateService(waMonitor, prismaRepository, configS
 export const templateController = new TemplateController(templateService);
 
 export const eventController = new EventController(prismaRepository, waMonitor);
-
-export const websocketController = new WebsocketController(prismaRepository, waMonitor);
-export const rabbitmqController = new RabbitmqController(prismaRepository, waMonitor);
-export const sqsController = new SqsController(prismaRepository, waMonitor);
-export const webhookController = new WebhookController(prismaRepository, waMonitor);
+export const chatbotController = new ChatbotController(prismaRepository, waMonitor);
 
 const proxyService = new ProxyService(waMonitor);
 export const proxyController = new ProxyController(proxyService, waMonitor);

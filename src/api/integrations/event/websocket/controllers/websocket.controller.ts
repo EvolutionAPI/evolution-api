@@ -1,4 +1,3 @@
-import { EventController } from '@api/controllers/event.controller';
 import { WebsocketDto } from '@api/integrations/event/websocket/dto/websocket.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
@@ -8,6 +7,8 @@ import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import { Server } from 'http';
 import { Server as SocketIO } from 'socket.io';
+
+import { EventController } from '../../event.controller';
 
 export class WebsocketController extends EventController {
   private io: SocketIO;

@@ -66,4 +66,19 @@ export class DifyController {
 
     return this.difyService.ignoreJid(instance, data);
   }
+
+  public async emit({
+    instance,
+    remoteJid,
+    msg,
+  }: {
+    instance: InstanceDto;
+    remoteJid: string;
+    msg: any;
+    pushName?: string;
+  }) {
+    if (!configService.get<Dify>('DIFY').ENABLED) return;
+
+    await this.difyService.sendDify(instance, remoteJid, msg);
+  }
 }

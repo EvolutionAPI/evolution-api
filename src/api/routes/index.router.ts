@@ -1,23 +1,22 @@
 import { authGuard } from '@api/guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '@api/guards/instance.guard';
 import Telemetry from '@api/guards/telemetry.guard';
-import { webhookController } from '@api/server.module';
-import { configService, WaBusiness } from '@config/env.config';
+import { ChatbotRouter } from '@api/integrations/chatbot/chatbot.router';
+import { EventRouter } from '@api/integrations/event/event.router';
+import { StorageRouter } from '@api/integrations/storage/storage.router';
+import { configService } from '@config/env.config';
 import { Router } from 'express';
 import fs from 'fs';
 import mime from 'mime';
 import path from 'path';
 
 import { ChatRouter } from './chat.router';
-import { ChatbotRouter } from './chatbot.router';
-import { EventRouter } from './event.router';
 import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
 import { LabelRouter } from './label.router';
 import { ProxyRouter } from './proxy.router';
 import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
-import { StorageRouter } from './storage.router';
 import { TemplateRouter } from './template.router';
 import { ViewsRouter } from './view.router';
 
@@ -85,17 +84,6 @@ router
   .use('/settings', new SettingsRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
   .use('/label', new LabelRouter(...guards).router)
-  .get('/webhook/meta', async (req, res) => {
-    if (req.query['hub.verify_token'] === configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK)
-      res.send(req.query['hub.challenge']);
-    else res.send('Error, wrong validation token');
-  })
-  .post('/webhook/meta', async (req, res) => {
-    const { body } = req;
-    const response = await webhookController.receiveWebhook(body);
-
-    return res.status(200).json(response);
-  })
   .use('', new EventRouter(configService, ...guards).router)
   .use('', new ChatbotRouter(...guards).router)
   .use('', new StorageRouter(...guards).router);

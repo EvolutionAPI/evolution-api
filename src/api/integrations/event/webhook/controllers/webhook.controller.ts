@@ -1,4 +1,3 @@
-import { EventController } from '@api/controllers/event.controller';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { wa } from '@api/types/wa.types';
@@ -8,6 +7,7 @@ import { BadRequestException, NotFoundException } from '@exceptions';
 import axios from 'axios';
 import { isURL } from 'class-validator';
 
+import { EventController } from '../../event.controller';
 import { WebhookDto } from '../dto/webhook.dto';
 
 export class WebhookController extends EventController {

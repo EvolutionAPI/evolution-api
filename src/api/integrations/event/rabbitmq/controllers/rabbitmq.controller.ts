@@ -1,4 +1,3 @@
-import { EventController } from '@api/controllers/event.controller';
 import { RabbitmqDto } from '@api/integrations/event/rabbitmq/dto/rabbitmq.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
@@ -7,6 +6,8 @@ import { configService, Log, Rabbitmq } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import * as amqp from 'amqplib/callback_api';
+
+import { EventController } from '../../event.controller';
 
 export class RabbitmqController extends EventController {
   public amqpChannel: amqp.Channel | null = null;

@@ -72,4 +72,19 @@ export class TypebotController {
 
     return this.typebotService.ignoreJid(instance, data);
   }
+
+  public async emit({
+    instance,
+    remoteJid,
+    msg,
+  }: {
+    instance: InstanceDto;
+    remoteJid: string;
+    msg: any;
+    pushName?: string;
+  }) {
+    if (!configService.get<Typebot>('TYPEBOT').ENABLED) return;
+
+    await this.typebotService.sendTypebot(instance, remoteJid, msg);
+  }
 }

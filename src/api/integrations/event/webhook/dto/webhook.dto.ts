@@ -1,4 +1,4 @@
-import { Constructor } from '@api/dto/integration.dto';
+import { Constructor } from '@api/integrations/integration.dto';
 
 export class WebhookDto {
   enabled?: boolean;

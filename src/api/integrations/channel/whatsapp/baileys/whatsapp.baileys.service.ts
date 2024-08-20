@@ -48,7 +48,7 @@ import { chatwootImport } from '@api/integrations/chatbot/chatwoot/utils/chatwoo
 import * as s3Service from '@api/integrations/storage/s3/libs/minio.server';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
-import { waMonitor } from '@api/server.module';
+import { chatbotController, waMonitor } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
 import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '@api/types/wa.types';
@@ -1223,39 +1223,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
-          if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-            if (type === 'notify') {
-              if (messageRaw.messageType !== 'reactionMessage')
-                await this.typebotService.sendTypebot(
-                  { instanceName: this.instance.name, instanceId: this.instanceId },
-                  messageRaw.key.remoteJid,
-                  messageRaw,
-                );
-            }
-          }
-
-          if (this.configService.get<Openai>('OPENAI').ENABLED) {
-            if (type === 'notify') {
-              if (messageRaw.messageType !== 'reactionMessage')
-                await this.openaiService.sendOpenai(
-                  { instanceName: this.instance.name, instanceId: this.instanceId },
-                  messageRaw.key.remoteJid,
-                  messageRaw.pushName,
-                  messageRaw,
-                );
-            }
-          }
-
-          if (this.configService.get<Dify>('DIFY').ENABLED) {
-            if (type === 'notify') {
-              if (messageRaw.messageType !== 'reactionMessage')
-                await this.difyService.sendDify(
-                  { instanceName: this.instance.name, instanceId: this.instanceId },
-                  messageRaw.key.remoteJid,
-                  messageRaw,
-                );
-            }
-          }
+          await chatbotController.emit({
+            instance: { instanceName: this.instance.name, instanceId: this.instanceId },
+            remoteJid: messageRaw.key.remoteJid,
+            msg: messageRaw,
+            pushName: messageRaw.pushName,
+          });
 
           const contact = await this.prismaRepository.contact.findFirst({
             where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },

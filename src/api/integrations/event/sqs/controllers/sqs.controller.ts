@@ -1,4 +1,3 @@
-import { EventController } from '@api/controllers/event.controller';
 import { SqsDto } from '@api/integrations/event/sqs/dto/sqs.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
@@ -7,6 +6,8 @@ import { SQS } from '@aws-sdk/client-sqs';
 import { configService, Log, Sqs } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
+
+import { EventController } from '../../event.controller';
 
 export class SqsController extends EventController {
   private sqs: SQS;

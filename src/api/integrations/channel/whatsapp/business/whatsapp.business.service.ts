@@ -16,6 +16,7 @@ import {
 import * as s3Service from '@api/integrations/storage/s3/libs/minio.server';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
+import { chatbotController } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
 import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
@@ -481,6 +482,13 @@ export class BusinessStartupService extends ChannelStartupService {
 
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
+        await chatbotController.emit({
+          instance: { instanceName: this.instance.name, instanceId: this.instanceId },
+          remoteJid: messageRaw.key.remoteJid,
+          msg: messageRaw,
+          pushName: messageRaw.pushName,
+        });
+
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
           const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
             Events.MESSAGES_UPSERT,
@@ -493,34 +501,6 @@ export class BusinessStartupService extends ChannelStartupService {
             messageRaw.chatwootInboxId = chatwootSentMessage.id;
             messageRaw.chatwootConversationId = chatwootSentMessage.id;
           }
-        }
-
-        if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-          if (messageRaw.messageType !== 'reactionMessage')
-            await this.typebotService.sendTypebot(
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              messageRaw.key.remoteJid,
-              messageRaw,
-            );
-        }
-
-        if (this.configService.get<Openai>('OPENAI').ENABLED) {
-          if (messageRaw.messageType !== 'reactionMessage')
-            await this.openaiService.sendOpenai(
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              messageRaw.key.remoteJid,
-              pushName,
-              messageRaw,
-            );
-        }
-
-        if (this.configService.get<Dify>('DIFY').ENABLED) {
-          if (messageRaw.messageType !== 'reactionMessage')
-            await this.difyService.sendDify(
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              messageRaw.key.remoteJid,
-              messageRaw,
-            );
         }
 
         await this.prismaRepository.message.create({

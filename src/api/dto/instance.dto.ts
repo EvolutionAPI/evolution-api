@@ -1,6 +1,5 @@
+import { IntegrationDto } from '@api/integrations/integration.dto';
 import { WAPresence } from 'baileys';
-
-import { IntegrationDto } from './integration.dto';
 
 export class InstanceDto extends IntegrationDto {
   instanceName: string;
