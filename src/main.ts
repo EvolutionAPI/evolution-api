@@ -1,5 +1,5 @@
-import { initAMQP, initGlobalQueues } from '@api/integrations/rabbitmq/libs/amqp.server';
-import { initSQS } from '@api/integrations/sqs/libs/sqs.server';
+import { initAMQP, initGlobalQueues } from '@api/integrations/event/rabbitmq/libs/amqp.server';
+import { initSQS } from '@api/integrations/event/sqs/libs/sqs.server';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { HttpStatus, router } from '@api/routes/index.router';

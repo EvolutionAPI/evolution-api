@@ -1,8 +1,8 @@
 import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
-import { ChatwootService } from '@api/integrations/chatwoot/services/chatwoot.service';
-import { RabbitmqService } from '@api/integrations/rabbitmq/services/rabbitmq.service';
-import { SqsService } from '@api/integrations/sqs/services/sqs.service';
-import { WebsocketController } from '@api/integrations/websocket/controllers/websocket.controller';
+import { ChatwootService } from '@api/integrations/chatbot/chatwoot/services/chatwoot.service';
+import { RabbitmqService } from '@api/integrations/event/rabbitmq/services/rabbitmq.service';
+import { SqsService } from '@api/integrations/event/sqs/services/sqs.service';
+import { WebsocketController } from '@api/integrations/event/websocket/controllers/websocket.controller';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { AuthService } from '@api/services/auth.service';

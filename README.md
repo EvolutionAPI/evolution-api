@@ -8,7 +8,7 @@
 [![Documentation](https://img.shields.io/badge/Documentation-Official-green)](https://doc.evolution-api.com)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](./LICENSE)
 [![Support](https://img.shields.io/badge/Donation-picpay-green)](https://app.picpay.com/user/davidsongomes1998)
-[![Support](https://img.shields.io/badge/Buy%20me-coffe-orange)](https://bmc.link/evolutionapi)
+[![Sponsors](https://img.shields.io/badge/Github-sponsor-orange)](https://github.com/sponsors/EvolutionAPI)
 
 </div>
   
@@ -78,6 +78,10 @@ Join our Evolution Pro community for expert support and a weekly call to answer 
 </a>
 
 # Donate to the project.
+
+#### Github Sponsors
+
+https://github.com/sponsors/EvolutionAPI
 
 #### PicPay
 

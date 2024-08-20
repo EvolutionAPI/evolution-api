@@ -44,8 +44,8 @@ import {
   SendTextDto,
   StatusMessage,
 } from '@api/dto/sendMessage.dto';
-import { chatwootImport } from '@api/integrations/chatwoot/utils/chatwoot-import-helper';
-import * as s3Service from '@api/integrations/s3/libs/minio.server';
+import { chatwootImport } from '@api/integrations/chatbot/chatwoot/utils/chatwoot-import-helper';
+import * as s3Service from '@api/integrations/storage/s3/libs/minio.server';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { waMonitor } from '@api/server.module';
