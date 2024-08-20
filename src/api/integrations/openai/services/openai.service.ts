@@ -1241,7 +1241,7 @@ export class OpenaiService {
       };
 
       if (stopBotFromMe && key.fromMe && session) {
-        await this.prismaRepository.integrationSession.update({
+        session = await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
           },
@@ -1249,7 +1249,6 @@ export class OpenaiService {
             status: 'paused',
           },
         });
-        return;
       }
 
       if (!listeningFromMe && key.fromMe) {
@@ -1263,6 +1262,7 @@ export class OpenaiService {
               this.waMonitor.waInstances[instance.instanceName],
               remoteJid,
               pushName,
+              key.fromMe,
               findOpenai,
               session,
               settings,
@@ -1287,6 +1287,7 @@ export class OpenaiService {
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
             pushName,
+            key.fromMe,
             findOpenai,
             session,
             settings,
@@ -1355,6 +1356,7 @@ export class OpenaiService {
     instance: any,
     remoteJid: string,
     pushName: string,
+    fromMe: boolean,
     openaiBot: OpenaiBot,
     settings: OpenaiSetting,
     session: IntegrationSession,
@@ -1371,7 +1373,7 @@ export class OpenaiService {
     }
 
     const messageData: any = {
-      role: 'user',
+      role: fromMe ? 'assistant' : 'user',
       content: [{ type: 'text', text: content }],
     };
 
@@ -1392,6 +1394,11 @@ export class OpenaiService {
     }
 
     await this.client.beta.threads.messages.create(data.session.sessionId, messageData);
+
+    if (fromMe) {
+      sendTelemetry('/message/sendText');
+      return;
+    }
 
     const runAssistant = await this.client.beta.threads.runs.create(data.session.sessionId, {
       assistant_id: openaiBot.assistantId,
@@ -1561,12 +1568,13 @@ export class OpenaiService {
     instance: any,
     remoteJid: string,
     pushName: string,
+    fromMe: boolean,
     openaiBot: OpenaiBot,
     session: IntegrationSession,
     settings: OpenaiSetting,
     content: string,
   ) {
-    if (session && session.status !== 'opened') {
+    if (session && session.status === 'closed') {
       return;
     }
 
@@ -1598,25 +1606,35 @@ export class OpenaiService {
           });
         }
 
-        await this.initAssistantNewSession(instance, remoteJid, pushName, openaiBot, settings, session, content);
+        await this.initAssistantNewSession(
+          instance,
+          remoteJid,
+          pushName,
+          fromMe,
+          openaiBot,
+          settings,
+          session,
+          content,
+        );
         return;
       }
     }
 
     if (!session) {
-      await this.initAssistantNewSession(instance, remoteJid, pushName, openaiBot, settings, session, content);
+      await this.initAssistantNewSession(instance, remoteJid, pushName, fromMe, openaiBot, settings, session, content);
       return;
     }
 
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: false,
-      },
-    });
+    if (session.status !== 'paused')
+      await this.prismaRepository.integrationSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: false,
+        },
+      });
 
     if (!content) {
       if (settings.unknownMessage) {
@@ -1670,7 +1688,7 @@ export class OpenaiService {
     const threadId = session.sessionId;
 
     const messageData: any = {
-      role: 'user',
+      role: fromMe ? 'assistant' : 'user',
       content: [{ type: 'text', text: content }],
     };
 
@@ -1691,20 +1709,16 @@ export class OpenaiService {
     }
 
     await this.client.beta.threads.messages.create(threadId, messageData);
-    const contactPushName = await this.prismaRepository.contact
-      .findFirst({
-        where: {
-          remoteJid,
-        },
-        select: {
-          pushName: true,
-        },
-      })
-      .then((contact) => contact.pushName);
+
+    if (fromMe || session?.status === 'paused') {
+      sendTelemetry('/message/sendText');
+      return;
+    }
+
     const runAssistant = await this.client.beta.threads.runs.create(threadId, {
       assistant_id: openaiBot.assistantId,
       additional_instructions: `WhatsappApiInfo:
-      Name: ${contactPushName}
+      Name: ${pushName}
       RemoteJid: ${remoteJid}
       `,
     });
