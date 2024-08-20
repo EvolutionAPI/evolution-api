@@ -1,3 +1,4 @@
+import { EventController } from '@api/controllers/event.controller';
 import { WebsocketDto } from '@api/integrations/event/websocket/dto/websocket.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
@@ -8,45 +9,13 @@ import { NotFoundException } from '@exceptions';
 import { Server } from 'http';
 import { Server as SocketIO } from 'socket.io';
 
-export class WebsocketController {
+export class WebsocketController extends EventController {
   private io: SocketIO;
-  private prismaRepository: PrismaRepository;
-  private waMonitor: WAMonitoringService;
   private corsConfig: Array<any>;
-  private readonly logger = new Logger('SocketStartupService');
-  public readonly events = [
-    'APPLICATION_STARTUP',
-    'QRCODE_UPDATED',
-    'MESSAGES_SET',
-    'MESSAGES_UPSERT',
-    'MESSAGES_EDITED',
-    'MESSAGES_UPDATE',
-    'MESSAGES_DELETE',
-    'SEND_MESSAGE',
-    'CONTACTS_SET',
-    'CONTACTS_UPSERT',
-    'CONTACTS_UPDATE',
-    'PRESENCE_UPDATE',
-    'CHATS_SET',
-    'CHATS_UPSERT',
-    'CHATS_UPDATE',
-    'CHATS_DELETE',
-    'GROUPS_UPSERT',
-    'GROUP_UPDATE',
-    'GROUP_PARTICIPANTS_UPDATE',
-    'CONNECTION_UPDATE',
-    'LABELS_EDIT',
-    'LABELS_ASSOCIATION',
-    'CALL',
-    'TYPEBOT_START',
-    'TYPEBOT_CHANGE_STATUS',
-    'REMOVE_INSTANCE',
-    'LOGOUT_INSTANCE',
-  ];
+  private readonly logger = new Logger(WebsocketController.name);
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
-    this.prisma = prismaRepository;
-    this.monitor = waMonitor;
+    super(prismaRepository, waMonitor);
     this.cors = configService.get<Cors>('CORS').ORIGIN;
   }
 
@@ -70,22 +39,6 @@ export class WebsocketController {
     });
 
     this.logger.info('Socket.io initialized');
-  }
-
-  private set prisma(prisma: PrismaRepository) {
-    this.prismaRepository = prisma;
-  }
-
-  private get prisma() {
-    return this.prismaRepository;
-  }
-
-  private set monitor(waMonitor: WAMonitoringService) {
-    this.waMonitor = waMonitor;
-  }
-
-  private get monitor() {
-    return this.waMonitor;
   }
 
   private set cors(cors: Array<any>) {

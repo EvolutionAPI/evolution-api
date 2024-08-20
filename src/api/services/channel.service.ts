@@ -6,13 +6,13 @@ import { ChatwootDto } from '@api/integrations/chatbot/chatwoot/dto/chatwoot.dto
 import { ChatwootService } from '@api/integrations/chatbot/chatwoot/services/chatwoot.service';
 import { DifyService } from '@api/integrations/chatbot/dify/services/dify.service';
 import { OpenaiService } from '@api/integrations/chatbot/openai/services/openai.service';
+import { TypebotService } from '@api/integrations/chatbot/typebot/services/typebot.service';
 import { RabbitmqDto } from '@api/integrations/event/rabbitmq/dto/rabbitmq.dto';
 import { getAMQP, removeQueues } from '@api/integrations/event/rabbitmq/libs/amqp.server';
 import { SqsDto } from '@api/integrations/event/sqs/dto/sqs.dto';
 import { getSQS, removeQueues as removeQueuesSQS } from '@api/integrations/event/sqs/libs/sqs.server';
-import { TypebotService } from '@api/integrations/chatbot/typebot/services/typebot.service';
 import { PrismaRepository, Query } from '@api/repository/repository.service';
-import { waMonitor, websocketController } from '@api/server.module';
+import { eventController, waMonitor } from '@api/server.module';
 import { Events, wa } from '@api/types/wa.types';
 import { Auth, Chatwoot, ConfigService, HttpServer, Log, Rabbitmq, Sqs, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
@@ -821,7 +821,7 @@ export class ChannelStartupService {
       }
     }
 
-    await websocketController.emit({
+    await eventController.emit({
       instanceName: this.instance.name,
       origin: ChannelStartupService.name,
       event,

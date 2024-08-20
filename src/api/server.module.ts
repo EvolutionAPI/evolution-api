@@ -4,6 +4,7 @@ import { eventEmitter } from '@config/event.config';
 import { Logger } from '@config/logger.config';
 
 import { ChatController } from './controllers/chat.controller';
+import { EventController } from './controllers/event.controller';
 import { GroupController } from './controllers/group.controller';
 import { InstanceController } from './controllers/instance.controller';
 import { LabelController } from './controllers/label.controller';
@@ -18,15 +19,15 @@ import { DifyController } from './integrations/chatbot/dify/controllers/dify.con
 import { DifyService } from './integrations/chatbot/dify/services/dify.service';
 import { OpenaiController } from './integrations/chatbot/openai/controllers/openai.controller';
 import { OpenaiService } from './integrations/chatbot/openai/services/openai.service';
-import { RabbitmqController } from './integrations/event/rabbitmq/controllers/rabbitmq.controller';
-import { RabbitmqService } from './integrations/event/rabbitmq/services/rabbitmq.service';
-import { S3Controller } from './integrations/storage/s3/controllers/s3.controller';
-import { S3Service } from './integrations/storage/s3/services/s3.service';
-import { SqsController } from './integrations/event/sqs/controllers/sqs.controller';
-import { SqsService } from './integrations/event/sqs/services/sqs.service';
 import { TypebotController } from './integrations/chatbot/typebot/controllers/typebot.controller';
 import { TypebotService } from './integrations/chatbot/typebot/services/typebot.service';
+import { RabbitmqController } from './integrations/event/rabbitmq/controllers/rabbitmq.controller';
+import { RabbitmqService } from './integrations/event/rabbitmq/services/rabbitmq.service';
+import { SqsController } from './integrations/event/sqs/controllers/sqs.controller';
+import { SqsService } from './integrations/event/sqs/services/sqs.service';
 import { WebsocketController } from './integrations/event/websocket/controllers/websocket.controller';
+import { S3Controller } from './integrations/storage/s3/controllers/s3.controller';
+import { S3Service } from './integrations/storage/s3/services/s3.service';
 import { ProviderFiles } from './provider/sessions';
 import { PrismaRepository } from './repository/repository.service';
 import { AuthService } from './services/auth.service';
@@ -83,6 +84,8 @@ export const webhookController = new WebhookController(webhookService, waMonitor
 
 const templateService = new TemplateService(waMonitor, prismaRepository, configService);
 export const templateController = new TemplateController(templateService);
+
+export const eventController = new EventController(prismaRepository, waMonitor);
 
 export const websocketController = new WebsocketController(prismaRepository, waMonitor);
 
