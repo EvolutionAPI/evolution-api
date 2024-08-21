@@ -7,15 +7,16 @@ import { BadRequestException, NotFoundException } from '@exceptions';
 import axios from 'axios';
 import { isURL } from 'class-validator';
 
-import { EventController } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
 import { WebhookDto } from '../dto/webhook.dto';
 
-export class WebhookController extends EventController {
+export class WebhookController extends EventController implements EventControllerInterface {
   private readonly logger = new Logger(WebhookController.name);
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);
   }
+  integrationEnabled: boolean;
 
   public async set(instanceName: string, data: WebhookDto): Promise<wa.LocalWebHook> {
     if (!isURL(data.url, { require_tld: false })) {
@@ -78,17 +79,7 @@ export class WebhookController extends EventController {
     sender,
     apiKey,
     local,
-  }: {
-    instanceName: string;
-    origin: string;
-    event: string;
-    data: Object;
-    serverUrl: string;
-    dateTime: string;
-    sender: string;
-    apiKey?: string;
-    local?: boolean;
-  }): Promise<void> {
+  }: EmitData): Promise<void> {
     const instanceWebhook = await this.get(instanceName);
     if (!instanceWebhook || !instanceWebhook.enabled) {
       return;
@@ -110,6 +101,7 @@ export class WebhookController extends EventController {
       server_url: serverUrl,
       apikey: apiKey,
     };
+
     if (local) {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;

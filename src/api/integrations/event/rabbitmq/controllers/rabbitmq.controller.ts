@@ -7,19 +7,19 @@ import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import * as amqp from 'amqplib/callback_api';
 
-import { EventController } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
 
-export class RabbitmqController extends EventController {
+export class RabbitmqController extends EventController implements EventControllerInterface {
   public amqpChannel: amqp.Channel | null = null;
   private readonly logger = new Logger(RabbitmqController.name);
+  integrationEnabled = configService.get<Rabbitmq>('RABBITMQ')?.ENABLED;
+
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);
   }
 
   public async init(): Promise<void> {
-    if (!configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) {
-      return;
-    }
+    if (!this.integrationEnabled) return;
 
     await new Promise<void>((resolve, reject) => {
       const uri = configService.get<Rabbitmq>('RABBITMQ').URI;
@@ -62,6 +62,8 @@ export class RabbitmqController extends EventController {
   }
 
   public async set(instanceName: string, data: RabbitmqDto): Promise<wa.LocalRabbitmq> {
+    if (!this.integrationEnabled) return;
+
     if (!data.enabled) {
       data.events = [];
     } else {
@@ -91,6 +93,8 @@ export class RabbitmqController extends EventController {
   }
 
   public async get(instanceName: string): Promise<wa.LocalWebsocket> {
+    if (!this.integrationEnabled) return;
+
     if (undefined === this.monitor.waInstances[instanceName]) {
       throw new NotFoundException('Instance not found');
     }
@@ -117,19 +121,8 @@ export class RabbitmqController extends EventController {
     dateTime,
     sender,
     apiKey,
-  }: {
-    instanceName: string;
-    origin: string;
-    event: string;
-    data: Object;
-    serverUrl: string;
-    dateTime: string;
-    sender: string;
-    apiKey?: string;
-  }): Promise<void> {
-    if (!configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) {
-      return;
-    }
+  }: EmitData): Promise<void> {
+    if (!this.integrationEnabled) return;
 
     const instanceRabbitmq = await this.get(instanceName);
     const rabbitmqLocal = instanceRabbitmq?.events;

@@ -1,8 +1,9 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
+import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { TypebotDto, TypebotIgnoreJidDto, TypebotSettingDto } from '@api/integrations/chatbot/typebot/dto/typebot.dto';
-import { typebotController } from '@api/server.module';
+import { TypebotDto, TypebotSettingDto } from '@api/integrations/chatbot/typebot/dto/typebot.dto';
 import { HttpStatus } from '@api/routes/index.router';
+import { typebotController } from '@api/server.module';
 import {
   instanceSchema,
   typebotIgnoreJidSchema,
@@ -22,7 +23,7 @@ export class TypebotRouter extends RouterBroker {
           request: req,
           schema: typebotSchema,
           ClassRef: TypebotDto,
-          execute: (instance, data) => typebotController.createTypebot(instance, data),
+          execute: (instance, data) => typebotController.createBot(instance, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -32,7 +33,7 @@ export class TypebotRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => typebotController.findTypebot(instance),
+          execute: (instance) => typebotController.findBot(instance),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -42,7 +43,7 @@ export class TypebotRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => typebotController.fetchTypebot(instance, req.params.typebotId),
+          execute: (instance) => typebotController.fetchBot(instance, req.params.typebotId),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -52,7 +53,7 @@ export class TypebotRouter extends RouterBroker {
           request: req,
           schema: typebotSchema,
           ClassRef: TypebotDto,
-          execute: (instance, data) => typebotController.updateTypebot(instance, req.params.typebotId, data),
+          execute: (instance, data) => typebotController.updateBot(instance, req.params.typebotId, data),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -62,7 +63,7 @@ export class TypebotRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => typebotController.deleteTypebot(instance, req.params.typebotId),
+          execute: (instance) => typebotController.deleteBot(instance, req.params.typebotId),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -92,7 +93,7 @@ export class TypebotRouter extends RouterBroker {
           request: req,
           schema: typebotStartSchema,
           ClassRef: InstanceDto,
-          execute: (instance, data) => typebotController.startTypebot(instance, data),
+          execute: (instance, data) => typebotController.startBot(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -118,10 +119,10 @@ export class TypebotRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('ignoreJid'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<TypebotIgnoreJidDto>({
+        const response = await this.dataValidate<IgnoreJidDto>({
           request: req,
           schema: typebotIgnoreJidSchema,
-          ClassRef: TypebotIgnoreJidDto,
+          ClassRef: IgnoreJidDto,
           execute: (instance, data) => typebotController.ignoreJid(instance, data),
         });
 

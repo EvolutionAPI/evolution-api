@@ -1,6 +1,7 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
+import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { DifyDto, DifyIgnoreJidDto, DifySettingDto } from '@api/integrations/chatbot/dify/dto/dify.dto';
+import { DifyDto, DifySettingDto } from '@api/integrations/chatbot/dify/dto/dify.dto';
 import { HttpStatus } from '@api/routes/index.router';
 import { difyController } from '@api/server.module';
 import {
@@ -21,7 +22,7 @@ export class DifyRouter extends RouterBroker {
           request: req,
           schema: difySchema,
           ClassRef: DifyDto,
-          execute: (instance, data) => difyController.createDify(instance, data),
+          execute: (instance, data) => difyController.createBot(instance, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -31,7 +32,7 @@ export class DifyRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => difyController.findDify(instance),
+          execute: (instance) => difyController.findBot(instance),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -41,7 +42,7 @@ export class DifyRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => difyController.fetchDify(instance, req.params.difyId),
+          execute: (instance) => difyController.fetchBot(instance, req.params.difyId),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -51,7 +52,7 @@ export class DifyRouter extends RouterBroker {
           request: req,
           schema: difySchema,
           ClassRef: DifyDto,
-          execute: (instance, data) => difyController.updateDify(instance, req.params.difyId, data),
+          execute: (instance, data) => difyController.updateBot(instance, req.params.difyId, data),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -61,7 +62,7 @@ export class DifyRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => difyController.deleteDify(instance, req.params.difyId),
+          execute: (instance) => difyController.deleteBot(instance, req.params.difyId),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -107,10 +108,10 @@ export class DifyRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('ignoreJid'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<DifyIgnoreJidDto>({
+        const response = await this.dataValidate<IgnoreJidDto>({
           request: req,
           schema: difyIgnoreJidSchema,
-          ClassRef: DifyIgnoreJidDto,
+          ClassRef: IgnoreJidDto,
           execute: (instance, data) => difyController.ignoreJid(instance, data),
         });
 
