@@ -1,9 +1,8 @@
-import { $Enums, TriggerOperator, TriggerType } from '@prisma/client';
+import { TriggerOperator, TriggerType } from '@prisma/client';
 
-export class DifyDto {
+export class GenericBotDto {
   enabled?: boolean;
   description?: string;
-  botType?: $Enums.DifyBotType;
   apiUrl?: string;
   apiKey?: string;
   expire?: number;
@@ -20,7 +19,7 @@ export class DifyDto {
   ignoreJids?: any;
 }
 
-export class DifySettingDto {
+export class GenericBotSettingDto {
   expire?: number;
   keywordFinish?: string;
   delayMessage?: number;
@@ -29,6 +28,6 @@ export class DifySettingDto {
   stopBotFromMe?: boolean;
   keepOpen?: boolean;
   debounceTime?: number;
-  difyIdFallback?: string;
+  botIdFallback?: string;
   ignoreJids?: any;
 }

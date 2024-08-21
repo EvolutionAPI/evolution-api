@@ -7,20 +7,19 @@ import { configService, Log, Sqs } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 
-import { EventController } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
 
-export class SqsController extends EventController {
+export class SqsController extends EventController implements EventControllerInterface {
   private sqs: SQS;
   private readonly logger = new Logger(SqsController.name);
+  integrationEnabled = configService.get<Sqs>('SQS')?.ENABLED;
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);
   }
 
   public init(): void {
-    if (!configService.get<Sqs>('SQS')?.ENABLED) {
-      return;
-    }
+    if (!this.integrationEnabled) return;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     new Promise<void>((resolve, reject) => {
@@ -48,6 +47,8 @@ export class SqsController extends EventController {
   }
 
   public async set(instanceName: string, data: SqsDto): Promise<wa.LocalSqs> {
+    if (!this.integrationEnabled) return;
+
     if (!data.enabled) {
       data.events = [];
     } else {
@@ -77,6 +78,8 @@ export class SqsController extends EventController {
   }
 
   public async get(instanceName: string): Promise<wa.LocalSqs> {
+    if (!this.integrationEnabled) return;
+
     if (undefined === this.monitor.waInstances[instanceName]) {
       throw new NotFoundException('Instance not found');
     }
@@ -103,19 +106,8 @@ export class SqsController extends EventController {
     dateTime,
     sender,
     apiKey,
-  }: {
-    instanceName: string;
-    origin: string;
-    event: string;
-    data: Object;
-    serverUrl: string;
-    dateTime: string;
-    sender: string;
-    apiKey?: string;
-  }): Promise<void> {
-    if (!configService.get<Sqs>('SQS')?.ENABLED) {
-      return;
-    }
+  }: EmitData): Promise<void> {
+    if (!this.integrationEnabled) return;
 
     const instanceSqs = await this.get(instanceName);
     const sqsLocal = instanceSqs?.events;

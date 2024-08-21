@@ -1,14 +1,5 @@
 import { TriggerOperator, TriggerType } from '@prisma/client';
 
-export class Session {
-  remoteJid?: string;
-  sessionId?: string;
-  status?: string;
-  createdAt?: number;
-  updateAt?: number;
-  prefilledVariables?: PrefilledVariables;
-}
-
 export class PrefilledVariables {
   remoteJid?: string;
   pushName?: string;
@@ -46,9 +37,4 @@ export class TypebotSettingDto {
   debounceTime?: number;
   typebotIdFallback?: string;
   ignoreJids?: any;
-}
-
-export class TypebotIgnoreJidDto {
-  remoteJid?: string;
-  action?: string;
 }

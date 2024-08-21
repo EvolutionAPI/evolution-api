@@ -8,12 +8,13 @@ import { NotFoundException } from '@exceptions';
 import { Server } from 'http';
 import { Server as SocketIO } from 'socket.io';
 
-import { EventController } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
 
-export class WebsocketController extends EventController {
+export class WebsocketController extends EventController implements EventControllerInterface {
   private io: SocketIO;
   private corsConfig: Array<any>;
   private readonly logger = new Logger(WebsocketController.name);
+  integrationEnabled = configService.get<Websocket>('WEBSOCKET')?.ENABLED;
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);
@@ -21,9 +22,7 @@ export class WebsocketController extends EventController {
   }
 
   public init(httpServer: Server): void {
-    if (!configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
-      return;
-    }
+    if (!this.integrationEnabled) return;
 
     this.socket = new SocketIO(httpServer, {
       cors: {
@@ -59,6 +58,8 @@ export class WebsocketController extends EventController {
   }
 
   public async set(instanceName: string, data: WebsocketDto): Promise<wa.LocalWebsocket> {
+    if (!this.integrationEnabled) return;
+
     if (!data.enabled) {
       data.events = [];
     } else {
@@ -88,6 +89,8 @@ export class WebsocketController extends EventController {
   }
 
   public async get(instanceName: string): Promise<wa.LocalWebsocket> {
+    if (!this.integrationEnabled) return;
+
     if (undefined === this.monitor.waInstances[instanceName]) {
       throw new NotFoundException('Instance not found');
     }
@@ -114,19 +117,8 @@ export class WebsocketController extends EventController {
     dateTime,
     sender,
     apiKey,
-  }: {
-    instanceName: string;
-    origin: string;
-    event: string;
-    data: Object;
-    serverUrl: string;
-    dateTime: string;
-    sender: string;
-    apiKey?: string;
-  }): Promise<void> {
-    if (!configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
-      return;
-    }
+  }: EmitData): Promise<void> {
+    if (!this.integrationEnabled) return;
 
     const configEv = event.replace(/[.-]/gm, '_').toUpperCase();
     const logEnabled = configService.get<Log>('LOG').LEVEL.includes('WEBSOCKET');
