@@ -63,7 +63,7 @@ export class WebhookController extends EventController implements EventControlle
     });
 
     if (!data) {
-      throw new NotFoundException('Instance websocket not found');
+      throw new NotFoundException('Instance webhook not found');
     }
 
     return data;

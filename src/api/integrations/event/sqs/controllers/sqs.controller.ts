@@ -91,7 +91,7 @@ export class SqsController extends EventController implements EventControllerInt
     });
 
     if (!data) {
-      throw new NotFoundException('Instance websocket not found');
+      throw new NotFoundException('Instance SQS not found');
     }
 
     return data;

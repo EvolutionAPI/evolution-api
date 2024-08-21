@@ -106,7 +106,7 @@ export class RabbitmqController extends EventController implements EventControll
     });
 
     if (!data) {
-      throw new NotFoundException('Instance websocket not found');
+      throw new NotFoundException('Instance rabbitmq not found');
     }
 
     return data;
