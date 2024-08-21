@@ -3,7 +3,6 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
-import { BadRequestException } from '@exceptions';
 import { getConversationMessage } from '@utils/getConversationMessage';
 
 import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
@@ -524,8 +523,6 @@ export class GenericController extends ChatbotController implements ChatbotContr
 
   // Sessions
   public async changeStatus(instance: InstanceDto, data: any) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -603,8 +600,6 @@ export class GenericController extends ChatbotController implements ChatbotContr
   }
 
   public async fetchSessions(instance: InstanceDto, botId: string, remoteJid?: string) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -638,8 +633,6 @@ export class GenericController extends ChatbotController implements ChatbotContr
   }
 
   public async ignoreJid(instance: InstanceDto, data: IgnoreJidDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -689,8 +682,6 @@ export class GenericController extends ChatbotController implements ChatbotContr
 
   // Emit
   public async emit({ instance, remoteJid, msg }: EmitData) {
-    if (!this.integrationEnabled) return;
-
     try {
       const settings = await this.settingsRepository.findFirst({
         where: {

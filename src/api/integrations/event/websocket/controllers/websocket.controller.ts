@@ -102,7 +102,7 @@ export class WebsocketController extends EventController implements EventControl
     });
 
     if (!data) {
-      throw new NotFoundException('Instance websocket not found');
+      return null;
     }
 
     return data;
