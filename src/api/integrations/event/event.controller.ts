@@ -3,6 +3,25 @@ import { rabbitmqController, sqsController, webhookController, websocketControll
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Server } from 'http';
 
+export type EmitData = {
+  instanceName: string;
+  origin: string;
+  event: string;
+  data: Object;
+  serverUrl: string;
+  dateTime: string;
+  sender: string;
+  apiKey?: string;
+  local?: boolean;
+};
+
+export interface EventControllerInterface {
+  integrationEnabled: boolean;
+  set(instanceName: string, data: any): Promise<any>;
+  get(instanceName: string): Promise<any>;
+  emit({ instanceName, origin, event, data, serverUrl, dateTime, sender, apiKey, local }: EmitData): Promise<void>;
+}
+
 export class EventController {
   public prismaRepository: PrismaRepository;
   public waMonitor: WAMonitoringService;
