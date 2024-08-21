@@ -6,6 +6,36 @@ import { Logger } from '@config/logger.config';
 import { IntegrationSession } from '@prisma/client';
 import { findBotByTrigger } from '@utils/findBotByTrigger';
 
+export type EmitData = {
+  instance: InstanceDto;
+  remoteJid: string;
+  msg: any;
+  pushName?: string;
+};
+
+export interface ChatbotControllerInterface {
+  integrationEnabled: boolean;
+  botRepository: any;
+  settingsRepository: any;
+  sessionRepository: any;
+  userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } };
+
+  createBot(instance: InstanceDto, data: any): Promise<any>;
+  findBot(instance: InstanceDto): Promise<any>;
+  fetchBot(instance: InstanceDto, botId: string): Promise<any>;
+  updateBot(instance: InstanceDto, botId: string, data: any): Promise<any>;
+  deleteBot(instance: InstanceDto, botId: string): Promise<any>;
+
+  settings(instance: InstanceDto, data: any): Promise<any>;
+  fetchSettings(instance: InstanceDto): Promise<any>;
+
+  changeStatus(instance: InstanceDto, botId: string, status: string): Promise<any>;
+  fetchSessions(instance: InstanceDto, botId: string, remoteJid?: string): Promise<any>;
+  ignoreJid(instance: InstanceDto, data: any): Promise<any>;
+
+  emit(data: EmitData): Promise<void>;
+}
+
 export class ChatbotController {
   public prismaRepository: PrismaRepository;
   public waMonitor: WAMonitoringService;

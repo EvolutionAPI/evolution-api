@@ -108,12 +108,12 @@ export const webhookController = new WebhookController(prismaRepository, waMonit
 
 // chatbots
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
-export const typebotController = new TypebotController(typebotService);
+export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);
 
 const openaiService = new OpenaiService(waMonitor, configService, prismaRepository);
-export const openaiController = new OpenaiController(openaiService);
+export const openaiController = new OpenaiController(openaiService, prismaRepository, waMonitor);
 
 const difyService = new DifyService(waMonitor, configService, prismaRepository);
-export const difyController = new DifyController(difyService);
+export const difyController = new DifyController(difyService, prismaRepository, waMonitor);
 
 logger.info('Module - ON');

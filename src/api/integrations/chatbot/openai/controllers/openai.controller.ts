@@ -10,9 +10,9 @@ import { BadRequestException } from '@exceptions';
 import { getConversationMessage } from '@utils/getConversationMessage';
 import OpenAI from 'openai';
 
-import { ChatbotController } from '../../chatbot.controller';
+import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
 
-export class OpenaiController extends ChatbotController {
+export class OpenaiController extends ChatbotController implements ChatbotControllerInterface {
   constructor(
     private readonly openaiService: OpenaiService,
     prismaRepository: PrismaRepository,
@@ -28,13 +28,13 @@ export class OpenaiController extends ChatbotController {
 
   public readonly logger = new Logger(OpenaiController.name);
 
-  private integrationEnabled = configService.get<Openai>('OPENAI').ENABLED;
+  integrationEnabled = configService.get<Openai>('OPENAI').ENABLED;
+  botRepository: any;
+  settingsRepository: any;
+  sessionRepository: any;
+  userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
   private client: OpenAI;
-  private botRepository: any;
-  private settingsRepository: any;
-  private sessionRepository: any;
   private credsRepository: any;
-  private userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
   // Credentials
   public async createOpenaiCreds(instance: InstanceDto, data: OpenaiCredsDto) {
@@ -311,7 +311,7 @@ export class OpenaiController extends ChatbotController {
     }
 
     try {
-      const openaiBot = await this.botRepository.create({
+      const bot = await this.botRepository.create({
         data: {
           enabled: data.enabled,
           description: data.description,
@@ -340,7 +340,7 @@ export class OpenaiController extends ChatbotController {
         },
       });
 
-      return openaiBot;
+      return bot;
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error creating openai bot');
@@ -358,7 +358,7 @@ export class OpenaiController extends ChatbotController {
       })
       .then((instance) => instance.id);
 
-    const openaiBots = await this.botRepository.findMany({
+    const bots = await this.botRepository.findMany({
       where: {
         instanceId,
       },
@@ -367,11 +367,11 @@ export class OpenaiController extends ChatbotController {
       },
     });
 
-    if (!openaiBots.length) {
+    if (!bots.length) {
       return null;
     }
 
-    return openaiBots;
+    return bots;
   }
 
   public async fetchBot(instance: InstanceDto, botId: string) {
@@ -385,7 +385,7 @@ export class OpenaiController extends ChatbotController {
       })
       .then((instance) => instance.id);
 
-    const openaiBot = await this.botRepository.findFirst({
+    const bot = await this.botRepository.findFirst({
       where: {
         id: botId,
       },
@@ -394,15 +394,15 @@ export class OpenaiController extends ChatbotController {
       },
     });
 
-    if (!openaiBot) {
+    if (!bot) {
       throw new Error('Openai Bot not found');
     }
 
-    if (openaiBot.instanceId !== instanceId) {
+    if (bot.instanceId !== instanceId) {
       throw new Error('Openai Bot not found');
     }
 
-    return openaiBot;
+    return bot;
   }
 
   public async updateBot(instance: InstanceDto, botId: string, data: OpenaiDto) {
@@ -416,17 +416,17 @@ export class OpenaiController extends ChatbotController {
       })
       .then((instance) => instance.id);
 
-    const openaiBot = await this.botRepository.findFirst({
+    const bot = await this.botRepository.findFirst({
       where: {
         id: botId,
       },
     });
 
-    if (!openaiBot) {
+    if (!bot) {
       throw new Error('Openai Bot not found');
     }
 
-    if (openaiBot.instanceId !== instanceId) {
+    if (bot.instanceId !== instanceId) {
       throw new Error('Openai Bot not found');
     }
 
@@ -522,7 +522,7 @@ export class OpenaiController extends ChatbotController {
     }
 
     try {
-      const openaiBot = await this.botRepository.update({
+      const bot = await this.botRepository.update({
         where: {
           id: botId,
         },
@@ -553,7 +553,7 @@ export class OpenaiController extends ChatbotController {
         },
       });
 
-      return openaiBot;
+      return bot;
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error updating openai bot');
@@ -571,17 +571,17 @@ export class OpenaiController extends ChatbotController {
       })
       .then((instance) => instance.id);
 
-    const openaiBot = await this.botRepository.findFirst({
+    const bot = await this.botRepository.findFirst({
       where: {
         id: botId,
       },
     });
 
-    if (!openaiBot) {
+    if (!bot) {
       throw new Error('Openai bot not found');
     }
 
-    if (openaiBot.instanceId !== instanceId) {
+    if (bot.instanceId !== instanceId) {
       throw new Error('Openai bot not found');
     }
     try {
@@ -597,7 +597,7 @@ export class OpenaiController extends ChatbotController {
         },
       });
 
-      return { openaiBot: { id: botId } };
+      return { bot: { id: botId } };
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error deleting openai bot');
@@ -925,17 +925,7 @@ export class OpenaiController extends ChatbotController {
   }
 
   // Emit
-  public async emit({
-    instance,
-    remoteJid,
-    msg,
-    pushName,
-  }: {
-    instance: InstanceDto;
-    remoteJid: string;
-    msg: any;
-    pushName?: string;
-  }) {
+  public async emit({ instance, remoteJid, msg, pushName }: EmitData) {
     if (!this.integrationEnabled) return;
 
     try {
