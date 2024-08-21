@@ -58,11 +58,6 @@ export class ChannelStartupService {
     this.instance.token = instance.token;
     this.instance.businessId = instance.businessId;
 
-    this.sendDataWebhook(Events.STATUS_INSTANCE, {
-      instance: this.instance.name,
-      status: 'created',
-    });
-
     if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
       this.chatwootService.eventWhatsapp(
         Events.STATUS_INSTANCE,

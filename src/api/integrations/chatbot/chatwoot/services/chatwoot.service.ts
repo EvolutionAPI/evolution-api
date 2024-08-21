@@ -215,7 +215,13 @@ export class ChatwootService {
 
       inboxId = inbox.id;
     }
-    this.logger.log(`Inox created - inboxId: ${inboxId}`);
+    this.logger.log(`Inbox created - inboxId: ${inboxId}`);
+
+    if (!this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT) {
+      this.logger.log('Chatwoot bot contact is disabled');
+
+      return true;
+    }
 
     this.logger.log('Creating chatwoot bot contact');
     const contact =
@@ -826,6 +832,12 @@ export class ChatwootService {
       return null;
     }
 
+    if (!this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT) {
+      this.logger.log('Chatwoot bot contact is disabled');
+
+      return true;
+    }
+
     const contact = await this.findContact(instance, '123456');
 
     if (!contact) {
@@ -938,6 +950,12 @@ export class ChatwootService {
     if (!client) {
       this.logger.warn('client not found');
       return null;
+    }
+
+    if (!this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT) {
+      this.logger.log('Chatwoot bot contact is disabled');
+
+      return true;
     }
 
     const contact = await this.findContact(instance, '123456');
@@ -1159,7 +1177,9 @@ export class ChatwootService {
         return { message: 'bot' };
       }
 
-      if (chatId === '123456' && body.message_type === 'outgoing') {
+      const cwBotContact = this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT;
+
+      if (cwBotContact && chatId === '123456' && body.message_type === 'outgoing') {
         const command = messageReceived.replace('/', '');
 
         if (command.includes('init') || command.includes('iniciar')) {

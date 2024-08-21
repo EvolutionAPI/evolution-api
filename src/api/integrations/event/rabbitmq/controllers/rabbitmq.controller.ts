@@ -106,7 +106,7 @@ export class RabbitmqController extends EventController implements EventControll
     });
 
     if (!data) {
-      return null;
+      throw new NotFoundException('Instance rabbitmq not found');
     }
 
     return data;

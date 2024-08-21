@@ -52,6 +52,8 @@ export class InstanceController {
 
       const instanceId = v4();
 
+      instanceData.instanceId = instanceId;
+
       let hash: string;
 
       if (!instanceData.token) hash = v4().toUpperCase();
@@ -75,16 +77,16 @@ export class InstanceController {
         businessId: instanceData.businessId,
       });
 
-      instance.sendDataWebhook(Events.INSTANCE_CREATE, {
-        instanceName: instanceData.instanceName,
-        instanceId: instanceId,
-      });
-
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
       // set events
-      eventController.setInstance(instance.instanceName, instanceData);
+      await eventController.setInstance(instance.instanceName, instanceData);
+
+      instance.sendDataWebhook(Events.INSTANCE_CREATE, {
+        instanceName: instanceData.instanceName,
+        instanceId: instanceId,
+      });
 
       if (instanceData.proxyHost && instanceData.proxyPort && instanceData.proxyProtocol) {
         const testProxy = await this.proxyService.testProxy({
