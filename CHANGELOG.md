@@ -5,10 +5,11 @@
 * Improved layout manager
 * Translation in manager: English, Portuguese, Spanish and French
 * Generic Bot Integration
+* Option to disable chatwoot bot contact with CHATWOOT_BOT_CONTACT
 
 ### Fixed
 
-* Refactor websocket structure
+* Refactor integrations structure for modular system
 
 # 2.0.10 (2024-08-16 16:23)
 
