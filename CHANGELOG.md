@@ -4,6 +4,7 @@
 
 * Improved layout manager
 * Translation in manager: English, Portuguese, Spanish and French
+* Generic Bot Integration
 
 ### Fixed
 
