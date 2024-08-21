@@ -6,6 +6,7 @@
 * Translation in manager: English, Portuguese, Spanish and French
 * Generic Bot Integration
 * Option to disable chatwoot bot contact with CHATWOOT_BOT_CONTACT
+* Added flowise integration
 
 ### Fixed
 

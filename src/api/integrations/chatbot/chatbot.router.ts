@@ -4,6 +4,7 @@ import { OpenaiRouter } from '@api/integrations/chatbot/openai/routes/openai.rou
 import { TypebotRouter } from '@api/integrations/chatbot/typebot/routes/typebot.router';
 import { Router } from 'express';
 
+import { FlowiseRouter } from './flowise/routes/flowise.router';
 import { GenericRouter } from './generic/routes/generic.router';
 
 export class ChatbotRouter {
@@ -12,10 +13,11 @@ export class ChatbotRouter {
   constructor(...guards: any[]) {
     this.router = Router();
 
+    this.router.use('/generic', new GenericRouter(...guards).router);
     this.router.use('/chatwoot', new ChatwootRouter(...guards).router);
     this.router.use('/typebot', new TypebotRouter(...guards).router);
     this.router.use('/openai', new OpenaiRouter(...guards).router);
     this.router.use('/dify', new DifyRouter(...guards).router);
-    this.router.use('/generic', new GenericRouter(...guards).router);
+    this.router.use('/flowise', new FlowiseRouter(...guards).router);
   }
 }
