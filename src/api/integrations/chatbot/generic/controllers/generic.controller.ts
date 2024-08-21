@@ -1,41 +1,38 @@
 import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { DifyDto } from '@api/integrations/chatbot/dify/dto/dify.dto';
-import { DifyService } from '@api/integrations/chatbot/dify/services/dify.service';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
-import { configService, Dify } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
 import { getConversationMessage } from '@utils/getConversationMessage';
 
 import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
+import { GenericBotDto } from '../dto/generic.dto';
+import { GenericService } from '../services/generic.service';
 
-export class DifyController extends ChatbotController implements ChatbotControllerInterface {
+export class GenericController extends ChatbotController implements ChatbotControllerInterface {
   constructor(
-    private readonly difyService: DifyService,
+    private readonly genericService: GenericService,
     prismaRepository: PrismaRepository,
     waMonitor: WAMonitoringService,
   ) {
     super(prismaRepository, waMonitor);
 
-    this.botRepository = this.prismaRepository.dify;
-    this.settingsRepository = this.prismaRepository.difySetting;
+    this.botRepository = this.prismaRepository.genericBot;
+    this.settingsRepository = this.prismaRepository.genericSetting;
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
-  public readonly logger = new Logger(DifyController.name);
+  public readonly logger = new Logger(GenericController.name);
 
-  integrationEnabled = configService.get<Dify>('DIFY').ENABLED;
+  integrationEnabled: boolean;
   botRepository: any;
   settingsRepository: any;
   sessionRepository: any;
   userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
   // Bots
-  public async createBot(instance: InstanceDto, data: DifyDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
+  public async createBot(instance: InstanceDto, data: GenericBotDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -101,7 +98,6 @@ export class DifyController extends ChatbotController implements ChatbotControll
     const checkDuplicate = await this.botRepository.findFirst({
       where: {
         instanceId: instanceId,
-        botType: data.botType,
         apiUrl: data.apiUrl,
         apiKey: data.apiKey,
       },
@@ -151,7 +147,6 @@ export class DifyController extends ChatbotController implements ChatbotControll
         data: {
           enabled: data.enabled,
           description: data.description,
-          botType: data.botType,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
           expire: data.expire,
@@ -173,13 +168,11 @@ export class DifyController extends ChatbotController implements ChatbotControll
       return bot;
     } catch (error) {
       this.logger.error(error);
-      throw new Error('Error creating dify');
+      throw new Error('Error creating bot');
     }
   }
 
   public async findBot(instance: InstanceDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -202,8 +195,6 @@ export class DifyController extends ChatbotController implements ChatbotControll
   }
 
   public async fetchBot(instance: InstanceDto, botId: string) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -219,19 +210,17 @@ export class DifyController extends ChatbotController implements ChatbotControll
     });
 
     if (!bot) {
-      throw new Error('Dify not found');
+      throw new Error('Bot not found');
     }
 
     if (bot.instanceId !== instanceId) {
-      throw new Error('Dify not found');
+      throw new Error('Bot not found');
     }
 
     return bot;
   }
 
-  public async updateBot(instance: InstanceDto, botId: string, data: DifyDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
+  public async updateBot(instance: InstanceDto, botId: string, data: GenericBotDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -247,11 +236,11 @@ export class DifyController extends ChatbotController implements ChatbotControll
     });
 
     if (!bot) {
-      throw new Error('Dify not found');
+      throw new Error('Bot not found');
     }
 
     if (bot.instanceId !== instanceId) {
-      throw new Error('Dify not found');
+      throw new Error('Bot not found');
     }
 
     if (data.triggerType === 'all') {
@@ -267,7 +256,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
       });
 
       if (checkTriggerAll) {
-        throw new Error('You already have a dify with an "All" trigger, you cannot have more bots while it is active');
+        throw new Error('You already have a bot with an "All" trigger, you cannot have more bots while it is active');
       }
     }
 
@@ -277,14 +266,13 @@ export class DifyController extends ChatbotController implements ChatbotControll
           not: botId,
         },
         instanceId: instanceId,
-        botType: data.botType,
         apiUrl: data.apiUrl,
         apiKey: data.apiKey,
       },
     });
 
     if (checkDuplicate) {
-      throw new Error('Dify already exists');
+      throw new Error('Bot already exists');
     }
 
     if (data.triggerType === 'keyword') {
@@ -331,7 +319,6 @@ export class DifyController extends ChatbotController implements ChatbotControll
         },
         data: {
           enabled: data.enabled,
-          botType: data.botType,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
           expire: data.expire,
@@ -353,13 +340,11 @@ export class DifyController extends ChatbotController implements ChatbotControll
       return bot;
     } catch (error) {
       this.logger.error(error);
-      throw new Error('Error updating dify');
+      throw new Error('Error updating bot');
     }
   }
 
   public async deleteBot(instance: InstanceDto, botId: string) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -375,11 +360,11 @@ export class DifyController extends ChatbotController implements ChatbotControll
     });
 
     if (!bot) {
-      throw new Error('Dify not found');
+      throw new Error('Bot not found');
     }
 
     if (bot.instanceId !== instanceId) {
-      throw new Error('Dify not found');
+      throw new Error('Bot not found');
     }
     try {
       await this.prismaRepository.integrationSession.deleteMany({
@@ -397,14 +382,12 @@ export class DifyController extends ChatbotController implements ChatbotControll
       return { bot: { id: botId } };
     } catch (error) {
       this.logger.error(error);
-      throw new Error('Error deleting dify bot');
+      throw new Error('Error deleting bot');
     }
   }
 
   // Settings
   public async settings(instance: InstanceDto, data: any) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -434,7 +417,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
             stopBotFromMe: data.stopBotFromMe,
             keepOpen: data.keepOpen,
             debounceTime: data.debounceTime,
-            difyIdFallback: data.difyIdFallback,
+            botIdFallback: data.botIdFallback,
             ignoreJids: data.ignoreJids,
           },
         });
@@ -448,7 +431,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
           stopBotFromMe: updateSettings.stopBotFromMe,
           keepOpen: updateSettings.keepOpen,
           debounceTime: updateSettings.debounceTime,
-          difyIdFallback: updateSettings.difyIdFallback,
+          botIdFallback: updateSettings.botIdFallback,
           ignoreJids: updateSettings.ignoreJids,
         };
       }
@@ -463,7 +446,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
           stopBotFromMe: data.stopBotFromMe,
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
-          difyIdFallback: data.difyIdFallback,
+          botIdFallback: data.botIdFallback,
           ignoreJids: data.ignoreJids,
           instanceId: instanceId,
         },
@@ -478,7 +461,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
         stopBotFromMe: newSetttings.stopBotFromMe,
         keepOpen: newSetttings.keepOpen,
         debounceTime: newSetttings.debounceTime,
-        difyIdFallback: newSetttings.difyIdFallback,
+        botIdFallback: newSetttings.botIdFallback,
         ignoreJids: newSetttings.ignoreJids,
       };
     } catch (error) {
@@ -488,8 +471,6 @@ export class DifyController extends ChatbotController implements ChatbotControll
   }
 
   public async fetchSettings(instance: InstanceDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
     try {
       const instanceId = await this.prismaRepository.instance
         .findFirst({
@@ -518,7 +499,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
           stopBotFromMe: false,
           keepOpen: false,
           ignoreJids: [],
-          difyIdFallback: '',
+          botIdFallback: '',
           fallback: null,
         };
       }
@@ -532,7 +513,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
-        difyIdFallback: settings.difyIdFallback,
+        botIdFallback: settings.botIdFallback,
         fallback: settings.Fallback,
       };
     } catch (error) {
@@ -794,7 +775,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
 
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
-          await this.difyService.processDify(
+          await this.genericService.processBot(
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
             findBot,
@@ -805,7 +786,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
           );
         });
       } else {
-        await this.difyService.processDify(
+        await this.genericService.processBot(
           this.waMonitor.waInstances[instance.instanceName],
           remoteJid,
           findBot,

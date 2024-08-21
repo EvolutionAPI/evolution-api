@@ -25,7 +25,7 @@ export class DifyService {
           sessionId: data.remoteJid,
           status: 'opened',
           awaitUser: false,
-          botId: data.difyId,
+          botId: data.botId,
           instanceId: instance.instanceId,
         },
       });
@@ -52,7 +52,7 @@ export class DifyService {
   ) {
     const data = await this.createNewSession(instance, {
       remoteJid,
-      difyId: dify.id,
+      botId: dify.id,
     });
 
     if (data.session) {

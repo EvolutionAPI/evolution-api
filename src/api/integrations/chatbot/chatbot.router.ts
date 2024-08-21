@@ -4,6 +4,8 @@ import { OpenaiRouter } from '@api/integrations/chatbot/openai/routes/openai.rou
 import { TypebotRouter } from '@api/integrations/chatbot/typebot/routes/typebot.router';
 import { Router } from 'express';
 
+import { GenericRouter } from './generic/routes/generic.router';
+
 export class ChatbotRouter {
   public readonly router: Router;
 
@@ -14,5 +16,6 @@ export class ChatbotRouter {
     this.router.use('/typebot', new TypebotRouter(...guards).router);
     this.router.use('/openai', new OpenaiRouter(...guards).router);
     this.router.use('/dify', new DifyRouter(...guards).router);
+    this.router.use('/generic', new GenericRouter(...guards).router);
   }
 }

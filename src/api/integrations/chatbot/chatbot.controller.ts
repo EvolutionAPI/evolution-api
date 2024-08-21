@@ -1,6 +1,12 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
-import { difyController, openaiController, typebotController, websocketController } from '@api/server.module';
+import {
+  difyController,
+  genericController,
+  openaiController,
+  typebotController,
+  websocketController,
+} from '@api/server.module';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
 import { IntegrationSession } from '@prisma/client';
@@ -91,6 +97,9 @@ export class ChatbotController {
 
     // dify
     await difyController.emit(emitData);
+
+    // generic
+    await genericController.emit(emitData);
   }
 
   public async setInstance(instanceName: string, data: any): Promise<any> {
