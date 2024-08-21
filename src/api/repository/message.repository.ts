@@ -123,12 +123,19 @@ export class MessageRepository extends Repository {
         this.logger.verbose('finding messages in db');
         query = this.buildQuery(query);
 
-        return await this.messageModel
-          .find({ ...query.where })
-          .select(query.select || {})
-          .sort(query?.sort ?? { messageTimestamp: -1 })
-          .skip(query?.skip ?? 0)
-          .limit(query?.limit ?? 0);
+        return await this.messageModel.aggregate([
+          { $match: { ...query.where } },
+          {
+            $group: {
+              _id: '$key', // Replace with the unique field
+              doc: { $first: '$$ROOT' },
+            },
+          },
+          { $replaceRoot: { newRoot: '$doc' } },
+          { $sort: (query?.sort as Record<string, 1 | -1>) ?? { messageTimestamp: -1 } },
+          { $skip: query?.skip ?? 0 },
+          { $limit: query?.limit ?? 0 },
+        ]);
       }
 
       this.logger.verbose('finding messages in store');
