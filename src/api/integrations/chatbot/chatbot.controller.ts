@@ -68,17 +68,20 @@ export class ChatbotController {
     remoteJid,
     msg,
     pushName,
+    isIntegration = false,
   }: {
     instance: InstanceDto;
     remoteJid: string;
     msg: any;
     pushName?: string;
+    isIntegration?: boolean;
   }): Promise<void> {
     const emitData = {
       instance,
       remoteJid,
       msg,
       pushName,
+      isIntegration,
     };
     // typebot
     await typebotController.emit(emitData);

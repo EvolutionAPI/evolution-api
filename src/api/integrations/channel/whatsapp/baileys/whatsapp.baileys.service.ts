@@ -2010,12 +2010,14 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
 
-      await chatbotController.emit({
-        instance: { instanceName: this.instance.name, instanceId: this.instanceId },
-        remoteJid: messageRaw.key.remoteJid,
-        msg: messageRaw,
-        pushName: messageRaw.pushName,
-      });
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && isIntegration)
+        await chatbotController.emit({
+          instance: { instanceName: this.instance.name, instanceId: this.instanceId },
+          remoteJid: messageRaw.key.remoteJid,
+          msg: messageRaw,
+          pushName: messageRaw.pushName,
+          isIntegration,
+        });
 
       if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE)
         await this.prismaRepository.message.create({

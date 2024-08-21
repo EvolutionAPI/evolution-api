@@ -923,12 +923,13 @@ export class BusinessStartupService extends ChannelStartupService {
         );
       }
 
-      await chatbotController.emit({
-        instance: { instanceName: this.instance.name, instanceId: this.instanceId },
-        remoteJid: messageRaw.key.remoteJid,
-        msg: messageRaw,
-        pushName: messageRaw.pushName,
-      });
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && isIntegration)
+        await chatbotController.emit({
+          instance: { instanceName: this.instance.name, instanceId: this.instanceId },
+          remoteJid: messageRaw.key.remoteJid,
+          msg: messageRaw,
+          pushName: messageRaw.pushName,
+        });
 
       await this.prismaRepository.message.create({
         data: messageRaw,
