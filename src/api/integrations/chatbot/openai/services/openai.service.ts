@@ -22,6 +22,194 @@ export class OpenaiService {
 
   private readonly logger = new Logger('OpenaiService');
 
+  private async sendMessageToBot(instance: any, openaiBot: OpenaiBot, remoteJid: string, content: string) {
+    const systemMessages: any = openaiBot.systemMessages;
+
+    const messagesSystem: any[] = systemMessages.map((message) => {
+      return {
+        role: 'system',
+        content: message,
+      };
+    });
+
+    const assistantMessages: any = openaiBot.assistantMessages;
+
+    const messagesAssistant: any[] = assistantMessages.map((message) => {
+      return {
+        role: 'assistant',
+        content: message,
+      };
+    });
+
+    const userMessages: any = openaiBot.userMessages;
+
+    const messagesUser: any[] = userMessages.map((message) => {
+      return {
+        role: 'user',
+        content: message,
+      };
+    });
+
+    const messageData: any = {
+      role: 'user',
+      content: [{ type: 'text', text: content }],
+    };
+
+    if (this.isImageMessage(content)) {
+      const contentSplit = content.split('|');
+
+      const url = contentSplit[1].split('?')[0];
+
+      messageData.content = [
+        { type: 'text', text: contentSplit[2] || content },
+        {
+          type: 'image_url',
+          image_url: {
+            url: url,
+          },
+        },
+      ];
+    }
+
+    const messages: any[] = [...messagesSystem, ...messagesAssistant, ...messagesUser, messageData];
+
+    await instance.client.presenceSubscribe(remoteJid);
+
+    await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+    const completions = await this.client.chat.completions.create({
+      model: openaiBot.model,
+      messages: messages,
+      max_tokens: openaiBot.maxTokens,
+    });
+
+    await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+    const message = completions.choices[0].message.content;
+
+    return message;
+  }
+
+  private async sendMessageToAssistant(
+    instance: any,
+    openaiBot: OpenaiBot,
+    remoteJid: string,
+    pushName: string,
+    fromMe: boolean,
+    content: string,
+    threadId: string,
+  ) {
+    const messageData: any = {
+      role: fromMe ? 'assistant' : 'user',
+      content: [{ type: 'text', text: content }],
+    };
+
+    if (this.isImageMessage(content)) {
+      const contentSplit = content.split('|');
+
+      const url = contentSplit[1].split('?')[0];
+
+      messageData.content = [
+        { type: 'text', text: contentSplit[2] || content },
+        {
+          type: 'image_url',
+          image_url: {
+            url: url,
+          },
+        },
+      ];
+    }
+
+    await this.client.beta.threads.messages.create(threadId, messageData);
+
+    if (fromMe) {
+      sendTelemetry('/message/sendText');
+      return;
+    }
+
+    const runAssistant = await this.client.beta.threads.runs.create(threadId, {
+      assistant_id: openaiBot.assistantId,
+    });
+
+    await instance.client.presenceSubscribe(remoteJid);
+
+    await instance.client.sendPresenceUpdate('composing', remoteJid);
+
+    const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl, remoteJid, pushName);
+
+    await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+    const message = response?.data[0].content[0].text.value;
+
+    return message;
+  }
+
+  private async sendMessageWhatsapp(
+    instance: any,
+    session: IntegrationSession,
+    remoteJid: string,
+    settings: OpenaiSetting,
+    message: string,
+  ) {
+    const regex = /!?\[(.*?)\]\((.*?)\)/g;
+
+    const result = [];
+    let lastIndex = 0;
+
+    let match;
+    while ((match = regex.exec(message)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ text: message.slice(lastIndex, match.index).trim() });
+      }
+
+      result.push({ caption: match[1], url: match[2] });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < message.length) {
+      result.push({ text: message.slice(lastIndex).trim() });
+    }
+
+    for (const item of result) {
+      if (item.text) {
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: item.text,
+          },
+          false,
+        );
+      }
+
+      if (item.url) {
+        await instance.mediaMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            mediatype: 'image',
+            media: item.url,
+            caption: item.caption,
+          },
+          false,
+        );
+      }
+    }
+
+    await this.prismaRepository.integrationSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'opened',
+        awaitUser: true,
+      },
+    });
+
+    sendTelemetry('/message/sendText');
+  }
+
   public async createAssistantNewSession(instance: InstanceDto, data: any) {
     if (data.remoteJid === 'status@broadcast') return;
 
@@ -80,111 +268,17 @@ export class OpenaiService {
       session = data.session;
     }
 
-    const messageData: any = {
-      role: fromMe ? 'assistant' : 'user',
-      content: [{ type: 'text', text: content }],
-    };
-
-    if (this.isImageMessage(content)) {
-      const contentSplit = content.split('|');
-
-      const url = contentSplit[1].split('?')[0];
-
-      messageData.content = [
-        { type: 'text', text: contentSplit[2] || content },
-        {
-          type: 'image_url',
-          image_url: {
-            url: url,
-          },
-        },
-      ];
-    }
-
-    await this.client.beta.threads.messages.create(data.session.sessionId, messageData);
-
-    if (fromMe) {
-      sendTelemetry('/message/sendText');
-      return;
-    }
-
-    const runAssistant = await this.client.beta.threads.runs.create(data.session.sessionId, {
-      assistant_id: openaiBot.assistantId,
-    });
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const response = await this.getAIResponse(
-      data.session.sessionId,
-      runAssistant.id,
-      openaiBot.functionUrl,
+    const message = await this.sendMessageToAssistant(
+      instance,
+      openaiBot,
       remoteJid,
       pushName,
+      fromMe,
+      content,
+      session.sessionId,
     );
 
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = response?.data[0].content[0].text.value;
-
-    const regex = /!?\[(.*?)\]\((.*?)\)/g;
-
-    const result = [];
-    let lastIndex = 0;
-
-    let match;
-    while ((match = regex.exec(message)) !== null) {
-      if (match.index > lastIndex) {
-        result.push({ text: message.slice(lastIndex, match.index).trim() });
-      }
-
-      result.push({ caption: match[1], url: match[2] });
-
-      lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < message.length) {
-      result.push({ text: message.slice(lastIndex).trim() });
-    }
-
-    for (const item of result) {
-      if (item.text) {
-        await instance.textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: item.text,
-          },
-          false,
-        );
-      }
-
-      if (item.url) {
-        await instance.mediaMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            mediatype: 'image',
-            media: item.url,
-            caption: item.caption,
-          },
-          false,
-        );
-      }
-    }
-
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
+    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
 
     return;
   }
@@ -395,109 +489,17 @@ export class OpenaiService {
 
     const threadId = session.sessionId;
 
-    const messageData: any = {
-      role: fromMe ? 'assistant' : 'user',
-      content: [{ type: 'text', text: content }],
-    };
+    const message = await this.sendMessageToAssistant(
+      instance,
+      openaiBot,
+      remoteJid,
+      pushName,
+      fromMe,
+      content,
+      threadId,
+    );
 
-    if (this.isImageMessage(content)) {
-      const contentSplit = content.split('|');
-
-      const url = contentSplit[1].split('?')[0];
-
-      messageData.content = [
-        { type: 'text', text: contentSplit[2] || content },
-        {
-          type: 'image_url',
-          image_url: {
-            url: url,
-          },
-        },
-      ];
-    }
-
-    await this.client.beta.threads.messages.create(threadId, messageData);
-
-    if (fromMe || session?.status === 'paused') {
-      sendTelemetry('/message/sendText');
-      return;
-    }
-
-    const runAssistant = await this.client.beta.threads.runs.create(threadId, {
-      assistant_id: openaiBot.assistantId,
-      additional_instructions: `WhatsappApiInfo:
-      Name: ${pushName}
-      RemoteJid: ${remoteJid}
-      `,
-    });
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl, remoteJid, pushName);
-
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = response?.data[0].content[0].text.value;
-
-    const regex = /!?\[(.*?)\]\((.*?)\)/g;
-
-    const result = [];
-    let lastIndex = 0;
-
-    let match;
-    while ((match = regex.exec(message)) !== null) {
-      if (match.index > lastIndex) {
-        result.push({ text: message.slice(lastIndex, match.index).trim() });
-      }
-
-      result.push({ caption: match[1], url: match[2] });
-
-      lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < message.length) {
-      result.push({ text: message.slice(lastIndex).trim() });
-    }
-
-    for (const item of result) {
-      if (item.text) {
-        await instance.textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: item.text,
-          },
-          false,
-        );
-      }
-
-      if (item.url) {
-        await instance.mediaMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            mediatype: 'image',
-            media: item.url,
-            caption: item.caption,
-          },
-          false,
-        );
-      }
-    }
-
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
+    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
 
     return;
   }
@@ -549,133 +551,16 @@ export class OpenaiService {
     });
 
     session = data.session;
+
     const creds = data.creds;
 
     this.client = new OpenAI({
       apiKey: creds.apiKey,
     });
 
-    const systemMessages: any = openaiBot.systemMessages;
+    const message = await this.sendMessageToBot(instance, openaiBot, remoteJid, content);
 
-    const messagesSystem: any[] = systemMessages.map((message) => {
-      return {
-        role: 'system',
-        content: message,
-      };
-    });
-
-    const assistantMessages: any = openaiBot.assistantMessages;
-
-    const messagesAssistant: any[] = assistantMessages.map((message) => {
-      return {
-        role: 'assistant',
-        content: message,
-      };
-    });
-
-    const userMessages: any = openaiBot.userMessages;
-
-    const messagesUser: any[] = userMessages.map((message) => {
-      return {
-        role: 'user',
-        content: message,
-      };
-    });
-
-    const messageData: any = {
-      role: 'user',
-      content: [{ type: 'text', text: content }],
-    };
-
-    if (this.isImageMessage(content)) {
-      const contentSplit = content.split('|');
-
-      const url = contentSplit[1].split('?')[0];
-
-      messageData.content = [
-        { type: 'text', text: contentSplit[2] || content },
-        {
-          type: 'image_url',
-          image_url: {
-            url: url,
-          },
-        },
-      ];
-    }
-
-    const messages: any[] = [...messagesSystem, ...messagesAssistant, ...messagesUser, messageData];
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const completions = await this.client.chat.completions.create({
-      model: openaiBot.model,
-      messages: messages,
-      max_tokens: openaiBot.maxTokens,
-    });
-
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = completions.choices[0].message.content;
-
-    const regex = /!?\[(.*?)\]\((.*?)\)/g;
-
-    const result = [];
-    let lastIndex = 0;
-
-    let match;
-    while ((match = regex.exec(message)) !== null) {
-      if (match.index > lastIndex) {
-        result.push({ text: message.slice(lastIndex, match.index).trim() });
-      }
-
-      result.push({ caption: match[1], url: match[2] });
-
-      lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < message.length) {
-      result.push({ text: message.slice(lastIndex).trim() });
-    }
-
-    for (const item of result) {
-      if (item.text) {
-        await instance.textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: item.text,
-          },
-          false,
-        );
-      }
-
-      if (item.url) {
-        await instance.mediaMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            mediatype: 'image',
-            media: item.url,
-            caption: item.caption,
-          },
-          false,
-        );
-      }
-    }
-
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
+    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
 
     return;
   }
@@ -789,127 +674,9 @@ export class OpenaiService {
       apiKey: creds.apiKey,
     });
 
-    const systemMessages: any = openaiBot.systemMessages;
+    const message = await this.sendMessageToBot(instance, openaiBot, remoteJid, content);
 
-    const messagesSystem: any[] = systemMessages.map((message) => {
-      return {
-        role: 'system',
-        content: message,
-      };
-    });
-
-    const assistantMessages: any = openaiBot.assistantMessages;
-
-    const messagesAssistant: any[] = assistantMessages.map((message) => {
-      return {
-        role: 'assistant',
-        content: message,
-      };
-    });
-
-    const userMessages: any = openaiBot.userMessages;
-
-    const messagesUser: any[] = userMessages.map((message) => {
-      return {
-        role: 'user',
-        content: message,
-      };
-    });
-
-    const messageData: any = {
-      role: 'user',
-      content: [{ type: 'text', text: content }],
-    };
-
-    if (this.isImageMessage(content)) {
-      const contentSplit = content.split('|');
-
-      const url = contentSplit[1].split('?')[0];
-
-      messageData.content = [
-        { type: 'text', text: contentSplit[2] || content },
-        {
-          type: 'image_url',
-          image_url: {
-            url: url,
-          },
-        },
-      ];
-    }
-
-    const messages: any[] = [...messagesSystem, ...messagesAssistant, ...messagesUser, messageData];
-
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-    const completions = await this.client.chat.completions.create({
-      model: openaiBot.model,
-      messages: messages,
-      max_tokens: openaiBot.maxTokens,
-    });
-
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = completions.choices[0].message.content;
-
-    const regex = /!?\[(.*?)\]\((.*?)\)/g;
-
-    const result = [];
-    let lastIndex = 0;
-
-    let match;
-    while ((match = regex.exec(message)) !== null) {
-      if (match.index > lastIndex) {
-        result.push({ text: message.slice(lastIndex, match.index).trim() });
-      }
-
-      result.push({ caption: match[1], url: match[2] });
-
-      lastIndex = regex.lastIndex;
-    }
-
-    if (lastIndex < message.length) {
-      result.push({ text: message.slice(lastIndex).trim() });
-    }
-
-    for (const item of result) {
-      if (item.text) {
-        await instance.textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: item.text,
-          },
-          false,
-        );
-      }
-
-      if (item.url) {
-        await instance.mediaMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            mediatype: 'image',
-            media: item.url,
-            caption: item.caption,
-          },
-          false,
-        );
-      }
-    }
-
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-
-    sendTelemetry('/message/sendText');
+    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
 
     return;
   }
