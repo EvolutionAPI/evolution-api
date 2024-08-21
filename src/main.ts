@@ -1,10 +1,8 @@
-import { initAMQP, initGlobalQueues } from '@api/integrations/rabbitmq/libs/amqp.server';
-import { initSQS } from '@api/integrations/sqs/libs/sqs.server';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { HttpStatus, router } from '@api/routes/index.router';
-import { waMonitor, websocketController } from '@api/server.module';
-import { Auth, configService, Cors, HttpServer, ProviderSession, Rabbitmq, Sqs, Webhook } from '@config/env.config';
+import { eventController, waMonitor } from '@api/server.module';
+import { Auth, configService, Cors, HttpServer, ProviderSession, Webhook } from '@config/env.config';
 import { onUnexpectedError } from '@config/error.config';
 import { Logger } from '@config/logger.config';
 import { ROOT_DIR } from '@config/path.config';
@@ -141,19 +139,11 @@ async function bootstrap() {
   ServerUP.app = app;
   const server = ServerUP[httpServer.TYPE];
 
-  websocketController.init(server);
+  eventController.init(server);
 
   server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
   initWA();
-
-  if (configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) {
-    initAMQP().then(() => {
-      if (configService.get<Rabbitmq>('RABBITMQ')?.GLOBAL_ENABLED) initGlobalQueues();
-    });
-  }
-
-  if (configService.get<Sqs>('SQS')?.ENABLED) initSQS();
 
   onUnexpectedError();
 }

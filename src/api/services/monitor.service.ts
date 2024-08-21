@@ -1,8 +1,10 @@
 import { InstanceDto } from '@api/dto/instance.dto';
+import { BaileysStartupService } from '@api/integrations/channel/whatsapp/baileys/whatsapp.baileys.service';
+import { BusinessStartupService } from '@api/integrations/channel/whatsapp/business/whatsapp.business.service';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
-import { websocketController } from '@api/server.module';
-import { Integration } from '@api/types/wa.types';
+import { channelController } from '@api/server.module';
+import { Events, Integration } from '@api/types/wa.types';
 import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '@config/path.config';
@@ -13,8 +15,6 @@ import { rmSync } from 'fs';
 import { join } from 'path';
 
 import { CacheService } from './cache.service';
-import { BaileysStartupService } from './channels/whatsapp.baileys.service';
-import { BusinessStartupService } from './channels/whatsapp.business.service';
 
 export class WAMonitoringService {
   constructor(
@@ -52,10 +52,8 @@ export class WAMonitoringService {
               this.waInstances[instance]?.client?.ws?.close();
               this.waInstances[instance]?.client?.end(undefined);
             }
-            this.waInstances[instance]?.removeRabbitmqQueues();
             this.eventEmitter.emit('remove.instance', instance, 'inner');
           } else {
-            this.waInstances[instance]?.removeRabbitmqQueues();
             this.eventEmitter.emit('remove.instance', instance, 'inner');
           }
         }
@@ -212,47 +210,24 @@ export class WAMonitoringService {
   }
 
   private async setInstance(instanceData: InstanceDto) {
-    let instance: BaileysStartupService | BusinessStartupService;
+    const instance = channelController.init(instanceData.integration, {
+      configService: this.configService,
+      eventEmitter: this.eventEmitter,
+      prismaRepository: this.prismaRepository,
+      cache: this.cache,
+      chatwootCache: this.chatwootCache,
+      baileysCache: this.baileysCache,
+      providerFiles: this.providerFiles,
+    });
 
-    if (instanceData.integration && instanceData.integration === Integration.WHATSAPP_BUSINESS) {
-      instance = new BusinessStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.prismaRepository,
-        this.cache,
-        this.chatwootCache,
-        this.baileysCache,
-        this.providerFiles,
-      );
-
-      instance.setInstance({
-        instanceId: instanceData.instanceId,
-        instanceName: instanceData.instanceName,
-        integration: instanceData.integration,
-        token: instanceData.token,
-        number: instanceData.number,
-        businessId: instanceData.businessId,
-      });
-    } else {
-      instance = new BaileysStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.prismaRepository,
-        this.cache,
-        this.chatwootCache,
-        this.baileysCache,
-        this.providerFiles,
-      );
-
-      instance.setInstance({
-        instanceId: instanceData.instanceId,
-        instanceName: instanceData.instanceName,
-        integration: instanceData.integration,
-        token: instanceData.token,
-        number: instanceData.number,
-        businessId: instanceData.businessId,
-      });
-    }
+    instance.setInstance({
+      instanceId: instanceData.instanceId,
+      instanceName: instanceData.instanceName,
+      integration: instanceData.integration,
+      token: instanceData.token,
+      number: instanceData.number,
+      businessId: instanceData.businessId,
+    });
 
     await instance.connectToWhatsapp();
 
@@ -340,12 +315,7 @@ export class WAMonitoringService {
   private removeInstance() {
     this.eventEmitter.on('remove.instance', async (instanceName: string) => {
       try {
-        await websocketController.emit({
-          instanceName,
-          origin: WAMonitoringService.name,
-          event: 'remove.instance',
-          data: null,
-        });
+        await this.waInstances[instanceName]?.sendDataWebhook(Events.REMOVE_INSTANCE, null);
 
         this.cleaningUp(instanceName);
         this.cleaningStoreData(instanceName);
@@ -361,12 +331,7 @@ export class WAMonitoringService {
     });
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       try {
-        await websocketController.emit({
-          instanceName,
-          origin: WAMonitoringService.name,
-          event: 'logout.instance',
-          data: null,
-        });
+        await this.waInstances[instanceName]?.sendDataWebhook(Events.LOGOUT_INSTANCE, null);
 
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
           this.waInstances[instanceName]?.clearCacheChatwoot();

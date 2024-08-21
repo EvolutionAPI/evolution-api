@@ -1,16 +1,15 @@
+import { IntegrationDto } from '@api/integrations/integration.dto';
 import { WAPresence } from 'baileys';
 
-export class InstanceDto {
+export class InstanceDto extends IntegrationDto {
   instanceName: string;
   instanceId?: string;
   qrcode?: boolean;
+  businessId?: string;
   number?: string;
   integration?: string;
   token?: string;
-  webhookUrl?: string;
-  webhookByEvents?: boolean;
-  webhookBase64?: boolean;
-  webhookEvents?: string[];
+  // settings
   rejectCall?: boolean;
   msgCall?: string;
   groupsIgnore?: boolean;
@@ -18,31 +17,12 @@ export class InstanceDto {
   readMessages?: boolean;
   readStatus?: boolean;
   syncFullHistory?: boolean;
-  chatwootAccountId?: string;
-  chatwootToken?: string;
-  chatwootUrl?: string;
-  chatwootSignMsg?: boolean;
-  chatwootReopenConversation?: boolean;
-  chatwootConversationPending?: boolean;
-  chatwootMergeBrazilContacts?: boolean;
-  chatwootImportContacts?: boolean;
-  chatwootImportMessages?: boolean;
-  chatwootDaysLimitImportMessages?: number;
-  chatwootNameInbox?: string;
-  chatwootOrganization?: string;
-  chatwootLogo?: string;
-  websocketEnabled?: boolean;
-  websocketEvents?: string[];
-  rabbitmqEnabled?: boolean;
-  rabbitmqEvents?: string[];
-  sqsEnabled?: boolean;
-  sqsEvents?: string[];
+  // proxy
   proxyHost?: string;
   proxyPort?: string;
   proxyProtocol?: string;
   proxyUsername?: string;
   proxyPassword?: string;
-  businessId?: string;
 }
 
 export class SetPresenceDto {

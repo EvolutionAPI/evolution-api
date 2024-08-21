@@ -1,16 +1,10 @@
 import { authGuard } from '@api/guards/auth.guard';
 import { instanceExistsGuard, instanceLoggedGuard } from '@api/guards/instance.guard';
 import Telemetry from '@api/guards/telemetry.guard';
-import { ChatwootRouter } from '@api/integrations/chatwoot/routes/chatwoot.router';
-import { DifyRouter } from '@api/integrations/dify/routes/dify.router';
-import { OpenaiRouter } from '@api/integrations/openai/routes/openai.router';
-import { RabbitmqRouter } from '@api/integrations/rabbitmq/routes/rabbitmq.router';
-import { S3Router } from '@api/integrations/s3/routes/s3.router';
-import { SqsRouter } from '@api/integrations/sqs/routes/sqs.router';
-import { TypebotRouter } from '@api/integrations/typebot/routes/typebot.router';
-import { WebsocketRouter } from '@api/integrations/websocket/routes/websocket.router';
-import { webhookController } from '@api/server.module';
-import { configService, WaBusiness } from '@config/env.config';
+import { ChatbotRouter } from '@api/integrations/chatbot/chatbot.router';
+import { EventRouter } from '@api/integrations/event/event.router';
+import { StorageRouter } from '@api/integrations/storage/storage.router';
+import { configService } from '@config/env.config';
 import { Router } from 'express';
 import fs from 'fs';
 import mime from 'mime';
@@ -25,7 +19,6 @@ import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
 import { TemplateRouter } from './template.router';
 import { ViewsRouter } from './view.router';
-import { WebhookRouter } from './webhook.router';
 
 enum HttpStatus {
   OK = 200,
@@ -87,29 +80,12 @@ router
   .use('/message', new MessageRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
-  .use('/webhook', new WebhookRouter(configService, ...guards).router)
   .use('/template', new TemplateRouter(configService, ...guards).router)
-  .use('/chatwoot', new ChatwootRouter(...guards).router)
   .use('/settings', new SettingsRouter(...guards).router)
-  .use('/websocket', new WebsocketRouter(...guards).router)
-  .use('/rabbitmq', new RabbitmqRouter(...guards).router)
-  .use('/sqs', new SqsRouter(...guards).router)
-  .use('/typebot', new TypebotRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
   .use('/label', new LabelRouter(...guards).router)
-  .use('/s3', new S3Router(...guards).router)
-  .use('/openai', new OpenaiRouter(...guards).router)
-  .use('/dify', new DifyRouter(...guards).router)
-  .get('/webhook/meta', async (req, res) => {
-    if (req.query['hub.verify_token'] === configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK)
-      res.send(req.query['hub.challenge']);
-    else res.send('Error, wrong validation token');
-  })
-  .post('/webhook/meta', async (req, res) => {
-    const { body } = req;
-    const response = await webhookController.receiveWebhook(body);
-
-    return res.status(200).json(response);
-  });
+  .use('', new EventRouter(configService, ...guards).router)
+  .use('', new ChatbotRouter(...guards).router)
+  .use('', new StorageRouter(...guards).router);
 
 export { HttpStatus, router };

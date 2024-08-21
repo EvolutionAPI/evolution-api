@@ -5,6 +5,10 @@
 * Improved layout manager
 * Translation in manager: English, Portuguese, Spanish and French
 
+### Fixed
+
+* Refactor websocket structure
+
 # 2.0.10 (2024-08-16 16:23)
 
 ### Features

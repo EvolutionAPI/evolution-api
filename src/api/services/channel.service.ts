@@ -1,29 +1,20 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { ProxyDto } from '@api/dto/proxy.dto';
 import { SettingsDto } from '@api/dto/settings.dto';
-import { WebhookDto } from '@api/dto/webhook.dto';
-import { ChatwootDto } from '@api/integrations/chatwoot/dto/chatwoot.dto';
-import { ChatwootService } from '@api/integrations/chatwoot/services/chatwoot.service';
-import { DifyService } from '@api/integrations/dify/services/dify.service';
-import { OpenaiService } from '@api/integrations/openai/services/openai.service';
-import { RabbitmqDto } from '@api/integrations/rabbitmq/dto/rabbitmq.dto';
-import { getAMQP, removeQueues } from '@api/integrations/rabbitmq/libs/amqp.server';
-import { SqsDto } from '@api/integrations/sqs/dto/sqs.dto';
-import { getSQS, removeQueues as removeQueuesSQS } from '@api/integrations/sqs/libs/sqs.server';
-import { TypebotService } from '@api/integrations/typebot/services/typebot.service';
+import { ChatwootDto } from '@api/integrations/chatbot/chatwoot/dto/chatwoot.dto';
+import { ChatwootService } from '@api/integrations/chatbot/chatwoot/services/chatwoot.service';
+import { DifyService } from '@api/integrations/chatbot/dify/services/dify.service';
+import { OpenaiService } from '@api/integrations/chatbot/openai/services/openai.service';
+import { TypebotService } from '@api/integrations/chatbot/typebot/services/typebot.service';
 import { PrismaRepository, Query } from '@api/repository/repository.service';
-import { waMonitor, websocketController } from '@api/server.module';
+import { eventController, waMonitor } from '@api/server.module';
 import { Events, wa } from '@api/types/wa.types';
-import { Auth, Chatwoot, ConfigService, HttpServer, Log, Rabbitmq, Sqs, Webhook } from '@config/env.config';
+import { Auth, Chatwoot, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { ROOT_DIR } from '@config/path.config';
 import { NotFoundException } from '@exceptions';
 import { Contact, Message } from '@prisma/client';
-import axios from 'axios';
 import { WASocket } from 'baileys';
-import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
-import { join } from 'path';
 import { v4 } from 'uuid';
 
 import { CacheService } from './cache.service';
@@ -40,13 +31,9 @@ export class ChannelStartupService {
 
   public client: WASocket;
   public readonly instance: wa.Instance = {};
-  public readonly localWebhook: wa.LocalWebHook = {};
   public readonly localChatwoot: wa.LocalChatwoot = {};
-  public readonly localRabbitmq: wa.LocalRabbitmq = {};
-  public readonly localSqs: wa.LocalSqs = {};
   public readonly localProxy: wa.LocalProxy = {};
   public readonly localSettings: wa.LocalSettings = {};
-  public readonly storePath = join(ROOT_DIR, 'store');
 
   public chatwootService = new ChatwootService(
     waMonitor,
@@ -215,73 +202,6 @@ export class ChannelStartupService {
     };
   }
 
-  public async loadWebhook() {
-    const data = await this.prismaRepository.webhook.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    this.localWebhook.url = data?.url;
-    this.localWebhook.enabled = data?.enabled;
-    this.localWebhook.events = data?.events;
-    this.localWebhook.webhookByEvents = data?.webhookByEvents;
-    this.localWebhook.webhookBase64 = data?.webhookBase64;
-  }
-
-  public async setWebhook(data: WebhookDto) {
-    const findWebhook = await this.prismaRepository.webhook.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (findWebhook) {
-      await this.prismaRepository.webhook.update({
-        where: {
-          instanceId: this.instanceId,
-        },
-        data: {
-          url: data.url,
-          enabled: data.enabled,
-          events: data.events,
-          webhookByEvents: data.webhookByEvents,
-          webhookBase64: data.webhookBase64,
-        },
-      });
-
-      Object.assign(this.localWebhook, data);
-      return;
-    }
-    await this.prismaRepository.webhook.create({
-      data: {
-        url: data.url,
-        enabled: data.enabled,
-        events: data.events,
-        webhookByEvents: data.webhookByEvents,
-        webhookBase64: data.webhookBase64,
-        instanceId: this.instanceId,
-      },
-    });
-
-    Object.assign(this.localWebhook, data);
-    return;
-  }
-
-  public async findWebhook() {
-    const data = await this.prismaRepository.webhook.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Webhook not found');
-    }
-
-    return data;
-  }
-
   public async loadChatwoot() {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
       return;
@@ -422,136 +342,6 @@ export class ChannelStartupService {
     }
   }
 
-  public async loadRabbitmq() {
-    const data = await this.prismaRepository.rabbitmq.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    this.localRabbitmq.enabled = data?.enabled;
-    this.localRabbitmq.events = data?.events;
-  }
-
-  public async setRabbitmq(data: RabbitmqDto) {
-    const findRabbitmq = await this.prismaRepository.rabbitmq.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (findRabbitmq) {
-      await this.prismaRepository.rabbitmq.update({
-        where: {
-          instanceId: this.instanceId,
-        },
-        data: {
-          enabled: data.enabled,
-          events: data.events,
-        },
-      });
-
-      Object.assign(this.localRabbitmq, data);
-      return;
-    }
-
-    await this.prismaRepository.rabbitmq.create({
-      data: {
-        enabled: data.enabled,
-        events: data.events,
-        instanceId: this.instanceId,
-      },
-    });
-
-    Object.assign(this.localRabbitmq, data);
-    return;
-  }
-
-  public async findRabbitmq() {
-    const data = await this.prismaRepository.rabbitmq.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Rabbitmq not found');
-    }
-
-    return data;
-  }
-
-  public async removeRabbitmqQueues() {
-    if (this.localRabbitmq.enabled) {
-      removeQueues(this.instanceName, this.localRabbitmq.events);
-    }
-  }
-
-  public async loadSqs() {
-    const data = await this.prismaRepository.sqs.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    this.localSqs.enabled = data?.enabled;
-    this.localSqs.events = data?.events;
-  }
-
-  public async setSqs(data: SqsDto) {
-    const findSqs = await this.prismaRepository.sqs.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (findSqs) {
-      await this.prismaRepository.sqs.update({
-        where: {
-          instanceId: this.instanceId,
-        },
-        data: {
-          enabled: data.enabled,
-          events: data.events,
-        },
-      });
-
-      Object.assign(this.localSqs, data);
-      return;
-    }
-
-    await this.prismaRepository.sqs.create({
-      data: {
-        enabled: data.enabled,
-        events: data.events,
-        instanceId: this.instanceId,
-      },
-    });
-
-    Object.assign(this.localSqs, data);
-    return;
-  }
-
-  public async findSqs() {
-    const data = await this.prismaRepository.sqs.findUnique({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Sqs not found');
-    }
-
-    return data;
-  }
-
-  public async removeSqsQueues() {
-    if (this.localSqs.enabled) {
-      removeQueuesSQS(this.instanceName, this.localSqs.events);
-    }
-  }
-
   public async loadProxy() {
     const data = await this.prismaRepository.proxy.findUnique({
       where: {
@@ -598,16 +388,7 @@ export class ChannelStartupService {
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
-    const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
-    const webhookLocal = this.localWebhook.events;
-    const rabbitmqLocal = this.localRabbitmq.events;
-    const sqsLocal = this.localSqs.events;
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
-    const rabbitmqEnabled = this.configService.get<Rabbitmq>('RABBITMQ').ENABLED;
-    const rabbitmqGlobal = this.configService.get<Rabbitmq>('RABBITMQ').GLOBAL_ENABLED;
-    const rabbitmqEvents = this.configService.get<Rabbitmq>('RABBITMQ').EVENTS;
-    const we = event.replace(/[.-]/gm, '_').toUpperCase();
-    const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
     const localISOTime = new Date(Date.now() - tzoffset).toISOString();
     const now = localISOTime;
@@ -616,360 +397,17 @@ export class ChannelStartupService {
 
     const instanceApikey = this.token || 'Apikey not found';
 
-    if (rabbitmqEnabled) {
-      const amqp = getAMQP();
-      if (this.localRabbitmq.enabled && amqp) {
-        if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-          const exchangeName = this.instanceName ?? 'evolution_exchange';
-
-          let retry = 0;
-
-          while (retry < 3) {
-            try {
-              await amqp.assertExchange(exchangeName, 'topic', {
-                durable: true,
-                autoDelete: false,
-              });
-
-              const eventName = event.replace(/_/g, '.').toLowerCase();
-
-              const queueName = `${this.instanceName}.${eventName}`;
-
-              await amqp.assertQueue(queueName, {
-                durable: true,
-                autoDelete: false,
-                arguments: {
-                  'x-queue-type': 'quorum',
-                },
-              });
-
-              await amqp.bindQueue(queueName, exchangeName, eventName);
-
-              const message = {
-                event,
-                instance: this.instance.name,
-                data,
-                server_url: serverUrl,
-                date_time: now,
-                sender: this.wuid,
-              };
-
-              if (expose && instanceApikey) {
-                message['apikey'] = instanceApikey;
-              }
-
-              await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
-
-              if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-                const logData = {
-                  local: ChannelStartupService.name + '.sendData-RabbitMQ',
-                  event,
-                  instance: this.instance.name,
-                  data,
-                  server_url: serverUrl,
-                  apikey: (expose && instanceApikey) || null,
-                  date_time: now,
-                  sender: this.wuid,
-                };
-
-                if (expose && instanceApikey) {
-                  logData['apikey'] = instanceApikey;
-                }
-
-                this.logger.log(logData);
-              }
-              break;
-            } catch (error) {
-              retry++;
-            }
-          }
-        }
-      }
-
-      if (rabbitmqGlobal && rabbitmqEvents[we] && amqp) {
-        const exchangeName = 'evolution_exchange';
-
-        let retry = 0;
-
-        while (retry < 3) {
-          try {
-            await amqp.assertExchange(exchangeName, 'topic', {
-              durable: true,
-              autoDelete: false,
-            });
-
-            const queueName = event;
-
-            await amqp.assertQueue(queueName, {
-              durable: true,
-              autoDelete: false,
-              arguments: {
-                'x-queue-type': 'quorum',
-              },
-            });
-
-            await amqp.bindQueue(queueName, exchangeName, event);
-
-            const message = {
-              event,
-              instance: this.instance.name,
-              data,
-              server_url: serverUrl,
-              date_time: now,
-              sender: this.wuid,
-            };
-
-            if (expose && instanceApikey) {
-              message['apikey'] = instanceApikey;
-            }
-            await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
-
-            if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-              const logData = {
-                local: ChannelStartupService.name + '.sendData-RabbitMQ-Global',
-                event,
-                instance: this.instance.name,
-                data,
-                server_url: serverUrl,
-                apikey: (expose && instanceApikey) || null,
-                date_time: now,
-                sender: this.wuid,
-              };
-
-              if (expose && instanceApikey) {
-                logData['apikey'] = instanceApikey;
-              }
-
-              this.logger.log(logData);
-            }
-
-            break;
-          } catch (error) {
-            retry++;
-          }
-        }
-      }
-    }
-
-    if (this.localSqs.enabled) {
-      const sqs = getSQS();
-
-      if (sqs) {
-        if (Array.isArray(sqsLocal) && sqsLocal.includes(we)) {
-          const eventFormatted = `${event.replace('.', '_').toLowerCase()}`;
-
-          const queueName = `${this.instanceName}_${eventFormatted}.fifo`;
-
-          const sqsConfig = this.configService.get<Sqs>('SQS');
-
-          const sqsUrl = `https://sqs.${sqsConfig.REGION}.amazonaws.com/${sqsConfig.ACCOUNT_ID}/${queueName}`;
-
-          const message = {
-            event,
-            instance: this.instance.name,
-            data,
-            server_url: serverUrl,
-            date_time: now,
-            sender: this.wuid,
-          };
-
-          if (expose && instanceApikey) {
-            message['apikey'] = instanceApikey;
-          }
-
-          const params = {
-            MessageBody: JSON.stringify(message),
-            MessageGroupId: 'evolution',
-            MessageDeduplicationId: `${this.instanceName}_${eventFormatted}_${Date.now()}`,
-            QueueUrl: sqsUrl,
-          };
-
-          sqs.sendMessage(params, (err, data) => {
-            if (err) {
-              this.logger.error({
-                local: ChannelStartupService.name + '.sendData-SQS',
-                message: err?.message,
-                hostName: err?.hostname,
-                code: err?.code,
-                stack: err?.stack,
-                name: err?.name,
-                url: queueName,
-                server_url: serverUrl,
-              });
-            } else {
-              if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-                const logData = {
-                  local: ChannelStartupService.name + '.sendData-SQS',
-                  event,
-                  instance: this.instance.name,
-                  data,
-                  server_url: serverUrl,
-                  apikey: (expose && instanceApikey) || null,
-                  date_time: now,
-                  sender: this.wuid,
-                };
-
-                if (expose && instanceApikey) {
-                  logData['apikey'] = instanceApikey;
-                }
-
-                this.logger.log(logData);
-              }
-            }
-          });
-        }
-      }
-    }
-
-    await websocketController.emit({
+    await eventController.emit({
       instanceName: this.instance.name,
       origin: ChannelStartupService.name,
       event,
-      data: {
-        ...data,
-        sender: this.wuid,
-        apikey: (expose && instanceApikey) || null,
-      },
+      data,
+      serverUrl,
+      dateTime: now,
+      sender: this.wuid,
+      apiKey: expose && instanceApikey ? instanceApikey : null,
+      local,
     });
-
-    const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
-
-    if (local) {
-      if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
-        let baseURL: string;
-
-        if (this.localWebhook.webhookByEvents) {
-          baseURL = `${this.localWebhook.url}/${transformedWe}`;
-        } else {
-          baseURL = this.localWebhook.url;
-        }
-
-        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          const logData = {
-            local: ChannelStartupService.name + '.sendDataWebhook-local',
-            url: baseURL,
-            event,
-            instance: this.instance.name,
-            data,
-            destination: this.localWebhook.url,
-            date_time: now,
-            sender: this.wuid,
-            server_url: serverUrl,
-            apikey: (expose && instanceApikey) || null,
-          };
-
-          if (expose && instanceApikey) {
-            logData['apikey'] = instanceApikey;
-          }
-
-          this.logger.log(logData);
-        }
-
-        try {
-          if (this.localWebhook.enabled && isURL(this.localWebhook.url, { require_tld: false })) {
-            const httpService = axios.create({ baseURL });
-            const postData = {
-              event,
-              instance: this.instance.name,
-              data,
-              destination: this.localWebhook.url,
-              date_time: now,
-              sender: this.wuid,
-              server_url: serverUrl,
-            };
-
-            if (expose && instanceApikey) {
-              postData['apikey'] = instanceApikey;
-            }
-
-            await httpService.post('', postData);
-          }
-        } catch (error) {
-          this.logger.error({
-            local: ChannelStartupService.name + '.sendDataWebhook-local',
-            message: error?.message,
-            hostName: error?.hostname,
-            syscall: error?.syscall,
-            code: error?.code,
-            error: error?.errno,
-            stack: error?.stack,
-            name: error?.name,
-            url: baseURL,
-            server_url: serverUrl,
-          });
-        }
-      }
-    }
-
-    if (webhookGlobal.GLOBAL?.ENABLED) {
-      if (webhookGlobal.EVENTS[we]) {
-        const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;
-
-        let globalURL;
-
-        if (webhookGlobal.GLOBAL.WEBHOOK_BY_EVENTS) {
-          globalURL = `${globalWebhook.URL}/${transformedWe}`;
-        } else {
-          globalURL = globalWebhook.URL;
-        }
-
-        const localUrl = this.localWebhook.url;
-
-        if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-          const logData = {
-            local: ChannelStartupService.name + '.sendDataWebhook-global',
-            url: globalURL,
-            event,
-            instance: this.instance.name,
-            data,
-            destination: localUrl,
-            date_time: now,
-            sender: this.wuid,
-            server_url: serverUrl,
-          };
-
-          if (expose && globalApiKey) {
-            logData['apikey'] = globalApiKey;
-          }
-
-          this.logger.log(logData);
-        }
-
-        try {
-          if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
-            const httpService = axios.create({ baseURL: globalURL });
-            const postData = {
-              event,
-              instance: this.instance.name,
-              data,
-              destination: localUrl,
-              date_time: now,
-              sender: this.wuid,
-              server_url: serverUrl,
-            };
-
-            if (expose && globalApiKey) {
-              postData['apikey'] = globalApiKey;
-            }
-
-            await httpService.post('', postData);
-          }
-        } catch (error) {
-          this.logger.error({
-            local: ChannelStartupService.name + '.sendDataWebhook-global',
-            message: error?.message,
-            hostName: error?.hostname,
-            syscall: error?.syscall,
-            code: error?.code,
-            error: error?.errno,
-            stack: error?.stack,
-            name: error?.name,
-            url: globalURL,
-            server_url: serverUrl,
-          });
-        }
-      }
-    }
   }
 
   // Check if the number is MX or AR
