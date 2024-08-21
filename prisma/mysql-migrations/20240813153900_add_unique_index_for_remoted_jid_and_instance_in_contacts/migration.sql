@@ -169,17 +169,5 @@ ALTER TABLE `Websocket`
 MODIFY `createdAt` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
 MODIFY `updatedAt` TIMESTAMP NOT NULL;
 
--- Remove the duplicates
-DELETE c1
-FROM `Contact` c1
-    INNER JOIN (
-        SELECT MIN(id) as id
-        FROM `Contact`
-        GROUP BY
-            `remoteJid`, `instanceId`
-    ) c2 ON c1.`remoteJid` = c2.`remoteJid`
-    AND c1.`instanceId` = c2.`instanceId`
-    AND c1.id != c2.id;
-
 -- CreateIndex
 CREATE UNIQUE INDEX `Contact_remoteJid_instanceId_key` ON `Contact` (`remoteJid`, `instanceId`);
