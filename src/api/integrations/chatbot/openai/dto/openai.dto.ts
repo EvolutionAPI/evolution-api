@@ -1,13 +1,5 @@
 import { TriggerOperator, TriggerType } from '@prisma/client';
 
-export class Session {
-  remoteJid?: string;
-  sessionId?: string;
-  status?: string;
-  createdAt?: number;
-  updateAt?: number;
-}
-
 export class OpenaiCredsDto {
   name: string;
   apiKey: string;
@@ -52,9 +44,4 @@ export class OpenaiSettingDto {
   openaiIdFallback?: string;
   ignoreJids?: any;
   speechToText?: boolean;
-}
-
-export class OpenaiIgnoreJidDto {
-  remoteJid?: string;
-  action?: string;
 }

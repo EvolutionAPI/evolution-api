@@ -1,0 +1,65 @@
+import { configService, S3 } from '@config/env.config';
+
+const getTypeMessage = (msg: any) => {
+  let mediaId: string;
+
+  if (configService.get<S3>('S3').ENABLE) mediaId = msg.message.mediaUrl;
+  else mediaId = msg.key.id;
+
+  const types = {
+    conversation: msg?.message?.conversation,
+    extendedTextMessage: msg?.message?.extendedTextMessage?.text,
+    contactMessage: msg?.message?.contactMessage?.displayName,
+    locationMessage: msg?.message?.locationMessage?.degreesLatitude,
+    viewOnceMessageV2:
+      msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
+      msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
+      msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
+    listResponseMessage: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
+    // Medias
+    audioMessage: msg?.message?.speechToText
+      ? msg?.message?.speechToText
+      : msg?.message?.audioMessage
+      ? `audioMessage|${mediaId}`
+      : undefined,
+    imageMessage: msg?.message?.imageMessage
+      ? `imageMessage|${mediaId}${msg?.message?.imageMessage?.caption ? `|${msg?.message?.imageMessage?.caption}` : ''}`
+      : undefined,
+    videoMessage: msg?.message?.videoMessage
+      ? `videoMessage|${mediaId}${msg?.message?.videoMessage?.caption ? `|${msg?.message?.videoMessage?.caption}` : ''}`
+      : undefined,
+    documentMessage: msg?.message?.documentMessage
+      ? `documentMessage|${mediaId}${
+          msg?.message?.documentMessage?.caption ? `|${msg?.message?.documentMessage?.caption}` : ''
+        }`
+      : undefined,
+    documentWithCaptionMessage: msg?.message?.documentWithCaptionMessage?.message?.documentMessage
+      ? `documentWithCaptionMessage|${mediaId}${
+          msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
+            ? `|${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption}`
+            : ''
+        }`
+      : undefined,
+  };
+
+  const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';
+
+  return { ...types, messageType };
+};
+
+const getMessageContent = (types: any) => {
+  const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
+
+  const result = typeKey ? types[typeKey] : undefined;
+
+  return result;
+};
+
+export const getConversationMessage = (msg: any) => {
+  const types = getTypeMessage(msg);
+
+  const messageContent = getMessageContent(types);
+
+  return messageContent;
+};

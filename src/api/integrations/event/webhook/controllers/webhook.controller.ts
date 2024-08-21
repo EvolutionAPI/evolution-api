@@ -1,7 +1,7 @@
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { wa } from '@api/types/wa.types';
-import { configService, Log, Webhook, Websocket } from '@config/env.config';
+import { configService, Log, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException, NotFoundException } from '@exceptions';
 import axios from 'axios';
@@ -31,7 +31,7 @@ export class WebhookController extends EventController {
     }
 
     await this.get(instanceName);
-    
+
     return this.prisma.webhook.upsert({
       where: {
         instanceId: this.monitor.waInstances[instanceName].instanceId,
@@ -89,10 +89,6 @@ export class WebhookController extends EventController {
     apiKey?: string;
     local?: boolean;
   }): Promise<void> {
-    if (!configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
-      return;
-    }
-
     const instanceWebhook = await this.get(instanceName);
     const webhookGlobal = configService.get<Webhook>('WEBHOOK');
     const webhookLocal = instanceWebhook?.events;
@@ -110,6 +106,7 @@ export class WebhookController extends EventController {
       server_url: serverUrl,
       apikey: apiKey,
     };
+
     if (local) {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;

@@ -1,11 +1,7 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
+import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
-import {
-  OpenaiCredsDto,
-  OpenaiDto,
-  OpenaiIgnoreJidDto,
-  OpenaiSettingDto,
-} from '@api/integrations/chatbot/openai/dto/openai.dto';
+import { OpenaiCredsDto, OpenaiDto, OpenaiSettingDto } from '@api/integrations/chatbot/openai/dto/openai.dto';
 import { HttpStatus } from '@api/routes/index.router';
 import { openaiController } from '@api/server.module';
 import {
@@ -57,7 +53,7 @@ export class OpenaiRouter extends RouterBroker {
           request: req,
           schema: openaiSchema,
           ClassRef: OpenaiDto,
-          execute: (instance, data) => openaiController.createOpenai(instance, data),
+          execute: (instance, data) => openaiController.createBot(instance, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -67,7 +63,7 @@ export class OpenaiRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => openaiController.findOpenai(instance),
+          execute: (instance) => openaiController.findBot(instance),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -77,7 +73,7 @@ export class OpenaiRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => openaiController.fetchOpenai(instance, req.params.openaiBotId),
+          execute: (instance) => openaiController.fetchBot(instance, req.params.openaiBotId),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -87,7 +83,7 @@ export class OpenaiRouter extends RouterBroker {
           request: req,
           schema: openaiSchema,
           ClassRef: OpenaiDto,
-          execute: (instance, data) => openaiController.updateOpenai(instance, req.params.openaiBotId, data),
+          execute: (instance, data) => openaiController.updateBot(instance, req.params.openaiBotId, data),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -97,7 +93,7 @@ export class OpenaiRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => openaiController.deleteOpenai(instance, req.params.openaiBotId),
+          execute: (instance) => openaiController.deleteBot(instance, req.params.openaiBotId),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -143,10 +139,10 @@ export class OpenaiRouter extends RouterBroker {
         res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('ignoreJid'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<OpenaiIgnoreJidDto>({
+        const response = await this.dataValidate<IgnoreJidDto>({
           request: req,
           schema: openaiIgnoreJidSchema,
-          ClassRef: OpenaiIgnoreJidDto,
+          ClassRef: IgnoreJidDto,
           execute: (instance, data) => openaiController.ignoreJid(instance, data),
         });
 
