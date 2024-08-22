@@ -11,6 +11,9 @@ const logger = new Logger('KwikController');
 export class KwikController {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
+  private isTextMessage(message: any) {
+    return message.messageType === 'conversation' || message.messageType === 'extendedTextMessage';
+  }
   public async fetchChats({ instanceName }: InstanceDto, limit: number, skip: number, sort: any) {
     const db = configService.get<Database>('DATABASE');
     const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
@@ -59,7 +62,7 @@ export class KwikController {
           labels: chat.labels,
           owner: chat.owner,
           last_message_timestamp: msg.lastAllMsgTimestamp,
-          message: lastMsg[0].message,
+          message: this.isTextMessage(lastMsg[0]) ? lastMsg[0].message : null,
           message_type: lastMsg[0].messageType,
           phone_num: null,
           profile_picture: null,
