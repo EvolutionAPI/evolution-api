@@ -7,6 +7,7 @@
 * Generic Bot Integration
 * Option to disable chatwoot bot contact with CHATWOOT_BOT_CONTACT
 * Added flowise integration
+* Added evolution channel on instance create
 
 ### Fixed
 

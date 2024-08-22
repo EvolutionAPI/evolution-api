@@ -1,6 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
+import { Integration } from '@api/types/wa.types';
 import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { Dify, DifySetting, IntegrationSession } from '@prisma/client';
@@ -91,9 +92,10 @@ export class DifyService {
           payload.query = contentSplit[2] || content;
         }
 
-        await instance.client.presenceSubscribe(remoteJid);
-
-        await instance.client.sendPresenceUpdate('composing', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
 
         const response = await axios.post(endpoint, payload, {
           headers: {
@@ -101,7 +103,8 @@ export class DifyService {
           },
         });
 
-        await instance.client.sendPresenceUpdate('paused', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS)
+          await instance.client.sendPresenceUpdate('paused', remoteJid);
 
         const message = response?.data?.answer;
         const conversationId = response?.data?.conversation_id;
@@ -149,9 +152,10 @@ export class DifyService {
           payload.inputs.query = contentSplit[2] || content;
         }
 
-        await instance.client.presenceSubscribe(remoteJid);
-
-        await instance.client.sendPresenceUpdate('composing', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
 
         const response = await axios.post(endpoint, payload, {
           headers: {
@@ -159,7 +163,8 @@ export class DifyService {
           },
         });
 
-        await instance.client.sendPresenceUpdate('paused', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS)
+          await instance.client.sendPresenceUpdate('paused', remoteJid);
 
         const message = response?.data?.answer;
         const conversationId = response?.data?.conversation_id;
@@ -207,9 +212,10 @@ export class DifyService {
           payload.query = contentSplit[2] || content;
         }
 
-        await instance.client.presenceSubscribe(remoteJid);
-
-        await instance.client.sendPresenceUpdate('composing', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
 
         const response = await axios.post(endpoint, payload, {
           headers: {
@@ -243,7 +249,8 @@ export class DifyService {
         });
 
         reader.on('end', async () => {
-          await instance.client.sendPresenceUpdate('paused', remoteJid);
+          if (instance.integration === Integration.WHATSAPP_BAILEYS)
+            await instance.client.sendPresenceUpdate('paused', remoteJid);
 
           const message = answer;
 
@@ -297,9 +304,10 @@ export class DifyService {
           payload.inputs.query = contentSplit[2] || content;
         }
 
-        await instance.client.presenceSubscribe(remoteJid);
-
-        await instance.client.sendPresenceUpdate('composing', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
 
         const response = await axios.post(endpoint, payload, {
           headers: {
@@ -307,7 +315,8 @@ export class DifyService {
           },
         });
 
-        await instance.client.sendPresenceUpdate('paused', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS)
+          await instance.client.sendPresenceUpdate('paused', remoteJid);
 
         const message = response?.data?.data.outputs.text;
 

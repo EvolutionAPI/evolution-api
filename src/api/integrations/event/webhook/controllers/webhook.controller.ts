@@ -187,7 +187,7 @@ export class WebhookController extends EventController implements EventControlle
     }
   }
 
-  public async receiveWebhook(data: any) {
+  public async receiveWebhookMeta(data: any) {
     if (data.object === 'whatsapp_business_account') {
       if (data.entry[0]?.changes[0]?.field === 'message_template_status_update') {
         const template = await this.prismaRepository.template.findFirst({
@@ -213,7 +213,7 @@ export class WebhookController extends EventController implements EventControlle
         const numberId = entry.changes[0].value.metadata.phone_number_id;
 
         if (!numberId) {
-          this.logger.error('WebhookService -> receiveWebhook -> numberId not found');
+          this.logger.error('WebhookService -> receiveWebhookMeta -> numberId not found');
           return;
         }
 
@@ -222,7 +222,7 @@ export class WebhookController extends EventController implements EventControlle
         });
 
         if (!instance) {
-          this.logger.error('WebhookService -> receiveWebhook -> instance not found');
+          this.logger.error('WebhookService -> receiveWebhookMeta -> instance not found');
           return;
         }
 
@@ -233,5 +233,29 @@ export class WebhookController extends EventController implements EventControlle
     }
 
     return;
+  }
+
+  public async receiveWebhookEvolution(data: any) {
+    const numberId = data.numberId;
+
+    if (!numberId) {
+      this.logger.error('WebhookService -> receiveWebhookEvolution -> numberId not found');
+      return;
+    }
+
+    const instance = await this.prismaRepository.instance.findFirst({
+      where: { number: numberId },
+    });
+
+    if (!instance) {
+      this.logger.error('WebhookService -> receiveWebhook -> instance not found');
+      return;
+    }
+
+    await this.waMonitor.waInstances[instance.name].connectToWhatsapp(data);
+
+    return {
+      status: 'success',
+    };
   }
 }

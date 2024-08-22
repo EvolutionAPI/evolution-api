@@ -1,6 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
+import { Integration } from '@api/types/wa.types';
 import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { GenericBot, GenericSetting, IntegrationSession } from '@prisma/client';
@@ -73,9 +74,10 @@ export class GenericService {
       payload.query = contentSplit[2] || content;
     }
 
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
+    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+      await instance.client.presenceSubscribe(remoteJid);
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+    }
 
     let headers: any = {
       'Content-Type': 'application/json',
@@ -92,7 +94,8 @@ export class GenericService {
       headers,
     });
 
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
+    if (instance.integration === Integration.WHATSAPP_BAILEYS)
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
 
     const message = response?.data?.answer;
 

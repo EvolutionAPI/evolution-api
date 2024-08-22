@@ -32,14 +32,20 @@ export class WebhookRouter extends RouterBroker {
 
         res.status(HttpStatus.OK).json(response);
       })
-      .get('meta', async (req, res) => {
+      .get(this.routerPath('meta', false), async (req, res) => {
         if (req.query['hub.verify_token'] === configService.get<WaBusiness>('WA_BUSINESS').TOKEN_WEBHOOK)
           res.send(req.query['hub.challenge']);
         else res.send('Error, wrong validation token');
       })
-      .post('meta', async (req, res) => {
+      .post(this.routerPath('meta', false), async (req, res) => {
         const { body } = req;
-        const response = await webhookController.receiveWebhook(body);
+        const response = await webhookController.receiveWebhookMeta(body);
+
+        return res.status(200).json(response);
+      })
+      .post(this.routerPath('evolution', false), async (req, res) => {
+        const { body } = req;
+        const response = await webhookController.receiveWebhookEvolution(body);
 
         return res.status(200).json(response);
       });

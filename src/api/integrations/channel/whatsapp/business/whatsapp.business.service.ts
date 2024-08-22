@@ -85,17 +85,10 @@ export class BusinessStartupService extends ChannelStartupService {
   public async profilePicture(number: string) {
     const jid = this.createJid(number);
 
-    try {
-      return {
-        wuid: jid,
-        profilePictureUrl: await this.client.profilePictureUrl(jid, 'image'),
-      };
-    } catch (error) {
-      return {
-        wuid: jid,
-        profilePictureUrl: null,
-      };
-    }
+    return {
+      wuid: jid,
+      profilePictureUrl: null,
+    };
   }
 
   public async getProfileName() {
