@@ -23,9 +23,9 @@ export class KwikController {
       {
         $group: {
           _id: '$key.remoteJid',
-          lastAllMsgTimestamp: { $max: '$messageTimestamp' },
+          lastAllMsgTimestamp: { $max: '$messageTimestamp' }
         },
-      },
+    }
     ];
 
     if (sort === 'asc') {
@@ -43,27 +43,39 @@ export class KwikController {
     }
 
     const msgs = await messages.aggregate(pipeline).toArray();
-    const mm = await Promise.all(
-      msgs.map(async (msg) => {
-        const chat = await connection.collection('chats').findOne({ id: msg._id });
-        const lastMsg = await this.waMonitor.waInstances[instanceName].repository.message.find({
-          where: {
-            owner: instanceName,
-            messageTimestamp: msg.lastAllMsgTimestamp,
-            key: {
-              remoteJid: chat.id,
-            },
-          },
-          limit: 1,
-        });
+    const chat_id_list = msgs.map(m=>m._id)
+    const chat_promises = connection.collection('chats').find({ id: { $in: chat_id_list}}).toArray()
+    const last_messages_promises = connection.collection('messages').find({
+      owner: instanceName,
+      messageTimestamp: { $in : msgs.map(m=>m.lastAllMsgTimestamp)},
+      "key.remoteJid": { $in: chat_id_list}
+    }).toArray()
+    const contacts_promises = connection.collection('contacts').find({
+      owner: instanceName,
+      id: { $in: chat_id_list},
+    }).toArray()
+
+    const group_promises = chat_id_list.filter(g => g.includes('@g.us')).map(g=> this.waMonitor.waInstances[instanceName].findGroup({groupJid: g}, "inner"))
+
+    const [chats_solved, last_messages_solved, contacts_solved, ...groups_solved] = await Promise.all([chat_promises, last_messages_promises, contacts_promises, ...group_promises])
+
+    const chats = Object.fromEntries(chats_solved.map(m => ([m.id, m])))
+    const last_messages = Object.fromEntries(last_messages_solved.map(m => ([m.key.remoteJid, m])))
+    const contacts = Object.fromEntries(contacts_solved.map(c => ([c.id, c])))
+    const groups = Object.fromEntries(groups_solved.map(g => {if (g) return [g.id, g]}))
+
+        
+    const mm = msgs.map((msg) => {
+        const chat = chats[String(msg._id)]
+        const lastMsg = last_messages[String(msg._id)]
 
         const chat_data = {
           id: chat.id,
           labels: chat.labels,
           owner: chat.owner,
           last_message_timestamp: msg.lastAllMsgTimestamp,
-          message: this.isTextMessage(lastMsg[0]) ? lastMsg[0].message : null,
-          message_type: lastMsg[0].messageType,
+          message: this.isTextMessage(lastMsg) ? lastMsg.message : null,
+          message_type: lastMsg.messageType,
           phone_num: null,
           profile_picture: null,
           name: null,
@@ -71,27 +83,25 @@ export class KwikController {
         };
 
         const info = chat.id.split('@');
-        logger.error(info);
         if (info[1] == 'g.us') {
           chat_data.type = 'GROUP';
+          const group = groups[String(msg._id)]
+          if (group){
+            chat_data.name = group.subject;
+            chat_data.profile_picture = group.pictureUrl;
+          }
         } else {
-          const contact = await this.waMonitor.waInstances[instanceName].fetchContacts({
-            where: {
-              owner: instanceName,
-              id: chat.id,
-            },
-          });
+          const contact = contacts[String(msg._id)]
           chat_data.type = 'CONTACT';
           chat_data.phone_num = info[0];
-          if (contact && contact.length > 0) {
-            chat_data.name = contact[0].pushName;
-            chat_data.profile_picture = contact[0].profilePictureUrl;
+          if (contact) {
+            chat_data.name = contact.pushName;
+            chat_data.profile_picture = contact.profilePictureUrl;
           }
         }
 
         return chat_data;
-      }),
-    );
+      })
 
     return mm;
   }

@@ -3287,7 +3287,7 @@ export class BaileysStartupService extends ChannelStartupService {
       };
     } catch (error) {
       if (reply === 'inner') {
-        return;
+        return {};
       }
       throw new NotFoundException('Error fetching group', error.toString());
     }
