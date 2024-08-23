@@ -12,6 +12,8 @@ import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { TemplateController } from './controllers/template.controller';
 import { ChannelController } from './integrations/channel/channel.controller';
+import { EvolutionController } from './integrations/channel/evolution/evolution.controller';
+import { MetaController } from './integrations/channel/meta/meta.controller';
 import { ChatbotController } from './integrations/chatbot/chatbot.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
@@ -102,7 +104,11 @@ export const labelController = new LabelController(waMonitor);
 
 export const eventController = new EventController(prismaRepository, waMonitor);
 export const chatbotController = new ChatbotController(prismaRepository, waMonitor);
-export const channelController = new ChannelController();
+export const channelController = new ChannelController(prismaRepository, waMonitor);
+
+// channels
+export const evolutionController = new EvolutionController(prismaRepository, waMonitor);
+export const metaController = new MetaController(prismaRepository, waMonitor);
 
 // events
 export const websocketController = new WebsocketController(prismaRepository, waMonitor);
