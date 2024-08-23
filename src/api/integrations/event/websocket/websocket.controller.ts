@@ -1,4 +1,3 @@
-import { EventDto } from '@api/integrations/event/event.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { configService, Cors, Log, Websocket } from '@config/env.config';
@@ -95,13 +94,13 @@ export class WebsocketController extends EventController implements EventControl
     }
 
     try {
-      const instance = (await this.get(instanceName)) as EventDto;
+      const instance = await this.get(instanceName);
 
-      if (!instance?.websocket?.enabled) {
+      if (!instance?.enabled) {
         return;
       }
 
-      if (Array.isArray(instance?.websocket.events) && instance?.websocket.events.includes(configEv)) {
+      if (Array.isArray(instance?.events) && instance?.events.includes(configEv)) {
         this.socket.of(`/${instanceName}`).emit(event, message);
 
         if (logEnabled) {
