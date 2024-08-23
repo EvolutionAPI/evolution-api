@@ -1,72 +1,51 @@
+import { EventDto } from '@api/integrations/event/event.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { wa } from '@api/types/wa.types';
 import { configService, Log, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { BadRequestException, NotFoundException } from '@exceptions';
+import { BadRequestException } from '@exceptions';
 import axios from 'axios';
 import { isURL } from 'class-validator';
 
-import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
-import { WebhookDto } from '../dto/webhook.dto';
+import { EmitData, EventController, EventControllerInterface } from '../event.controller';
 
 export class WebhookController extends EventController implements EventControllerInterface {
   private readonly logger = new Logger(WebhookController.name);
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
-    super(prismaRepository, waMonitor);
+    super(prismaRepository, waMonitor, true, 'webhook');
   }
-  integrationEnabled: boolean;
 
-  public async set(instanceName: string, data: WebhookDto): Promise<wa.LocalWebHook> {
-    if (!isURL(data.url, { require_tld: false })) {
+  override async set(instanceName: string, data: EventDto): Promise<wa.LocalWebHook> {
+    if (!isURL(data.webhook.url, { require_tld: false })) {
       throw new BadRequestException('Invalid "url" property');
     }
 
-    if (!data.enabled) {
-      data.events = [];
+    if (!data.webhook.enabled) {
+      data.webhook.events = [];
     } else {
-      if (0 === data.events.length) {
-        data.events = this.events;
+      if (0 === data.webhook.events.length) {
+        data.webhook.events = this.events;
       }
     }
-
-    await this.get(instanceName);
 
     return this.prisma.webhook.upsert({
       where: {
         instanceId: this.monitor.waInstances[instanceName].instanceId,
       },
       update: {
-        ...data,
+        ...data.webhook,
       },
       create: {
-        enabled: data.enabled,
-        events: data.events,
+        enabled: data.webhook.enabled,
+        events: data.webhook.events,
         instanceId: this.monitor.waInstances[instanceName].instanceId,
-        url: data.url,
-        webhookBase64: data.webhookBase64,
-        webhookByEvents: data.webhookByEvents,
+        url: data.webhook.url,
+        webhookBase64: data.webhook.base64,
+        webhookByEvents: data.webhook.byEvents,
       },
     });
-  }
-
-  public async get(instanceName: string): Promise<wa.LocalWebHook> {
-    if (undefined === this.monitor.waInstances[instanceName]) {
-      throw new NotFoundException('Instance not found');
-    }
-
-    const data = await this.prisma.webhook.findUnique({
-      where: {
-        instanceId: this.monitor.waInstances[instanceName].instanceId,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Instance webhook not found');
-    }
-
-    return data;
   }
 
   public async emit({
@@ -80,13 +59,14 @@ export class WebhookController extends EventController implements EventControlle
     apiKey,
     local,
   }: EmitData): Promise<void> {
-    const instanceWebhook = await this.get(instanceName);
-    if (!instanceWebhook || !instanceWebhook.enabled) {
+    const instance = (await this.get(instanceName)) as EventDto;
+
+    if (!instance || !instance.webhook.enabled) {
       return;
     }
 
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
-    const webhookLocal = instanceWebhook?.events;
+    const webhookLocal = instance.webhook?.events;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const enabledLog = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
@@ -95,7 +75,7 @@ export class WebhookController extends EventController implements EventControlle
       event,
       instance: instanceName,
       data,
-      destination: instanceWebhook?.url,
+      destination: instance.webhook?.url,
       date_time: dateTime,
       sender,
       server_url: serverUrl,
@@ -106,10 +86,10 @@ export class WebhookController extends EventController implements EventControlle
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;
 
-        if (instanceWebhook?.webhookByEvents) {
-          baseURL = `${instanceWebhook?.url}/${transformedWe}`;
+        if (instance.webhook?.byEvents) {
+          baseURL = `${instance.webhook?.url}/${transformedWe}`;
         } else {
-          baseURL = instanceWebhook?.url;
+          baseURL = instance.webhook?.url;
         }
 
         if (enabledLog) {
@@ -123,7 +103,7 @@ export class WebhookController extends EventController implements EventControlle
         }
 
         try {
-          if (instanceWebhook?.enabled && isURL(instanceWebhook.url, { require_tld: false })) {
+          if (instance.webhook?.enabled && isURL(instance.webhook.url, { require_tld: false })) {
             const httpService = axios.create({ baseURL });
 
             await httpService.post('', webhookData);
@@ -190,12 +170,13 @@ export class WebhookController extends EventController implements EventControlle
   public async receiveWebhook(data: any) {
     if (data.object === 'whatsapp_business_account') {
       if (data.entry[0]?.changes[0]?.field === 'message_template_status_update') {
-        const template = await this.prismaRepository.template.findFirst({
+        const template = await this.prisma.template.findFirst({
           where: { templateId: `${data.entry[0].changes[0].value.message_template_id}` },
         });
 
         if (!template) {
           console.log('template not found');
+
           return;
         }
 
@@ -209,29 +190,27 @@ export class WebhookController extends EventController implements EventControlle
         return;
       }
 
-      data.entry?.forEach(async (entry: any) => {
+      for (const entry of data.entry) {
         const numberId = entry.changes[0].value.metadata.phone_number_id;
 
         if (!numberId) {
           this.logger.error('WebhookService -> receiveWebhook -> numberId not found');
-          return;
+
+          continue;
         }
 
-        const instance = await this.prismaRepository.instance.findFirst({
+        const instance = await this.prisma.instance.findFirst({
           where: { number: numberId },
         });
 
         if (!instance) {
           this.logger.error('WebhookService -> receiveWebhook -> instance not found');
-          return;
+
+          continue;
         }
 
-        await this.waMonitor.waInstances[instance.name].connectToWhatsapp(data);
-
-        return;
-      });
+        await this.monitor.waInstances[instance.name].connectToWhatsapp(data);
+      }
     }
-
-    return;
   }
 }

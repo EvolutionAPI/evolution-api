@@ -1,7 +1,7 @@
+import { EventDto } from '@api/integrations/event/event.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
-import { rabbitmqController, sqsController, webhookController, websocketController } from '@api/server.module';
 import { WAMonitoringService } from '@api/services/monitor.service';
-import { Server } from 'http';
+import { wa } from '@api/types/wa.types';
 
 export type EmitData = {
   instanceName: string;
@@ -16,19 +16,27 @@ export type EmitData = {
 };
 
 export interface EventControllerInterface {
-  integrationEnabled: boolean;
   set(instanceName: string, data: any): Promise<any>;
   get(instanceName: string): Promise<any>;
   emit({ instanceName, origin, event, data, serverUrl, dateTime, sender, apiKey, local }: EmitData): Promise<void>;
 }
 
 export class EventController {
-  public prismaRepository: PrismaRepository;
-  public waMonitor: WAMonitoringService;
+  private prismaRepository: PrismaRepository;
+  private waMonitor: WAMonitoringService;
+  private integrationStatus: boolean;
+  private integrationName: string;
 
-  constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
+  constructor(
+    prismaRepository: PrismaRepository,
+    waMonitor: WAMonitoringService,
+    integrationStatus: boolean,
+    integrationName: string,
+  ) {
     this.prisma = prismaRepository;
     this.monitor = waMonitor;
+    this.status = integrationStatus;
+    this.name = integrationName;
   }
 
   public set prisma(prisma: PrismaRepository) {
@@ -45,6 +53,72 @@ export class EventController {
 
   public get monitor() {
     return this.waMonitor;
+  }
+
+  public set name(name: string) {
+    this.integrationName = name;
+  }
+
+  public get name() {
+    return this.integrationName;
+  }
+
+  public set status(status: boolean) {
+    this.integrationStatus = status;
+  }
+
+  public get status() {
+    return this.integrationStatus;
+  }
+
+  public async set(instanceName: string, data: EventDto): Promise<wa.LocalEvent> {
+    if (!this.status) {
+      return;
+    }
+
+    if (!data[this.name].enabled) {
+      data[this.name].events = [];
+    } else {
+      if (0 === data[this.name].events.length) {
+        data[this.name].events = this.events;
+      }
+    }
+
+    return this.prisma[this.name].upsert({
+      where: {
+        instanceId: this.monitor.waInstances[instanceName].instanceId,
+      },
+      update: {
+        ...data,
+      },
+      create: {
+        enabled: data[this.name].enabled,
+        events: data[this.name].events,
+        instanceId: this.monitor.waInstances[instanceName].instanceId,
+      },
+    });
+  }
+
+  public async get(instanceName: string): Promise<wa.LocalEvent> {
+    if (!this.status) {
+      return;
+    }
+
+    if (undefined === this.monitor.waInstances[instanceName]) {
+      return null;
+    }
+
+    const data = await this.prisma[this.name].findUnique({
+      where: {
+        instanceId: this.monitor.waInstances[instanceName].instanceId,
+      },
+    });
+
+    if (!data) {
+      return null;
+    }
+
+    return data;
   }
 
   public readonly events = [
@@ -76,93 +150,4 @@ export class EventController {
     'REMOVE_INSTANCE',
     'LOGOUT_INSTANCE',
   ];
-
-  public init(httpServer: Server): void {
-    // websocket
-    websocketController.init(httpServer);
-
-    // rabbitmq
-    rabbitmqController.init();
-
-    // sqs
-    sqsController.init();
-  }
-
-  public async emit({
-    instanceName,
-    origin,
-    event,
-    data,
-    serverUrl,
-    dateTime,
-    sender,
-    apiKey,
-    local,
-  }: {
-    instanceName: string;
-    origin: string;
-    event: string;
-    data: Object;
-    serverUrl: string;
-    dateTime: string;
-    sender: string;
-    apiKey?: string;
-    local?: boolean;
-  }): Promise<void> {
-    const emitData = {
-      instanceName,
-      origin,
-      event,
-      data,
-      serverUrl,
-      dateTime,
-      sender,
-      apiKey,
-      local,
-    };
-    // websocket
-    await websocketController.emit(emitData);
-
-    // rabbitmq
-    await rabbitmqController.emit(emitData);
-
-    // sqs
-    await sqsController.emit(emitData);
-
-    // webhook
-    await webhookController.emit(emitData);
-  }
-
-  public async setInstance(instanceName: string, data: any): Promise<any> {
-    // websocket
-    if (data.websocketEnabled)
-      await websocketController.set(instanceName, {
-        enabled: true,
-        events: data.websocketEvents,
-      });
-
-    // rabbitmq
-    if (data.rabbitmqEnabled)
-      await rabbitmqController.set(instanceName, {
-        enabled: true,
-        events: data.rabbitmqEvents,
-      });
-
-    // sqs
-    if (data.sqsEnabled)
-      await sqsController.set(instanceName, {
-        enabled: true,
-        events: data.sqsEvents,
-      });
-
-    // webhook
-    if (data.webhookEnabled)
-      await webhookController.set(instanceName, {
-        enabled: true,
-        events: data.webhookEvents,
-        url: data.webhookUrl,
-        webhookBase64: data.webhookBase64,
-        webhookByEvents: data.webhookByEvents,
-      });
-  }
 }

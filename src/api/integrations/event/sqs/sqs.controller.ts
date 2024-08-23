@@ -1,29 +1,27 @@
-import { SqsDto } from '@api/integrations/event/sqs/dto/sqs.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
-import { wa } from '@api/types/wa.types';
 import { SQS } from '@aws-sdk/client-sqs';
 import { configService, Log, Sqs } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { NotFoundException } from '@exceptions';
 
-import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../event.controller';
 
 export class SqsController extends EventController implements EventControllerInterface {
   private sqs: SQS;
   private readonly logger = new Logger(SqsController.name);
-  integrationEnabled = configService.get<Sqs>('SQS')?.ENABLED;
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
-    super(prismaRepository, waMonitor);
+    super(prismaRepository, waMonitor, configService.get<Sqs>('SQS')?.ENABLED, 'sqs');
   }
 
   public init(): void {
-    if (!this.integrationEnabled) return;
+    if (!this.status) {
+      return;
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    new Promise<void>((resolve, reject) => {
+    new Promise<void>((resolve) => {
       const awsConfig = configService.get<Sqs>('SQS');
+
       this.sqs = new SQS({
         credentials: {
           accessKeyId: awsConfig.ACCESS_KEY_ID,
@@ -34,6 +32,7 @@ export class SqsController extends EventController implements EventControllerInt
       });
 
       this.logger.info('SQS initialized');
+
       resolve();
     });
   }
@@ -46,57 +45,6 @@ export class SqsController extends EventController implements EventControllerInt
     return this.sqs;
   }
 
-  public async set(instanceName: string, data: SqsDto): Promise<wa.LocalSqs> {
-    if (!this.integrationEnabled) return;
-
-    if (!data.enabled) {
-      data.events = [];
-    } else {
-      if (0 === data.events.length) {
-        data.events = this.events;
-      }
-    }
-
-    try {
-      await this.get(instanceName);
-
-      return this.prisma.sqs.update({
-        where: {
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-        data,
-      });
-    } catch (err) {
-      return this.prisma.sqs.create({
-        data: {
-          enabled: data.enabled,
-          events: data.events,
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-      });
-    }
-  }
-
-  public async get(instanceName: string): Promise<wa.LocalSqs> {
-    if (!this.integrationEnabled) return;
-
-    if (undefined === this.monitor.waInstances[instanceName]) {
-      throw new NotFoundException('Instance not found');
-    }
-
-    const data = await this.prisma.sqs.findUnique({
-      where: {
-        instanceId: this.monitor.waInstances[instanceName].instanceId,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Instance SQS not found');
-    }
-
-    return data;
-  }
-
   public async emit({
     instanceName,
     origin,
@@ -107,7 +55,9 @@ export class SqsController extends EventController implements EventControllerInt
     sender,
     apiKey,
   }: EmitData): Promise<void> {
-    if (!this.integrationEnabled) return;
+    if (!this.status) {
+      return;
+    }
 
     const instanceSqs = await this.get(instanceName);
     const sqsLocal = instanceSqs?.events;
@@ -117,11 +67,8 @@ export class SqsController extends EventController implements EventControllerInt
       if (this.sqs) {
         if (Array.isArray(sqsLocal) && sqsLocal.includes(we)) {
           const eventFormatted = `${event.replace('.', '_').toLowerCase()}`;
-
           const queueName = `${instanceName}_${eventFormatted}.fifo`;
-
           const sqsConfig = configService.get<Sqs>('SQS');
-
           const sqsUrl = `https://sqs.${sqsConfig.REGION}.amazonaws.com/${sqsConfig.ACCOUNT_ID}/${queueName}`;
 
           const message = {

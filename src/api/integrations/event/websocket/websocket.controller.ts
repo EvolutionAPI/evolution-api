@@ -1,28 +1,28 @@
-import { WebsocketDto } from '@api/integrations/event/websocket/dto/websocket.dto';
+import { EventDto } from '@api/integrations/event/event.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
-import { wa } from '@api/types/wa.types';
 import { configService, Cors, Log, Websocket } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { NotFoundException } from '@exceptions';
 import { Server } from 'http';
 import { Server as SocketIO } from 'socket.io';
 
-import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../event.controller';
 
 export class WebsocketController extends EventController implements EventControllerInterface {
   private io: SocketIO;
   private corsConfig: Array<any>;
   private readonly logger = new Logger(WebsocketController.name);
-  integrationEnabled = configService.get<Websocket>('WEBSOCKET')?.ENABLED;
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
-    super(prismaRepository, waMonitor);
+    super(prismaRepository, waMonitor, configService.get<Websocket>('WEBSOCKET')?.ENABLED, 'websocket');
+
     this.cors = configService.get<Cors>('CORS').ORIGIN;
   }
 
   public init(httpServer: Server): void {
-    if (!this.integrationEnabled) return;
+    if (!this.status) {
+      return;
+    }
 
     this.socket = new SocketIO(httpServer, {
       cors: {
@@ -57,57 +57,6 @@ export class WebsocketController extends EventController implements EventControl
     return this.io;
   }
 
-  public async set(instanceName: string, data: WebsocketDto): Promise<wa.LocalWebsocket> {
-    if (!this.integrationEnabled) return;
-
-    if (!data.enabled) {
-      data.events = [];
-    } else {
-      if (0 === data.events.length) {
-        data.events = this.events;
-      }
-    }
-
-    try {
-      await this.get(instanceName);
-
-      return this.prisma.websocket.update({
-        where: {
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-        data,
-      });
-    } catch (err) {
-      return this.prisma.websocket.create({
-        data: {
-          enabled: data.enabled,
-          events: data.events,
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-      });
-    }
-  }
-
-  public async get(instanceName: string): Promise<wa.LocalWebsocket> {
-    if (!this.integrationEnabled) return;
-
-    if (undefined === this.monitor.waInstances[instanceName]) {
-      throw new NotFoundException('Instance not found');
-    }
-
-    const data = await this.prisma.websocket.findUnique({
-      where: {
-        instanceId: this.monitor.waInstances[instanceName].instanceId,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Instance websocket not found');
-    }
-
-    return data;
-  }
-
   public async emit({
     instanceName,
     origin,
@@ -118,7 +67,9 @@ export class WebsocketController extends EventController implements EventControl
     sender,
     apiKey,
   }: EmitData): Promise<void> {
-    if (!this.integrationEnabled) return;
+    if (!this.status) {
+      return;
+    }
 
     const configEv = event.replace(/[.-]/gm, '_').toUpperCase();
     const logEnabled = configService.get<Log>('LOG').LEVEL.includes('WEBSOCKET');
@@ -144,13 +95,13 @@ export class WebsocketController extends EventController implements EventControl
     }
 
     try {
-      const instanceSocket = await this.get(instanceName);
+      const instance = (await this.get(instanceName)) as EventDto;
 
-      if (!instanceSocket?.enabled) {
+      if (!instance?.websocket.enabled) {
         return;
       }
 
-      if (Array.isArray(instanceSocket?.events) && instanceSocket?.events.includes(configEv)) {
+      if (Array.isArray(instance?.websocket.events) && instance?.websocket.events.includes(configEv)) {
         this.socket.of(`/${instanceName}`).emit(event, message);
 
         if (logEnabled) {

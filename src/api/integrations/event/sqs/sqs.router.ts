@@ -1,9 +1,9 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { SqsDto } from '@api/integrations/event/sqs/dto/sqs.dto';
-import { sqsController } from '@api/server.module';
+import { EventDto } from '@api/integrations/event/event.dto';
 import { HttpStatus } from '@api/routes/index.router';
-import { instanceSchema, sqsSchema } from '@validate/validate.schema';
+import { eventManager } from '@api/server.module';
+import { eventSchema, instanceSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
 export class SqsRouter extends RouterBroker {
@@ -11,11 +11,11 @@ export class SqsRouter extends RouterBroker {
     super();
     this.router
       .post(this.routerPath('set'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<SqsDto>({
+        const response = await this.dataValidate<EventDto>({
           request: req,
-          schema: sqsSchema,
-          ClassRef: SqsDto,
-          execute: (instance, data) => sqsController.set(instance.instanceName, data),
+          schema: eventSchema,
+          ClassRef: EventDto,
+          execute: (instance, data) => eventManager.sqs.set(instance.instanceName, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -25,7 +25,7 @@ export class SqsRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => sqsController.get(instance.instanceName),
+          execute: (instance) => eventManager.sqs.get(instance.instanceName),
         });
 
         res.status(HttpStatus.OK).json(response);

@@ -7,7 +7,7 @@ import { DifyService } from '@api/integrations/chatbot/dify/services/dify.servic
 import { OpenaiService } from '@api/integrations/chatbot/openai/services/openai.service';
 import { TypebotService } from '@api/integrations/chatbot/typebot/services/typebot.service';
 import { PrismaRepository, Query } from '@api/repository/repository.service';
-import { eventController, waMonitor } from '@api/server.module';
+import { eventManager, waMonitor } from '@api/server.module';
 import { Events, wa } from '@api/types/wa.types';
 import { Auth, Chatwoot, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
@@ -392,7 +392,7 @@ export class ChannelStartupService {
 
     const instanceApikey = this.token || 'Apikey not found';
 
-    await eventController.emit({
+    await eventManager.emit({
       instanceName: this.instance.name,
       origin: ChannelStartupService.name,
       event,

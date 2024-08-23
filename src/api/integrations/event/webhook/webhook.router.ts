@@ -1,23 +1,22 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
+import { EventDto } from '@api/integrations/event/event.dto';
 import { HttpStatus } from '@api/routes/index.router';
-import { webhookController } from '@api/server.module';
+import { eventManager } from '@api/server.module';
 import { ConfigService, WaBusiness } from '@config/env.config';
 import { instanceSchema, webhookSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
-
-import { WebhookDto } from '../dto/webhook.dto';
 
 export class WebhookRouter extends RouterBroker {
   constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('set'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<WebhookDto>({
+        const response = await this.dataValidate<EventDto>({
           request: req,
           schema: webhookSchema,
-          ClassRef: WebhookDto,
-          execute: (instance, data) => webhookController.set(instance.instanceName, data),
+          ClassRef: EventDto,
+          execute: (instance, data) => eventManager.webhook.set(instance.instanceName, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -27,7 +26,7 @@ export class WebhookRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => webhookController.get(instance.instanceName),
+          execute: (instance) => eventManager.webhook.get(instance.instanceName),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -39,7 +38,7 @@ export class WebhookRouter extends RouterBroker {
       })
       .post('meta', async (req, res) => {
         const { body } = req;
-        const response = await webhookController.receiveWebhook(body);
+        const response = await eventManager.webhook.receiveWebhook(body);
 
         return res.status(200).json(response);
       });

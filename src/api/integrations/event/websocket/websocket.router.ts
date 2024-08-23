@@ -1,21 +1,21 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { RabbitmqDto } from '@api/integrations/event/rabbitmq/dto/rabbitmq.dto';
-import { rabbitmqController } from '@api/server.module';
+import { EventDto } from '@api/integrations/event/event.dto';
 import { HttpStatus } from '@api/routes/index.router';
-import { instanceSchema, rabbitmqSchema } from '@validate/validate.schema';
+import { eventManager } from '@api/server.module';
+import { eventSchema, instanceSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
-export class RabbitmqRouter extends RouterBroker {
+export class WebsocketRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('set'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<RabbitmqDto>({
+        const response = await this.dataValidate<EventDto>({
           request: req,
-          schema: rabbitmqSchema,
-          ClassRef: RabbitmqDto,
-          execute: (instance, data) => rabbitmqController.set(instance.instanceName, data),
+          schema: eventSchema,
+          ClassRef: EventDto,
+          execute: (instance, data) => eventManager.websocket.set(instance.instanceName, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -25,7 +25,7 @@ export class RabbitmqRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => rabbitmqController.get(instance.instanceName),
+          execute: (instance) => eventManager.websocket.get(instance.instanceName),
         });
 
         res.status(HttpStatus.OK).json(response);
