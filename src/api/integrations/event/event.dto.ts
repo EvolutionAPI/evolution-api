@@ -2,7 +2,7 @@ import { Constructor } from '@api/integrations/integration.dto';
 
 export class EventDto {
   webhook?: {
-    enabled: boolean;
+    enabled?: boolean;
     events?: string[];
     url?: string;
     byEvents?: boolean;
@@ -10,17 +10,17 @@ export class EventDto {
   };
 
   websocket?: {
-    enabled: boolean;
+    enabled?: boolean;
     events?: string[];
   };
 
   sqs?: {
-    enabled: boolean;
+    enabled?: boolean;
     events?: string[];
   };
 
   rabbitmq?: {
-    enabled: boolean;
+    enabled?: boolean;
     events?: string[];
   };
 }
@@ -28,7 +28,7 @@ export class EventDto {
 export function EventInstanceMixin<TBase extends Constructor>(Base: TBase) {
   return class extends Base {
     webhook?: {
-      enabled: boolean;
+      enabled?: boolean;
       events?: string[];
       url?: string;
       byEvents?: boolean;
@@ -36,17 +36,17 @@ export function EventInstanceMixin<TBase extends Constructor>(Base: TBase) {
     };
 
     websocket?: {
-      enabled: boolean;
+      enabled?: boolean;
       events?: string[];
     };
 
     sqs?: {
-      enabled: boolean;
+      enabled?: boolean;
       events?: string[];
     };
 
     rabbitmq?: {
-      enabled: boolean;
+      enabled?: boolean;
       events?: string[];
     };
   };

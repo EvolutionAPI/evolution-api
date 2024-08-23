@@ -8,11 +8,11 @@ import { Events } from '@api/types/wa.types';
 import { Auth, configService, HttpServer, Typebot } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
+import { Typebot as TypebotModel } from '@prisma/client';
 import { getConversationMessage } from '@utils/getConversationMessage';
 import axios from 'axios';
 
 import { ChatbotController, ChatbotControllerInterface } from '../../chatbot.controller';
-import { Typebot as TypebotModel } from '@prisma/client';
 
 export class TypebotController extends ChatbotController implements ChatbotControllerInterface {
   constructor(

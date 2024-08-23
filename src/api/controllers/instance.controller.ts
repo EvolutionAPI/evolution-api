@@ -150,18 +150,18 @@ export class InstanceController {
           },
           hash,
           webhook: {
-            webhookUrl: instanceData.webhook.url,
-            webhookByEvents: instanceData.webhook.byEvents,
-            webhookBase64: instanceData.webhook.base64,
+            webhookUrl: instanceData?.webhook?.url,
+            webhookByEvents: instanceData?.webhook?.byEvents,
+            webhookBase64: instanceData?.webhook?.base64,
           },
           websocket: {
-            enabled: instanceData.websocket.enabled,
+            enabled: instanceData?.websocket?.enabled,
           },
           rabbitmq: {
-            enabled: instanceData.rabbitmq.enabled,
+            enabled: instanceData?.rabbitmq?.enabled,
           },
           sqs: {
-            enabled: instanceData.sqs.enabled,
+            enabled: instanceData?.sqs?.enabled,
           },
           settings,
           qrcode: getQrcode,
@@ -237,18 +237,18 @@ export class InstanceController {
         },
         hash,
         webhook: {
-          webhookUrl: instanceData.webhook.url,
-          webhookByEvents: instanceData.webhook.byEvents,
-          webhookBase64: instanceData.webhook.base64,
+          webhookUrl: instanceData?.webhook?.url,
+          webhookByEvents: instanceData?.webhook?.byEvents,
+          webhookBase64: instanceData?.webhook?.base64,
         },
         websocket: {
-          enabled: instanceData.websocket.enabled,
+          enabled: instanceData?.websocket?.enabled,
         },
         rabbitmq: {
-          enabled: instanceData.rabbitmq.enabled,
+          enabled: instanceData?.rabbitmq?.enabled,
         },
         sqs: {
-          enabled: instanceData.sqs.enabled,
+          enabled: instanceData?.sqs?.enabled,
         },
         settings,
         chatwoot: {
@@ -269,6 +269,7 @@ export class InstanceController {
         },
       };
     } catch (error) {
+      this.waMonitor.deleteInstance(instanceData.instanceName);
       this.logger.error(isArray(error.message) ? error.message[0] : error.message);
       throw new BadRequestException(isArray(error.message) ? error.message[0] : error.message);
     }

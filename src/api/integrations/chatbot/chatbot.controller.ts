@@ -2,7 +2,6 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import {
   difyController,
-  eventManager,
   flowiseController,
   genericController,
   openaiController,
@@ -90,30 +89,15 @@ export class ChatbotController {
       pushName,
       isIntegration,
     };
-    // generic
     await genericController.emit(emitData);
 
-    // typebot
     await typebotController.emit(emitData);
 
-    // openai
     await openaiController.emit(emitData);
 
-    // dify
     await difyController.emit(emitData);
 
-    // flowise
     await flowiseController.emit(emitData);
-  }
-
-  public async setInstance(instanceName: string, data: InstanceDto): Promise<any> {
-    if (data.websocket.enabled)
-      await eventManager.websocket.set(instanceName, {
-        websocket: {
-          enabled: true,
-          events: data.websocket.events,
-        },
-      });
   }
 
   public processDebounce(

@@ -207,6 +207,14 @@ export class WAMonitoringService {
     }
   }
 
+  public deleteInstance(instanceName: string) {
+    try {
+      this.eventEmitter.emit('remove.instance', instanceName, 'inner');
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   private async setInstance(instanceData: InstanceDto) {
     const instance = channelController.init(instanceData, {
       configService: this.configService,

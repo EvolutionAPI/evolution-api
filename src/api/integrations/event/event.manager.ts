@@ -96,35 +96,39 @@ export class EventManager {
   }
 
   public async setInstance(instanceName: string, data: any): Promise<any> {
-    await this.websocket.set(instanceName, {
-      websocket: {
-        enabled: data.websocket?.enabled,
-        events: data.websocket?.events,
-      },
-    });
+    if (data.websocket)
+      await this.websocket.set(instanceName, {
+        websocket: {
+          enabled: data.websocket?.enabled,
+          events: data.websocket?.events,
+        },
+      });
 
-    await this.rabbitmq.set(instanceName, {
-      rabbitmq: {
-        enabled: data.rabbitmq?.enabled,
-        events: data.rabbitmq?.events,
-      },
-    });
+    if (data.rabbitmq)
+      await this.rabbitmq.set(instanceName, {
+        rabbitmq: {
+          enabled: data.rabbitmq?.enabled,
+          events: data.rabbitmq?.events,
+        },
+      });
 
-    await this.sqs.set(instanceName, {
-      sqs: {
-        enabled: data.sqs?.enabled,
-        events: data.sqs?.events,
-      },
-    });
+    if (data.sqs)
+      await this.sqs.set(instanceName, {
+        sqs: {
+          enabled: data.sqs?.enabled,
+          events: data.sqs?.events,
+        },
+      });
 
-    await this.webhook.set(instanceName, {
-      webhook: {
-        enabled: data.webhook?.enabled,
-        events: data.webhook?.events,
-        url: data.webhook.url,
-        base64: data.webhook.base64,
-        byEvents: data.webhook.byEvents,
-      },
-    });
+    if (data.webhook)
+      await this.webhook.set(instanceName, {
+        webhook: {
+          enabled: data.webhook?.enabled,
+          events: data.webhook?.events,
+          url: data.webhook?.url,
+          base64: data.webhook?.base64,
+          byEvents: data.webhook?.byEvents,
+        },
+      });
   }
 }
