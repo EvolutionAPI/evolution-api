@@ -92,7 +92,6 @@ import makeWASocket, {
   getContentType,
   getDevice,
   GroupMetadata,
-  // GroupParticipant,
   isJidBroadcast,
   isJidGroup,
   isJidNewsletter,
