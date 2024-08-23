@@ -12,6 +12,7 @@ import { getConversationMessage } from '@utils/getConversationMessage';
 import axios from 'axios';
 
 import { ChatbotController, ChatbotControllerInterface } from '../../chatbot.controller';
+import { Typebot as TypebotModel } from '@prisma/client';
 
 export class TypebotController extends ChatbotController implements ChatbotControllerInterface {
   constructor(
@@ -1001,13 +1002,13 @@ export class TypebotController extends ChatbotController implements ChatbotContr
 
       const content = getConversationMessage(msg);
 
-      const findBot = await this.findBotTrigger(
+      const findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
         instance,
         session,
-      );
+      )) as TypebotModel;
 
       if (!findBot) return;
 

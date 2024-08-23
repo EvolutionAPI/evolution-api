@@ -2,11 +2,11 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import {
   difyController,
+  eventManager,
   flowiseController,
   genericController,
   openaiController,
   typebotController,
-  websocketController,
 } from '@api/server.module';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
@@ -106,12 +106,13 @@ export class ChatbotController {
     await flowiseController.emit(emitData);
   }
 
-  public async setInstance(instanceName: string, data: any): Promise<any> {
-    // chatwoot
-    if (data.websocketEnabled)
-      await websocketController.set(instanceName, {
-        enabled: true,
-        events: data.websocketEvents,
+  public async setInstance(instanceName: string, data: InstanceDto): Promise<any> {
+    if (data.websocket.enabled)
+      await eventManager.websocket.set(instanceName, {
+        websocket: {
+          enabled: true,
+          events: data.websocket.events,
+        },
       });
   }
 
@@ -204,7 +205,7 @@ export class ChatbotController {
     instance: InstanceDto,
     session?: IntegrationSession,
   ) {
-    let findBot = null;
+    let findBot: null;
 
     if (!session) {
       findBot = await findBotByTrigger(botRepository, settingsRepository, content, instance.instanceId);
