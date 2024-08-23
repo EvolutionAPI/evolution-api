@@ -1032,7 +1032,7 @@ export class BaileysStartupService extends ChannelStartupService {
             pushName: received.pushName,
             message: { ...received.message },
             contextInfo: contentMsg?.contextInfo,
-            messageType: getContentType(received.message),
+            messageType: getContentType(received.message) || 'unknown',
             messageTimestamp: received.messageTimestamp as number,
             instanceId: this.instanceId,
             source: getDevice(received.key.id),
