@@ -353,8 +353,19 @@ export class ChannelStartupService {
   }
 
   public async setProxy(data: ProxyDto) {
-    await this.prismaRepository.proxy.create({
-      data: {
+    await this.prismaRepository.proxy.upsert({
+      where: {
+        instanceId: this.instanceId,
+      },
+      update: {
+        enabled: data?.enabled,
+        host: data.host,
+        port: data.port,
+        protocol: data.protocol,
+        username: data.username,
+        password: data.password,
+      },
+      create: {
         enabled: data?.enabled,
         host: data.host,
         port: data.port,
