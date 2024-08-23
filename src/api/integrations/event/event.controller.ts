@@ -89,7 +89,8 @@ export class EventController {
         instanceId: this.monitor.waInstances[instanceName].instanceId,
       },
       update: {
-        ...data[this.name],
+        enabled: data[this.name]?.enabled,
+        events: data[this.name].events,
       },
       create: {
         enabled: data[this.name]?.enabled,

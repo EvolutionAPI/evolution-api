@@ -30,18 +30,24 @@ export class WebhookController extends EventController implements EventControlle
       }
     }
 
+    console.log('data.webhook', data);
+
     return this.prisma.webhook.upsert({
       where: {
         instanceId: this.monitor.waInstances[instanceName].instanceId,
       },
       update: {
-        ...data.webhook,
+        enabled: data.webhook?.enabled,
+        events: data.webhook?.events,
+        url: data.webhook?.url,
+        webhookBase64: data.webhook.base64,
+        webhookByEvents: data.webhook.byEvents,
       },
       create: {
         enabled: data.webhook?.enabled,
-        events: data.webhook.events,
+        events: data.webhook?.events,
         instanceId: this.monitor.waInstances[instanceName].instanceId,
-        url: data.webhook.url,
+        url: data.webhook?.url,
         webhookBase64: data.webhook.base64,
         webhookByEvents: data.webhook.byEvents,
       },
