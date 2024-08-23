@@ -36,11 +36,7 @@ export class InstanceController {
 
   public async createInstance(instanceData: InstanceDto) {
     try {
-      if (!instanceData.token && instanceData.integration === Integration.WHATSAPP_BUSINESS) {
-        throw new BadRequestException('token is required');
-      }
-
-      const instance = channelController.init(instanceData.integration, {
+      const instance = channelController.init(instanceData, {
         configService: this.configService,
         eventEmitter: this.eventEmitter,
         prismaRepository: this.prismaRepository,

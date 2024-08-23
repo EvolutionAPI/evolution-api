@@ -1,6 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
+import { Integration } from '@api/types/wa.types';
 import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { Dify, DifySetting, IntegrationSession } from '@prisma/client';
@@ -41,6 +42,15 @@ export class DifyService {
     return content.includes('imageMessage');
   }
 
+  private isJSON(str: string): boolean {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   private async sendMessageToBot(
     instance: any,
     session: IntegrationSession,
@@ -50,228 +60,287 @@ export class DifyService {
     pushName: string,
     content: string,
   ) {
-    let endpoint: string = dify.apiUrl;
+    try {
+      let endpoint: string = dify.apiUrl;
 
-    if (dify.botType === 'chatBot') {
-      endpoint += '/chat-messages';
-      const payload: any = {
-        inputs: {
-          remoteJid: remoteJid,
-          pushName: pushName,
-          instanceName: instance.instanceName,
-          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-        },
-        query: content,
-        response_mode: 'blocking',
-        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
-        user: remoteJid,
-      };
-
-      if (this.isImageMessage(content)) {
-        const contentSplit = content.split('|');
-
-        payload.files = [
-          {
-            type: 'image',
-            transfer_method: 'remote_url',
-            url: contentSplit[1].split('?')[0],
+      if (dify.botType === 'chatBot') {
+        endpoint += '/chat-messages';
+        const payload: any = {
+          inputs: {
+            remoteJid: remoteJid,
+            pushName: pushName,
+            instanceName: instance.instanceName,
+            serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+            apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
           },
-        ];
-        payload.query = contentSplit[2] || content;
-      }
-
-      await instance.client.presenceSubscribe(remoteJid);
-
-      await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-      const response = await axios.post(endpoint, payload, {
-        headers: {
-          Authorization: `Bearer ${dify.apiKey}`,
-        },
-      });
-
-      await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-      const message = response?.data?.answer;
-
-      await this.sendMessageWhatsApp(instance, remoteJid, message, session, settings);
-    }
-
-    if (dify.botType === 'textGenerator') {
-      endpoint += '/completion-messages';
-      const payload: any = {
-        inputs: {
           query: content,
-          pushName: pushName,
-          remoteJid: remoteJid,
-          instanceName: instance.instanceName,
-          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-        },
-        response_mode: 'blocking',
-        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
-        user: remoteJid,
-      };
+          response_mode: 'blocking',
+          conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+          user: remoteJid,
+        };
 
-      if (this.isImageMessage(content)) {
-        const contentSplit = content.split('|');
+        if (this.isImageMessage(content)) {
+          const contentSplit = content.split('|');
 
-        payload.files = [
-          {
-            type: 'image',
-            transfer_method: 'remote_url',
-            url: contentSplit[1].split('?')[0],
-          },
-        ];
-        payload.inputs.query = contentSplit[2] || content;
-      }
-
-      await instance.client.presenceSubscribe(remoteJid);
-
-      await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-      const response = await axios.post(endpoint, payload, {
-        headers: {
-          Authorization: `Bearer ${dify.apiKey}`,
-        },
-      });
-
-      await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-      const message = response?.data?.answer;
-
-      await this.sendMessageWhatsApp(instance, remoteJid, message, session, settings);
-    }
-
-    if (dify.botType === 'agent') {
-      endpoint += '/chat-messages';
-      const payload: any = {
-        inputs: {
-          remoteJid: remoteJid,
-          pushName: pushName,
-          instanceName: instance.instanceName,
-          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-        },
-        query: content,
-        response_mode: 'streaming',
-        conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
-        user: remoteJid,
-      };
-
-      if (this.isImageMessage(content)) {
-        const contentSplit = content.split('|');
-
-        payload.files = [
-          {
-            type: 'image',
-            transfer_method: 'remote_url',
-            url: contentSplit[1].split('?')[0],
-          },
-        ];
-        payload.query = contentSplit[2] || content;
-      }
-
-      await instance.client.presenceSubscribe(remoteJid);
-
-      await instance.client.sendPresenceUpdate('composing', remoteJid);
-
-      const response = await axios.post(endpoint, payload, {
-        headers: {
-          Authorization: `Bearer ${dify.apiKey}`,
-        },
-        responseType: 'stream',
-      });
-
-      let conversationId;
-
-      const stream = response.data;
-      const reader = new Readable().wrap(stream);
-
-      reader.on('data', (chunk) => {
-        const data = chunk.toString();
-
-        try {
-          const event = JSON.parse(data);
-          if (event.event === 'agent_message') {
-            conversationId = conversationId ?? event?.conversation_id;
-          }
-        } catch (error) {
-          console.error('Error parsing stream data:', error);
+          payload.files = [
+            {
+              type: 'image',
+              transfer_method: 'remote_url',
+              url: contentSplit[1].split('?')[0],
+            },
+          ];
+          payload.query = contentSplit[2] || content;
         }
-      });
 
-      reader.on('end', async () => {
-        await instance.client.sendPresenceUpdate('paused', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
+
+        const response = await axios.post(endpoint, payload, {
+          headers: {
+            Authorization: `Bearer ${dify.apiKey}`,
+          },
+        });
+
+        if (instance.integration === Integration.WHATSAPP_BAILEYS)
+          await instance.client.sendPresenceUpdate('paused', remoteJid);
 
         const message = response?.data?.answer;
+        const conversationId = response?.data?.conversation_id;
 
-        await this.sendMessageWhatsApp(instance, remoteJid, message, session, settings);
-      });
+        await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
 
-      reader.on('error', (error) => {
-        console.error('Error reading stream:', error);
-      });
-
-      return;
-    }
-
-    if (dify.botType === 'workflow') {
-      endpoint += '/workflows/run';
-      const payload: any = {
-        inputs: {
-          query: content,
-          remoteJid: remoteJid,
-          pushName: pushName,
-          instanceName: instance.instanceName,
-          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-        },
-        response_mode: 'blocking',
-        user: remoteJid,
-      };
-
-      if (this.isImageMessage(content)) {
-        const contentSplit = content.split('|');
-
-        payload.files = [
-          {
-            type: 'image',
-            transfer_method: 'remote_url',
-            url: contentSplit[1].split('?')[0],
+        await this.prismaRepository.integrationSession.update({
+          where: {
+            id: session.id,
           },
-        ];
-        payload.inputs.query = contentSplit[2] || content;
+          data: {
+            status: 'opened',
+            awaitUser: true,
+            sessionId: session.sessionId === remoteJid ? conversationId : session.sessionId,
+          },
+        });
       }
 
-      await instance.client.presenceSubscribe(remoteJid);
+      if (dify.botType === 'textGenerator') {
+        endpoint += '/completion-messages';
+        const payload: any = {
+          inputs: {
+            query: content,
+            pushName: pushName,
+            remoteJid: remoteJid,
+            instanceName: instance.instanceName,
+            serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+            apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+          },
+          response_mode: 'blocking',
+          conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+          user: remoteJid,
+        };
 
-      await instance.client.sendPresenceUpdate('composing', remoteJid);
+        if (this.isImageMessage(content)) {
+          const contentSplit = content.split('|');
 
-      const response = await axios.post(endpoint, payload, {
-        headers: {
-          Authorization: `Bearer ${dify.apiKey}`,
-        },
-      });
+          payload.files = [
+            {
+              type: 'image',
+              transfer_method: 'remote_url',
+              url: contentSplit[1].split('?')[0],
+            },
+          ];
+          payload.inputs.query = contentSplit[2] || content;
+        }
 
-      await instance.client.sendPresenceUpdate('paused', remoteJid);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
 
-      const message = response?.data?.data.outputs.text;
+        const response = await axios.post(endpoint, payload, {
+          headers: {
+            Authorization: `Bearer ${dify.apiKey}`,
+          },
+        });
 
-      await this.sendMessageWhatsApp(instance, remoteJid, message, session, settings);
+        if (instance.integration === Integration.WHATSAPP_BAILEYS)
+          await instance.client.sendPresenceUpdate('paused', remoteJid);
 
+        const message = response?.data?.answer;
+        const conversationId = response?.data?.conversation_id;
+
+        await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+
+        await this.prismaRepository.integrationSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'opened',
+            awaitUser: true,
+            sessionId: session.sessionId === remoteJid ? conversationId : session.sessionId,
+          },
+        });
+      }
+
+      if (dify.botType === 'agent') {
+        endpoint += '/chat-messages';
+        const payload: any = {
+          inputs: {
+            remoteJid: remoteJid,
+            pushName: pushName,
+            instanceName: instance.instanceName,
+            serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+            apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+          },
+          query: content,
+          response_mode: 'streaming',
+          conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
+          user: remoteJid,
+        };
+
+        if (this.isImageMessage(content)) {
+          const contentSplit = content.split('|');
+
+          payload.files = [
+            {
+              type: 'image',
+              transfer_method: 'remote_url',
+              url: contentSplit[1].split('?')[0],
+            },
+          ];
+          payload.query = contentSplit[2] || content;
+        }
+
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
+
+        const response = await axios.post(endpoint, payload, {
+          headers: {
+            Authorization: `Bearer ${dify.apiKey}`,
+          },
+          responseType: 'stream',
+        });
+
+        let conversationId;
+        let answer = '';
+
+        const stream = response.data;
+        const reader = new Readable().wrap(stream);
+
+        reader.on('data', (chunk) => {
+          const data = chunk.toString();
+
+          try {
+            const cleanedData = data.replace(/^data:\s*/, '');
+
+            const event = JSON.parse(cleanedData);
+
+            if (event?.event === 'agent_message') {
+              console.log('event:', event);
+              conversationId = conversationId ?? event?.conversation_id;
+              answer += event?.answer;
+            }
+          } catch (error) {
+            console.error('Error parsing stream data:', error);
+          }
+        });
+
+        reader.on('end', async () => {
+          if (instance.integration === Integration.WHATSAPP_BAILEYS)
+            await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+          const message = answer;
+
+          console.log('message:', answer);
+          await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+
+          await this.prismaRepository.integrationSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'opened',
+              awaitUser: true,
+              sessionId: conversationId,
+            },
+          });
+        });
+
+        reader.on('error', (error) => {
+          console.error('Error reading stream:', error);
+        });
+
+        return;
+      }
+
+      if (dify.botType === 'workflow') {
+        endpoint += '/workflows/run';
+        const payload: any = {
+          inputs: {
+            query: content,
+            remoteJid: remoteJid,
+            pushName: pushName,
+            instanceName: instance.instanceName,
+            serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+            apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+          },
+          response_mode: 'blocking',
+          user: remoteJid,
+        };
+
+        if (this.isImageMessage(content)) {
+          const contentSplit = content.split('|');
+
+          payload.files = [
+            {
+              type: 'image',
+              transfer_method: 'remote_url',
+              url: contentSplit[1].split('?')[0],
+            },
+          ];
+          payload.inputs.query = contentSplit[2] || content;
+        }
+
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
+
+        const response = await axios.post(endpoint, payload, {
+          headers: {
+            Authorization: `Bearer ${dify.apiKey}`,
+          },
+        });
+
+        if (instance.integration === Integration.WHATSAPP_BAILEYS)
+          await instance.client.sendPresenceUpdate('paused', remoteJid);
+
+        const message = response?.data?.data.outputs.text;
+
+        await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+
+        await this.prismaRepository.integrationSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'opened',
+            awaitUser: true,
+          },
+        });
+
+        return;
+      }
+    } catch (error) {
+      this.logger.error(error.response?.data || error);
       return;
     }
   }
 
-  private async sendMessageWhatsApp(
-    instance: any,
-    remoteJid: string,
-    message: string,
-    session: IntegrationSession,
-    settings: DifySetting,
-  ) {
+  private async sendMessageWhatsApp(instance: any, remoteJid: string, message: string, settings: DifySetting) {
     const regex = /!?\[(.*?)\]\((.*?)\)/g;
 
     const result = [];
@@ -316,23 +385,6 @@ export class DifyService {
           false,
         );
       }
-    }
-
-    if (settings.keepOpen) {
-      await this.prismaRepository.integrationSession.update({
-        where: {
-          id: session.id,
-        },
-        data: {
-          status: 'closed',
-        },
-      });
-    } else {
-      await this.prismaRepository.integrationSession.delete({
-        where: {
-          id: session.id,
-        },
-      });
     }
 
     sendTelemetry('/message/sendText');

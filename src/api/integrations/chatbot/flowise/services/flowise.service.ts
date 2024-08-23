@@ -4,18 +4,18 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
 import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { GenericBot, GenericSetting, IntegrationSession } from '@prisma/client';
+import { Flowise, FlowiseSetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 
-export class GenericService {
+export class FlowiseService {
   constructor(
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
   ) {}
 
-  private readonly logger = new Logger('GenericService');
+  private readonly logger = new Logger('FlowiseService');
 
   public async createNewSession(instance: InstanceDto, data: any) {
     try {
@@ -44,34 +44,37 @@ export class GenericService {
   private async sendMessageToBot(
     instance: any,
     session: IntegrationSession,
-    bot: GenericBot,
+    bot: Flowise,
     remoteJid: string,
     pushName: string,
     content: string,
   ) {
     const payload: any = {
-      inputs: {
-        remoteJid: remoteJid,
-        pushName: pushName,
-        instanceName: instance.instanceName,
-        serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-        apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+      question: content,
+      overrideConfig: {
+        sessionId: remoteJid,
+        vars: {
+          remoteJid: remoteJid,
+          pushName: pushName,
+          instanceName: instance.instanceName,
+          serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        },
       },
-      query: content,
-      conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
-      user: remoteJid,
     };
 
     if (this.isImageMessage(content)) {
       const contentSplit = content.split('|');
 
-      payload.files = [
+      payload.uploads = [
         {
-          type: 'image',
-          url: contentSplit[1].split('?')[0],
+          data: contentSplit[1].split('?')[0],
+          type: 'url',
+          name: 'Flowise.png',
+          mime: 'image/png',
         },
       ];
-      payload.query = contentSplit[2] || content;
+      payload.question = contentSplit[2] || content;
     }
 
     if (instance.integration === Integration.WHATSAPP_BAILEYS) {
@@ -90,14 +93,18 @@ export class GenericService {
       };
     }
 
-    const response = await axios.post(bot.apiUrl, payload, {
+    const endpoint = bot.apiUrl;
+
+    if (!endpoint) return null;
+
+    const response = await axios.post(endpoint, payload, {
       headers,
     });
 
     if (instance.integration === Integration.WHATSAPP_BAILEYS)
       await instance.client.sendPresenceUpdate('paused', remoteJid);
 
-    const message = response?.data?.answer;
+    const message = response?.data?.text;
 
     return message;
   }
@@ -106,7 +113,7 @@ export class GenericService {
     instance: any,
     remoteJid: string,
     session: IntegrationSession,
-    settings: GenericSetting,
+    settings: FlowiseSetting,
     message: string,
   ) {
     const regex = /!?\[(.*?)\]\((.*?)\)/g;
@@ -173,8 +180,8 @@ export class GenericService {
   private async initNewSession(
     instance: any,
     remoteJid: string,
-    bot: GenericBot,
-    settings: GenericSetting,
+    bot: Flowise,
+    settings: FlowiseSetting,
     session: IntegrationSession,
     content: string,
     pushName?: string,
@@ -198,9 +205,9 @@ export class GenericService {
   public async processBot(
     instance: any,
     remoteJid: string,
-    bot: GenericBot,
+    bot: Flowise,
     session: IntegrationSession,
-    settings: GenericSetting,
+    settings: FlowiseSetting,
     content: string,
     pushName?: string,
   ) {

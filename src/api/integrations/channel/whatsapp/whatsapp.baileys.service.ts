@@ -92,10 +92,10 @@ import makeWASocket, {
   getContentType,
   getDevice,
   GroupMetadata,
-  GroupParticipant,
+  // GroupParticipant,
   isJidBroadcast,
   isJidGroup,
-  // isJidNewsletter,
+  isJidNewsletter,
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
@@ -144,7 +144,6 @@ export class BaileysStartupService extends ChannelStartupService {
   ) {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
     this.instance.qrcode = { count: 0 };
-    // this.recoveringMessages();
 
     this.authStateProvider = new AuthStateProvider(this.providerFiles);
   }
@@ -158,58 +157,6 @@ export class BaileysStartupService extends ChannelStartupService {
   public stateConnection: wa.StateConnection = { state: 'close' };
 
   public phoneNumber: string;
-
-  // private async recoveringMessages() {
-  //   const cacheConf = this.configService.get<CacheConf>('CACHE');
-
-  //   if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
-  //     this.logger.info('Recovering messages lost from cache');
-  //     setInterval(async () => {
-  //       this.baileysCache.keys().then((keys) => {
-  //         keys.forEach(async (key) => {
-  //           const data = await this.baileysCache.get(key.split(':')[2]);
-
-  //           let message: any;
-  //           let retry: number;
-
-  //           if (!data?.message) {
-  //             message = data;
-  //             retry = 0;
-  //           } else {
-  //             message = data.message;
-  //             retry = data.retry;
-  //           }
-
-  //           if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
-  //             retry = retry + 1;
-  //             this.logger.info(`Message absent from node, retrying to send, key: ${key.split(':')[2]} retry: ${retry}`);
-  //             if (message.messageStubParameters[1]) {
-  //               await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
-  //             }
-
-  //             this.baileysCache.set(key.split(':')[2], { message, retry });
-
-  //             if (retry >= 100) {
-  //               this.logger.warn(`Message absent from node, retry limit reached, key: ${key.split(':')[2]}`);
-  //               this.baileysCache.delete(key.split(':')[2]);
-  //               return;
-  //             }
-  //           }
-  //         });
-  //       });
-  //       // 15 minutes
-  //     }, 15 * 60 * 1000);
-  //   }
-  // }
-
-  // private async forceUpdateGroupMetadataCache() {
-  //   this.logger.verbose('Force update group metadata cache');
-  //   const groups = await this.fetchAllGroups({ getParticipants: 'false' });
-
-  //   for (const group of groups) {
-  //     await this.updateGroupMetadataCache(group.id);
-  //   }
-  // }
 
   public get connectionStatus() {
     return this.stateConnection;
@@ -418,17 +365,6 @@ export class BaileysStartupService extends ChannelStartupService {
       }
     }
 
-    // if (connection === 'connecting') {
-    //   if (this.configService.get<Database>('DATABASE').ENABLED) {
-    //     await this.prismaRepository.instance.update({
-    //       where: { id: this.instanceId },
-    //       data: {
-    //         connectionStatus: 'connecting',
-    //       },
-    //     });
-    //   }
-    // }
-
     if (connection === 'open') {
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       this.instance.profilePictureUrl = (await this.profilePicture(this.instance.wuid)).profilePictureUrl;
@@ -625,8 +561,8 @@ export class BaileysStartupService extends ChannelStartupService {
       shouldIgnoreJid: (jid) => {
         const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
         const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-        // const isNewsletter = !isJidNewsletter(jid);
-        const isNewsletter = jid && jid.includes('newsletter');
+        const isNewsletter = isJidNewsletter(jid);
+        // const isNewsletter = jid && jid.includes('newsletter');
 
         return isGroupJid || isBroadcast || isNewsletter;
       },
@@ -634,7 +570,7 @@ export class BaileysStartupService extends ChannelStartupService {
       shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
         return this.historySyncNotification(msg);
       },
-      // cachedGroupMetadata: this.getGroupMetadataCache,
+      cachedGroupMetadata: this.getGroupMetadataCache,
       userDevicesCache: this.userDevicesCache,
       transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
     };
@@ -797,6 +733,10 @@ export class BaileysStartupService extends ChannelStartupService {
               const instance = { instanceName: this.instance.name, instanceId: this.instance.id };
 
               const findParticipant = await this.chatwootService.findContact(instance, contact.remoteJid.split('@')[0]);
+
+              if (!findParticipant) {
+                return;
+              }
 
               this.chatwootService.updateContact(instance, findParticipant.id, {
                 name: contact.pushName,
@@ -1024,15 +964,15 @@ export class BaileysStartupService extends ChannelStartupService {
           if (received.message?.conversation || received.message?.extendedTextMessage?.text) {
             const text = received.message?.conversation || received.message?.extendedTextMessage?.text;
             if (text == 'requestPlaceholder' && !requestId) {
-              // const messageId = await this.client.requestPlaceholderResend(received.key);
-              // console.log('requested placeholder resync, id=', messageId);
+              const messageId = await this.client.requestPlaceholderResend(received.key);
+              console.log('requested placeholder resync, id=', messageId);
             } else if (requestId) {
               console.log('Message received from phone, id=', requestId, received);
             }
 
             if (text == 'onDemandHistSync') {
-              // const messageId = await this.client.fetchMessageHistory(50, received.key, received.messageTimestamp!);
-              // console.log('requested on-demand sync, id=', messageId);
+              const messageId = await this.client.fetchMessageHistory(50, received.key, received.messageTimestamp!);
+              console.log('requested on-demand sync, id=', messageId);
             }
           }
 
@@ -1092,7 +1032,7 @@ export class BaileysStartupService extends ChannelStartupService {
             pushName: received.pushName,
             message: { ...received.message },
             contextInfo: contentMsg?.contextInfo,
-            messageType: getContentType(received.message),
+            messageType: getContentType(received.message) || 'unknown',
             messageTimestamp: received.messageTimestamp as number,
             instanceId: this.instanceId,
             source: getDevice(received.key.id),
@@ -1737,7 +1677,7 @@ export class BaileysStartupService extends ChannelStartupService {
     quoted: any,
     messageId?: string,
     ephemeralExpiration?: number,
-    participants?: GroupParticipant[],
+    // participants?: GroupParticipant[],
   ) {
     const option: any = {
       quoted,
@@ -1745,10 +1685,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (isJidGroup(sender)) {
       option.useCachedGroupMetadata = true;
-      if (participants)
-        option.cachedGroupMetadata = async () => {
-          return { participants: participants as GroupParticipant[] };
-        };
+      // if (participants)
+      //   option.cachedGroupMetadata = async () => {
+      //     return { participants: participants as GroupParticipant[] };
+      //   };
     }
 
     if (ephemeralExpiration) option.ephemeralExpiration = ephemeralExpiration;

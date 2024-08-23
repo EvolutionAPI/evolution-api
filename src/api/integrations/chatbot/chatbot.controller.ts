@@ -3,6 +3,7 @@ import { PrismaRepository } from '@api/repository/repository.service';
 import {
   difyController,
   eventManager,
+  flowiseController,
   genericController,
   openaiController,
   typebotController,
@@ -89,6 +90,9 @@ export class ChatbotController {
       pushName,
       isIntegration,
     };
+    // generic
+    await genericController.emit(emitData);
+
     // typebot
     await typebotController.emit(emitData);
 
@@ -98,8 +102,8 @@ export class ChatbotController {
     // dify
     await difyController.emit(emitData);
 
-    // generic
-    await genericController.emit(emitData);
+    // flowise
+    await flowiseController.emit(emitData);
   }
 
   public async setInstance(instanceName: string, data: InstanceDto): Promise<any> {

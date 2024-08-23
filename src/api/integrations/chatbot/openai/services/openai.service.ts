@@ -1,6 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
+import { Integration } from '@api/types/wa.types';
 import { ConfigService, Language } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { IntegrationSession, OpenaiBot, OpenaiCreds, OpenaiSetting } from '@prisma/client';
@@ -73,9 +74,10 @@ export class OpenaiService {
 
     const messages: any[] = [...messagesSystem, ...messagesAssistant, ...messagesUser, messageData];
 
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
+    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+      await instance.client.presenceSubscribe(remoteJid);
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+    }
 
     const completions = await this.client.chat.completions.create({
       model: openaiBot.model,
@@ -83,7 +85,8 @@ export class OpenaiService {
       max_tokens: openaiBot.maxTokens,
     });
 
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
+    if (instance.integration === Integration.WHATSAPP_BAILEYS)
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
 
     const message = completions.choices[0].message.content;
 
@@ -131,13 +134,15 @@ export class OpenaiService {
       assistant_id: openaiBot.assistantId,
     });
 
-    await instance.client.presenceSubscribe(remoteJid);
-
-    await instance.client.sendPresenceUpdate('composing', remoteJid);
+    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+      await instance.client.presenceSubscribe(remoteJid);
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+    }
 
     const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl, remoteJid, pushName);
 
-    await instance.client.sendPresenceUpdate('paused', remoteJid);
+    if (instance.integration === Integration.WHATSAPP_BAILEYS)
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
 
     const message = response?.data[0].content[0].text.value;
 

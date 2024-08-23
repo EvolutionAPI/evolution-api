@@ -12,11 +12,15 @@ import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { TemplateController } from './controllers/template.controller';
 import { ChannelController } from './integrations/channel/channel.controller';
+import { EvolutionController } from './integrations/channel/evolution/evolution.controller';
+import { MetaController } from './integrations/channel/meta/meta.controller';
 import { ChatbotController } from './integrations/chatbot/chatbot.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
 import { DifyController } from './integrations/chatbot/dify/controllers/dify.controller';
 import { DifyService } from './integrations/chatbot/dify/services/dify.service';
+import { FlowiseController } from './integrations/chatbot/flowise/controllers/flowise.controller';
+import { FlowiseService } from './integrations/chatbot/flowise/services/flowise.service';
 import { GenericController } from './integrations/chatbot/generic/controllers/generic.controller';
 import { GenericService } from './integrations/chatbot/generic/services/generic.service';
 import { OpenaiController } from './integrations/chatbot/openai/controllers/openai.controller';
@@ -96,7 +100,11 @@ export const labelController = new LabelController(waMonitor);
 
 export const eventManager = new EventManager(prismaRepository, waMonitor);
 export const chatbotController = new ChatbotController(prismaRepository, waMonitor);
-export const channelController = new ChannelController();
+export const channelController = new ChannelController(prismaRepository, waMonitor);
+
+// channels
+export const evolutionController = new EvolutionController(prismaRepository, waMonitor);
+export const metaController = new MetaController(prismaRepository, waMonitor);
 
 // chatbots
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
@@ -110,5 +118,8 @@ export const difyController = new DifyController(difyService, prismaRepository, 
 
 const genericService = new GenericService(waMonitor, configService, prismaRepository);
 export const genericController = new GenericController(genericService, prismaRepository, waMonitor);
+
+const flowiseService = new FlowiseService(waMonitor, configService, prismaRepository);
+export const flowiseController = new FlowiseController(flowiseService, prismaRepository, waMonitor);
 
 logger.info('Module - ON');

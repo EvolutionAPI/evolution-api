@@ -6,23 +6,23 @@ import { Logger } from '@config/logger.config';
 import { getConversationMessage } from '@utils/getConversationMessage';
 
 import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
-import { GenericBotDto } from '../dto/generic.dto';
-import { GenericService } from '../services/generic.service';
+import { FlowiseDto } from '../dto/flowise.dto';
+import { FlowiseService } from '../services/flowise.service';
 
-export class GenericController extends ChatbotController implements ChatbotControllerInterface {
+export class FlowiseController extends ChatbotController implements ChatbotControllerInterface {
   constructor(
-    private readonly genericService: GenericService,
+    private readonly flowiseService: FlowiseService,
     prismaRepository: PrismaRepository,
     waMonitor: WAMonitoringService,
   ) {
     super(prismaRepository, waMonitor);
 
-    this.botRepository = this.prismaRepository.genericBot;
-    this.settingsRepository = this.prismaRepository.genericSetting;
+    this.botRepository = this.prismaRepository.flowise;
+    this.settingsRepository = this.prismaRepository.flowiseSetting;
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
-  public readonly logger = new Logger(GenericController.name);
+  public readonly logger = new Logger(FlowiseController.name);
 
   integrationEnabled: boolean;
   botRepository: any;
@@ -31,7 +31,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
   userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
   // Bots
-  public async createBot(instance: InstanceDto, data: GenericBotDto) {
+  public async createBot(instance: InstanceDto, data: FlowiseDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -91,7 +91,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
     });
 
     if (checkTriggerAll && data.triggerType === 'all') {
-      throw new Error('You already have a dify with an "All" trigger, you cannot have more bots while it is active');
+      throw new Error('You already have a Flowise with an "All" trigger, you cannot have more bots while it is active');
     }
 
     const checkDuplicate = await this.botRepository.findFirst({
@@ -103,7 +103,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
     });
 
     if (checkDuplicate) {
-      throw new Error('Dify already exists');
+      throw new Error('Flowise already exists');
     }
 
     if (data.triggerType === 'keyword') {
@@ -219,7 +219,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
     return bot;
   }
 
-  public async updateBot(instance: InstanceDto, botId: string, data: GenericBotDto) {
+  public async updateBot(instance: InstanceDto, botId: string, data: FlowiseDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -416,7 +416,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
             stopBotFromMe: data.stopBotFromMe,
             keepOpen: data.keepOpen,
             debounceTime: data.debounceTime,
-            botIdFallback: data.botIdFallback,
+            flowiseIdFallback: data.flowiseIdFallback,
             ignoreJids: data.ignoreJids,
           },
         });
@@ -430,7 +430,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
           stopBotFromMe: updateSettings.stopBotFromMe,
           keepOpen: updateSettings.keepOpen,
           debounceTime: updateSettings.debounceTime,
-          botIdFallback: updateSettings.botIdFallback,
+          flowiseIdFallback: updateSettings.flowiseIdFallback,
           ignoreJids: updateSettings.ignoreJids,
         };
       }
@@ -445,7 +445,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
           stopBotFromMe: data.stopBotFromMe,
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
-          botIdFallback: data.botIdFallback,
+          flowiseIdFallback: data.flowiseIdFallback,
           ignoreJids: data.ignoreJids,
           instanceId: instanceId,
         },
@@ -460,7 +460,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
         stopBotFromMe: newSetttings.stopBotFromMe,
         keepOpen: newSetttings.keepOpen,
         debounceTime: newSetttings.debounceTime,
-        botIdFallback: newSetttings.botIdFallback,
+        flowiseIdFallback: newSetttings.flowiseIdFallback,
         ignoreJids: newSetttings.ignoreJids,
       };
     } catch (error) {
@@ -498,7 +498,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
           stopBotFromMe: false,
           keepOpen: false,
           ignoreJids: [],
-          botIdFallback: '',
+          flowiseIdFallback: '',
           fallback: null,
         };
       }
@@ -512,7 +512,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
-        botIdFallback: settings.botIdFallback,
+        flowiseIdFallback: settings.flowiseIdFallback,
         fallback: settings.Fallback,
       };
     } catch (error) {
@@ -766,7 +766,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
 
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
-          await this.genericService.processBot(
+          await this.flowiseService.processBot(
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
             findBot,
@@ -777,7 +777,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
           );
         });
       } else {
-        await this.genericService.processBot(
+        await this.flowiseService.processBot(
           this.waMonitor.waInstances[instance.instanceName],
           remoteJid,
           findBot,
