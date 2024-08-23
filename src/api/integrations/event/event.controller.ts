@@ -80,7 +80,7 @@ export class EventController {
       data[this.name].events = [];
     } else {
       if (0 === data[this.name].events.length) {
-        data[this.name].events = this.events;
+        data[this.name].events = EventController.events;
       }
     }
 
@@ -122,7 +122,7 @@ export class EventController {
     return data;
   }
 
-  public readonly events = [
+  public static readonly events = [
     'APPLICATION_STARTUP',
     'QRCODE_UPDATED',
     'MESSAGES_SET',
