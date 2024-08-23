@@ -41,8 +41,7 @@ WORKDIR /evolution
 COPY --from=builder /evolution/package.json ./package.json
 COPY --from=builder /evolution/package-lock.json ./package-lock.json
 
-RUN npm install --omit=dev
-
+COPY --from=builder /evolution/node_modules ./node_modules
 COPY --from=builder /evolution/dist ./dist
 COPY --from=builder /evolution/prisma ./prisma
 COPY --from=builder /evolution/manager ./manager
