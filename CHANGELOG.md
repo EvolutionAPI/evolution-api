@@ -13,6 +13,7 @@
 
 * Refactor integrations structure for modular system
 * Fixed dify agent integration
+* Update Baileys Version
 
 # 2.0.10 (2024-08-16 16:23)
 
