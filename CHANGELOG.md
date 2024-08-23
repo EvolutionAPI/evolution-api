@@ -15,6 +15,7 @@
 * Fixed dify agent integration
 * Update Baileys Version
 * Fixed proxy config in manager
+* Fixed send messages in groups
 
 ### Break Changes
 

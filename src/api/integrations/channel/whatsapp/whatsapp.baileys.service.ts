@@ -3203,7 +3203,7 @@ export class BaileysStartupService extends ChannelStartupService {
   private async getGroupMetadataCache(groupJid: string) {
     if (!isJidGroup(groupJid)) return null;
 
-    const cacheConf = this.configService.get<CacheConf>('CACHE');
+    const cacheConf = configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
       if (await groupMetadataCache.has(groupJid)) {

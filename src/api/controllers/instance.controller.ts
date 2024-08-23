@@ -331,6 +331,7 @@ export class InstanceController {
         instance.client?.end(new Error('restart'));
         return await this.connectToWhatsapp({ instanceName });
       } else if (state == 'connecting') {
+        instance.client?.ws?.close();
         instance.client?.end(new Error('restart'));
         return await this.connectToWhatsapp({ instanceName });
       }
