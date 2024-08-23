@@ -25,7 +25,9 @@ export class KwikController {
           _id: '$key.remoteJid',
           owner: { $first: '$owner'},
           message: {$first: '$message'},
-          lastAllMsgTimestamp: { $first: '$messageTimestamp' }
+          lastAllMsgTimestamp: { $first: '$messageTimestamp' },
+          name: {$first: '$pushName'},
+          fromMe: {$first: '$key.fromMe'},
         },
     },
     { $match: { owner: instanceName } },
@@ -75,6 +77,7 @@ export class KwikController {
           phone_num: null,
           profile_picture: null,
           name: null,
+          sender: msg.name,
           type: null,
         };
 
