@@ -1,6 +1,4 @@
 import { InstanceDto } from '@api/dto/instance.dto';
-import { BaileysStartupService } from '@api/integrations/channel/whatsapp/baileys/whatsapp.baileys.service';
-import { BusinessStartupService } from '@api/integrations/channel/whatsapp/business/whatsapp.business.service';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { channelController } from '@api/server.module';
@@ -37,7 +35,7 @@ export class WAMonitoringService {
   private readonly redis: Partial<CacheConf> = {};
 
   private readonly logger = new Logger('WAMonitoringService');
-  public readonly waInstances: Record<string, BaileysStartupService | BusinessStartupService> = {};
+  public readonly waInstances: Record<string, any> = {};
 
   private readonly providerSession = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));
 
@@ -196,7 +194,7 @@ export class WAMonitoringService {
         data: {
           id: data.instanceId,
           name: data.instanceName,
-          connectionStatus: data.integration && data.integration === Integration.WHATSAPP_BUSINESS ? 'open' : 'close',
+          connectionStatus: data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : 'open',
           number: data.number,
           integration: data.integration || Integration.WHATSAPP_BAILEYS,
           token: data.hash,
@@ -210,7 +208,7 @@ export class WAMonitoringService {
   }
 
   private async setInstance(instanceData: InstanceDto) {
-    const instance = channelController.init(instanceData.integration, {
+    const instance = channelController.init(instanceData, {
       configService: this.configService,
       eventEmitter: this.eventEmitter,
       prismaRepository: this.prismaRepository,

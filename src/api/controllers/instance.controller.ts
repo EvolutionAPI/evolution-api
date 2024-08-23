@@ -36,11 +36,7 @@ export class InstanceController {
 
   public async createInstance(instanceData: InstanceDto) {
     try {
-      if (!instanceData.token && instanceData.integration === Integration.WHATSAPP_BUSINESS) {
-        throw new BadRequestException('token is required');
-      }
-
-      const instance = channelController.init(instanceData.integration, {
+      const instance = channelController.init(instanceData, {
         configService: this.configService,
         eventEmitter: this.eventEmitter,
         prismaRepository: this.prismaRepository,
@@ -51,6 +47,8 @@ export class InstanceController {
       });
 
       const instanceId = v4();
+
+      instanceData.instanceId = instanceId;
 
       let hash: string;
 
@@ -75,16 +73,16 @@ export class InstanceController {
         businessId: instanceData.businessId,
       });
 
-      instance.sendDataWebhook(Events.INSTANCE_CREATE, {
-        instanceName: instanceData.instanceName,
-        instanceId: instanceId,
-      });
-
       this.waMonitor.waInstances[instance.instanceName] = instance;
       this.waMonitor.delInstanceTime(instance.instanceName);
 
       // set events
-      eventController.setInstance(instance.instanceName, instanceData);
+      await eventController.setInstance(instance.instanceName, instanceData);
+
+      instance.sendDataWebhook(Events.INSTANCE_CREATE, {
+        instanceName: instanceData.instanceName,
+        instanceId: instanceId,
+      });
 
       if (instanceData.proxyHost && instanceData.proxyPort && instanceData.proxyProtocol) {
         const testProxy = await this.proxyService.testProxy({

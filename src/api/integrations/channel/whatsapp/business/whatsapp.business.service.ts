@@ -20,7 +20,7 @@ import { chatbotController } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
 import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
-import { Chatwoot, ConfigService, Database, Dify, Openai, S3, Typebot, WaBusiness } from '@config/env.config';
+import { Chatwoot, ConfigService, Database, Openai, S3, WaBusiness } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
 import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
@@ -85,17 +85,10 @@ export class BusinessStartupService extends ChannelStartupService {
   public async profilePicture(number: string) {
     const jid = this.createJid(number);
 
-    try {
-      return {
-        wuid: jid,
-        profilePictureUrl: await this.client.profilePictureUrl(jid, 'image'),
-      };
-    } catch (error) {
-      return {
-        wuid: jid,
-        profilePictureUrl: null,
-      };
-    }
+    return {
+      wuid: jid,
+      profilePictureUrl: null,
+    };
   }
 
   public async getProfileName() {
@@ -923,35 +916,13 @@ export class BusinessStartupService extends ChannelStartupService {
         );
       }
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && isIntegration) {
-        if (this.configService.get<Typebot>('TYPEBOT').ENABLED) {
-          if (messageRaw.messageType !== 'reactionMessage')
-            await this.typebotService.sendTypebot(
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              messageRaw.key.remoteJid,
-              messageRaw,
-            );
-        }
-
-        if (this.configService.get<Openai>('OPENAI').ENABLED) {
-          if (messageRaw.messageType !== 'reactionMessage')
-            await this.openaiService.sendOpenai(
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              messageRaw.key.remoteJid,
-              messageRaw.pushName,
-              messageRaw,
-            );
-        }
-
-        if (this.configService.get<Dify>('DIFY').ENABLED) {
-          if (messageRaw.messageType !== 'reactionMessage')
-            await this.difyService.sendDify(
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              messageRaw.key.remoteJid,
-              messageRaw,
-            );
-        }
-      }
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && isIntegration)
+        await chatbotController.emit({
+          instance: { instanceName: this.instance.name, instanceId: this.instanceId },
+          remoteJid: messageRaw.key.remoteJid,
+          msg: messageRaw,
+          pushName: messageRaw.pushName,
+        });
 
       await this.prismaRepository.message.create({
         data: messageRaw,

@@ -100,6 +100,10 @@ model Instance {
   Dify                    Dify[]
   DifySetting             DifySetting?
   integrationSessions     IntegrationSession[]
+  GenericBot              GenericBot[]
+  GenericSetting          GenericSetting?
+  Flowise                 Flowise[]
+  FlowiseSetting          FlowiseSetting?
 }
 
 model Session {
@@ -285,29 +289,28 @@ model Websocket {
 }
 
 model Typebot {
-  id              String               @id @default(cuid())
-  enabled         Boolean              @default(true) @db.Boolean
-  description     String?              @db.VarChar(255)
-  url             String               @db.VarChar(500)
-  typebot         String               @db.VarChar(100)
-  expire          Int?                 @default(0) @db.Integer
-  keywordFinish   String?              @db.VarChar(100)
-  delayMessage    Int?                 @db.Integer
-  unknownMessage  String?              @db.VarChar(100)
-  listeningFromMe Boolean?             @default(false) @db.Boolean
-  stopBotFromMe   Boolean?             @default(false) @db.Boolean
-  keepOpen        Boolean?             @default(false) @db.Boolean
-  debounceTime    Int?                 @db.Integer
-  createdAt       DateTime?            @default(now()) @db.Timestamp
-  updatedAt       DateTime?            @updatedAt @db.Timestamp
+  id              String           @id @default(cuid())
+  enabled         Boolean          @default(true) @db.Boolean
+  description     String?          @db.VarChar(255)
+  url             String           @db.VarChar(500)
+  typebot         String           @db.VarChar(100)
+  expire          Int?             @default(0) @db.Integer
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime?        @updatedAt @db.Timestamp
   ignoreJids      Json?
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
-  Instance        Instance             @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String
   TypebotSetting  TypebotSetting[]
-  sessions        IntegrationSession[]
 }
 
 model TypebotSetting {
@@ -354,37 +357,36 @@ model OpenaiCreds {
 }
 
 model OpenaiBot {
-  id                String               @id @default(cuid())
-  enabled           Boolean              @default(true) @db.Boolean
-  description       String?              @db.VarChar(255)
+  id                String           @id @default(cuid())
+  enabled           Boolean          @default(true) @db.Boolean
+  description       String?          @db.VarChar(255)
   botType           OpenaiBotType
-  assistantId       String?              @db.VarChar(255)
-  functionUrl       String?              @db.VarChar(500)
-  model             String?              @db.VarChar(100)
-  systemMessages    Json?                @db.JsonB
-  assistantMessages Json?                @db.JsonB
-  userMessages      Json?                @db.JsonB
-  maxTokens         Int?                 @db.Integer
-  expire            Int?                 @default(0) @db.Integer
-  keywordFinish     String?              @db.VarChar(100)
-  delayMessage      Int?                 @db.Integer
-  unknownMessage    String?              @db.VarChar(100)
-  listeningFromMe   Boolean?             @default(false) @db.Boolean
-  stopBotFromMe     Boolean?             @default(false) @db.Boolean
-  keepOpen          Boolean?             @default(false) @db.Boolean
-  debounceTime      Int?                 @db.Integer
+  assistantId       String?          @db.VarChar(255)
+  functionUrl       String?          @db.VarChar(500)
+  model             String?          @db.VarChar(100)
+  systemMessages    Json?            @db.JsonB
+  assistantMessages Json?            @db.JsonB
+  userMessages      Json?            @db.JsonB
+  maxTokens         Int?             @db.Integer
+  expire            Int?             @default(0) @db.Integer
+  keywordFinish     String?          @db.VarChar(100)
+  delayMessage      Int?             @db.Integer
+  unknownMessage    String?          @db.VarChar(100)
+  listeningFromMe   Boolean?         @default(false) @db.Boolean
+  stopBotFromMe     Boolean?         @default(false) @db.Boolean
+  keepOpen          Boolean?         @default(false) @db.Boolean
+  debounceTime      Int?             @db.Integer
   ignoreJids        Json?
   triggerType       TriggerType?
   triggerOperator   TriggerOperator?
   triggerValue      String?
-  createdAt         DateTime?            @default(now()) @db.Timestamp
-  updatedAt         DateTime             @updatedAt @db.Timestamp
-  OpenaiCreds       OpenaiCreds          @relation(fields: [openaiCredsId], references: [id], onDelete: Cascade)
+  createdAt         DateTime?        @default(now()) @db.Timestamp
+  updatedAt         DateTime         @updatedAt @db.Timestamp
+  OpenaiCreds       OpenaiCreds      @relation(fields: [openaiCredsId], references: [id], onDelete: Cascade)
   openaiCredsId     String
-  Instance          Instance             @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  Instance          Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId        String
   OpenaiSetting     OpenaiSetting[]
-  sessions          IntegrationSession[]
 }
 
 model IntegrationSession {
@@ -402,14 +404,7 @@ model IntegrationSession {
   instanceId String
   parameters Json?         @db.JsonB
 
-  OpenaiBot   OpenaiBot? @relation(fields: [openaiBotId], references: [id], onDelete: Cascade)
-  openaiBotId String?
-
-  DifyBot Dify?   @relation(fields: [difyId], references: [id], onDelete: Cascade)
-  difyId  String?
-
-  Typebot   Typebot? @relation(fields: [typebotId], references: [id], onDelete: Cascade)
-  typebotId String?
+  botId String?
 }
 
 model OpenaiSetting {
@@ -447,30 +442,29 @@ model Template {
 }
 
 model Dify {
-  id              String               @id @default(cuid())
-  enabled         Boolean              @default(true) @db.Boolean
-  description     String?              @db.VarChar(255)
+  id              String           @id @default(cuid())
+  enabled         Boolean          @default(true) @db.Boolean
+  description     String?          @db.VarChar(255)
   botType         DifyBotType
-  apiUrl          String?              @db.VarChar(255)
-  apiKey          String?              @db.VarChar(255)
-  expire          Int?                 @default(0) @db.Integer
-  keywordFinish   String?              @db.VarChar(100)
-  delayMessage    Int?                 @db.Integer
-  unknownMessage  String?              @db.VarChar(100)
-  listeningFromMe Boolean?             @default(false) @db.Boolean
-  stopBotFromMe   Boolean?             @default(false) @db.Boolean
-  keepOpen        Boolean?             @default(false) @db.Boolean
-  debounceTime    Int?                 @db.Integer
+  apiUrl          String?          @db.VarChar(255)
+  apiKey          String?          @db.VarChar(255)
+  expire          Int?             @default(0) @db.Integer
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
   ignoreJids      Json?
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
-  createdAt       DateTime?            @default(now()) @db.Timestamp
-  updatedAt       DateTime             @updatedAt @db.Timestamp
-  Instance        Instance             @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime         @updatedAt @db.Timestamp
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String
   DifySetting     DifySetting[]
-  sessions        IntegrationSession[]
 }
 
 model DifySetting {
@@ -490,4 +484,92 @@ model DifySetting {
   difyIdFallback  String?   @db.VarChar(100)
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
+}
+
+model GenericBot {
+  id              String           @id @default(cuid())
+  enabled         Boolean          @default(true) @db.Boolean
+  description     String?          @db.VarChar(255)
+  apiUrl          String?          @db.VarChar(255)
+  apiKey          String?          @db.VarChar(255)
+  expire          Int?             @default(0) @db.Integer
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
+  ignoreJids      Json?
+  triggerType     TriggerType?
+  triggerOperator TriggerOperator?
+  triggerValue    String?
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime         @updatedAt @db.Timestamp
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
+  GenericSetting  GenericSetting[]
+}
+
+model GenericSetting {
+  id              String      @id @default(cuid())
+  expire          Int?        @default(0) @db.Integer
+  keywordFinish   String?     @db.VarChar(100)
+  delayMessage    Int?        @db.Integer
+  unknownMessage  String?     @db.VarChar(100)
+  listeningFromMe Boolean?    @default(false) @db.Boolean
+  stopBotFromMe   Boolean?    @default(false) @db.Boolean
+  keepOpen        Boolean?    @default(false) @db.Boolean
+  debounceTime    Int?        @db.Integer
+  ignoreJids      Json?
+  createdAt       DateTime?   @default(now()) @db.Timestamp
+  updatedAt       DateTime    @updatedAt @db.Timestamp
+  Fallback        GenericBot? @relation(fields: [botIdFallback], references: [id])
+  botIdFallback   String?     @db.VarChar(100)
+  Instance        Instance    @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String      @unique
+}
+
+model Flowise {
+  id              String           @id @default(cuid())
+  enabled         Boolean          @default(true) @db.Boolean
+  description     String?          @db.VarChar(255)
+  apiUrl          String?          @db.VarChar(255)
+  apiKey          String?          @db.VarChar(255)
+  expire          Int?             @default(0) @db.Integer
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
+  ignoreJids      Json?
+  triggerType     TriggerType?
+  triggerOperator TriggerOperator?
+  triggerValue    String?
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime         @updatedAt @db.Timestamp
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
+  FlowiseSetting  FlowiseSetting[]
+}
+
+model FlowiseSetting {
+  id                String    @id @default(cuid())
+  expire            Int?      @default(0) @db.Integer
+  keywordFinish     String?   @db.VarChar(100)
+  delayMessage      Int?      @db.Integer
+  unknownMessage    String?   @db.VarChar(100)
+  listeningFromMe   Boolean?  @default(false) @db.Boolean
+  stopBotFromMe     Boolean?  @default(false) @db.Boolean
+  keepOpen          Boolean?  @default(false) @db.Boolean
+  debounceTime      Int?      @db.Integer
+  ignoreJids        Json?
+  createdAt         DateTime? @default(now()) @db.Timestamp
+  updatedAt         DateTime  @updatedAt @db.Timestamp
+  Fallback          Flowise?  @relation(fields: [flowiseIdFallback], references: [id])
+  flowiseIdFallback String?   @db.VarChar(100)
+  Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId        String    @unique
 }

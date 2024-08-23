@@ -1,21 +1,22 @@
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { wa } from '@api/types/wa.types';
-import { configService, Log, Webhook, Websocket } from '@config/env.config';
+import { configService, Log, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException, NotFoundException } from '@exceptions';
 import axios from 'axios';
 import { isURL } from 'class-validator';
 
-import { EventController } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
 import { WebhookDto } from '../dto/webhook.dto';
 
-export class WebhookController extends EventController {
+export class WebhookController extends EventController implements EventControllerInterface {
   private readonly logger = new Logger(WebhookController.name);
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);
   }
+  integrationEnabled: boolean;
 
   public async set(instanceName: string, data: WebhookDto): Promise<wa.LocalWebHook> {
     if (!isURL(data.url, { require_tld: false })) {
@@ -30,27 +31,24 @@ export class WebhookController extends EventController {
       }
     }
 
-    try {
-      await this.get(instanceName);
+    await this.get(instanceName);
 
-      return this.prisma.webhook.update({
-        where: {
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-        data,
-      });
-    } catch (err) {
-      return this.prisma.webhook.create({
-        data: {
-          enabled: data.enabled,
-          events: data.events,
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-          url: data.url,
-          webhookBase64: data.webhookBase64,
-          webhookByEvents: data.webhookByEvents,
-        },
-      });
-    }
+    return this.prisma.webhook.upsert({
+      where: {
+        instanceId: this.monitor.waInstances[instanceName].instanceId,
+      },
+      update: {
+        ...data,
+      },
+      create: {
+        enabled: data.enabled,
+        events: data.events,
+        instanceId: this.monitor.waInstances[instanceName].instanceId,
+        url: data.url,
+        webhookBase64: data.webhookBase64,
+        webhookByEvents: data.webhookByEvents,
+      },
+    });
   }
 
   public async get(instanceName: string): Promise<wa.LocalWebHook> {
@@ -81,23 +79,13 @@ export class WebhookController extends EventController {
     sender,
     apiKey,
     local,
-  }: {
-    instanceName: string;
-    origin: string;
-    event: string;
-    data: Object;
-    serverUrl: string;
-    dateTime: string;
-    sender: string;
-    apiKey?: string;
-    local?: boolean;
-  }): Promise<void> {
-    if (!configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
+  }: EmitData): Promise<void> {
+    const instanceWebhook = await this.get(instanceName);
+    if (!instanceWebhook || !instanceWebhook.enabled) {
       return;
     }
 
-    const instanceWebhook = await this.get(instanceName);
-    const webhookGlobal = configService.get<Webhook>('WEBHOOK');
+    const webhookConfig = configService.get<Webhook>('WEBHOOK');
     const webhookLocal = instanceWebhook?.events;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
@@ -113,6 +101,7 @@ export class WebhookController extends EventController {
       server_url: serverUrl,
       apikey: apiKey,
     };
+
     if (local) {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;
@@ -156,16 +145,12 @@ export class WebhookController extends EventController {
       }
     }
 
-    if (webhookGlobal.GLOBAL?.ENABLED) {
-      if (webhookGlobal.EVENTS[we]) {
-        const globalWebhook = configService.get<Webhook>('WEBHOOK').GLOBAL;
+    if (webhookConfig.GLOBAL?.ENABLED) {
+      if (webhookConfig.EVENTS[we]) {
+        let globalURL = webhookConfig.GLOBAL.URL;
 
-        let globalURL;
-
-        if (webhookGlobal.GLOBAL.WEBHOOK_BY_EVENTS) {
-          globalURL = `${globalWebhook.URL}/${transformedWe}`;
-        } else {
-          globalURL = globalWebhook.URL;
+        if (webhookConfig.GLOBAL.WEBHOOK_BY_EVENTS) {
+          globalURL = `${globalURL}/${transformedWe}`;
         }
 
         if (enabledLog) {
@@ -179,7 +164,7 @@ export class WebhookController extends EventController {
         }
 
         try {
-          if (globalWebhook && globalWebhook?.ENABLED && isURL(globalURL)) {
+          if (isURL(globalURL)) {
             const httpService = axios.create({ baseURL: globalURL });
 
             await httpService.post('', webhookData);
@@ -202,7 +187,7 @@ export class WebhookController extends EventController {
     }
   }
 
-  public async receiveWebhook(data: any) {
+  public async receiveWebhookMeta(data: any) {
     if (data.object === 'whatsapp_business_account') {
       if (data.entry[0]?.changes[0]?.field === 'message_template_status_update') {
         const template = await this.prismaRepository.template.findFirst({
@@ -228,7 +213,7 @@ export class WebhookController extends EventController {
         const numberId = entry.changes[0].value.metadata.phone_number_id;
 
         if (!numberId) {
-          this.logger.error('WebhookService -> receiveWebhook -> numberId not found');
+          this.logger.error('WebhookService -> receiveWebhookMeta -> numberId not found');
           return;
         }
 
@@ -237,7 +222,7 @@ export class WebhookController extends EventController {
         });
 
         if (!instance) {
-          this.logger.error('WebhookService -> receiveWebhook -> instance not found');
+          this.logger.error('WebhookService -> receiveWebhookMeta -> instance not found');
           return;
         }
 
@@ -248,5 +233,29 @@ export class WebhookController extends EventController {
     }
 
     return;
+  }
+
+  public async receiveWebhookEvolution(data: any) {
+    const numberId = data.numberId;
+
+    if (!numberId) {
+      this.logger.error('WebhookService -> receiveWebhookEvolution -> numberId not found');
+      return;
+    }
+
+    const instance = await this.prismaRepository.instance.findFirst({
+      where: { number: numberId },
+    });
+
+    if (!instance) {
+      this.logger.error('WebhookService -> receiveWebhook -> instance not found');
+      return;
+    }
+
+    await this.waMonitor.waInstances[instance.name].connectToWhatsapp(data);
+
+    return {
+      status: 'success',
+    };
   }
 }

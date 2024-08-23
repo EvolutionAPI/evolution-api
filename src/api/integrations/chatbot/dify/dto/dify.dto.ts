@@ -1,13 +1,5 @@
 import { $Enums, TriggerOperator, TriggerType } from '@prisma/client';
 
-export class Session {
-  remoteJid?: string;
-  sessionId?: string;
-  status?: string;
-  createdAt?: number;
-  updateAt?: number;
-}
-
 export class DifyDto {
   enabled?: boolean;
   description?: string;
@@ -39,9 +31,4 @@ export class DifySettingDto {
   debounceTime?: number;
   difyIdFallback?: string;
   ignoreJids?: any;
-}
-
-export class DifyIgnoreJidDto {
-  remoteJid?: string;
-  action?: string;
 }
