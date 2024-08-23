@@ -1958,10 +1958,60 @@ export class BaileysStartupService extends ChannelStartupService {
           isIntegration,
         });
 
-      if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE)
-        await this.prismaRepository.message.create({
+      if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
+        const msg = await this.prismaRepository.message.create({
           data: messageRaw,
         });
+
+        const isMedia =
+          messageRaw?.message?.imageMessage ||
+          messageRaw?.message?.videoMessage ||
+          messageRaw?.message?.stickerMessage ||
+          messageRaw?.message?.documentMessage ||
+          messageRaw?.message?.documentWithCaptionMessage ||
+          messageRaw?.message?.audioMessage;
+
+        if (isMedia) {
+          if (this.configService.get<S3>('S3').ENABLE) {
+            try {
+              const message: any = messageRaw;
+              const media = await this.getBase64FromMediaMessage(
+                {
+                  message,
+                },
+                true,
+              );
+
+              const { buffer, mediaType, fileName, size } = media;
+
+              const mimetype = mime.getType(fileName).toString();
+
+              const fullName = join(`${this.instance.id}`, messageRaw.key.remoteJid, mediaType, fileName);
+
+              await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
+                'Content-Type': mimetype,
+              });
+
+              await this.prismaRepository.media.create({
+                data: {
+                  messageId: msg.id,
+                  instanceId: this.instanceId,
+                  type: mediaType,
+                  fileName: fullName,
+                  mimetype,
+                },
+              });
+
+              const mediaUrl = await s3Service.getObjectUrl(fullName);
+
+              messageRaw.message.mediaUrl = mediaUrl;
+            } catch (error) {
+              this.logger.error('line 1181');
+              this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
+            }
+          }
+        }
+      }
 
       return messageSent;
     } catch (error) {
