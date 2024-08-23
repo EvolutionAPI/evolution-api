@@ -16,6 +16,10 @@
 * Update Baileys Version
 * Fixed proxy config in manager
 
+### Break Changes
+
+* Payloads para os eventos alterado (create Instance e set dos eventos). Verifique o postman para entender
+
 # 2.0.10 (2024-08-16 16:23)
 
 ### Features
