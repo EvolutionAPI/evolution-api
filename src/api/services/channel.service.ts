@@ -58,7 +58,7 @@ export class ChannelStartupService {
     this.instance.token = instance.token;
     this.instance.businessId = instance.businessId;
 
-    if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+    if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
       this.chatwootService.eventWhatsapp(
         Events.STATUS_INSTANCE,
         { instanceName: this.instance.name },
@@ -241,7 +241,7 @@ export class ChannelStartupService {
           instanceId: this.instanceId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           accountId: data.accountId,
           token: data.token,
           url: data.url,
@@ -269,7 +269,7 @@ export class ChannelStartupService {
 
     await this.prismaRepository.chatwoot.create({
       data: {
-        enabled: data.enabled,
+        enabled: data?.enabled,
         accountId: data.accountId,
         token: data.token,
         url: data.url,
@@ -312,7 +312,7 @@ export class ChannelStartupService {
     const ignoreJidsArray = Array.isArray(data.ignoreJids) ? data.ignoreJids.map((event) => String(event)) : [];
 
     return {
-      enabled: data.enabled,
+      enabled: data?.enabled,
       accountId: data.accountId,
       token: data.token,
       url: data.url,
@@ -332,7 +332,7 @@ export class ChannelStartupService {
   }
 
   public clearCacheChatwoot() {
-    if (this.localChatwoot.enabled) {
+    if (this.localChatwoot?.enabled) {
       this.chatwootService.getCache()?.deleteAll(this.instanceName);
     }
   }
@@ -355,7 +355,7 @@ export class ChannelStartupService {
   public async setProxy(data: ProxyDto) {
     await this.prismaRepository.proxy.create({
       data: {
-        enabled: data.enabled,
+        enabled: data?.enabled,
         host: data.host,
         port: data.port,
         protocol: data.protocol,

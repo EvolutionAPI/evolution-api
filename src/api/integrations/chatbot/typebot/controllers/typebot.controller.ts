@@ -151,7 +151,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           url: data.url,
           typebot: data.typebot,
@@ -334,7 +334,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           url: data.url,
           typebot: data.typebot,
           expire: data.expire,

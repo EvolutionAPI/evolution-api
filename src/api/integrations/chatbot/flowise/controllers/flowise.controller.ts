@@ -145,7 +145,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
@@ -318,7 +318,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
           expire: data.expire,

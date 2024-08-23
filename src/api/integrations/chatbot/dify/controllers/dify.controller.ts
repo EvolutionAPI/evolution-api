@@ -150,7 +150,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           botType: data.botType,
           apiUrl: data.apiUrl,
@@ -331,7 +331,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           botType: data.botType,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,

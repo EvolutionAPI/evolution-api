@@ -22,7 +22,7 @@ export class WebhookController extends EventController implements EventControlle
       throw new BadRequestException('Invalid "url" property');
     }
 
-    if (!data.webhook.enabled) {
+    if (!data.webhook?.enabled) {
       data.webhook.events = [];
     } else {
       if (0 === data.webhook.events.length) {
@@ -38,7 +38,7 @@ export class WebhookController extends EventController implements EventControlle
         ...data.webhook,
       },
       create: {
-        enabled: data.webhook.enabled,
+        enabled: data.webhook?.enabled,
         events: data.webhook.events,
         instanceId: this.monitor.waInstances[instanceName].instanceId,
         url: data.webhook.url,
@@ -61,7 +61,7 @@ export class WebhookController extends EventController implements EventControlle
   }: EmitData): Promise<void> {
     const instance = (await this.get(instanceName)) as EventDto;
 
-    if (!instance || !instance.webhook.enabled) {
+    if (!instance || !instance.webhook?.enabled) {
       return;
     }
 

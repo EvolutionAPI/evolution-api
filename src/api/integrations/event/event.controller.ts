@@ -76,7 +76,7 @@ export class EventController {
       return;
     }
 
-    if (!data[this.name].enabled) {
+    if (!data[this.name]?.enabled) {
       data[this.name].events = [];
     } else {
       if (0 === data[this.name].events.length) {
@@ -92,7 +92,7 @@ export class EventController {
         ...data,
       },
       create: {
-        enabled: data[this.name].enabled,
+        enabled: data[this.name]?.enabled,
         events: data[this.name].events,
         instanceId: this.monitor.waInstances[instanceName].instanceId,
       },

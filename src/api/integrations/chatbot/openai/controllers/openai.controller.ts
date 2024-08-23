@@ -314,7 +314,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
@@ -528,7 +528,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
           assistantId: data.assistantId,

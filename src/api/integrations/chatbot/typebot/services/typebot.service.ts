@@ -382,7 +382,7 @@ export class TypebotService {
         }
 
         const data = await this.createNewSession(instance, {
-          enabled: findTypebot.enabled,
+          enabled: findTypebot?.enabled,
           url: url,
           typebot: typebot,
           expire: expire,

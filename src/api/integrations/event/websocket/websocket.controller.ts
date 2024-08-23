@@ -97,7 +97,7 @@ export class WebsocketController extends EventController implements EventControl
     try {
       const instance = (await this.get(instanceName)) as EventDto;
 
-      if (!instance?.websocket.enabled) {
+      if (!instance?.websocket?.enabled) {
         return;
       }
 

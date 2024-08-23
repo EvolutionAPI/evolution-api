@@ -221,7 +221,7 @@ export class BaileysStartupService extends ChannelStartupService {
           statusCode: DisconnectReason.badSession,
         });
 
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -279,7 +279,7 @@ export class BaileysStartupService extends ChannelStartupService {
           },
         });
 
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -347,7 +347,7 @@ export class BaileysStartupService extends ChannelStartupService {
           },
         });
 
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.STATUS_INSTANCE,
             { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -392,7 +392,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
       });
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
         this.chatwootService.eventWhatsapp(
           Events.CONNECTION_UPDATE,
           { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -499,7 +499,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     let options;
 
-    if (this.localProxy.enabled) {
+    if (this.localProxy?.enabled) {
       this.logger.info('Proxy enabled: ' + this.localProxy?.host);
 
       if (this.localProxy?.host?.includes('proxyscrape')) {
@@ -694,7 +694,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (
           this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-          this.localChatwoot.enabled &&
+          this.localChatwoot?.enabled &&
           this.localChatwoot.importContacts &&
           contactsRaw.length
         ) {
@@ -810,7 +810,7 @@ export class BaileysStartupService extends ChannelStartupService {
         let timestampLimitToImport = null;
 
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
-          const daysLimitToImport = this.localChatwoot.enabled ? this.localChatwoot.daysLimitImportMessages : 1000;
+          const daysLimitToImport = this.localChatwoot?.enabled ? this.localChatwoot.daysLimitImportMessages : 1000;
 
           const date = new Date();
           timestampLimitToImport = new Date(date.setDate(date.getDate() - daysLimitToImport)).getTime() / 1000;
@@ -918,7 +918,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (
           this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-          this.localChatwoot.enabled &&
+          this.localChatwoot?.enabled &&
           this.localChatwoot.importMessages &&
           messagesRaw.length > 0
         ) {
@@ -979,7 +979,7 @@ export class BaileysStartupService extends ChannelStartupService {
             const editedMessage =
               received.message?.protocolMessage || received.message?.editedMessage?.message?.protocolMessage;
             if (editedMessage) {
-              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled)
+              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
                 this.chatwootService.eventWhatsapp(
                   'messages.edit',
                   { instanceName: this.instance.name, instanceId: this.instance.id },
@@ -1055,7 +1055,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (
             this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-            this.localChatwoot.enabled &&
+            this.localChatwoot?.enabled &&
             !received.key.id.includes('@broadcast')
           ) {
             const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
@@ -1192,7 +1192,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
               await this.chatwootService.eventWhatsapp(
                 Events.CONTACTS_UPDATE,
                 { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -1242,7 +1242,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (status[update.status] === 'READ' && key.fromMe) {
-          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
             this.chatwootService.eventWhatsapp(
               'messages.read',
               { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -1298,7 +1298,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 data: message,
               });
 
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
               this.chatwootService.eventWhatsapp(
                 Events.MESSAGES_DELETE,
                 { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -1554,7 +1554,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (
       this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-      this.localChatwoot.enabled &&
+      this.localChatwoot?.enabled &&
       this.localChatwoot.importMessages &&
       this.isSyncNotificationFromUsedSyncType(msg)
     ) {
@@ -1809,7 +1809,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
         const body = {
           key: { remoteJid: isWA.jid },
         };
@@ -1941,7 +1941,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isIntegration) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && !isIntegration) {
         this.chatwootService.eventWhatsapp(
           Events.SEND_MESSAGE,
           { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -1949,7 +1949,7 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && isIntegration)
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && isIntegration)
         await chatbotController.emit({
           instance: { instanceName: this.instance.name, instanceId: this.instanceId },
           remoteJid: messageRaw.key.remoteJid,
@@ -2226,7 +2226,7 @@ export class BaileysStartupService extends ChannelStartupService {
             responseType: 'arraybuffer',
           };
 
-          if (this.localProxy.enabled) {
+          if (this.localProxy?.enabled) {
             config = {
               ...config,
               httpsAgent: makeProxyAgent({
@@ -2283,7 +2283,7 @@ export class BaileysStartupService extends ChannelStartupService {
           responseType: 'arraybuffer',
         };
 
-        if (this.localProxy.enabled) {
+        if (this.localProxy?.enabled) {
           config = {
             ...config,
             httpsAgent: makeProxyAgent({
@@ -3016,7 +3016,7 @@ export class BaileysStartupService extends ChannelStartupService {
           responseType: 'arraybuffer',
         };
 
-        if (this.localProxy.enabled) {
+        if (this.localProxy?.enabled) {
           config = {
             ...config,
             httpsAgent: makeProxyAgent({
@@ -3264,7 +3264,7 @@ export class BaileysStartupService extends ChannelStartupService {
           responseType: 'arraybuffer',
         };
 
-        if (this.localProxy.enabled) {
+        if (this.localProxy?.enabled) {
           config = {
             ...config,
             httpsAgent: makeProxyAgent({
