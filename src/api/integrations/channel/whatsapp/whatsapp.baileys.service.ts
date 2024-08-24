@@ -1037,6 +1037,11 @@ export class BaileysStartupService extends ChannelStartupService {
             source: getDevice(received.key.id),
           };
 
+          if (messageRaw.message.extendedTextMessage) {
+            messageRaw.message.conversation = messageRaw.message.extendedTextMessage.text;
+            delete messageRaw.message.extendedTextMessage;
+          }
+
           const isMedia =
             received?.message?.imageMessage ||
             received?.message?.videoMessage ||
@@ -1936,6 +1941,11 @@ export class BaileysStartupService extends ChannelStartupService {
         instanceId: this.instanceId,
         source: getDevice(messageSent.key.id),
       };
+
+      if (messageRaw.message.extendedTextMessage) {
+        messageRaw.message.conversation = messageRaw.message.extendedTextMessage.text;
+        delete messageRaw.message.extendedTextMessage;
+      }
 
       this.logger.log(messageRaw);
 

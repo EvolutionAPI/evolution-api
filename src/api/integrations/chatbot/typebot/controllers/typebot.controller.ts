@@ -577,35 +577,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
       },
     });
 
-    if (defaultSettingCheck?.ignoreJids) {
-      const ignoreJids: any = defaultSettingCheck.ignoreJids;
-
-      let ignoreGroups = false;
-      let ignoreContacts = false;
-
-      if (ignoreJids.includes('@g.us')) {
-        ignoreGroups = true;
-      }
-
-      if (ignoreJids.includes('@s.whatsapp.net')) {
-        ignoreContacts = true;
-      }
-
-      if (ignoreGroups && remoteJid.includes('@g.us')) {
-        this.logger.warn('Ignoring message from group: ' + remoteJid);
-        throw new Error('Group not allowed');
-      }
-
-      if (ignoreContacts && remoteJid.includes('@s.whatsapp.net')) {
-        this.logger.warn('Ignoring message from contact: ' + remoteJid);
-        throw new Error('Contact not allowed');
-      }
-
-      if (ignoreJids.includes(remoteJid)) {
-        this.logger.warn('Ignoring message from jid: ' + remoteJid);
-        throw new Error('Jid not allowed');
-      }
-    }
+    if (this.checkIgnoreJids(defaultSettingCheck?.ignoreJids, remoteJid)) throw new Error('Jid not allowed');
 
     if (
       !expire ||
@@ -661,8 +633,18 @@ export class TypebotController extends ChatbotController implements ChatbotContr
       });
 
       if (!findBot) {
-        findBot = await this.botRepository.create({
-          data: {
+        findBot = await this.botRepository.upsert({
+          where: {
+            url_typebot_instanceId: {
+              url: url,
+              typebot: typebot,
+              instanceId: instanceData.id,
+            },
+          },
+          update: {
+            enabled: true,
+          },
+          create: {
             enabled: true,
             url: url,
             typebot: typebot,
