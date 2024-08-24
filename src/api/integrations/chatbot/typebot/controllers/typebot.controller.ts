@@ -335,6 +335,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         },
         data: {
           enabled: data?.enabled,
+          description: data.description,
           url: data.url,
           typebot: data.typebot,
           expire: data.expire,

@@ -523,6 +523,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
         },
         data: {
           enabled: data?.enabled,
+          description: data.description,
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
           assistantId: data.assistantId,

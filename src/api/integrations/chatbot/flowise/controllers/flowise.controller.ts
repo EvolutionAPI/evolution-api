@@ -319,6 +319,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
         },
         data: {
           enabled: data?.enabled,
+          description: data.description,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
           expire: data.expire,

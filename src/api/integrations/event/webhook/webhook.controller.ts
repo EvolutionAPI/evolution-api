@@ -63,14 +63,14 @@ export class WebhookController extends EventController implements EventControlle
     apiKey,
     local,
   }: EmitData): Promise<void> {
-    const instance = (await this.get(instanceName)) as EventDto;
+    const instance = (await this.get(instanceName)) as wa.LocalWebHook;
 
-    if (!instance || !instance.webhook?.enabled) {
+    if (!instance || !instance?.enabled) {
       return;
     }
 
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
-    const webhookLocal = instance.webhook?.events;
+    const webhookLocal = instance?.events;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const enabledLog = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
@@ -79,7 +79,7 @@ export class WebhookController extends EventController implements EventControlle
       event,
       instance: instanceName,
       data,
-      destination: instance.webhook?.url,
+      destination: instance?.url,
       date_time: dateTime,
       sender,
       server_url: serverUrl,
@@ -90,10 +90,10 @@ export class WebhookController extends EventController implements EventControlle
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;
 
-        if (instance.webhook?.byEvents) {
-          baseURL = `${instance.webhook?.url}/${transformedWe}`;
+        if (instance?.webhookByEvents) {
+          baseURL = `${instance?.url}/${transformedWe}`;
         } else {
-          baseURL = instance.webhook?.url;
+          baseURL = instance?.url;
         }
 
         if (enabledLog) {
@@ -107,7 +107,7 @@ export class WebhookController extends EventController implements EventControlle
         }
 
         try {
-          if (instance.webhook?.enabled && isURL(instance.webhook.url, { require_tld: false })) {
+          if (instance?.enabled && isURL(instance.url, { require_tld: false })) {
             const httpService = axios.create({ baseURL });
 
             await httpService.post('', webhookData);

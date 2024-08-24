@@ -332,6 +332,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
         },
         data: {
           enabled: data?.enabled,
+          description: data.description,
           botType: data.botType,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
