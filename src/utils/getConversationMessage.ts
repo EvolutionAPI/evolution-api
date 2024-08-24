@@ -41,6 +41,9 @@ const getTypeMessage = (msg: any) => {
             : ''
         }`
       : undefined,
+    externalAdReplyBody: msg?.message?.extendedTextMessage?.contextInfo?.externalAdReply?.body
+      ? `externalAdReplyBody|${msg.message.extendedTextMessage.contextInfo.externalAdReply.body}`
+      : undefined,
   };
 
   const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';
@@ -49,9 +52,13 @@ const getTypeMessage = (msg: any) => {
 };
 
 const getMessageContent = (types: any) => {
-  const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
+  const typeKey = Object.keys(types).find((key) => key !== 'externalAdReplyBody' && types[key] !== undefined);
 
-  const result = typeKey ? types[typeKey] : undefined;
+  let result = typeKey ? types[typeKey] : undefined;
+
+  if (types.externalAdReplyBody) {
+      result = result ? `${result}\n${types.externalAdReplyBody}` : types.externalAdReplyBody;
+  }
 
   return result;
 };

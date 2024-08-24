@@ -1585,16 +1585,21 @@ export class ChatwootService {
 
   private getMessageContent(types: any) {
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
-
-    const result = typeKey ? types[typeKey] : undefined;
-
+  
+    let result = typeKey ? types[typeKey] : undefined;
+  
+    // Remove externalAdReplyBody| in Chatwoot (Already Have)
+    if (result && typeof result === 'string' && result.includes('externalAdReplyBody|')) {
+      result = result.split('externalAdReplyBody|').filter(Boolean).join('');
+    }
+  
     if (typeKey === 'locationMessage' || typeKey === 'liveLocationMessage') {
       const latitude = result.degreesLatitude;
       const longitude = result.degreesLongitude;
-
+  
       const locationName = result?.name;
       const locationAddress = result?.address;
-
+  
       const formattedLocation =
         `*${i18next.t('cw.locationMessage.location')}:*\n\n` +
         `_${i18next.t('cw.locationMessage.latitude')}:_ ${latitude} \n` +
@@ -1603,7 +1608,7 @@ export class ChatwootService {
         (locationAddress ? `_${i18next.t('cw.locationMessage.locationAddress')}:_ ${locationAddress} \n` : '') +
         `_${i18next.t('cw.locationMessage.locationUrl')}:_ ` +
         `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-
+  
       return formattedLocation;
     }
 
