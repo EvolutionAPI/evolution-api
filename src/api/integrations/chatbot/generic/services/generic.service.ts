@@ -22,6 +22,7 @@ export class GenericService {
       const session = await this.prismaRepository.integrationSession.create({
         data: {
           remoteJid: data.remoteJid,
+          pushName: data.pushName,
           sessionId: data.remoteJid,
           status: 'opened',
           awaitUser: false,
@@ -181,6 +182,7 @@ export class GenericService {
   ) {
     const data = await this.createNewSession(instance, {
       remoteJid,
+      pushName,
       botId: bot.id,
     });
 

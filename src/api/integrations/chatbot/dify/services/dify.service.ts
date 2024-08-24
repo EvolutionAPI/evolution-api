@@ -23,6 +23,7 @@ export class DifyService {
       const session = await this.prismaRepository.integrationSession.create({
         data: {
           remoteJid: data.remoteJid,
+          pushName: data.pushName,
           sessionId: data.remoteJid,
           status: 'opened',
           awaitUser: false,
@@ -254,7 +255,6 @@ export class DifyService {
 
           const message = answer;
 
-          console.log('message:', answer);
           await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
 
           await this.prismaRepository.integrationSession.update({
@@ -401,6 +401,7 @@ export class DifyService {
   ) {
     const data = await this.createNewSession(instance, {
       remoteJid,
+      pushName,
       botId: dify.id,
     });
 

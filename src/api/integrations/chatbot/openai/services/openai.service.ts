@@ -238,6 +238,7 @@ export class OpenaiService {
         session = await this.prismaRepository.integrationSession.create({
           data: {
             remoteJid: data.remoteJid,
+            pushName: data.pushName,
             sessionId: threadId,
             status: 'opened',
             awaitUser: false,
@@ -265,6 +266,7 @@ export class OpenaiService {
   ) {
     const data = await this.createAssistantNewSession(instance, {
       remoteJid,
+      pushName,
       openaiCredsId: openaiBot.openaiCredsId,
       botId: openaiBot.id,
     });
@@ -526,6 +528,7 @@ export class OpenaiService {
       const session = await this.prismaRepository.integrationSession.create({
         data: {
           remoteJid: data.remoteJid,
+          pushName: data.pushName,
           sessionId: id,
           status: 'opened',
           awaitUser: false,
@@ -544,6 +547,7 @@ export class OpenaiService {
   private async initChatCompletionNewSession(
     instance: any,
     remoteJid: string,
+    pushName: string,
     openaiBot: OpenaiBot,
     settings: OpenaiSetting,
     session: IntegrationSession,
@@ -551,6 +555,7 @@ export class OpenaiService {
   ) {
     const data = await this.createChatCompletionNewSession(instance, {
       remoteJid,
+      pushName,
       openaiCredsId: openaiBot.openaiCredsId,
       botId: openaiBot.id,
     });
@@ -573,6 +578,7 @@ export class OpenaiService {
   public async processOpenaiChatCompletion(
     instance: any,
     remoteJid: string,
+    pushName: string,
     openaiBot: OpenaiBot,
     session: IntegrationSession,
     settings: OpenaiSetting,
@@ -610,13 +616,13 @@ export class OpenaiService {
           });
         }
 
-        await this.initChatCompletionNewSession(instance, remoteJid, openaiBot, settings, session, content);
+        await this.initChatCompletionNewSession(instance, remoteJid, pushName, openaiBot, settings, session, content);
         return;
       }
     }
 
     if (!session) {
-      await this.initChatCompletionNewSession(instance, remoteJid, openaiBot, settings, session, content);
+      await this.initChatCompletionNewSession(instance, remoteJid, pushName, openaiBot, settings, session, content);
       return;
     }
 

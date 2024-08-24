@@ -519,7 +519,7 @@ export class TypebotService {
         listeningFromMe: listeningFromMe,
         remoteJid: remoteJid,
         pushName: msg.pushName,
-        typebotId: findTypebot.id,
+        botId: findTypebot.id,
       });
 
       if (data?.session) {

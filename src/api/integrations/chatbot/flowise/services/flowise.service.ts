@@ -22,6 +22,7 @@ export class FlowiseService {
       const session = await this.prismaRepository.integrationSession.create({
         data: {
           remoteJid: data.remoteJid,
+          pushName: data.pushName,
           sessionId: data.remoteJid,
           status: 'opened',
           awaitUser: false,
@@ -41,14 +42,7 @@ export class FlowiseService {
     return content.includes('imageMessage');
   }
 
-  private async sendMessageToBot(
-    instance: any,
-    session: IntegrationSession,
-    bot: Flowise,
-    remoteJid: string,
-    pushName: string,
-    content: string,
-  ) {
+  private async sendMessageToBot(instance: any, bot: Flowise, remoteJid: string, pushName: string, content: string) {
     const payload: any = {
       question: content,
       overrideConfig: {
@@ -188,6 +182,7 @@ export class FlowiseService {
   ) {
     const data = await this.createNewSession(instance, {
       remoteJid,
+      pushName,
       botId: bot.id,
     });
 
@@ -195,7 +190,7 @@ export class FlowiseService {
       session = data.session;
     }
 
-    const message = await this.sendMessageToBot(instance, session, bot, remoteJid, pushName, content);
+    const message = await this.sendMessageToBot(instance, bot, remoteJid, pushName, content);
 
     await this.sendMessageWhatsApp(instance, remoteJid, session, settings, message);
 
@@ -300,7 +295,7 @@ export class FlowiseService {
       return;
     }
 
-    const message = await this.sendMessageToBot(instance, session, bot, remoteJid, pushName, content);
+    const message = await this.sendMessageToBot(instance, bot, remoteJid, pushName, content);
 
     await this.sendMessageWhatsApp(instance, remoteJid, session, settings, message);
 
