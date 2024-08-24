@@ -28,6 +28,7 @@ export class GenericService {
           awaitUser: false,
           botId: data.botId,
           instanceId: instance.instanceId,
+          type: 'generic',
         },
       });
 

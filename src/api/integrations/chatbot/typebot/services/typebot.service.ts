@@ -78,6 +78,7 @@ export class TypebotService {
             awaitUser: false,
             botId: data.botId,
             instanceId: instance.id,
+            type: 'typebot',
           },
         });
       }

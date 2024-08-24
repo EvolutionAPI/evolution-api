@@ -649,6 +649,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
           instanceId: instanceId,
           remoteJid,
           botId: bot ? botId : { not: null },
+          type: 'dify',
         },
       });
     } catch (error) {

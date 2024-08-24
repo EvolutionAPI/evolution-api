@@ -28,6 +28,7 @@ export class FlowiseService {
           awaitUser: false,
           botId: data.botId,
           instanceId: instance.instanceId,
+          type: 'flowise',
         },
       });
 

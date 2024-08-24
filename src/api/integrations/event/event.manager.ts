@@ -99,7 +99,7 @@ export class EventManager {
     if (data.websocket)
       await this.websocket.set(instanceName, {
         websocket: {
-          enabled: data.websocket?.enabled,
+          enabled: true,
           events: data.websocket?.events,
         },
       });
@@ -107,7 +107,7 @@ export class EventManager {
     if (data.rabbitmq)
       await this.rabbitmq.set(instanceName, {
         rabbitmq: {
-          enabled: data.rabbitmq?.enabled,
+          enabled: true,
           events: data.rabbitmq?.events,
         },
       });
@@ -115,7 +115,7 @@ export class EventManager {
     if (data.sqs)
       await this.sqs.set(instanceName, {
         sqs: {
-          enabled: data.sqs?.enabled,
+          enabled: true,
           events: data.sqs?.events,
         },
       });
@@ -123,7 +123,7 @@ export class EventManager {
     if (data.webhook)
       await this.webhook.set(instanceName, {
         webhook: {
-          enabled: data.webhook?.enabled,
+          enabled: true,
           events: data.webhook?.events,
           url: data.webhook?.url,
           base64: data.webhook?.base64,

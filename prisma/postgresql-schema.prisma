@@ -397,6 +397,7 @@ model IntegrationSession {
   status     SessionStatus
   awaitUser  Boolean       @default(false) @db.Boolean
   context    Json?
+  type       String?        @db.VarChar(100)
   createdAt  DateTime?     @default(now()) @db.Timestamp
   updatedAt  DateTime      @updatedAt @db.Timestamp
   Message    Message[]

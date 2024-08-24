@@ -625,6 +625,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
           instanceId: instanceId,
           remoteJid,
           botId: bot ? botId : { not: null },
+          type: 'generic',
         },
       });
     } catch (error) {

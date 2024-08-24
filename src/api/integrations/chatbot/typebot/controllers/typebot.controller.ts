@@ -911,6 +911,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
           instanceId: instanceId,
           remoteJid,
           botId: botId ?? { not: null },
+          type: 'typebot',
         },
       });
     } catch (error) {

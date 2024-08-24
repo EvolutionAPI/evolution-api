@@ -3,12 +3,12 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
+import { Flowise } from '@prisma/client';
 import { getConversationMessage } from '@utils/getConversationMessage';
 
 import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
 import { FlowiseDto } from '../dto/flowise.dto';
 import { FlowiseService } from '../services/flowise.service';
-import { Flowise } from '@prisma/client';
 
 export class FlowiseController extends ChatbotController implements ChatbotControllerInterface {
   constructor(
@@ -625,6 +625,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
           instanceId: instanceId,
           remoteJid,
           botId: bot ? botId : { not: null },
+          type: 'flowise',
         },
       });
     } catch (error) {

@@ -363,9 +363,6 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
       where: {
         instanceId,
       },
-      include: {
-        sessions: true,
-      },
     });
 
     if (!bots.length) {
@@ -389,9 +386,6 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
     const bot = await this.botRepository.findFirst({
       where: {
         id: botId,
-      },
-      include: {
-        sessions: true,
       },
     });
 
@@ -864,9 +858,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           instanceId: instanceId,
           remoteJid,
           botId: openaiBot ? botId : { not: null },
-        },
-        include: {
-          OpenaiBot: true,
+          type: 'openai',
         },
       });
     } catch (error) {

@@ -244,6 +244,7 @@ export class OpenaiService {
             awaitUser: false,
             botId: data.botId,
             instanceId: instance.instanceId,
+            type: 'openai',
           },
         });
       }
@@ -534,6 +535,7 @@ export class OpenaiService {
           awaitUser: false,
           botId: data.botId,
           instanceId: instance.instanceId,
+          type: 'openai',
         },
       });
 

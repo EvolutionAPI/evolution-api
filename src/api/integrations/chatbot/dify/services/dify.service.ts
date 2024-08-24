@@ -29,6 +29,7 @@ export class DifyService {
           awaitUser: false,
           botId: data.botId,
           instanceId: instance.instanceId,
+          type: 'dify',
         },
       });
 
