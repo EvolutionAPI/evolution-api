@@ -427,7 +427,7 @@ export class ConfigService {
         ENABLED: process.env?.CHATWOOT_ENABLED === 'true',
         MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'true',
         MESSAGE_READ: process.env.CHATWOOT_MESSAGE_READ === 'true',
-        BOT_CONTACT: process.env.CHATWOOT_BOT_CONTACT === 'true',
+        BOT_CONTACT: !process.env.CHATWOOT_BOT_CONTACT || process.env.CHATWOOT_BOT_CONTACT === 'true',
         IMPORT: {
           DATABASE: {
             CONNECTION: {

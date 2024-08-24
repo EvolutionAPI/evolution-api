@@ -8,6 +8,7 @@ import { getConversationMessage } from '@utils/getConversationMessage';
 import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
 import { FlowiseDto } from '../dto/flowise.dto';
 import { FlowiseService } from '../services/flowise.service';
+import { Flowise } from '@prisma/client';
 
 export class FlowiseController extends ChatbotController implements ChatbotControllerInterface {
   constructor(
@@ -144,7 +145,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
@@ -317,7 +318,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
           expire: data.expire,
@@ -695,48 +696,24 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
 
       const content = getConversationMessage(msg);
 
-      const findBot = await this.findBotTrigger(
+      const findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
         instance,
         session,
-      );
+      )) as Flowise;
 
       if (!findBot) return;
 
-      let expire = findBot.expire;
-      let keywordFinish = findBot.keywordFinish;
-      let delayMessage = findBot.delayMessage;
-      let unknownMessage = findBot.unknownMessage;
       let listeningFromMe = findBot.listeningFromMe;
       let stopBotFromMe = findBot.stopBotFromMe;
-      let keepOpen = findBot.keepOpen;
       let debounceTime = findBot.debounceTime;
 
-      if (
-        !expire ||
-        !keywordFinish ||
-        !delayMessage ||
-        !unknownMessage ||
-        !listeningFromMe ||
-        !stopBotFromMe ||
-        !keepOpen ||
-        !debounceTime
-      ) {
-        if (!expire) expire = settings.expire;
-
-        if (!keywordFinish) keywordFinish = settings.keywordFinish;
-
-        if (!delayMessage) delayMessage = settings.delayMessage;
-
-        if (!unknownMessage) unknownMessage = settings.unknownMessage;
-
+      if (!listeningFromMe || !stopBotFromMe || !debounceTime) {
         if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
 
         if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
-
-        if (!keepOpen) keepOpen = settings.keepOpen;
 
         if (!debounceTime) debounceTime = settings.debounceTime;
       }

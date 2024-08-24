@@ -2,7 +2,7 @@ import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
 import { ChatwootService } from '@api/integrations/chatbot/chatwoot/services/chatwoot.service';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
-import { channelController, eventController } from '@api/server.module';
+import { channelController, eventManager } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { SettingsService } from '@api/services/settings.service';
@@ -77,7 +77,7 @@ export class InstanceController {
       this.waMonitor.delInstanceTime(instance.instanceName);
 
       // set events
-      await eventController.setInstance(instance.instanceName, instanceData);
+      await eventManager.setInstance(instance.instanceName, instanceData);
 
       instance.sendDataWebhook(Events.INSTANCE_CREATE, {
         instanceName: instanceData.instanceName,
@@ -150,22 +150,18 @@ export class InstanceController {
           },
           hash,
           webhook: {
-            webhookUrl: instanceData.webhookUrl,
-            webhookByEvents: instanceData.webhookByEvents,
-            webhookBase64: instanceData.webhookBase64,
-            // events: getWebhookEvents,
+            webhookUrl: instanceData?.webhook?.url,
+            webhookByEvents: instanceData?.webhook?.byEvents,
+            webhookBase64: instanceData?.webhook?.base64,
           },
           websocket: {
-            enabled: instanceData.websocketEnabled,
-            // events: getWebsocketEvents,
+            enabled: instanceData?.websocket?.enabled,
           },
           rabbitmq: {
-            enabled: instanceData.rabbitmqEnabled,
-            // events: getRabbitmqEvents,
+            enabled: instanceData?.rabbitmq?.enabled,
           },
           sqs: {
-            enabled: instanceData.sqsEnabled,
-            // events: getSqsEvents,
+            enabled: instanceData?.sqs?.enabled,
           },
           settings,
           qrcode: getQrcode,
@@ -241,22 +237,18 @@ export class InstanceController {
         },
         hash,
         webhook: {
-          webhookUrl: instanceData.webhookUrl,
-          webhookByEvents: instanceData.webhookByEvents,
-          webhookBase64: instanceData.webhookBase64,
-          // events: getWebhookEvents,
+          webhookUrl: instanceData?.webhook?.url,
+          webhookByEvents: instanceData?.webhook?.byEvents,
+          webhookBase64: instanceData?.webhook?.base64,
         },
         websocket: {
-          enabled: instanceData.websocketEnabled,
-          // events: getWebsocketEvents,
+          enabled: instanceData?.websocket?.enabled,
         },
         rabbitmq: {
-          enabled: instanceData.rabbitmqEnabled,
-          // events: getRabbitmqEvents,
+          enabled: instanceData?.rabbitmq?.enabled,
         },
         sqs: {
-          enabled: instanceData.sqsEnabled,
-          // events: getSqsEvents,
+          enabled: instanceData?.sqs?.enabled,
         },
         settings,
         chatwoot: {
@@ -277,6 +269,7 @@ export class InstanceController {
         },
       };
     } catch (error) {
+      this.waMonitor.deleteInstance(instanceData.instanceName);
       this.logger.error(isArray(error.message) ? error.message[0] : error.message);
       throw new BadRequestException(isArray(error.message) ? error.message[0] : error.message);
     }
@@ -338,6 +331,7 @@ export class InstanceController {
         instance.client?.end(new Error('restart'));
         return await this.connectToWhatsapp({ instanceName });
       } else if (state == 'connecting') {
+        instance.client?.ws?.close();
         instance.client?.end(new Error('restart'));
         return await this.connectToWhatsapp({ instanceName });
       }

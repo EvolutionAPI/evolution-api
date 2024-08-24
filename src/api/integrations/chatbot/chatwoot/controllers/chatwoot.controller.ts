@@ -19,7 +19,7 @@ export class ChatwootController {
   public async createChatwoot(instance: InstanceDto, data: ChatwootDto) {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
 
-    if (data.enabled) {
+    if (data?.enabled) {
       if (!isURL(data.url, { require_tld: false })) {
         throw new BadRequestException('url is not valid');
       }

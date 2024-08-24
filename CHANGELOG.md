@@ -13,6 +13,14 @@
 
 * Refactor integrations structure for modular system
 * Fixed dify agent integration
+* Update Baileys Version
+* Fixed proxy config in manager
+* Fixed send messages in groups
+* S3 saving media sent from me
+
+### Break Changes
+
+* Payloads for events changed (create Instance and set events). Check postman to understand
 
 # 2.0.10 (2024-08-16 16:23)
 

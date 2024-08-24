@@ -7,6 +7,7 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { configService, Openai } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
+import { OpenaiBot } from '@prisma/client';
 import { getConversationMessage } from '@utils/getConversationMessage';
 import OpenAI from 'openai';
 
@@ -313,7 +314,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
@@ -527,7 +528,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           openaiCredsId: data.openaiCredsId,
           botType: data.botType,
           assistantId: data.assistantId,
@@ -941,53 +942,25 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
 
       const content = getConversationMessage(msg);
 
-      const findBot = await this.findBotTrigger(
+      const findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
         instance,
         session,
-      );
+      )) as OpenaiBot;
 
       if (!findBot) return;
 
       // verify default settings
-      let openaiCredsId = findBot.openaiCredsId;
-      let expire = findBot.expire;
-      let keywordFinish = findBot.keywordFinish;
-      let delayMessage = findBot.delayMessage;
-      let unknownMessage = findBot.unknownMessage;
       let listeningFromMe = findBot.listeningFromMe;
       let stopBotFromMe = findBot.stopBotFromMe;
-      let keepOpen = findBot.keepOpen;
       let debounceTime = findBot.debounceTime;
 
-      if (
-        !openaiCredsId ||
-        !expire ||
-        !keywordFinish ||
-        !delayMessage ||
-        !unknownMessage ||
-        !listeningFromMe ||
-        !stopBotFromMe ||
-        !keepOpen ||
-        !debounceTime
-      ) {
-        if (!openaiCredsId) openaiCredsId = settings.openaiCredsId;
-
-        if (!expire) expire = settings.expire;
-
-        if (!keywordFinish) keywordFinish = settings.keywordFinish;
-
-        if (!delayMessage) delayMessage = settings.delayMessage;
-
-        if (!unknownMessage) unknownMessage = settings.unknownMessage;
-
+      if (!listeningFromMe || !stopBotFromMe || !debounceTime) {
         if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
 
         if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
-
-        if (!keepOpen) keepOpen = settings.keepOpen;
 
         if (!debounceTime) debounceTime = settings.debounceTime;
       }

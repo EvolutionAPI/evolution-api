@@ -6,7 +6,6 @@ import {
   genericController,
   openaiController,
   typebotController,
-  websocketController,
 } from '@api/server.module';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
@@ -90,29 +89,15 @@ export class ChatbotController {
       pushName,
       isIntegration,
     };
-    // generic
     await genericController.emit(emitData);
 
-    // typebot
     await typebotController.emit(emitData);
 
-    // openai
     await openaiController.emit(emitData);
 
-    // dify
     await difyController.emit(emitData);
 
-    // flowise
     await flowiseController.emit(emitData);
-  }
-
-  public async setInstance(instanceName: string, data: any): Promise<any> {
-    // chatwoot
-    if (data.websocketEnabled)
-      await websocketController.set(instanceName, {
-        enabled: true,
-        events: data.websocketEvents,
-      });
   }
 
   public processDebounce(
@@ -204,7 +189,7 @@ export class ChatbotController {
     instance: InstanceDto,
     session?: IntegrationSession,
   ) {
-    let findBot = null;
+    let findBot: null;
 
     if (!session) {
       findBot = await findBotByTrigger(botRepository, settingsRepository, content, instance.instanceId);

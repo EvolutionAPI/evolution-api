@@ -8,6 +8,7 @@ import { Events } from '@api/types/wa.types';
 import { Auth, configService, HttpServer, Typebot } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
+import { Typebot as TypebotModel } from '@prisma/client';
 import { getConversationMessage } from '@utils/getConversationMessage';
 import axios from 'axios';
 
@@ -150,7 +151,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           url: data.url,
           typebot: data.typebot,
@@ -333,7 +334,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           url: data.url,
           typebot: data.typebot,
           expire: data.expire,
@@ -1001,13 +1002,13 @@ export class TypebotController extends ChatbotController implements ChatbotContr
 
       const content = getConversationMessage(msg);
 
-      const findBot = await this.findBotTrigger(
+      const findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
         instance,
         session,
-      );
+      )) as TypebotModel;
 
       if (!findBot) return;
 

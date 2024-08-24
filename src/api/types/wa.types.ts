@@ -60,14 +60,6 @@ export declare namespace wa {
     businessId?: string;
   };
 
-  export type LocalWebHook = {
-    enabled?: boolean;
-    url?: string;
-    events?: JsonValue;
-    webhookByEvents?: boolean;
-    webhookBase64?: boolean;
-  };
-
   export type LocalChatwoot = {
     enabled?: boolean;
     accountId?: string;
@@ -95,19 +87,15 @@ export declare namespace wa {
     syncFullHistory?: boolean;
   };
 
-  export type LocalWebsocket = {
+  export type LocalEvent = {
     enabled?: boolean;
     events?: JsonValue;
   };
 
-  export type LocalRabbitmq = {
-    enabled?: boolean;
-    events?: JsonValue;
-  };
-
-  export type LocalSqs = {
-    enabled?: boolean;
-    events?: JsonValue;
+  export type LocalWebHook = LocalEvent & {
+    url?: string;
+    webhookByEvents?: boolean;
+    webhookBase64?: boolean;
   };
 
   type Session = {

@@ -7,6 +7,7 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { configService, Dify } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
+import { Dify as DifyModel } from '@prisma/client';
 import { getConversationMessage } from '@utils/getConversationMessage';
 
 import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
@@ -149,7 +150,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
     try {
       const bot = await this.botRepository.create({
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           description: data.description,
           botType: data.botType,
           apiUrl: data.apiUrl,
@@ -330,7 +331,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
           id: botId,
         },
         data: {
-          enabled: data.enabled,
+          enabled: data?.enabled,
           botType: data.botType,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
@@ -723,48 +724,24 @@ export class DifyController extends ChatbotController implements ChatbotControll
 
       const content = getConversationMessage(msg);
 
-      const findBot = await this.findBotTrigger(
+      const findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
         instance,
         session,
-      );
+      )) as DifyModel;
 
       if (!findBot) return;
 
-      let expire = findBot.expire;
-      let keywordFinish = findBot.keywordFinish;
-      let delayMessage = findBot.delayMessage;
-      let unknownMessage = findBot.unknownMessage;
       let listeningFromMe = findBot.listeningFromMe;
       let stopBotFromMe = findBot.stopBotFromMe;
-      let keepOpen = findBot.keepOpen;
       let debounceTime = findBot.debounceTime;
 
-      if (
-        !expire ||
-        !keywordFinish ||
-        !delayMessage ||
-        !unknownMessage ||
-        !listeningFromMe ||
-        !stopBotFromMe ||
-        !keepOpen ||
-        !debounceTime
-      ) {
-        if (!expire) expire = settings.expire;
-
-        if (!keywordFinish) keywordFinish = settings.keywordFinish;
-
-        if (!delayMessage) delayMessage = settings.delayMessage;
-
-        if (!unknownMessage) unknownMessage = settings.unknownMessage;
-
+      if (!listeningFromMe || !stopBotFromMe || !debounceTime) {
         if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
 
         if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
-
-        if (!keepOpen) keepOpen = settings.keepOpen;
 
         if (!debounceTime) debounceTime = settings.debounceTime;
       }

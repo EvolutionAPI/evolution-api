@@ -1,37 +1,38 @@
-import { RabbitmqDto } from '@api/integrations/event/rabbitmq/dto/rabbitmq.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
-import { wa } from '@api/types/wa.types';
 import { configService, Log, Rabbitmq } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { NotFoundException } from '@exceptions';
 import * as amqp from 'amqplib/callback_api';
 
-import { EmitData, EventController, EventControllerInterface } from '../../event.controller';
+import { EmitData, EventController, EventControllerInterface } from '../event.controller';
 
 export class RabbitmqController extends EventController implements EventControllerInterface {
   public amqpChannel: amqp.Channel | null = null;
   private readonly logger = new Logger(RabbitmqController.name);
-  integrationEnabled = configService.get<Rabbitmq>('RABBITMQ')?.ENABLED;
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
-    super(prismaRepository, waMonitor);
+    super(prismaRepository, waMonitor, configService.get<Rabbitmq>('RABBITMQ')?.ENABLED, 'rabbitmq');
   }
 
   public async init(): Promise<void> {
-    if (!this.integrationEnabled) return;
+    if (!this.status) {
+      return;
+    }
 
     await new Promise<void>((resolve, reject) => {
       const uri = configService.get<Rabbitmq>('RABBITMQ').URI;
+
       amqp.connect(uri, (error, connection) => {
         if (error) {
           reject(error);
+
           return;
         }
 
         connection.createChannel((channelError, channel) => {
           if (channelError) {
             reject(channelError);
+
             return;
           }
 
@@ -45,6 +46,7 @@ export class RabbitmqController extends EventController implements EventControll
           this.amqpChannel = channel;
 
           this.logger.info('AMQP initialized');
+
           resolve();
         });
       });
@@ -61,57 +63,6 @@ export class RabbitmqController extends EventController implements EventControll
     return this.amqpChannel;
   }
 
-  public async set(instanceName: string, data: RabbitmqDto): Promise<wa.LocalRabbitmq> {
-    if (!this.integrationEnabled) return;
-
-    if (!data.enabled) {
-      data.events = [];
-    } else {
-      if (0 === data.events.length) {
-        data.events = this.events;
-      }
-    }
-
-    try {
-      await this.get(instanceName);
-
-      return this.prisma.rabbitmq.update({
-        where: {
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-        data,
-      });
-    } catch (err) {
-      return this.prisma.rabbitmq.create({
-        data: {
-          enabled: data.enabled,
-          events: data.events,
-          instanceId: this.monitor.waInstances[instanceName].instanceId,
-        },
-      });
-    }
-  }
-
-  public async get(instanceName: string): Promise<wa.LocalWebsocket> {
-    if (!this.integrationEnabled) return;
-
-    if (undefined === this.monitor.waInstances[instanceName]) {
-      throw new NotFoundException('Instance not found');
-    }
-
-    const data = await this.prisma.rabbitmq.findUnique({
-      where: {
-        instanceId: this.monitor.waInstances[instanceName].instanceId,
-      },
-    });
-
-    if (!data) {
-      return null;
-    }
-
-    return data;
-  }
-
   public async emit({
     instanceName,
     origin,
@@ -122,7 +73,9 @@ export class RabbitmqController extends EventController implements EventControll
     sender,
     apiKey,
   }: EmitData): Promise<void> {
-    if (!this.integrationEnabled) return;
+    if (!this.status) {
+      return;
+    }
 
     const instanceRabbitmq = await this.get(instanceName);
     const rabbitmqLocal = instanceRabbitmq?.events;
@@ -178,6 +131,7 @@ export class RabbitmqController extends EventController implements EventControll
 
               this.logger.log(logData);
             }
+
             break;
           } catch (error) {
             retry++;
@@ -231,10 +185,12 @@ export class RabbitmqController extends EventController implements EventControll
 
   private async initGlobalQueues(): Promise<void> {
     this.logger.info('Initializing global queues');
+
     const events = configService.get<Rabbitmq>('RABBITMQ').EVENTS;
 
     if (!events) {
       this.logger.warn('No events to initialize on AMQP');
+
       return;
     }
 

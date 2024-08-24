@@ -92,10 +92,9 @@ import makeWASocket, {
   getContentType,
   getDevice,
   GroupMetadata,
-  GroupParticipant,
   isJidBroadcast,
   isJidGroup,
-  // isJidNewsletter,
+  isJidNewsletter,
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
@@ -144,7 +143,6 @@ export class BaileysStartupService extends ChannelStartupService {
   ) {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
     this.instance.qrcode = { count: 0 };
-    // this.recoveringMessages();
 
     this.authStateProvider = new AuthStateProvider(this.providerFiles);
   }
@@ -158,58 +156,6 @@ export class BaileysStartupService extends ChannelStartupService {
   public stateConnection: wa.StateConnection = { state: 'close' };
 
   public phoneNumber: string;
-
-  // private async recoveringMessages() {
-  //   const cacheConf = this.configService.get<CacheConf>('CACHE');
-
-  //   if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
-  //     this.logger.info('Recovering messages lost from cache');
-  //     setInterval(async () => {
-  //       this.baileysCache.keys().then((keys) => {
-  //         keys.forEach(async (key) => {
-  //           const data = await this.baileysCache.get(key.split(':')[2]);
-
-  //           let message: any;
-  //           let retry: number;
-
-  //           if (!data?.message) {
-  //             message = data;
-  //             retry = 0;
-  //           } else {
-  //             message = data.message;
-  //             retry = data.retry;
-  //           }
-
-  //           if (message.messageStubParameters && message.messageStubParameters[0] === 'Message absent from node') {
-  //             retry = retry + 1;
-  //             this.logger.info(`Message absent from node, retrying to send, key: ${key.split(':')[2]} retry: ${retry}`);
-  //             if (message.messageStubParameters[1]) {
-  //               await this.client.sendMessageAck(JSON.parse(message.messageStubParameters[1], BufferJSON.reviver));
-  //             }
-
-  //             this.baileysCache.set(key.split(':')[2], { message, retry });
-
-  //             if (retry >= 100) {
-  //               this.logger.warn(`Message absent from node, retry limit reached, key: ${key.split(':')[2]}`);
-  //               this.baileysCache.delete(key.split(':')[2]);
-  //               return;
-  //             }
-  //           }
-  //         });
-  //       });
-  //       // 15 minutes
-  //     }, 15 * 60 * 1000);
-  //   }
-  // }
-
-  // private async forceUpdateGroupMetadataCache() {
-  //   this.logger.verbose('Force update group metadata cache');
-  //   const groups = await this.fetchAllGroups({ getParticipants: 'false' });
-
-  //   for (const group of groups) {
-  //     await this.updateGroupMetadataCache(group.id);
-  //   }
-  // }
 
   public get connectionStatus() {
     return this.stateConnection;
@@ -275,7 +221,7 @@ export class BaileysStartupService extends ChannelStartupService {
           statusCode: DisconnectReason.badSession,
         });
 
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -333,7 +279,7 @@ export class BaileysStartupService extends ChannelStartupService {
           },
         });
 
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -401,7 +347,7 @@ export class BaileysStartupService extends ChannelStartupService {
           },
         });
 
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
           this.chatwootService.eventWhatsapp(
             Events.STATUS_INSTANCE,
             { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -417,17 +363,6 @@ export class BaileysStartupService extends ChannelStartupService {
         this.client.end(new Error('Close connection'));
       }
     }
-
-    // if (connection === 'connecting') {
-    //   if (this.configService.get<Database>('DATABASE').ENABLED) {
-    //     await this.prismaRepository.instance.update({
-    //       where: { id: this.instanceId },
-    //       data: {
-    //         connectionStatus: 'connecting',
-    //       },
-    //     });
-    //   }
-    // }
 
     if (connection === 'open') {
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
@@ -457,7 +392,7 @@ export class BaileysStartupService extends ChannelStartupService {
         },
       });
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
         this.chatwootService.eventWhatsapp(
           Events.CONNECTION_UPDATE,
           { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -564,7 +499,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     let options;
 
-    if (this.localProxy.enabled) {
+    if (this.localProxy?.enabled) {
       this.logger.info('Proxy enabled: ' + this.localProxy?.host);
 
       if (this.localProxy?.host?.includes('proxyscrape')) {
@@ -625,8 +560,8 @@ export class BaileysStartupService extends ChannelStartupService {
       shouldIgnoreJid: (jid) => {
         const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
         const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-        // const isNewsletter = !isJidNewsletter(jid);
-        const isNewsletter = jid && jid.includes('newsletter');
+        const isNewsletter = isJidNewsletter(jid);
+        // const isNewsletter = jid && jid.includes('newsletter');
 
         return isGroupJid || isBroadcast || isNewsletter;
       },
@@ -634,7 +569,7 @@ export class BaileysStartupService extends ChannelStartupService {
       shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
         return this.historySyncNotification(msg);
       },
-      // cachedGroupMetadata: this.getGroupMetadataCache,
+      cachedGroupMetadata: this.getGroupMetadataCache,
       userDevicesCache: this.userDevicesCache,
       transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
     };
@@ -759,7 +694,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (
           this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-          this.localChatwoot.enabled &&
+          this.localChatwoot?.enabled &&
           this.localChatwoot.importContacts &&
           contactsRaw.length
         ) {
@@ -797,6 +732,10 @@ export class BaileysStartupService extends ChannelStartupService {
               const instance = { instanceName: this.instance.name, instanceId: this.instance.id };
 
               const findParticipant = await this.chatwootService.findContact(instance, contact.remoteJid.split('@')[0]);
+
+              if (!findParticipant) {
+                return;
+              }
 
               this.chatwootService.updateContact(instance, findParticipant.id, {
                 name: contact.pushName,
@@ -871,7 +810,7 @@ export class BaileysStartupService extends ChannelStartupService {
         let timestampLimitToImport = null;
 
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
-          const daysLimitToImport = this.localChatwoot.enabled ? this.localChatwoot.daysLimitImportMessages : 1000;
+          const daysLimitToImport = this.localChatwoot?.enabled ? this.localChatwoot.daysLimitImportMessages : 1000;
 
           const date = new Date();
           timestampLimitToImport = new Date(date.setDate(date.getDate() - daysLimitToImport)).getTime() / 1000;
@@ -979,7 +918,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (
           this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-          this.localChatwoot.enabled &&
+          this.localChatwoot?.enabled &&
           this.localChatwoot.importMessages &&
           messagesRaw.length > 0
         ) {
@@ -1024,15 +963,15 @@ export class BaileysStartupService extends ChannelStartupService {
           if (received.message?.conversation || received.message?.extendedTextMessage?.text) {
             const text = received.message?.conversation || received.message?.extendedTextMessage?.text;
             if (text == 'requestPlaceholder' && !requestId) {
-              // const messageId = await this.client.requestPlaceholderResend(received.key);
-              // console.log('requested placeholder resync, id=', messageId);
+              const messageId = await this.client.requestPlaceholderResend(received.key);
+              console.log('requested placeholder resync, id=', messageId);
             } else if (requestId) {
               console.log('Message received from phone, id=', requestId, received);
             }
 
             if (text == 'onDemandHistSync') {
-              // const messageId = await this.client.fetchMessageHistory(50, received.key, received.messageTimestamp!);
-              // console.log('requested on-demand sync, id=', messageId);
+              const messageId = await this.client.fetchMessageHistory(50, received.key, received.messageTimestamp!);
+              console.log('requested on-demand sync, id=', messageId);
             }
           }
 
@@ -1040,7 +979,7 @@ export class BaileysStartupService extends ChannelStartupService {
             const editedMessage =
               received.message?.protocolMessage || received.message?.editedMessage?.message?.protocolMessage;
             if (editedMessage) {
-              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled)
+              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
                 this.chatwootService.eventWhatsapp(
                   'messages.edit',
                   { instanceName: this.instance.name, instanceId: this.instance.id },
@@ -1092,7 +1031,7 @@ export class BaileysStartupService extends ChannelStartupService {
             pushName: received.pushName,
             message: { ...received.message },
             contextInfo: contentMsg?.contextInfo,
-            messageType: getContentType(received.message),
+            messageType: getContentType(received.message) || 'unknown',
             messageTimestamp: received.messageTimestamp as number,
             instanceId: this.instanceId,
             source: getDevice(received.key.id),
@@ -1116,7 +1055,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (
             this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-            this.localChatwoot.enabled &&
+            this.localChatwoot?.enabled &&
             !received.key.id.includes('@broadcast')
           ) {
             const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
@@ -1253,7 +1192,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
               await this.chatwootService.eventWhatsapp(
                 Events.CONTACTS_UPDATE,
                 { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -1303,7 +1242,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (status[update.status] === 'READ' && key.fromMe) {
-          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
             this.chatwootService.eventWhatsapp(
               'messages.read',
               { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -1359,7 +1298,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 data: message,
               });
 
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
               this.chatwootService.eventWhatsapp(
                 Events.MESSAGES_DELETE,
                 { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -1615,7 +1554,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (
       this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-      this.localChatwoot.enabled &&
+      this.localChatwoot?.enabled &&
       this.localChatwoot.importMessages &&
       this.isSyncNotificationFromUsedSyncType(msg)
     ) {
@@ -1737,7 +1676,7 @@ export class BaileysStartupService extends ChannelStartupService {
     quoted: any,
     messageId?: string,
     ephemeralExpiration?: number,
-    participants?: GroupParticipant[],
+    // participants?: GroupParticipant[],
   ) {
     const option: any = {
       quoted,
@@ -1745,10 +1684,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (isJidGroup(sender)) {
       option.useCachedGroupMetadata = true;
-      if (participants)
-        option.cachedGroupMetadata = async () => {
-          return { participants: participants as GroupParticipant[] };
-        };
+      // if (participants)
+      //   option.cachedGroupMetadata = async () => {
+      //     return { participants: participants as GroupParticipant[] };
+      //   };
     }
 
     if (ephemeralExpiration) option.ephemeralExpiration = ephemeralExpiration;
@@ -1870,7 +1809,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
         const body = {
           key: { remoteJid: isWA.jid },
         };
@@ -2002,7 +1941,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && !isIntegration) {
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && !isIntegration) {
         this.chatwootService.eventWhatsapp(
           Events.SEND_MESSAGE,
           { instanceName: this.instance.name, instanceId: this.instanceId },
@@ -2010,7 +1949,7 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
 
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot.enabled && isIntegration)
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && isIntegration)
         await chatbotController.emit({
           instance: { instanceName: this.instance.name, instanceId: this.instanceId },
           remoteJid: messageRaw.key.remoteJid,
@@ -2019,10 +1958,60 @@ export class BaileysStartupService extends ChannelStartupService {
           isIntegration,
         });
 
-      if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE)
-        await this.prismaRepository.message.create({
+      if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
+        const msg = await this.prismaRepository.message.create({
           data: messageRaw,
         });
+
+        const isMedia =
+          messageRaw?.message?.imageMessage ||
+          messageRaw?.message?.videoMessage ||
+          messageRaw?.message?.stickerMessage ||
+          messageRaw?.message?.documentMessage ||
+          messageRaw?.message?.documentWithCaptionMessage ||
+          messageRaw?.message?.audioMessage;
+
+        if (isMedia) {
+          if (this.configService.get<S3>('S3').ENABLE) {
+            try {
+              const message: any = messageRaw;
+              const media = await this.getBase64FromMediaMessage(
+                {
+                  message,
+                },
+                true,
+              );
+
+              const { buffer, mediaType, fileName, size } = media;
+
+              const mimetype = mime.getType(fileName).toString();
+
+              const fullName = join(`${this.instance.id}`, messageRaw.key.remoteJid, mediaType, fileName);
+
+              await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
+                'Content-Type': mimetype,
+              });
+
+              await this.prismaRepository.media.create({
+                data: {
+                  messageId: msg.id,
+                  instanceId: this.instanceId,
+                  type: mediaType,
+                  fileName: fullName,
+                  mimetype,
+                },
+              });
+
+              const mediaUrl = await s3Service.getObjectUrl(fullName);
+
+              messageRaw.message.mediaUrl = mediaUrl;
+            } catch (error) {
+              this.logger.error('line 1181');
+              this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
+            }
+          }
+        }
+      }
 
       return messageSent;
     } catch (error) {
@@ -2287,7 +2276,7 @@ export class BaileysStartupService extends ChannelStartupService {
             responseType: 'arraybuffer',
           };
 
-          if (this.localProxy.enabled) {
+          if (this.localProxy?.enabled) {
             config = {
               ...config,
               httpsAgent: makeProxyAgent({
@@ -2344,7 +2333,7 @@ export class BaileysStartupService extends ChannelStartupService {
           responseType: 'arraybuffer',
         };
 
-        if (this.localProxy.enabled) {
+        if (this.localProxy?.enabled) {
           config = {
             ...config,
             httpsAgent: makeProxyAgent({
@@ -3077,7 +3066,7 @@ export class BaileysStartupService extends ChannelStartupService {
           responseType: 'arraybuffer',
         };
 
-        if (this.localProxy.enabled) {
+        if (this.localProxy?.enabled) {
           config = {
             ...config,
             httpsAgent: makeProxyAgent({
@@ -3264,7 +3253,7 @@ export class BaileysStartupService extends ChannelStartupService {
   private async getGroupMetadataCache(groupJid: string) {
     if (!isJidGroup(groupJid)) return null;
 
-    const cacheConf = this.configService.get<CacheConf>('CACHE');
+    const cacheConf = configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
       if (await groupMetadataCache.has(groupJid)) {
@@ -3325,7 +3314,7 @@ export class BaileysStartupService extends ChannelStartupService {
           responseType: 'arraybuffer',
         };
 
-        if (this.localProxy.enabled) {
+        if (this.localProxy?.enabled) {
           config = {
             ...config,
             httpsAgent: makeProxyAgent({

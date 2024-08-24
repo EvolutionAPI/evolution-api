@@ -12,6 +12,8 @@ import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { TemplateController } from './controllers/template.controller';
 import { ChannelController } from './integrations/channel/channel.controller';
+import { EvolutionController } from './integrations/channel/evolution/evolution.controller';
+import { MetaController } from './integrations/channel/meta/meta.controller';
 import { ChatbotController } from './integrations/chatbot/chatbot.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
@@ -25,11 +27,7 @@ import { OpenaiController } from './integrations/chatbot/openai/controllers/open
 import { OpenaiService } from './integrations/chatbot/openai/services/openai.service';
 import { TypebotController } from './integrations/chatbot/typebot/controllers/typebot.controller';
 import { TypebotService } from './integrations/chatbot/typebot/services/typebot.service';
-import { EventController } from './integrations/event/event.controller';
-import { RabbitmqController } from './integrations/event/rabbitmq/controllers/rabbitmq.controller';
-import { SqsController } from './integrations/event/sqs/controllers/sqs.controller';
-import { WebhookController } from './integrations/event/webhook/controllers/webhook.controller';
-import { WebsocketController } from './integrations/event/websocket/controllers/websocket.controller';
+import { EventManager } from './integrations/event/event.manager';
 import { S3Controller } from './integrations/storage/s3/controllers/s3.controller';
 import { S3Service } from './integrations/storage/s3/services/s3.service';
 import { ProviderFiles } from './provider/sessions';
@@ -100,15 +98,13 @@ export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
 export const labelController = new LabelController(waMonitor);
 
-export const eventController = new EventController(prismaRepository, waMonitor);
+export const eventManager = new EventManager(prismaRepository, waMonitor);
 export const chatbotController = new ChatbotController(prismaRepository, waMonitor);
-export const channelController = new ChannelController();
+export const channelController = new ChannelController(prismaRepository, waMonitor);
 
-// events
-export const websocketController = new WebsocketController(prismaRepository, waMonitor);
-export const rabbitmqController = new RabbitmqController(prismaRepository, waMonitor);
-export const sqsController = new SqsController(prismaRepository, waMonitor);
-export const webhookController = new WebhookController(prismaRepository, waMonitor);
+// channels
+export const evolutionController = new EvolutionController(prismaRepository, waMonitor);
+export const metaController = new MetaController(prismaRepository, waMonitor);
 
 // chatbots
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);

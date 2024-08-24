@@ -17,7 +17,7 @@ export class ProxyController {
       throw new NotFoundException(`The "${instance.instanceName}" instance does not exist`);
     }
 
-    if (!data.enabled) {
+    if (!data?.enabled) {
       data.host = '';
       data.port = '';
       data.protocol = '';
