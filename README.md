@@ -130,7 +130,7 @@ Evolution API is licensed under the Apache License 2.0, with the following addit
 
 2. **LOGO and copyright information**: In the process of using Evolution API's frontend components, you may not remove or modify the LOGO or copyright information in the Evolution API console or applications. This restriction is inapplicable to uses of Evolution API that do not involve its frontend components.
 
-Please contact contato@agenciadgcode.com to inquire about licensing matters.
+Please contact contato@atendai.com to inquire about licensing matters.
 
 Apart from the specific conditions mentioned above, all other rights and restrictions follow the Apache License 2.0. Detailed information about the Apache License 2.0 can be found at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
