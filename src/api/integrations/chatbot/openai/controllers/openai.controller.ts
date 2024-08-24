@@ -1006,6 +1006,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
             await this.openaiService.processOpenaiChatCompletion(
               this.waMonitor.waInstances[instance.instanceName],
               remoteJid,
+              pushName,
               findBot,
               session,
               settings,
@@ -1031,6 +1032,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           await this.openaiService.processOpenaiChatCompletion(
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
+            pushName,
             findBot,
             session,
             settings,
