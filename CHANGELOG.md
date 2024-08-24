@@ -8,6 +8,7 @@
 * Option to disable chatwoot bot contact with CHATWOOT_BOT_CONTACT
 * Added flowise integration
 * Added evolution channel on instance create
+* Change in license to Apache-2.0
 
 ### Fixed
 

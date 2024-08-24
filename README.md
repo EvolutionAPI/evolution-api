@@ -6,7 +6,7 @@
 [![Discord Community](https://img.shields.io/badge/Discord-Community-blue)](https://evolution-api.com/discord)
 [![Postman Collection](https://img.shields.io/badge/Postman-Collection-orange)](https://evolution-api.com/postman) 
 [![Documentation](https://img.shields.io/badge/Documentation-Official-green)](https://doc.evolution-api.com)
-[![License](https://img.shields.io/badge/license-GPL--3.0-orange)](./LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 [![Support](https://img.shields.io/badge/Donation-picpay-green)](https://app.picpay.com/user/davidsongomes1998)
 [![Sponsors](https://img.shields.io/badge/Github-sponsor-orange)](https://github.com/sponsors/EvolutionAPI)
 
@@ -120,3 +120,18 @@ We are proud to collaborate with the following content creators who have contrib
 - [Astra Online](https://www.youtube.com/@astraonlineweb)
 - [MKT Seven Automações](https://www.youtube.com/@sevenautomacoes)
 - [Vamos automatizar](https://www.youtube.com/vamosautomatizar)
+
+## License
+
+Evolution API is licensed under the Apache License 2.0, with the following additional conditions:
+
+1. **Multi-tenant SaaS service**: Unless explicitly authorized in writing, you may not use the Evolution API source code to operate a multi-tenant environment.
+    - Tenant Definition: Within the context of Evolution API, one tenant corresponds to one workspace. The workspace provides a separated area for each tenant's data and configurations.
+
+2. **LOGO and copyright information**: In the process of using Evolution API's frontend components, you may not remove or modify the LOGO or copyright information in the Evolution API console or applications. This restriction is inapplicable to uses of Evolution API that do not involve its frontend components.
+
+Please contact contato@agenciadgcode.com to inquire about licensing matters.
+
+Apart from the specific conditions mentioned above, all other rights and restrictions follow the Apache License 2.0. Detailed information about the Apache License 2.0 can be found at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
+
+© 2024 AtendAI
