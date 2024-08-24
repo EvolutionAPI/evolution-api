@@ -19,6 +19,7 @@
 * Fixed proxy config in manager
 * Fixed send messages in groups
 * S3 saving media sent from me
+* Fixed duplication bot when use startTypebot
 
 ### Break Changes
 
