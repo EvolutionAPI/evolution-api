@@ -771,6 +771,10 @@ export class DifyController extends ChatbotController implements ChatbotControll
         return;
       }
 
+      if (session && !session.awaitUser) {
+        return;
+      }
+
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
           await this.difyService.processDify(

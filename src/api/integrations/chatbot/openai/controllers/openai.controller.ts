@@ -980,6 +980,10 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
         return;
       }
 
+      if (session && !session.awaitUser) {
+        return;
+      }
+
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
           if (findBot.botType === 'assistant') {

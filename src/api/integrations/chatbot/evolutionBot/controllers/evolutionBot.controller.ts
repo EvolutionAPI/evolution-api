@@ -3,27 +3,27 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
-import { GenericBot } from '@prisma/client';
+import { EvolutionBot } from '@prisma/client';
 import { getConversationMessage } from '@utils/getConversationMessage';
 
 import { ChatbotController, ChatbotControllerInterface, EmitData } from '../../chatbot.controller';
-import { GenericBotDto } from '../dto/generic.dto';
-import { GenericService } from '../services/generic.service';
+import { EvolutionBotDto } from '../dto/evolutionBot.dto';
+import { EvolutionBotService } from '../services/evolutionBot.service';
 
-export class GenericController extends ChatbotController implements ChatbotControllerInterface {
+export class EvolutionBotController extends ChatbotController implements ChatbotControllerInterface {
   constructor(
-    private readonly genericService: GenericService,
+    private readonly evolutionBotService: EvolutionBotService,
     prismaRepository: PrismaRepository,
     waMonitor: WAMonitoringService,
   ) {
     super(prismaRepository, waMonitor);
 
-    this.botRepository = this.prismaRepository.genericBot;
-    this.settingsRepository = this.prismaRepository.genericSetting;
+    this.botRepository = this.prismaRepository.evolutionBot;
+    this.settingsRepository = this.prismaRepository.evolutionBotSetting;
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
-  public readonly logger = new Logger(GenericController.name);
+  public readonly logger = new Logger(EvolutionBotController.name);
 
   integrationEnabled: boolean;
   botRepository: any;
@@ -32,7 +32,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
   userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
   // Bots
-  public async createBot(instance: InstanceDto, data: GenericBotDto) {
+  public async createBot(instance: InstanceDto, data: EvolutionBotDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -220,7 +220,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
     return bot;
   }
 
-  public async updateBot(instance: InstanceDto, botId: string, data: GenericBotDto) {
+  public async updateBot(instance: InstanceDto, botId: string, data: EvolutionBotDto) {
     const instanceId = await this.prismaRepository.instance
       .findFirst({
         where: {
@@ -626,7 +626,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
           instanceId: instanceId,
           remoteJid,
           botId: bot ? botId : { not: null },
-          type: 'generic',
+          type: 'evolution',
         },
       });
     } catch (error) {
@@ -704,7 +704,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
         content,
         instance,
         session,
-      )) as GenericBot;
+      )) as EvolutionBot;
 
       if (!findBot) return;
 
@@ -743,9 +743,13 @@ export class GenericController extends ChatbotController implements ChatbotContr
         return;
       }
 
+      if (session && !session.awaitUser) {
+        return;
+      }
+
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
-          await this.genericService.processBot(
+          await this.evolutionBotService.processBot(
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
             findBot,
@@ -756,7 +760,7 @@ export class GenericController extends ChatbotController implements ChatbotContr
           );
         });
       } else {
-        await this.genericService.processBot(
+        await this.evolutionBotService.processBot(
           this.waMonitor.waInstances[instance.instanceName],
           remoteJid,
           findBot,

@@ -1,6 +1,6 @@
 import { TriggerOperator, TriggerType } from '@prisma/client';
 
-export class GenericBotDto {
+export class EvolutionBotDto {
   enabled?: boolean;
   description?: string;
   apiUrl?: string;
@@ -19,7 +19,7 @@ export class GenericBotDto {
   ignoreJids?: any;
 }
 
-export class GenericBotSettingDto {
+export class EvolutionBotSettingDto {
   expire?: number;
   keywordFinish?: string;
   delayMessage?: number;

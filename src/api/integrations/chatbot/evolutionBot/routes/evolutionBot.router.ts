@@ -2,28 +2,28 @@ import { RouterBroker } from '@api/abstract/abstract.router';
 import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { HttpStatus } from '@api/routes/index.router';
-import { genericController } from '@api/server.module';
+import { evolutionBotController } from '@api/server.module';
 import { instanceSchema } from '@validate/instance.schema';
 import { RequestHandler, Router } from 'express';
 
-import { GenericBotDto, GenericBotSettingDto } from '../dto/generic.dto';
+import { EvolutionBotDto, EvolutionBotSettingDto } from '../dto/evolutionBot.dto';
 import {
-  genericIgnoreJidSchema,
-  genericSchema,
-  genericSettingSchema,
-  genericStatusSchema,
-} from '../validate/generic.schema';
+  evolutionBotIgnoreJidSchema,
+  evolutionBotSchema,
+  evolutionBotSettingSchema,
+  evolutionBotStatusSchema,
+} from '../validate/evolutionBot.schema';
 
-export class GenericRouter extends RouterBroker {
+export class EvolutionBotRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
     super();
     this.router
       .post(this.routerPath('create'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<GenericBotDto>({
+        const response = await this.dataValidate<EvolutionBotDto>({
           request: req,
-          schema: genericSchema,
-          ClassRef: GenericBotDto,
-          execute: (instance, data) => genericController.createBot(instance, data),
+          schema: evolutionBotSchema,
+          ClassRef: EvolutionBotDto,
+          execute: (instance, data) => evolutionBotController.createBot(instance, data),
         });
 
         res.status(HttpStatus.CREATED).json(response);
@@ -33,47 +33,47 @@ export class GenericRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => genericController.findBot(instance),
+          execute: (instance) => evolutionBotController.findBot(instance),
         });
 
         res.status(HttpStatus.OK).json(response);
       })
-      .get(this.routerPath('fetch/:genericId'), ...guards, async (req, res) => {
+      .get(this.routerPath('fetch/:evolutionBotId'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => genericController.fetchBot(instance, req.params.genericId),
+          execute: (instance) => evolutionBotController.fetchBot(instance, req.params.evolutionBotId),
         });
 
         res.status(HttpStatus.OK).json(response);
       })
-      .put(this.routerPath('update/:genericId'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<GenericBotDto>({
+      .put(this.routerPath('update/:evolutionBotId'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<EvolutionBotDto>({
           request: req,
-          schema: genericSchema,
-          ClassRef: GenericBotDto,
-          execute: (instance, data) => genericController.updateBot(instance, req.params.genericId, data),
+          schema: evolutionBotSchema,
+          ClassRef: EvolutionBotDto,
+          execute: (instance, data) => evolutionBotController.updateBot(instance, req.params.evolutionBotId, data),
         });
 
         res.status(HttpStatus.OK).json(response);
       })
-      .delete(this.routerPath('delete/:genericId'), ...guards, async (req, res) => {
+      .delete(this.routerPath('delete/:evolutionBotId'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => genericController.deleteBot(instance, req.params.genericId),
+          execute: (instance) => evolutionBotController.deleteBot(instance, req.params.evolutionBotId),
         });
 
         res.status(HttpStatus.OK).json(response);
       })
       .post(this.routerPath('settings'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<GenericBotSettingDto>({
+        const response = await this.dataValidate<EvolutionBotSettingDto>({
           request: req,
-          schema: genericSettingSchema,
-          ClassRef: GenericBotSettingDto,
-          execute: (instance, data) => genericController.settings(instance, data),
+          schema: evolutionBotSettingSchema,
+          ClassRef: EvolutionBotSettingDto,
+          execute: (instance, data) => evolutionBotController.settings(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -83,7 +83,7 @@ export class GenericRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => genericController.fetchSettings(instance),
+          execute: (instance) => evolutionBotController.fetchSettings(instance),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -91,19 +91,19 @@ export class GenericRouter extends RouterBroker {
       .post(this.routerPath('changeStatus'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
-          schema: genericStatusSchema,
+          schema: evolutionBotStatusSchema,
           ClassRef: InstanceDto,
-          execute: (instance, data) => genericController.changeStatus(instance, data),
+          execute: (instance, data) => evolutionBotController.changeStatus(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);
       })
-      .get(this.routerPath('fetchSessions/:genericId'), ...guards, async (req, res) => {
+      .get(this.routerPath('fetchSessions/:evolutionBotId'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => genericController.fetchSessions(instance, req.params.genericId),
+          execute: (instance) => evolutionBotController.fetchSessions(instance, req.params.evolutionBotId),
         });
 
         res.status(HttpStatus.OK).json(response);
@@ -111,9 +111,9 @@ export class GenericRouter extends RouterBroker {
       .post(this.routerPath('ignoreJid'), ...guards, async (req, res) => {
         const response = await this.dataValidate<IgnoreJidDto>({
           request: req,
-          schema: genericIgnoreJidSchema,
+          schema: evolutionBotIgnoreJidSchema,
           ClassRef: IgnoreJidDto,
-          execute: (instance, data) => genericController.ignoreJid(instance, data),
+          execute: (instance, data) => evolutionBotController.ignoreJid(instance, data),
         });
 
         res.status(HttpStatus.OK).json(response);

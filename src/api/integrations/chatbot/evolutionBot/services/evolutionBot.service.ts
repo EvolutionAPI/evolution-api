@@ -4,18 +4,18 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
 import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import { GenericBot, GenericSetting, IntegrationSession } from '@prisma/client';
+import { EvolutionBot, EvolutionBotSetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 
-export class GenericService {
+export class EvolutionBotService {
   constructor(
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
   ) {}
 
-  private readonly logger = new Logger('GenericService');
+  private readonly logger = new Logger('EvolutionBotService');
 
   public async createNewSession(instance: InstanceDto, data: any) {
     try {
@@ -28,7 +28,7 @@ export class GenericService {
           awaitUser: false,
           botId: data.botId,
           instanceId: instance.instanceId,
-          type: 'generic',
+          type: 'evolution',
         },
       });
 
@@ -46,13 +46,14 @@ export class GenericService {
   private async sendMessageToBot(
     instance: any,
     session: IntegrationSession,
-    bot: GenericBot,
+    bot: EvolutionBot,
     remoteJid: string,
     pushName: string,
     content: string,
   ) {
     const payload: any = {
       inputs: {
+        sessionId: session.id,
         remoteJid: remoteJid,
         pushName: pushName,
         instanceName: instance.instanceName,
@@ -108,7 +109,7 @@ export class GenericService {
     instance: any,
     remoteJid: string,
     session: IntegrationSession,
-    settings: GenericSetting,
+    settings: EvolutionBotSetting,
     message: string,
   ) {
     const regex = /!?\[(.*?)\]\((.*?)\)/g;
@@ -175,8 +176,8 @@ export class GenericService {
   private async initNewSession(
     instance: any,
     remoteJid: string,
-    bot: GenericBot,
-    settings: GenericSetting,
+    bot: EvolutionBot,
+    settings: EvolutionBotSetting,
     session: IntegrationSession,
     content: string,
     pushName?: string,
@@ -201,9 +202,9 @@ export class GenericService {
   public async processBot(
     instance: any,
     remoteJid: string,
-    bot: GenericBot,
+    bot: EvolutionBot,
     session: IntegrationSession,
-    settings: GenericSetting,
+    settings: EvolutionBotSetting,
     content: string,
     pushName?: string,
   ) {
