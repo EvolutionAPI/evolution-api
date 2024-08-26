@@ -100,7 +100,7 @@ export class EvolutionBotService {
     if (instance.integration === Integration.WHATSAPP_BAILEYS)
       await instance.client.sendPresenceUpdate('paused', remoteJid);
 
-    const message = response?.data?.answer;
+    const message = response?.data?.message;
 
     return message;
   }
@@ -298,6 +298,10 @@ export class EvolutionBotService {
     }
 
     const message = await this.sendMessageToBot(instance, session, bot, remoteJid, pushName, content);
+
+    if (!message) {
+      return;
+    }
 
     await this.sendMessageWhatsApp(instance, remoteJid, session, settings, message);
 
