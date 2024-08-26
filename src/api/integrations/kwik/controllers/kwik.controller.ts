@@ -105,4 +105,22 @@ export class KwikController {
 
     return mm;
   }
+  public async cleanup({ instanceName }: InstanceDto) {
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    const messages = connection.collection('messages');
+    const messageUpdate = connection.collection('messageUpdate');
+    const chats = connection.collection('chats');
+    const contacts = connection.collection('contacts');
+    logger.error('DELETEME: Deleting messages for instance ' + instanceName);
+    const x = messages.deleteMany({ owner: instanceName });
+    logger.error(x);
+    const y = chats.deleteMany({ owner: instanceName });
+    logger.error(y);
+    const z = contacts.deleteMany({ owner: instanceName });
+    logger.error(z);
+    messageUpdate.deleteMany({ owner: instanceName });
+
+    return { status: 'ok' };
+  }
 }
