@@ -14,7 +14,13 @@ export class KwikController {
   private isTextMessage(messageType: any) {
     return ['senderKeyDistributionMessage', 'conversation', 'extendedTextMessage'].includes(messageType);
   }
-  public async fetchChats({ instanceName }: InstanceDto, limit: number, skip: number, sort: any) {
+  public async fetchChats(
+    { instanceName }: InstanceDto,
+    limit: number,
+    skip: number,
+    sort: any,
+    messageTimestamp: number,
+  ) {
     const db = configService.get<Database>('DATABASE');
     const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
     const messages = connection.collection('messages');
@@ -30,7 +36,7 @@ export class KwikController {
           fromMe: { $first: '$key.fromMe' },
         },
       },
-      { $match: { owner: instanceName } },
+      { $match: { owner: instanceName, lastAllMsgTimestamp: { $gte: messageTimestamp } } },
       { $sort: { lastAllMsgTimestamp: -1 } },
     ];
 
@@ -120,7 +126,6 @@ export class KwikController {
     const messageUpdate = connection.collection('messageUpdate');
     const chats = connection.collection('chats');
     const contacts = connection.collection('contacts');
-    logger.error('DELETEME: Deleting messages for instance ' + instanceName);
     const x = messages.deleteMany({ owner: instanceName });
     logger.error(x);
     const y = chats.deleteMany({ owner: instanceName });

@@ -24,7 +24,13 @@ export class KwikRouter extends RouterBroker {
         schema: null,
         ClassRef: InstanceDto,
         execute: (instance) =>
-          kwikController.fetchChats(instance, Number(req.query.limit), Number(req.query.skip), req.query.sort),
+          kwikController.fetchChats(
+            instance,
+            Number(req.query.limit),
+            Number(req.query.skip),
+            req.query.sort,
+            Number(req.query.messageTimestamp),
+          ),
       });
 
       return res.status(HttpStatus.OK).json(response);
