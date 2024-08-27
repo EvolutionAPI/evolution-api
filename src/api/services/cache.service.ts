@@ -7,9 +7,9 @@ export class CacheService {
 
   constructor(private readonly cache: ICache) {
     if (cache) {
-      this.logger.info(`cacheservice created using cache engine: ${cache.constructor?.name}`);
+      this.logger.verbose(`cacheservice created using cache engine: ${cache.constructor?.name}`);
     } else {
-      this.logger.info(`cacheservice disabled`);
+      this.logger.verbose(`cacheservice disabled`);
     }
   }
 
