@@ -64,7 +64,7 @@ export class DifyService {
   ) {
     try {
       let endpoint: string = dify.apiUrl;
-
+  
       if (dify.botType === 'chatBot') {
         endpoint += '/chat-messages';
         const payload: any = {
@@ -80,10 +80,10 @@ export class DifyService {
           conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
           user: remoteJid,
         };
-
+  
         if (this.isImageMessage(content)) {
           const contentSplit = content.split('|');
-
+  
           payload.files = [
             {
               type: 'image',
@@ -93,26 +93,26 @@ export class DifyService {
           ];
           payload.query = contentSplit[2] || content;
         }
-
+  
         if (instance.integration === Integration.WHATSAPP_BAILEYS) {
           await instance.client.presenceSubscribe(remoteJid);
           await instance.client.sendPresenceUpdate('composing', remoteJid);
         }
-
+  
         const response = await axios.post(endpoint, payload, {
           headers: {
             Authorization: `Bearer ${dify.apiKey}`,
           },
         });
-
+  
         if (instance.integration === Integration.WHATSAPP_BAILEYS)
           await instance.client.sendPresenceUpdate('paused', remoteJid);
-
+  
         const message = response?.data?.answer;
         const conversationId = response?.data?.conversation_id;
-
+  
         await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
-
+  
         await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
@@ -124,7 +124,7 @@ export class DifyService {
           },
         });
       }
-
+  
       if (dify.botType === 'textGenerator') {
         endpoint += '/completion-messages';
         const payload: any = {
@@ -140,10 +140,10 @@ export class DifyService {
           conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
           user: remoteJid,
         };
-
+  
         if (this.isImageMessage(content)) {
           const contentSplit = content.split('|');
-
+  
           payload.files = [
             {
               type: 'image',
@@ -153,26 +153,26 @@ export class DifyService {
           ];
           payload.inputs.query = contentSplit[2] || content;
         }
-
+  
         if (instance.integration === Integration.WHATSAPP_BAILEYS) {
           await instance.client.presenceSubscribe(remoteJid);
           await instance.client.sendPresenceUpdate('composing', remoteJid);
         }
-
+  
         const response = await axios.post(endpoint, payload, {
           headers: {
             Authorization: `Bearer ${dify.apiKey}`,
           },
         });
-
+  
         if (instance.integration === Integration.WHATSAPP_BAILEYS)
           await instance.client.sendPresenceUpdate('paused', remoteJid);
-
+  
         const message = response?.data?.answer;
         const conversationId = response?.data?.conversation_id;
-
+  
         await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
-
+  
         await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
@@ -184,7 +184,7 @@ export class DifyService {
           },
         });
       }
-
+  
       if (dify.botType === 'agent') {
         endpoint += '/chat-messages';
         const payload: any = {
@@ -200,10 +200,10 @@ export class DifyService {
           conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
           user: remoteJid,
         };
-
+  
         if (this.isImageMessage(content)) {
           const contentSplit = content.split('|');
-
+  
           payload.files = [
             {
               type: 'image',
@@ -213,51 +213,59 @@ export class DifyService {
           ];
           payload.query = contentSplit[2] || content;
         }
-
+  
         if (instance.integration === Integration.WHATSAPP_BAILEYS) {
           await instance.client.presenceSubscribe(remoteJid);
           await instance.client.sendPresenceUpdate('composing', remoteJid);
         }
-
+  
         const response = await axios.post(endpoint, payload, {
           headers: {
             Authorization: `Bearer ${dify.apiKey}`,
           },
           responseType: 'stream',
         });
-
+  
         let conversationId;
         let answer = '';
-
+  
         const stream = response.data;
         const reader = new Readable().wrap(stream);
-
+  
         reader.on('data', (chunk) => {
-          const data = chunk.toString();
+          const data = chunk.toString().replace(/data:\s*/g, '');
 
+          if (data.trim() === '' || !data.startsWith('{')) {
+            return;
+          }
+  
           try {
-            const cleanedData = data.replace(/^data:\s*/, '');
-
-            const event = JSON.parse(cleanedData);
-
-            if (event?.event === 'agent_message') {
-              console.log('event:', event);
-              conversationId = conversationId ?? event?.conversation_id;
-              answer += event?.answer;
+            const events = data.split('\n').filter((line) => line.trim() !== '');
+  
+            for (const eventString of events) {
+              if (eventString.trim().startsWith('{')) {
+                const event = JSON.parse(eventString);
+  
+                if (event?.event === 'agent_message') {
+                  console.log('event:', event);
+                  conversationId = conversationId ?? event?.conversation_id;
+                  answer += event?.answer;
+                }
+              }
             }
           } catch (error) {
             console.error('Error parsing stream data:', error);
           }
         });
-
+  
         reader.on('end', async () => {
           if (instance.integration === Integration.WHATSAPP_BAILEYS)
             await instance.client.sendPresenceUpdate('paused', remoteJid);
-
+  
           const message = answer;
-
+  
           await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
-
+  
           await this.prismaRepository.integrationSession.update({
             where: {
               id: session.id,
@@ -269,14 +277,14 @@ export class DifyService {
             },
           });
         });
-
+  
         reader.on('error', (error) => {
           console.error('Error reading stream:', error);
         });
-
+  
         return;
       }
-
+  
       if (dify.botType === 'workflow') {
         endpoint += '/workflows/run';
         const payload: any = {
@@ -291,10 +299,10 @@ export class DifyService {
           response_mode: 'blocking',
           user: remoteJid,
         };
-
+  
         if (this.isImageMessage(content)) {
           const contentSplit = content.split('|');
-
+  
           payload.files = [
             {
               type: 'image',
@@ -304,25 +312,25 @@ export class DifyService {
           ];
           payload.inputs.query = contentSplit[2] || content;
         }
-
+  
         if (instance.integration === Integration.WHATSAPP_BAILEYS) {
           await instance.client.presenceSubscribe(remoteJid);
           await instance.client.sendPresenceUpdate('composing', remoteJid);
         }
-
+  
         const response = await axios.post(endpoint, payload, {
           headers: {
             Authorization: `Bearer ${dify.apiKey}`,
           },
         });
-
+  
         if (instance.integration === Integration.WHATSAPP_BAILEYS)
           await instance.client.sendPresenceUpdate('paused', remoteJid);
-
+  
         const message = response?.data?.data.outputs.text;
-
+  
         await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
-
+  
         await this.prismaRepository.integrationSession.update({
           where: {
             id: session.id,
@@ -332,14 +340,14 @@ export class DifyService {
             awaitUser: true,
           },
         });
-
+  
         return;
       }
     } catch (error) {
       this.logger.error(error.response?.data || error);
       return;
     }
-  }
+  }  
 
   private async sendMessageWhatsApp(instance: any, remoteJid: string, message: string, settings: DifySetting) {
     const regex = /!?\[(.*?)\]\((.*?)\)/g;
