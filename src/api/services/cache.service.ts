@@ -17,10 +17,15 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
+
     return this.cache.get(key);
   }
 
   public async hGet(key: string, field: string) {
+    if (!this.cache) {
+      return false;
+    }
+
     try {
       const data = await this.cache.hGet(key, field);
 
@@ -39,10 +44,15 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
+
     this.cache.set(key, value);
   }
 
   public async hSet(key: string, field: string, value: any) {
+    if (!this.cache) {
+      return false;
+    }
+
     try {
       const json = JSON.stringify(value, BufferJSON.replacer);
 
@@ -56,6 +66,7 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
+
     return this.cache.has(key);
   }
 
@@ -63,10 +74,15 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
+
     return this.cache.delete(key);
   }
 
   async hDelete(key: string, field: string) {
+    if (!this.cache) {
+      return false;
+    }
+
     try {
       await this.cache.hDelete(key, field);
       return true;
@@ -80,6 +96,7 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
+
     return this.cache.deleteAll(appendCriteria);
   }
 
@@ -87,6 +104,7 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
+
     return this.cache.keys(appendCriteria);
   }
 }
