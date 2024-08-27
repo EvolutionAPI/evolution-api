@@ -3,6 +3,8 @@ version: '3.3'
 services:
   redis:
     image: redis:latest
+    networks:
+      - evolution-net
     container_name: redis
     command: >
       redis-server --port 6379 --appendonly yes
