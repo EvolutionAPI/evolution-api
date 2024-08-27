@@ -401,6 +401,7 @@ export class InstanceController {
         read_messages: read_messages || false,
         read_status: read_status || false,
         sync_full_history: sync_full_history ?? false,
+        ignore_list: [],
       };
 
       this.logger.verbose('settings: ' + JSON.stringify(settings));

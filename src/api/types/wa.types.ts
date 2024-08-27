@@ -83,6 +83,7 @@ export declare namespace wa {
     read_messages?: boolean;
     read_status?: boolean;
     sync_full_history?: boolean;
+    ignore_list?: string[];
   };
 
   export type LocalWebsocket = {

@@ -222,6 +222,7 @@ export class ChannelStartupService {
       read_messages: data.read_messages,
       read_status: data.read_status,
       sync_full_history: data.sync_full_history,
+      ignore_list: data.ignore_list,
     };
   }
 

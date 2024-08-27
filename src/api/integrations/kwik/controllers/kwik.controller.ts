@@ -79,7 +79,7 @@ export class KwikController {
     );
 
     const mm = msgs.map((msg) => {
-      const [messageType, lastMsg] = Object.entries(msg.message)[0] || ['none', ''];
+      const [messageType] = Object.entries(msg.message)[0] || ['none', ''];
 
       const chat_data = {
         id: msg._id,
