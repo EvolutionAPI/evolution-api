@@ -11,7 +11,7 @@ export class SettingsController {
   public async createSettings(instance: InstanceDto, data: SettingsDto) {
     logger.verbose('requested createSettings from ' + instance.instanceName + ' instance');
 
-    return this.settingsService.create(instance, data);
+    return await this.settingsService.create(instance, data);
   }
 
   public async findSettings(instance: InstanceDto) {

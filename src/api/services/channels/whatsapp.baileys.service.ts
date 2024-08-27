@@ -1091,6 +1091,11 @@ export class BaileysStartupService extends ChannelStartupService {
             return;
           }
 
+          if (settings?.ignore_list && settings.ignore_list.includes(received.key.remoteJid)) {
+            this.logger.verbose('contact in ignore list.');
+            return;
+          }
+
           let messageRaw: MessageRaw;
 
           const isMedia =

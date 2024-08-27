@@ -133,6 +133,7 @@ export class KwikController {
     const z = contacts.deleteMany({ owner: instanceName });
     logger.error(z);
     messageUpdate.deleteMany({ owner: instanceName });
+    connection.collection('settings').deleteMany({ _id: instanceName });
 
     return { status: 'ok' };
   }
