@@ -233,17 +233,25 @@ export class DifyService {
         const reader = new Readable().wrap(stream);
 
         reader.on('data', (chunk) => {
-          const data = chunk.toString();
+          const data = chunk.toString().replace(/data:\s*/g, '');
 
+          if (data.trim() === '' || !data.startsWith('{')) {
+            return;
+          }
+  
           try {
-            const cleanedData = data.replace(/^data:\s*/, '');
-
-            const event = JSON.parse(cleanedData);
-
-            if (event?.event === 'agent_message') {
-              console.log('event:', event);
-              conversationId = conversationId ?? event?.conversation_id;
-              answer += event?.answer;
+            const events = data.split('\n').filter((line) => line.trim() !== '');
+  
+            for (const eventString of events) {
+              if (eventString.trim().startsWith('{')) {
+                const event = JSON.parse(eventString);
+  
+                if (event?.event === 'agent_message') {
+                  console.log('event:', event);
+                  conversationId = conversationId ?? event?.conversation_id;
+                  answer += event?.answer;
+                }
+              }
             }
           } catch (error) {
             console.error('Error parsing stream data:', error);
