@@ -71,6 +71,7 @@ import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
 import { Instance } from '@prisma/client';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
+import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
@@ -682,14 +683,19 @@ export class BaileysStartupService extends ChannelStartupService {
           instanceId: this.instanceId,
         }));
 
-        if (contactsRaw.length > 0) this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
-
         if (contactsRaw.length > 0) {
+          this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
+
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
             await this.prismaRepository.contact.createMany({
               data: contactsRaw,
               skipDuplicates: true,
             });
+
+          const usersContacts = contactsRaw.filter((c) => c.remoteJid.includes('@s.whatsapp'));
+          if (usersContacts) {
+            await saveOnWhatsappCache(usersContacts.map((c) => ({ remoteJid: c.remoteJid })));
+          }
         }
 
         if (
@@ -717,9 +723,13 @@ export class BaileysStartupService extends ChannelStartupService {
           })),
         );
 
-        if (updatedContacts.length > 0) this.sendDataWebhook(Events.CONTACTS_UPDATE, updatedContacts);
-
         if (updatedContacts.length > 0) {
+          const usersContacts = updatedContacts.filter((c) => c.remoteJid.includes('@s.whatsapp'));
+          if (usersContacts) {
+            await saveOnWhatsappCache(usersContacts.map((c) => ({ remoteJid: c.remoteJid })));
+          }
+
+          this.sendDataWebhook(Events.CONTACTS_UPDATE, updatedContacts);
           await Promise.all(
             updatedContacts.map(async (contact) => {
               const update = this.prismaRepository.contact.updateMany({
@@ -778,6 +788,11 @@ export class BaileysStartupService extends ChannelStartupService {
         }),
       );
       await this.prismaRepository.$transaction(updateTransactions);
+
+      const usersContacts = contactsRaw.filter((c) => c.remoteJid.includes('@s.whatsapp'));
+      if (usersContacts) {
+        await saveOnWhatsappCache(usersContacts.map((c) => ({ remoteJid: c.remoteJid })));
+      }
     },
   };
 
@@ -1225,6 +1240,10 @@ export class BaileysStartupService extends ChannelStartupService {
               update: contactRaw,
               create: contactRaw,
             });
+
+          if (contactRaw.remoteJid.includes('@s.whatsapp')) {
+            await saveOnWhatsappCache([{ remoteJid: contactRaw.remoteJid }]);
+          }
         }
       } catch (error) {
         this.logger.error('line 1318');
@@ -2686,10 +2705,26 @@ export class BaileysStartupService extends ChannelStartupService {
     });
 
     const numbersToVerify = jids.users.map(({ jid }) => jid.replace('+', ''));
-    const verify = await this.client.onWhatsApp(...numbersToVerify);
+
+    const cachedNumbers = await getOnWhatsappCache(numbersToVerify);
+    const filteredNumbers = numbersToVerify.filter(
+      (jid) => !cachedNumbers.some((cached) => cached.jidOptions.includes(jid)),
+    );
+
+    const verify = await this.client.onWhatsApp(...filteredNumbers);
     const users: OnWhatsAppDto[] = await Promise.all(
       jids.users.map(async (user) => {
         let numberVerified: (typeof verify)[0] | null = null;
+
+        const cached = cachedNumbers.find((cached) => cached.jidOptions.includes(user.jid.replace('+', '')));
+        if (cached) {
+          return {
+            exists: true,
+            jid: cached.remoteJid,
+            name: contacts.find((c) => c.remoteJid === cached.remoteJid)?.pushName,
+            number: cached.number,
+          };
+        }
 
         // Brazilian numbers
         if (user.number.startsWith('55')) {
@@ -2733,6 +2768,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         const numberJid = numberVerified?.jid || user.jid;
+
         return {
           exists: !!numberVerified?.exists,
           jid: numberJid,
@@ -2741,6 +2777,8 @@ export class BaileysStartupService extends ChannelStartupService {
         };
       }),
     );
+
+    await saveOnWhatsappCache(users.filter((user) => user.exists).map((user) => ({ remoteJid: user.jid })));
 
     onWhatsapp.push(...users);
 
@@ -3525,8 +3563,15 @@ export class BaileysStartupService extends ChannelStartupService {
           imgUrl: participant.imgUrl ?? contact?.profilePicUrl,
         };
       });
+
+      const usersContacts = parsedParticipants.filter((c) => c.id.includes('@s.whatsapp'));
+      if (usersContacts) {
+        await saveOnWhatsappCache(usersContacts.map((c) => ({ remoteJid: c.id })));
+      }
+
       return { participants: parsedParticipants };
     } catch (error) {
+      console.error(error);
       this.logger.error('line 3583');
       throw new NotFoundException('No participants', error.toString());
     }

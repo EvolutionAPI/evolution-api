@@ -43,6 +43,7 @@ export type SaveData = {
   CONTACTS: boolean;
   CHATS: boolean;
   LABELS: boolean;
+  IS_ON_WHATSAPP: boolean;
 };
 
 export type DBConnection = {
@@ -295,6 +296,7 @@ export class ConfigService {
           CHATS: process.env?.DATABASE_SAVE_DATA_CHATS === 'true',
           HISTORIC: process.env?.DATABASE_SAVE_DATA_HISTORIC === 'true',
           LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
+          IS_ON_WHATSAPP: process.env?.DATABASE_SAVE_IS_ON_WHATSAPP === 'true',
         },
       },
       RABBITMQ: {
