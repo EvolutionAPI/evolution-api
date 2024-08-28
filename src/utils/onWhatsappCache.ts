@@ -1,8 +1,6 @@
-import { prismaRepository } from '@api/server.module';
-import { configService, Database } from '@config/env.config';
+import { cache, prismaRepository } from '@api/server.module';
+import { CacheConf, configService, Database } from '@config/env.config';
 import dayjs from 'dayjs';
-
-const ON_WHATSAPP_CACHE_EXPIRATION = 7; // days
 
 function getAvailableNumbers(remoteJid: string) {
   const numbersAvailable: string[] = [];
@@ -56,6 +54,23 @@ interface ISaveOnWhatsappCacheParams {
   remoteJid: string;
 }
 export async function saveOnWhatsappCache(data: ISaveOnWhatsappCacheParams[]) {
+  const cacheConfig = configService.get<CacheConf>('CACHE');
+
+  if (cacheConfig.REDIS.ENABLED && cacheConfig.REDIS.SAVE_IS_ON_WHATSAPP) {
+    await Promise.all(
+      data.map(async (item) => {
+        const remoteJid = item.remoteJid.startsWith('+') ? item.remoteJid.slice(1) : item.remoteJid;
+        const numbersAvailable = getAvailableNumbers(remoteJid);
+
+        await cache.set(
+          `isOnWhatsapp:${remoteJid}`,
+          JSON.stringify({ jidOptions: numbersAvailable }),
+          cacheConfig.REDIS.SAVE_IS_ON_WHATSAPP_TTL,
+        );
+      }),
+    );
+  }
+
   if (configService.get<Database>('DATABASE').SAVE_DATA.IS_ON_WHATSAPP) {
     const upsertsQuery = data.map((item) => {
       const remoteJid = item.remoteJid.startsWith('+') ? item.remoteJid.slice(1) : item.remoteJid;
@@ -73,6 +88,43 @@ export async function saveOnWhatsappCache(data: ISaveOnWhatsappCacheParams[]) {
 }
 
 export async function getOnWhatsappCache(remoteJids: string[]) {
+  const cacheConfig = configService.get<CacheConf>('CACHE');
+
+  const results: {
+    remoteJid: string;
+    number: string;
+    jidOptions: string[];
+  }[] = [];
+
+  if (cacheConfig.REDIS.ENABLED && cacheConfig.REDIS.SAVE_IS_ON_WHATSAPP) {
+    const data = await Promise.all(
+      remoteJids.map(async (remoteJid) => {
+        const remoteJidWithoutPlus = remoteJid.startsWith('+') ? remoteJid.slice(1) : remoteJid;
+        const cacheData = await cache.get(`isOnWhatsapp:${remoteJidWithoutPlus}`);
+
+        if (cacheData) {
+          return {
+            remoteJid: remoteJidWithoutPlus,
+            number: remoteJidWithoutPlus.split('@')[0],
+            jidOptions: JSON.parse(cacheData)?.jidOptions,
+          };
+        }
+
+        return null;
+      }),
+    );
+
+    data.forEach((item) => {
+      if (item) {
+        results.push({
+          remoteJid: item.remoteJid,
+          number: item.number,
+          jidOptions: item.jidOptions,
+        });
+      }
+    });
+  }
+
   if (configService.get<Database>('DATABASE').SAVE_DATA.IS_ON_WHATSAPP) {
     const remoteJidsWithoutPlus = remoteJids.map((remoteJid) => getAvailableNumbers(remoteJid)).flat();
 
@@ -80,17 +132,19 @@ export async function getOnWhatsappCache(remoteJids: string[]) {
       where: {
         OR: remoteJidsWithoutPlus.map((remoteJid) => ({ jidOptions: { contains: remoteJid } })),
         updatedAt: {
-          gte: dayjs().subtract(ON_WHATSAPP_CACHE_EXPIRATION, 'days').toDate(),
+          gte: dayjs().subtract(configService.get<Database>('DATABASE').SAVE_DATA.IS_ON_WHATSAPP_DAYS, 'days').toDate(),
         },
       },
     });
 
-    return onWhatsappCache.map((item) => ({
-      remoteJid: item.remoteJid,
-      number: item.remoteJid.split('@')[0],
-      jidOptions: item.jidOptions.split(','),
-    }));
+    onWhatsappCache.forEach((item) =>
+      results.push({
+        remoteJid: item.remoteJid,
+        number: item.remoteJid.split('@')[0],
+        jidOptions: item.jidOptions.split(','),
+      }),
+    );
   }
 
-  return [];
+  return results;
 }

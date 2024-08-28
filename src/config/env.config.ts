@@ -44,6 +44,7 @@ export type SaveData = {
   CHATS: boolean;
   LABELS: boolean;
   IS_ON_WHATSAPP: boolean;
+  IS_ON_WHATSAPP_DAYS: number;
 };
 
 export type DBConnection = {
@@ -168,6 +169,8 @@ export type CacheConfRedis = {
   PREFIX_KEY: string;
   TTL: number;
   SAVE_INSTANCES: boolean;
+  SAVE_IS_ON_WHATSAPP: boolean;
+  SAVE_IS_ON_WHATSAPP_TTL: number;
 };
 export type CacheConfLocal = {
   ENABLED: boolean;
@@ -297,6 +300,7 @@ export class ConfigService {
           HISTORIC: process.env?.DATABASE_SAVE_DATA_HISTORIC === 'true',
           LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
           IS_ON_WHATSAPP: process.env?.DATABASE_SAVE_IS_ON_WHATSAPP === 'true',
+          IS_ON_WHATSAPP_DAYS: Number.parseInt(process.env?.DATABASE_SAVE_IS_ON_WHATSAPP_DAYS ?? '7'),
         },
       },
       RABBITMQ: {
@@ -453,6 +457,9 @@ export class ConfigService {
           PREFIX_KEY: process.env?.CACHE_REDIS_PREFIX_KEY || 'evolution-cache',
           TTL: Number.parseInt(process.env?.CACHE_REDIS_TTL) || 604800,
           SAVE_INSTANCES: process.env?.CACHE_REDIS_SAVE_INSTANCES === 'true',
+          SAVE_IS_ON_WHATSAPP: process.env?.CACHE_REDIS_SAVE_IS_ON_WHATSAPP === 'true',
+          SAVE_IS_ON_WHATSAPP_TTL:
+            (Number.parseInt(process.env?.CACHE_REDIS_SAVE_IS_ON_WHATSAPP_TTL) || 7) * 24 * 60 * 60,
         },
         LOCAL: {
           ENABLED: process.env?.CACHE_LOCAL_ENABLED === 'true',
