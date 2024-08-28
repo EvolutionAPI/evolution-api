@@ -964,6 +964,8 @@ export class BaileysStartupService extends ChannelStartupService {
           chatwootImport.setRepositoryMessagesCache(instance, messagesRepository);
         }
 
+        const settings = await this.findSettings();
+
         for (const m of messages) {
           if (!m.message || !m.key || !m.messageTimestamp) {
             continue;
@@ -979,6 +981,11 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (messagesRepository.has(m.key.id)) {
             continue;
+          }
+
+          if (settings.ignore_list && settings.ignore_list.includes(m.key.remoteJid)) {
+            this.logger.verbose('(MESSAGE SET) contact in ignore list.');
+            return;
           }
 
           const status: Record<number, wa.StatusMessage> = {
@@ -1267,6 +1274,11 @@ export class BaileysStartupService extends ChannelStartupService {
       for await (const { key, update } of args) {
         if (settings?.groups_ignore && key.remoteJid?.includes('@g.us')) {
           this.logger.verbose('group ignored');
+          return;
+        }
+
+        if (settings?.ignore_list && key.remoteJid && settings.ignore_list.includes(key.remoteJid)) {
+          this.logger.verbose('contact in ignore list.');
           return;
         }
 
