@@ -126,7 +126,10 @@ export async function getOnWhatsappCache(remoteJids: string[]) {
   }
 
   if (configService.get<Database>('DATABASE').SAVE_DATA.IS_ON_WHATSAPP) {
-    const remoteJidsWithoutPlus = remoteJids.map((remoteJid) => getAvailableNumbers(remoteJid)).flat();
+    const remoteJidsWithoutPlus = remoteJids
+      .filter((remoteJid) => !results.some((result) => result.remoteJid === remoteJid))
+      .map((remoteJid) => getAvailableNumbers(remoteJid))
+      .flat();
 
     const onWhatsappCache = await prismaRepository.isOnWhatsapp.findMany({
       where: {
