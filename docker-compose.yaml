@@ -1,23 +1,39 @@
 version: '3.3'
 
 services:
-  api:
-    container_name: evolution_api
-    image: atendai/evolution-api:v2.0.9-rc
-    restart: always
-    ports:
-      - 8080:8080
-    volumes:
-      - evolution_instances:/evolution/instances
+  redis:
+    image: redis:latest
+    container_name: redis
+    command: >
+      redis-server --port 6379 --appendonly yes
     networks:
       - evolution-net
-    env_file:
-      - .env
+    volumes:
+      - evolution_redis:/data
+    ports:
+      - 6379:6379
     expose:
-      - 8080
+      - 6379
+
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    networks:
+      - evolution-net
+    command: ["postgres", "-c", "max_connections=1000"]
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=PASSWORD
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - 5432
 
 volumes:
-  evolution_instances:
+  postgres_data:
+  evolution_redis:
 
 networks:
   evolution-net:
