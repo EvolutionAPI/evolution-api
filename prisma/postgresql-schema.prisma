@@ -673,3 +673,13 @@ model FlowiseSetting {
 
   @@map("flowise_settings")
 }
+
+model IsOnWhatsapp {
+  id         String   @id @default(cuid())
+  remoteJid  String   @unique @map("remote_jid") @db.VarChar(100)
+  jidOptions String   @map("jid_options")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp
+
+  @@map("is_on_whatsapp")
+}
