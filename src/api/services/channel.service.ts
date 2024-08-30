@@ -338,18 +338,31 @@ export class ChannelStartupService {
   }
 
   public async loadProxy() {
+    this.localProxy.enabled = false;
+
+    if (process.env.PROXY_HOST) {
+      this.localProxy.enabled = true;
+      this.localProxy.host = process.env.PROXY_HOST;
+      this.localProxy.port = process.env.PROXY_PORT || '80';
+      this.localProxy.protocol = process.env.PROXY_PROTOCOL || 'http';
+      this.localProxy.username = process.env.PROXY_USERNAME;
+      this.localProxy.password = process.env.PROXY_PASSWORD;
+    }
+
     const data = await this.prismaRepository.proxy.findUnique({
       where: {
         instanceId: this.instanceId,
       },
     });
 
-    this.localProxy.enabled = data?.enabled;
-    this.localProxy.host = data?.host;
-    this.localProxy.port = data?.port;
-    this.localProxy.protocol = data?.protocol;
-    this.localProxy.username = data?.username;
-    this.localProxy.password = data?.password;
+    if (data?.enabled) {
+      this.localProxy.enabled = true;
+      this.localProxy.host = data?.host;
+      this.localProxy.port = data?.port;
+      this.localProxy.protocol = data?.protocol;
+      this.localProxy.username = data?.username;
+      this.localProxy.password = data?.password;
+    }
   }
 
   public async setProxy(data: ProxyDto) {
