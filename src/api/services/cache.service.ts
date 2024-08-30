@@ -21,6 +21,9 @@ export class CacheService {
   }
 
   public async hGet(key: string, field: string) {
+    if (!this.cache) {
+      return null;
+    }
     try {
       const data = await this.cache.hGet(key, field);
 
@@ -43,6 +46,9 @@ export class CacheService {
   }
 
   public async hSet(key: string, field: string, value: any) {
+    if (!this.cache) {
+      return;
+    }
     try {
       const json = JSON.stringify(value, BufferJSON.replacer);
 
@@ -67,6 +73,9 @@ export class CacheService {
   }
 
   async hDelete(key: string, field: string) {
+    if (!this.cache) {
+      return false;
+    }
     try {
       await this.cache.hDelete(key, field);
       return true;
