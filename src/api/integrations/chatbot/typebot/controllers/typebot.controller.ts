@@ -27,7 +27,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
-  public readonly logger = new Logger(TypebotController.name);
+  public readonly logger = new Logger('TypebotController');
 
   integrationEnabled = configService.get<Typebot>('TYPEBOT').ENABLED;
   botRepository: any;

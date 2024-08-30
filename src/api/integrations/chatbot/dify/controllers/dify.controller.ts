@@ -25,7 +25,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
-  public readonly logger = new Logger(DifyController.name);
+  public readonly logger = new Logger('DifyController');
 
   integrationEnabled = configService.get<Dify>('DIFY').ENABLED;
   botRepository: any;

@@ -23,7 +23,7 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
-  public readonly logger = new Logger(EvolutionBotController.name);
+  public readonly logger = new Logger('EvolutionBotController');
 
   integrationEnabled: boolean;
   botRepository: any;

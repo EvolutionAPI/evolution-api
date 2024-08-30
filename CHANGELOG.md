@@ -1,3 +1,13 @@
+# 2.1.1 (develop)
+
+### Features
+
+* Define a global proxy to be used if the instance does not have one
+
+### Fixed
+
+* Validate if cache exists before accessing it
+
 # 2.1.0 (2024-08-26 15:33)
 
 ### Features

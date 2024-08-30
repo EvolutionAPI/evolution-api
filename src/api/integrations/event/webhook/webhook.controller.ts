@@ -11,7 +11,7 @@ import { isURL } from 'class-validator';
 import { EmitData, EventController, EventControllerInterface } from '../event.controller';
 
 export class WebhookController extends EventController implements EventControllerInterface {
-  private readonly logger = new Logger(WebhookController.name);
+  private readonly logger = new Logger('WebhookController');
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor, true, 'webhook');
