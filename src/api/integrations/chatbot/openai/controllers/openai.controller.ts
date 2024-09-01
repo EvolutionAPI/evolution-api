@@ -27,7 +27,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
     this.credsRepository = this.prismaRepository.openaiCreds;
   }
 
-  public readonly logger = new Logger(OpenaiController.name);
+  public readonly logger = new Logger('OpenaiController');
 
   integrationEnabled = configService.get<Openai>('OPENAI').ENABLED;
   botRepository: any;

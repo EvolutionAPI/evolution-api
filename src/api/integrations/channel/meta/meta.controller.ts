@@ -6,7 +6,7 @@ import axios from 'axios';
 import { ChannelController, ChannelControllerInterface } from '../channel.controller';
 
 export class MetaController extends ChannelController implements ChannelControllerInterface {
-  private readonly logger = new Logger(MetaController.name);
+  private readonly logger = new Logger('MetaController');
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);

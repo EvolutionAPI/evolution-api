@@ -8,7 +8,7 @@ import { EmitData, EventController, EventControllerInterface } from '../event.co
 
 export class SqsController extends EventController implements EventControllerInterface {
   private sqs: SQS;
-  private readonly logger = new Logger(SqsController.name);
+  private readonly logger = new Logger('SqsController');
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor, configService.get<Sqs>('SQS')?.ENABLED, 'sqs');

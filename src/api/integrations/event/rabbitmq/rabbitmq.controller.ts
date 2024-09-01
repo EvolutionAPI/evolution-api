@@ -8,7 +8,7 @@ import { EmitData, EventController, EventControllerInterface } from '../event.co
 
 export class RabbitmqController extends EventController implements EventControllerInterface {
   public amqpChannel: amqp.Channel | null = null;
-  private readonly logger = new Logger(RabbitmqController.name);
+  private readonly logger = new Logger('RabbitmqController');
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor, configService.get<Rabbitmq>('RABBITMQ')?.ENABLED, 'rabbitmq');

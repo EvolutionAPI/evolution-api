@@ -5,7 +5,7 @@ import { Logger } from '@config/logger.config';
 import { ChannelController, ChannelControllerInterface } from '../channel.controller';
 
 export class EvolutionController extends ChannelController implements ChannelControllerInterface {
-  private readonly logger = new Logger(EvolutionController.name);
+  private readonly logger = new Logger('EvolutionController');
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);

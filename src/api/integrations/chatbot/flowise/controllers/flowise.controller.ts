@@ -23,7 +23,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
-  public readonly logger = new Logger(FlowiseController.name);
+  public readonly logger = new Logger('FlowiseController');
 
   integrationEnabled: boolean;
   botRepository: any;

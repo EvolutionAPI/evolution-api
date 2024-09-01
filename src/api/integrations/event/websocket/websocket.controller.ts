@@ -10,7 +10,7 @@ import { EmitData, EventController, EventControllerInterface } from '../event.co
 export class WebsocketController extends EventController implements EventControllerInterface {
   private io: SocketIO;
   private corsConfig: Array<any>;
-  private readonly logger = new Logger(WebsocketController.name);
+  private readonly logger = new Logger('WebsocketController');
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor, configService.get<Websocket>('WEBSOCKET')?.ENABLED, 'websocket');
