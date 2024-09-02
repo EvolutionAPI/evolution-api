@@ -321,7 +321,7 @@ export class BusinessStartupService extends ChannelStartupService {
             try {
               const message: any = received;
 
-              const id = message[message.type].id;
+              const id = message.messages[0][messageRaw.messageType].id;
               let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
               const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
               urlServer = `${urlServer}/${version}/${id}`;
