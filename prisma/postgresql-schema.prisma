@@ -574,3 +574,11 @@ model FlowiseSetting {
   Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId        String    @unique
 }
+
+model IsOnWhatsapp {
+  id         String   @id @default(cuid())
+  remoteJid  String   @unique @db.VarChar(100)
+  jidOptions String
+  createdAt  DateTime @default(now()) @db.Timestamp
+  updatedAt  DateTime @updatedAt @db.Timestamp
+}

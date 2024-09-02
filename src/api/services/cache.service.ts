@@ -38,11 +38,11 @@ export class CacheService {
     }
   }
 
-  async set(key: string, value: any) {
+  async set(key: string, value: any, ttl?: number) {
     if (!this.cache) {
       return;
     }
-    this.cache.set(key, value);
+    this.cache.set(key, value, ttl);
   }
 
   public async hSet(key: string, field: string, value: any) {
