@@ -220,7 +220,7 @@ export class InstanceController {
           daysLimitImportMessages: instanceData.chatwootDaysLimitImportMessages ?? 60,
           organization: instanceData.chatwootOrganization,
           logo: instanceData.chatwootLogo,
-          autoCreate: true,
+          autoCreate: instanceData.chatwootAutoCreate !== false,
         });
       } catch (error) {
         this.logger.log(error);
