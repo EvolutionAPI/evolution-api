@@ -6,7 +6,7 @@ import { dbserver } from '../../libs/db.connect';
 import { instanceNameSchema, oldTokenSchema, presenceOnlySchema } from '../../validate/validate.schema';
 import { RouterBroker } from '../abstract/abstract.router';
 import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
-import { instanceController } from '../server.module';
+import { instanceController, kwikController } from '../server.module';
 import { OldToken } from '../services/auth.service';
 import { HttpStatus } from './index.router';
 
@@ -104,6 +104,9 @@ export class InstanceRouter extends RouterBroker {
         logger.verbose(req.body);
 
         const key = req.get('apikey');
+        const fullFetch = req.query.fullFetch ? Number(req.query.fullFetch) : 0;
+        const messageTimestamp = req.query.messageTimestamp ? req.query.messageTimestamp : -1;
+        const usage = req.query.usage ? Number(req.query.usage) : null;
 
         logger.verbose('request query: ');
         logger.verbose(req.query);
@@ -113,6 +116,16 @@ export class InstanceRouter extends RouterBroker {
           ClassRef: InstanceDto,
           execute: (instance) => instanceController.fetchInstances(instance, key),
         });
+
+        if (fullFetch == 1) {
+          const usageData = await this.dataValidate<InstanceDto>({
+            request: req,
+            schema: null,
+            ClassRef: InstanceDto,
+            execute: (instance) => kwikController.instanceInfo(instance, Number(messageTimestamp), usage),
+          });
+          response.usageData = usageData;
+        }
 
         return res.status(HttpStatus.OK).json(response);
       })

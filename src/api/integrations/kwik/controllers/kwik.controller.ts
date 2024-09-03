@@ -1,4 +1,4 @@
-import { Document } from 'bson';
+import { calculateObjectSize, Document } from 'bson';
 
 import { configService, Database } from '../../../../config/env.config';
 import { Logger } from '../../../../config/logger.config';
@@ -136,5 +136,50 @@ export class KwikController {
     connection.collection('settings').deleteMany({ _id: instanceName });
 
     return { status: 'ok' };
+  }
+  public async instanceInfo({ instanceName }: InstanceDto, messageTimestamp: number, usage?: number) {
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    const messages = connection.collection('messages');
+    const pipeline: Document[] = [
+      { $sort: { 'key.remoteJid': -1, messageTimestamp: -1 } },
+      {
+        $group: {
+          _id: '$key.remoteJid',
+          owner: { $first: '$owner' },
+          message: { $first: '$message' },
+          lastAllMsgTimestamp: { $first: '$messageTimestamp' },
+          name: { $first: '$pushName' },
+          fromMe: { $first: '$key.fromMe' },
+        },
+      },
+      { $match: { owner: instanceName, lastAllMsgTimestamp: { $gte: messageTimestamp } } },
+      { $count: 'rowCount' },
+    ];
+    const chatCount = await messages.aggregate(pipeline).toArray();
+
+    if (usage) {
+      return {
+        chatCount: chatCount[0].rowCount,
+        totalSize: usage,
+        newVal: 0,
+      };
+    } else {
+      const userMessages = await messages
+        .find({ owner: instanceName, messageTimestamp: { $gte: messageTimestamp } })
+        .toArray();
+
+      let totalSize = 0;
+
+      userMessages.forEach(function (doc) {
+        totalSize += calculateObjectSize(doc);
+      });
+
+      return {
+        chatCount: chatCount[0].rowCount,
+        totalSize: totalSize,
+        newVal: 1,
+      };
+    }
   }
 }

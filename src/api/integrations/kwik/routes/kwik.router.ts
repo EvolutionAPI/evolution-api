@@ -36,7 +36,7 @@ export class KwikRouter extends RouterBroker {
       return res.status(HttpStatus.OK).json(response);
     });
     this.router.post(this.routerPath('cleanup'), ...guards, async (req, res) => {
-      logger.verbose('request received in findChats');
+      logger.verbose('request received in cleanup');
       logger.verbose('request body: ');
       logger.verbose(req.body);
 
@@ -48,6 +48,24 @@ export class KwikRouter extends RouterBroker {
         schema: null,
         ClassRef: InstanceDto,
         execute: (instance) => kwikController.cleanup(instance),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
+
+    this.router.get(this.routerPath('instanceInfo'), ...guards, async (req, res) => {
+      logger.verbose('request received in instanceInfo');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) => kwikController.instanceInfo(instance, Number(req.query.messageTimestamp)),
       });
 
       return res.status(HttpStatus.OK).json(response);
