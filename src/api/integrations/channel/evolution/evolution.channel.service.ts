@@ -8,6 +8,7 @@ import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Openai } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
 import EventEmitter2 from 'eventemitter2';
+import { v4 } from 'uuid';
 
 export class EvolutionStartupService extends ChannelStartupService {
   constructor(
@@ -92,7 +93,7 @@ export class EvolutionStartupService extends ChannelStartupService {
 
       if (received.message) {
         const key = {
-          id: received.key.id,
+          id: received.key.id || v4(),
           remoteJid: received.key.remoteJid,
           fromMe: received.key.fromMe,
         };
@@ -162,7 +163,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         await this.updateContact({
           remoteJid: messageRaw.key.remoteJid,
           pushName: messageRaw.pushName,
-          profilePicUrl: null,
+          profilePicUrl: received.profilePicUrl,
         });
       }
     } catch (error) {
@@ -268,8 +269,10 @@ export class EvolutionStartupService extends ChannelStartupService {
         webhookUrl = options.webhookUrl;
       }
 
+      const messageId = v4();
+
       const messageRaw: any = {
-        key: { fromMe: true, id: 'ID', remoteJid: number },
+        key: { fromMe: true, id: messageId, remoteJid: number },
         message: {
           ...message,
           quoted,
