@@ -159,53 +159,88 @@ export class EvolutionStartupService extends ChannelStartupService {
           data: messageRaw,
         });
 
-        const contact = await this.prismaRepository.contact.findFirst({
-          where: { instanceId: this.instanceId, remoteJid: key.remoteJid },
-        });
-
-        const contactRaw: any = {
+        await this.updateContact({
           remoteJid: messageRaw.key.remoteJid,
-          pushName: received.pushName,
-          instanceId: this.instanceId,
-        };
-
-        if (contactRaw.remoteJid === 'status@broadcast') {
-          return;
-        }
-
-        if (contact) {
-          const contactRaw: any = {
-            remoteJid: messageRaw.key.remoteJid,
-            pushName: received.pushName,
-            instanceId: this.instanceId,
-          };
-
-          this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
-
-          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-            await this.chatwootService.eventWhatsapp(
-              Events.CONTACTS_UPDATE,
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              contactRaw,
-            );
-          }
-
-          await this.prismaRepository.contact.updateMany({
-            where: { remoteJid: contact.remoteJid },
-            data: contactRaw,
-          });
-          return;
-        }
-
-        this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
-
-        this.prismaRepository.contact.create({
-          data: contactRaw,
+          pushName: messageRaw.pushName,
+          profilePicUrl: null,
         });
       }
     } catch (error) {
       this.logger.error(error);
     }
+  }
+
+  private async updateContact(data: { remoteJid: string; pushName?: string; profilePicUrl?: string }) {
+    const contact = await this.prismaRepository.contact.findFirst({
+      where: { instanceId: this.instanceId, remoteJid: data.remoteJid },
+    });
+
+    if (contact) {
+      const contactRaw: any = {
+        remoteJid: data.remoteJid,
+        pushName: data?.pushName,
+        instanceId: this.instanceId,
+        profilePicUrl: data?.profilePicUrl,
+      };
+
+      this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
+
+      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
+        await this.chatwootService.eventWhatsapp(
+          Events.CONTACTS_UPDATE,
+          { instanceName: this.instance.name, instanceId: this.instanceId },
+          contactRaw,
+        );
+      }
+
+      await this.prismaRepository.contact.updateMany({
+        where: { remoteJid: contact.remoteJid },
+        data: contactRaw,
+      });
+      return;
+    }
+
+    const contactRaw: any = {
+      remoteJid: data.remoteJid,
+      pushName: data?.pushName,
+      instanceId: this.instanceId,
+      profilePicUrl: data?.profilePicUrl,
+    };
+
+    this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
+
+    await this.prismaRepository.contact.create({
+      data: contactRaw,
+    });
+
+    const chat = await this.prismaRepository.chat.findFirst({
+      where: { instanceId: this.instanceId, remoteJid: data.remoteJid },
+    });
+
+    if (chat) {
+      const chatRaw: any = {
+        remoteJid: data.remoteJid,
+        instanceId: this.instanceId,
+      };
+
+      this.sendDataWebhook(Events.CHATS_UPDATE, chatRaw);
+
+      await this.prismaRepository.chat.updateMany({
+        where: { remoteJid: chat.remoteJid },
+        data: chatRaw,
+      });
+    }
+
+    const chatRaw: any = {
+      remoteJid: data.remoteJid,
+      instanceId: this.instanceId,
+    };
+
+    this.sendDataWebhook(Events.CHATS_UPSERT, chatRaw);
+
+    await this.prismaRepository.chat.create({
+      data: chatRaw,
+    });
   }
 
   protected async sendMessageWithTyping(number: string, message: any, options?: Options, isIntegration = false) {
@@ -225,12 +260,16 @@ export class EvolutionStartupService extends ChannelStartupService {
         quoted = msg;
       }
 
+      if (options.delay) {
+        await new Promise((resolve) => setTimeout(resolve, options.delay));
+      }
+
       if (options?.webhookUrl) {
         webhookUrl = options.webhookUrl;
       }
 
       const messageRaw: any = {
-        key: { fromMe: true, id: 'ID', remoteJid: this.createJid(number) },
+        key: { fromMe: true, id: 'ID', remoteJid: number },
         message: {
           ...message,
           quoted,

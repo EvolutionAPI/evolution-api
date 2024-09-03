@@ -36,5 +36,6 @@ export function ChatwootInstanceMixin<TBase extends Constructor>(Base: TBase) {
     chatwootNameInbox?: string;
     chatwootOrganization?: string;
     chatwootLogo?: string;
+    chatwootAutoCreate?: boolean;
   };
 }

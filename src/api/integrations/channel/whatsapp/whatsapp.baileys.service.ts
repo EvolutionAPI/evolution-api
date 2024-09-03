@@ -1130,6 +1130,11 @@ export class BaileysStartupService extends ChannelStartupService {
                   const mediaUrl = await s3Service.getObjectUrl(fullName);
 
                   messageRaw.message.mediaUrl = mediaUrl;
+
+                  await this.prismaRepository.message.update({
+                    where: { id: msg.id },
+                    data: messageRaw,
+                  });
                 } catch (error) {
                   this.logger.error('line 1181');
                   this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
@@ -2034,6 +2039,11 @@ export class BaileysStartupService extends ChannelStartupService {
               const mediaUrl = await s3Service.getObjectUrl(fullName);
 
               messageRaw.message.mediaUrl = mediaUrl;
+
+              await this.prismaRepository.message.update({
+                where: { id: msg.id },
+                data: messageRaw,
+              });
             } catch (error) {
               this.logger.error('line 1181');
               this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
