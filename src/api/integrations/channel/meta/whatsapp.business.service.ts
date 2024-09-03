@@ -300,83 +300,91 @@ export class BusinessStartupService extends ChannelStartupService {
           remoteJid: this.phoneNumber,
           fromMe: received.messages[0].from === received.metadata.phone_number_id,
         };
-        if (
-          received?.messages[0].document ||
-          received?.messages[0].image ||
-          received?.messages[0].audio ||
-          received?.messages[0].video
-        ) {
-          messageRaw = {
-            key,
-            pushName,
-            message: this.messageMediaJson(received),
-            contextInfo: this.messageMediaJson(received)?.contextInfo,
-            messageType: this.renderMessageType(received.messages[0].type),
-            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
-            source: 'unknown',
-            instanceId: this.instanceId,
-          };
 
-          if (this.configService.get<S3>('S3').ENABLE) {
-            try {
-              const message: any = received;
+        const isMedia =
+        received?.messages[0].document ||
+        received?.messages[0].image ||
+        received?.messages[0].audio ||
+        received?.messages[0].video;
 
-              const id = message.messages[0][message.messages[0].type].id;
-              let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
-              const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
-              urlServer = `${urlServer}/${version}/${id}`;
-              const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
-              const result = await axios.get(urlServer, { headers });
+        messageRaw = {
+          key,
+          pushName,
+          message: this.messageMediaJson(received),
+          contextInfo: this.messageMediaJson(received)?.contextInfo,
+          messageType: this.renderMessageType(received.messages[0].type),
+          messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+          source: 'unknown',
+          instanceId: this.instanceId,
+        };
 
-              const buffer = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
+        if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
+          const msg = await this.prismaRepository.message.create({
+            data: messageRaw,
+          });
 
-              const mediaType = message.messages[0].document
-                ? 'document'
-                : message.messages[0].image
-                ? 'image'
-                : message.messages[0].audio
-                ? 'audio'
-                : 'video';
+          if (isMedia) {
+            if (this.configService.get<S3>('S3').ENABLE) {
+              try {
+                const message: any = received;
 
-              const mimetype = result.headers['content-type'];
+                const id = messageRaw.message[messageRaw.messageType].id;
+                let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
+                const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
+                urlServer = `${urlServer}/${version}/${id}`;
+                const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+                const result = await axios.get(urlServer, { headers });
 
-              const contentDisposition = result.headers['content-disposition'];
-              let fileName = `${message.messages[0].id}.${mimetype.split('/')[1]}`;
-              if (contentDisposition) {
-                const match = contentDisposition.match(/filename="(.+?)"/);
-                if (match) {
-                  fileName = match[1];
+                const buffer = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
+
+                const mediaType = message.messages[0].document
+                  ? 'document'
+                  : message.messages[0].image
+                  ? 'image'
+                  : message.messages[0].audio
+                  ? 'audio'
+                  : 'video';
+
+                const mimetype = result.data.mime_type;
+
+                const contentDisposition = result.headers['content-disposition'];
+                let fileName = `${message.messages[0].id}.${mimetype.split('/')[1]}`;
+                if (contentDisposition) {
+                  const match = contentDisposition.match(/filename="(.+?)"/);
+                  if (match) {
+                    fileName = match[1];
+                  }
                 }
+
+                const size = result.headers['content-length'] || buffer.data.byteLength;
+
+                const fullName = join(`${this.instance.id}`, key.remoteJid, mediaType, fileName);
+
+                await s3Service.uploadFile(fullName, buffer.data, size, {
+                  'Content-Type': mimetype,
+                });
+
+                await this.prismaRepository.media.create({
+                  data: {
+                    messageId: msg.id,
+                    instanceId: this.instanceId,
+                    type: mediaType,
+                    fileName: fullName,
+                    mimetype
+                  }
+                });
+
+                const mediaUrl = await s3Service.getObjectUrl(fullName);
+                messageRaw.message.mediaUrl = mediaUrl;
+
+              } catch (error) {
+                this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
               }
+            } else {
+              const buffer = await this.downloadMediaMessage(received?.messages[0]);
 
-              const size = result.headers['content-length'] || buffer.data.byteLength;
-
-              const fullName = join(`${this.instance.id}`, key.remoteJid, mediaType, fileName);
-
-              await s3Service.uploadFile(fullName, buffer.data, size, {
-                'Content-Type': mimetype,
-              });
-
-              await this.prismaRepository.media.create({
-                data: {
-                  messageId: received.messages[0].id,
-                  instanceId: this.instanceId,
-                  type: mediaType,
-                  fileName: fullName,
-                  mimetype,
-                },
-              });
-
-              const mediaUrl = await s3Service.getObjectUrl(fullName);
-
-              messageRaw.message.mediaUrl = mediaUrl;
-            } catch (error) {
-              this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
+              messageRaw.message.base64 = buffer.toString('base64');
             }
-          } else {
-            const buffer = await this.downloadMediaMessage(received?.messages[0]);
-
-            messageRaw.message.base64 = buffer.toString('base64');
           }
         } else if (received?.messages[0].interactive) {
           messageRaw = {
