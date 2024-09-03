@@ -7,7 +7,6 @@ import { onUnexpectedError } from '@config/error.config';
 import { Logger } from '@config/logger.config';
 import { ROOT_DIR } from '@config/path.config';
 import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { ServerUP } from '@utils/server-up';
 import axios from 'axios';
 import compression from 'compression';
@@ -30,7 +29,6 @@ async function bootstrap() {
       dsn: dsn,
       environment: process.env.NODE_ENV || 'development',
       tracesSampleRate: 1.0,
-      integrations: [nodeProfilingIntegration()],
       profilesSampleRate: 1.0,
     });
 

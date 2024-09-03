@@ -306,10 +306,13 @@ export class ChatwootService {
       data = {
         inbox_id: inboxId,
         name: name || phoneNumber,
-        phone_number: `+${phoneNumber}`,
         identifier: jid,
         avatar_url: avatar_url,
       };
+
+      if (jid.includes('@')) {
+        data['phone_number'] = `+${phoneNumber}`;
+      }
     } else {
       data = {
         inbox_id: inboxId,
@@ -1135,8 +1138,7 @@ export class ChatwootService {
         return { message: 'bot' };
       }
 
-      const chatId =
-        body.conversation.meta.sender?.phone_number?.replace('+', '') || body.conversation.meta.sender?.identifier;
+      const chatId = body.conversation.meta.sender?.identifier;
       // Chatwoot to Whatsapp
       const messageReceived = body.content
         ? body.content
@@ -1819,14 +1821,12 @@ export class ChatwootService {
           return;
         }
 
-        // fix when receiving/sending messages from whatsapp desktop with ephemeral messages enabled
         if (body.message?.ephemeralMessage?.message) {
           body.message = {
             ...body.message?.ephemeralMessage?.message,
           };
         }
 
-        // Whatsapp to Chatwoot
         const originalMessage = await this.getConversationMessage(body.message);
         const bodyMessage = originalMessage
           ? originalMessage
