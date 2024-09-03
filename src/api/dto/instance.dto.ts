@@ -23,7 +23,6 @@ export class InstanceDto extends IntegrationDto {
   proxyProtocol?: string;
   proxyUsername?: string;
   proxyPassword?: string;
-  chatwootAutoCreate?: boolean;
 }
 
 export class SetPresenceDto {
