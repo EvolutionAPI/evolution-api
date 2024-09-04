@@ -113,7 +113,7 @@ export class TypebotRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => typebotController.fetchSessions(instance, req.params.typebotId),
+          execute: (instance) => typebotController.fetchSessions(instance, req.params.typebotId, req.query.remoteJid as string | undefined)
         });
 
         res.status(HttpStatus.OK).json(response);
