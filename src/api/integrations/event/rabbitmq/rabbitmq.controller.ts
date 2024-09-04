@@ -21,6 +21,7 @@ export class RabbitmqController extends EventController implements EventControll
 
     await new Promise<void>((resolve, reject) => {
       const uri = configService.get<Rabbitmq>('RABBITMQ').URI;
+      const rabbitmqExchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME;
 
       amqp.connect(uri, (error, connection) => {
         if (error) {
@@ -36,7 +37,7 @@ export class RabbitmqController extends EventController implements EventControll
             return;
           }
 
-          const exchangeName = 'evolution_exchange';
+          const exchangeName = rabbitmqExchangeName;
 
           channel.assertExchange(exchangeName, 'topic', {
             durable: true,
@@ -81,6 +82,7 @@ export class RabbitmqController extends EventController implements EventControll
     const rabbitmqLocal = instanceRabbitmq?.events;
     const rabbitmqGlobal = configService.get<Rabbitmq>('RABBITMQ').GLOBAL_ENABLED;
     const rabbitmqEvents = configService.get<Rabbitmq>('RABBITMQ').EVENTS;
+    const rabbitmqExchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const logEnabled = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
 
@@ -96,7 +98,7 @@ export class RabbitmqController extends EventController implements EventControll
 
     if (instanceRabbitmq?.enabled && this.amqpChannel) {
       if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
-        const exchangeName = instanceName ?? 'evolution_exchange';
+        const exchangeName = instanceName ?? rabbitmqExchangeName;
 
         let retry = 0;
 
@@ -141,7 +143,7 @@ export class RabbitmqController extends EventController implements EventControll
     }
 
     if (rabbitmqGlobal && rabbitmqEvents[we] && this.amqpChannel) {
-      const exchangeName = 'evolution_exchange';
+      const exchangeName = rabbitmqExchangeName;
 
       let retry = 0;
 
@@ -186,6 +188,7 @@ export class RabbitmqController extends EventController implements EventControll
   private async initGlobalQueues(): Promise<void> {
     this.logger.info('Initializing global queues');
 
+    const rabbitmqExchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME;
     const events = configService.get<Rabbitmq>('RABBITMQ').EVENTS;
 
     if (!events) {
@@ -200,7 +203,7 @@ export class RabbitmqController extends EventController implements EventControll
       if (events[event] === false) return;
 
       const queueName = `${event.replace(/_/g, '.').toLowerCase()}`;
-      const exchangeName = 'evolution_exchange';
+      const exchangeName = rabbitmqExchangeName;
 
       this.amqpChannel.assertExchange(exchangeName, 'topic', {
         durable: true,
