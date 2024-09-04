@@ -311,8 +311,6 @@ model Typebot {
   Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String
   TypebotSetting  TypebotSetting[]
-
-  @@unique([url, typebot, instanceId], name: "url_typebot_instanceId")
 }
 
 model TypebotSetting {

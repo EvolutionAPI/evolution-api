@@ -682,7 +682,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         stopBotFromMe: stopBotFromMe,
         keepOpen: keepOpen,
         prefilledVariables: prefilledVariables,
-        botId: findBot.id
+        typebotId: findBot.id,
       });
 
       if (response.sessionId) {
@@ -889,7 +889,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         throw new Error('Typebot not found');
       }
 
-      const sessions = await this.sessionRepository.findMany({
+      return await this.sessionRepository.findMany({
         where: {
           instanceId: instanceId,
           remoteJid,
@@ -897,8 +897,6 @@ export class TypebotController extends ChatbotController implements ChatbotContr
           type: 'typebot',
         },
       });
-
-      return sessions;
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error fetching sessions');
