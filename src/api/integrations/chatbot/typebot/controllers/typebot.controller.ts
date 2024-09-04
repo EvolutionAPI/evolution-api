@@ -633,18 +633,8 @@ export class TypebotController extends ChatbotController implements ChatbotContr
       });
 
       if (!findBot) {
-        findBot = await this.botRepository.upsert({
-          where: {
-            url_typebot_instanceId: {
-              url: url,
-              typebot: typebot,
-              instanceId: instanceData.id,
-            },
-          },
-          update: {
-            enabled: true,
-          },
-          create: {
+        findBot = await this.botRepository.create({
+          data: {
             enabled: true,
             url: url,
             typebot: typebot,
@@ -657,7 +647,12 @@ export class TypebotController extends ChatbotController implements ChatbotContr
             stopBotFromMe: stopBotFromMe,
             keepOpen: keepOpen,
             instanceId: instanceData.id,
-          },
+          }
+        });
+      } else {
+        findBot = await this.botRepository.update({
+          where: { id: findBot.id },
+          data: { enabled: true }
         });
       }
 
@@ -682,7 +677,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         stopBotFromMe: stopBotFromMe,
         keepOpen: keepOpen,
         prefilledVariables: prefilledVariables,
-        typebotId: findBot.id,
+        botId: findBot.id
       });
 
       if (response.sessionId) {
@@ -889,7 +884,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         throw new Error('Typebot not found');
       }
 
-      return await this.sessionRepository.findMany({
+      const sessions = await this.sessionRepository.findMany({
         where: {
           instanceId: instanceId,
           remoteJid,
@@ -897,6 +892,8 @@ export class TypebotController extends ChatbotController implements ChatbotContr
           type: 'typebot',
         },
       });
+
+      return sessions;
     } catch (error) {
       this.logger.error(error);
       throw new Error('Error fetching sessions');
