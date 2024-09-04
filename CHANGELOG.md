@@ -3,10 +3,14 @@
 ### Features
 
 * Define a global proxy to be used if the instance does not have one
+* Save is on whatsapp on the database
 
 ### Fixed
 
 * Validate if cache exists before accessing it
+* Missing autoCreate chatwoot in instance create
+* Fixed bugs in the frontend, on the event screens
+* Fixed use chatwoot with evolution channel
 
 # 2.1.0 (2024-08-26 15:33)
 

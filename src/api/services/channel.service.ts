@@ -527,12 +527,6 @@ export class ChannelStartupService {
       participants?: string;
     };
 
-    const remoteJid = keyFilters?.remoteJid
-      ? keyFilters?.remoteJid.includes('@')
-        ? keyFilters?.remoteJid
-        : this.createJid(keyFilters?.remoteJid)
-      : null;
-
     const count = await this.prismaRepository.message.count({
       where: {
         instanceId: this.instanceId,
@@ -542,7 +536,7 @@ export class ChannelStartupService {
         AND: [
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
-          remoteJid ? { key: { path: ['remoteJid'], equals: remoteJid } } : {},
+          keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
           keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
         ],
       },
@@ -565,7 +559,7 @@ export class ChannelStartupService {
         AND: [
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
-          remoteJid ? { key: { path: ['remoteJid'], equals: remoteJid } } : {},
+          keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
           keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
         ],
       },
@@ -623,7 +617,7 @@ export class ChannelStartupService {
     let result;
     if (remoteJid) {
       result = await this.prismaRepository.$queryRaw`
-            SELECT 
+            SELECT
                 "Chat"."id",
                 "Chat"."remoteJid",
                 "Chat"."name",
@@ -633,14 +627,24 @@ export class ChannelStartupService {
                 "Contact"."pushName",
                 "Contact"."profilePicUrl"
             FROM "Chat"
+            INNER JOIN "Message" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid'
             LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
             WHERE "Chat"."instanceId" = ${this.instanceId}
             AND "Chat"."remoteJid" = ${remoteJid}
-            ORDER BY "Chat"."updatedAt" DESC
+            GROUP BY
+                "Chat"."id",
+                "Chat"."remoteJid",
+                "Chat"."name",
+                "Chat"."labels",
+                "Chat"."createdAt",
+                "Chat"."updatedAt",
+                "Contact"."pushName",
+                "Contact"."profilePicUrl"
+            ORDER BY "Chat"."updatedAt" DESC;
         `;
     } else {
       result = await this.prismaRepository.$queryRaw`
-            SELECT 
+            SELECT
                 "Chat"."id",
                 "Chat"."remoteJid",
                 "Chat"."name",
@@ -650,9 +654,19 @@ export class ChannelStartupService {
                 "Contact"."pushName",
                 "Contact"."profilePicUrl"
             FROM "Chat"
+            INNER JOIN "Message" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid'
             LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
             WHERE "Chat"."instanceId" = ${this.instanceId}
-            ORDER BY "Chat"."updatedAt" DESC
+            GROUP BY
+                "Chat"."id",
+                "Chat"."remoteJid",
+                "Chat"."name",
+                "Chat"."labels",
+                "Chat"."createdAt",
+                "Chat"."updatedAt",
+                "Contact"."pushName",
+                "Contact"."profilePicUrl"
+            ORDER BY "Chat"."updatedAt" DESC;
         `;
     }
 

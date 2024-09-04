@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
@@ -52,8 +52,7 @@
     "@figuro/chatwoot-sdk": "^1.1.16",
     "@hapi/boom": "^10.0.1",
     "@prisma/client": "^5.15.0",
-    "@sentry/node": "^7.119.0",
-    "@sentry/profiling-node": "^8.26.0",
+    "@sentry/node": "^8.28.0",
     "amqplib": "^0.10.3",
     "axios": "^1.6.5",
     "baileys": "6.7.7",
