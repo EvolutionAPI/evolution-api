@@ -204,7 +204,7 @@ export class InstanceController {
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       try {
-        this.chatwootService.create(instance, {
+        await this.chatwootService.create(instance, {
           enabled: true,
           accountId: instanceData.chatwootAccountId,
           token: instanceData.chatwootToken,
@@ -220,10 +220,10 @@ export class InstanceController {
           daysLimitImportMessages: instanceData.chatwootDaysLimitImportMessages ?? 60,
           organization: instanceData.chatwootOrganization,
           logo: instanceData.chatwootLogo,
-          autoCreate: instanceData.chatwootAutoCreate !== false,
+          autoCreate: instanceData.chatwootAutoCreate ?? true,
         });
       } catch (error) {
-        this.logger.log(error);
+        this.logger.error(error);
       }
 
       return {

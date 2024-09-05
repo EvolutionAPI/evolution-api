@@ -12,5 +12,6 @@
   "prisma-smart-formatter.prisma.defaultFormatter": "Prisma.prisma",
   "i18n-ally.localesPaths": [
     "store/messages"
-  ]
+  ],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }
