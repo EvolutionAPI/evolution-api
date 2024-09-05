@@ -2732,7 +2732,7 @@ export class BaileysStartupService extends ChannelStartupService {
             exists: true,
             jid: cached.remoteJid,
             name: contacts.find((c) => c.remoteJid === cached.remoteJid)?.pushName,
-            number: cached.number,
+            number: user.number,
           };
         }
 
