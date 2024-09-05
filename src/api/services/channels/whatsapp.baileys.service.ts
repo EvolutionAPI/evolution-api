@@ -867,6 +867,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
       this.logger.verbose('Event received: contacts.update');
+      this.logger.info('THIS IS WHEN CONTACTS ARE UPDATED ON DATABASE' + JSON.stringify(contacts))
 
       this.logger.verbose('Verifying if contacts exists in database to update');
       const contactsRaw: ContactRaw[] = [];
@@ -1024,10 +1025,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
         await this.contactHandle['contacts.upsert'](
           contacts
-            .filter((c) => !!c.notify ?? !!c.name)
+            .filter((c) => !!c.name || !!c.verifiedName || !!c.notify)
             .map((c) => ({
               id: c.id,
-              name: c.name ?? c.notify,
+              name: c.name || c.verifiedName || c.notify,
             })),
           database,
         );
@@ -1254,7 +1255,9 @@ export class BaileysStartupService extends ChannelStartupService {
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
 
           this.logger.verbose('Inserting contact in database');
-          this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+
+          if (received?.key?.fromMe === false)
+            this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
         }
       } catch (error) {
         this.logger.error(error);
