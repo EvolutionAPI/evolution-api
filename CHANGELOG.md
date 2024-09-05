@@ -11,6 +11,8 @@
 * Missing autoCreate chatwoot in instance create
 * Fixed bugs in the frontend, on the event screens
 * Fixed use chatwoot with evolution channel
+* Fix chatwoot reply quote with Cloud API
+* Use exchange name from .env on RabbitMQ
 
 # 2.1.0 (2024-08-26 15:33)
 
