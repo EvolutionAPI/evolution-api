@@ -9,9 +9,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_CONNECTION_URI")
-  directUrl = env("DATABASE_DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_CONNECTION_URI")
 }
 
 enum InstanceConnectionStatus {
@@ -64,137 +63,118 @@ enum DifyBotType {
 model Instance {
   id                      String                   @id @default(cuid())
   name                    String                   @unique @db.VarChar(255)
-  connectionStatus        InstanceConnectionStatus @default(open) @map("connection_status")
-  ownerJid                String?                  @map("owner_jid") @db.VarChar(100)
-  profileName             String?                  @map("profile_name") @db.VarChar(100)
-  profilePicUrl           String?                  @map("profile_pic_url") @db.VarChar(500)
+  connectionStatus        InstanceConnectionStatus @default(open)
+  ownerJid                String?                  @db.VarChar(100)
+  profileName             String?                  @db.VarChar(100)
+  profilePicUrl           String?                  @db.VarChar(500)
   integration             String?                  @db.VarChar(100)
   number                  String?                  @db.VarChar(100)
-  businessId              String?                  @map("business_id") @db.VarChar(100)
+  businessId              String?                  @db.VarChar(100)
   token                   String?                  @db.VarChar(255)
-  clientName              String?                  @map("client_name") @db.VarChar(100)
-  disconnectionReasonCode Int?                     @map("disconnection_reason_code") @db.Integer
-  disconnectionObject     Json?                    @map("disconnection_object") @db.JsonB
-  disconnectionAt         DateTime?                @map("disconnection_at") @db.Timestamptz()
-  createdAt               DateTime?                @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt               DateTime?                @updatedAt @map("updated_at") @db.Timestamptz()
-
-  Chat                Chat[]
-  Contact             Contact[]
-  Message             Message[]
-  Webhook             Webhook?
-  Chatwoot            Chatwoot?
-  Label               Label[]
-  Proxy               Proxy?
-  Setting             Setting?
-  Rabbitmq            Rabbitmq?
-  Sqs                 Sqs?
-  Websocket           Websocket?
-  Typebot             Typebot[]
-  Session             Session?
-  MessageUpdate       MessageUpdate[]
-  TypebotSetting      TypebotSetting?
-  Media               Media[]
-  OpenaiCreds         OpenaiCreds[]
-  OpenaiBot           OpenaiBot[]
-  OpenaiSetting       OpenaiSetting?
-  Template            Template[]
-  Dify                Dify[]
-  DifySetting         DifySetting?
-  integrationSessions IntegrationSession[]
-  EvolutionBot        EvolutionBot[]
-  EvolutionBotSetting EvolutionBotSetting?
-  Flowise             Flowise[]
-  FlowiseSetting      FlowiseSetting?
-
-  @@map("instances")
+  clientName              String?                  @db.VarChar(100)
+  disconnectionReasonCode Int?                     @db.Integer
+  disconnectionObject     Json?                    @db.JsonB
+  disconnectionAt         DateTime?                @db.Timestamp
+  createdAt               DateTime?                @default(now()) @db.Timestamp
+  updatedAt               DateTime?                @updatedAt @db.Timestamp
+  Chat                    Chat[]
+  Contact                 Contact[]
+  Message                 Message[]
+  Webhook                 Webhook?
+  Chatwoot                Chatwoot?
+  Label                   Label[]
+  Proxy                   Proxy?
+  Setting                 Setting?
+  Rabbitmq                Rabbitmq?
+  Sqs                     Sqs?
+  Websocket               Websocket?
+  Typebot                 Typebot[]
+  Session                 Session?
+  MessageUpdate           MessageUpdate[]
+  TypebotSetting          TypebotSetting?
+  Media                   Media[]
+  OpenaiCreds             OpenaiCreds[]
+  OpenaiBot               OpenaiBot[]
+  OpenaiSetting           OpenaiSetting?
+  Template                Template[]
+  Dify                    Dify[]
+  DifySetting             DifySetting?
+  integrationSessions     IntegrationSession[]
+  EvolutionBot            EvolutionBot[]
+  EvolutionBotSetting     EvolutionBotSetting?
+  Flowise                 Flowise[]
+  FlowiseSetting          FlowiseSetting?
 }
 
 model Session {
   id        String   @id @default(cuid())
-  sessionId String   @unique @map("session_id")
+  sessionId String   @unique
   creds     String?  @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
-
-  Instance Instance @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
+  createdAt DateTime @default(now()) @db.Timestamp
+  Instance  Instance @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model Chat {
-  id        String    @id @default(cuid())
-  remoteJid String    @map("remote_jid") @db.VarChar(100)
-  name      String?   @db.VarChar(100)
-  labels    Json?     @db.JsonB
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("chats")
+  id         String    @id @default(cuid())
+  remoteJid  String    @db.VarChar(100)
+  name       String?   @db.VarChar(100)
+  labels     Json?     @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime? @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
 }
 
 model Contact {
   id            String    @id @default(cuid())
-  remoteJid     String    @map("remote_jid") @db.VarChar(100)
-  pushName      String?   @map("push_name") @db.VarChar(100)
-  profilePicUrl String?   @map("profile_pic_url") @db.VarChar(500)
-  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt     DateTime? @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  remoteJid     String    @db.VarChar(100)
+  pushName      String?   @db.VarChar(100)
+  profilePicUrl String?   @db.VarChar(500)
+  createdAt     DateTime? @default(now()) @db.Timestamp
+  updatedAt     DateTime? @updatedAt @db.Timestamp
+  Instance      Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId    String
 
   @@unique([remoteJid, instanceId])
-  @@map("contacts")
 }
 
 model Message {
-  id                           String        @id @default(cuid())
-  key                          Json          @db.JsonB
-  pushName                     String?       @map("push_name") @db.VarChar(100)
-  participant                  String?       @db.VarChar(100)
-  messageType                  String        @map("message_type") @db.VarChar(100)
-  message                      Json          @db.JsonB
-  contextInfo                  Json?         @map("context_info") @db.JsonB
-  messageTimestamp             Int           @map("message_timestamp") @db.Integer
-  chatwootMessageId            Int?          @map("chatwoot_message_id") @db.Integer
-  chatwootInboxId              Int?          @map("chatwoot_inbox_id") @db.Integer
-  chatwootConversationId       Int?          @map("chatwoot_conversation_id") @db.Integer
-  chatwootContactInboxSourceId String?       @map("chatwoot_contact_inbox_source_id") @db.VarChar(100)
-  chatwootIsRead               Boolean?      @map("chatwoot_is_read") @db.Boolean
-  webhookUrl                   String?       @map("webhook_url") @db.VarChar(500)
+  id                           String          @id @default(cuid())
+  key                          Json            @db.JsonB
+  pushName                     String?         @db.VarChar(100)
+  participant                  String?         @db.VarChar(100)
+  messageType                  String          @db.VarChar(100)
+  message                      Json            @db.JsonB
+  contextInfo                  Json?           @db.JsonB
   source                       DeviceMessage
+  messageTimestamp             Int             @db.Integer
+  chatwootMessageId            Int?            @db.Integer
+  chatwootInboxId              Int?            @db.Integer
+  chatwootConversationId       Int?            @db.Integer
+  chatwootContactInboxSourceId String?         @db.VarChar(100)
+  chatwootIsRead               Boolean?        @db.Boolean
+  Instance                     Instance        @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId                   String
+  MessageUpdate                MessageUpdate[]
+  Media                        Media?
+  webhookUrl                   String?         @db.VarChar(500)
 
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  MessageUpdate MessageUpdate[]
-  Media         Media?
-
-  sessionId String?             @map("session_id")
+  sessionId String?
   session   IntegrationSession? @relation(fields: [sessionId], references: [id])
-
-  @@map("messages")
 }
 
 model MessageUpdate {
-  id          String  @id @default(cuid())
-  keyId       String  @map("key_id") @db.VarChar(100)
-  remoteJid   String  @map("remote_jid") @db.VarChar(100)
-  fromMe      Boolean @map("from_me") @db.Boolean
-  participant String? @db.VarChar(100)
-  pollUpdates Json?   @map("poll_updates") @db.JsonB
-  status      String  @db.VarChar(30)
-
-  messageId String  @map("message_id")
-  Message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("message_updates")
+  id          String   @id @default(cuid())
+  keyId       String   @db.VarChar(100)
+  remoteJid   String   @db.VarChar(100)
+  fromMe      Boolean  @db.Boolean
+  participant String?  @db.VarChar(100)
+  pollUpdates Json?    @db.JsonB
+  status      String   @db.VarChar(30)
+  Message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId   String
+  Instance    Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId  String
 }
 
 model Webhook {
@@ -202,133 +182,110 @@ model Webhook {
   url             String    @db.VarChar(500)
   enabled         Boolean?  @default(true) @db.Boolean
   events          Json?     @db.JsonB
-  webhookByEvents Boolean?  @default(false) @map("webhook_by_events") @db.Boolean
-  webhookBase64   Boolean?  @default(false) @map("webhook_base64") @db.Boolean
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("webhooks")
+  webhookByEvents Boolean?  @default(false) @db.Boolean
+  webhookBase64   Boolean?  @default(false) @db.Boolean
+  createdAt       DateTime? @default(now()) @db.Timestamp
+  updatedAt       DateTime  @updatedAt @db.Timestamp
+  Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String    @unique
 }
 
 model Chatwoot {
   id                      String    @id @default(cuid())
   enabled                 Boolean?  @default(true) @db.Boolean
-  accountId               String?   @map("account_id") @db.VarChar(100)
+  accountId               String?   @db.VarChar(100)
   token                   String?   @db.VarChar(100)
   url                     String?   @db.VarChar(500)
-  nameInbox               String?   @map("name_inbox") @db.VarChar(100)
-  signMsg                 Boolean?  @default(false) @map("sign_msg") @db.Boolean
-  signDelimiter           String?   @map("sign_delimiter") @db.VarChar(100)
+  nameInbox               String?   @db.VarChar(100)
+  signMsg                 Boolean?  @default(false) @db.Boolean
+  signDelimiter           String?   @db.VarChar(100)
   number                  String?   @db.VarChar(100)
-  reopenConversation      Boolean?  @default(false) @map("reopen_conversation") @db.Boolean
-  conversationPending     Boolean?  @default(false) @map("conversation_pending") @db.Boolean
-  mergeBrazilContacts     Boolean?  @default(false) @map("merge_brazil_contacts") @db.Boolean
-  importContacts          Boolean?  @default(false) @map("import_contacts") @db.Boolean
-  importMessages          Boolean?  @default(false) @map("import_messages") @db.Boolean
-  daysLimitImportMessages Int?      @map("days_limit_import_messages") @db.Integer
+  reopenConversation      Boolean?  @default(false) @db.Boolean
+  conversationPending     Boolean?  @default(false) @db.Boolean
+  mergeBrazilContacts     Boolean?  @default(false) @db.Boolean
+  importContacts          Boolean?  @default(false) @db.Boolean
+  importMessages          Boolean?  @default(false) @db.Boolean
+  daysLimitImportMessages Int?      @db.Integer
   organization            String?   @db.VarChar(100)
   logo                    String?   @db.VarChar(500)
-  ignoreJids              Json?     @map("ignore_jids")
-  createdAt               DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("chatwoots")
+  ignoreJids              Json?
+  createdAt               DateTime? @default(now()) @db.Timestamp
+  updatedAt               DateTime  @updatedAt @db.Timestamp
+  Instance                Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId              String    @unique
 }
 
 model Label {
   id           String    @id @default(cuid())
-  labelId      String?   @map("label_id") @db.VarChar(100)
+  labelId      String?   @db.VarChar(100)
   name         String    @db.VarChar(100)
   color        String    @db.VarChar(100)
-  predefinedId String?   @map("predefined_id") @db.VarChar(100)
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  predefinedId String?   @db.VarChar(100)
+  createdAt    DateTime? @default(now()) @db.Timestamp
+  updatedAt    DateTime  @updatedAt @db.Timestamp
+  Instance     Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId   String
 
   @@unique([labelId, instanceId])
-  @@map("labels")
 }
 
 model Proxy {
-  id        String    @id @default(cuid())
-  enabled   Boolean   @default(false) @db.Boolean
-  host      String    @db.VarChar(100)
-  port      String    @db.VarChar(100)
-  protocol  String    @db.VarChar(100)
-  username  String    @db.VarChar(100)
-  password  String    @db.VarChar(100)
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("proxies")
+  id         String    @id @default(cuid())
+  enabled    Boolean   @default(false) @db.Boolean
+  host       String    @db.VarChar(100)
+  port       String    @db.VarChar(100)
+  protocol   String    @db.VarChar(100)
+  username   String    @db.VarChar(100)
+  password   String    @db.VarChar(100)
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
 }
 
 model Setting {
   id              String    @id @default(cuid())
-  rejectCall      Boolean   @default(false) @map("reject_call") @db.Boolean
-  msgCall         String?   @map("msg_call") @db.VarChar(100)
-  groupsIgnore    Boolean   @default(false) @map("groups_ignore") @db.Boolean
-  alwaysOnline    Boolean   @default(false) @map("always_online") @db.Boolean
-  readMessages    Boolean   @default(false) @map("read_messages") @db.Boolean
-  readStatus      Boolean   @default(false) @map("read_status") @db.Boolean
-  syncFullHistory Boolean   @default(false) @map("sync_full_history") @db.Boolean
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("settings")
+  rejectCall      Boolean   @default(false) @db.Boolean
+  msgCall         String?   @db.VarChar(100)
+  groupsIgnore    Boolean   @default(false) @db.Boolean
+  alwaysOnline    Boolean   @default(false) @db.Boolean
+  readMessages    Boolean   @default(false) @db.Boolean
+  readStatus      Boolean   @default(false) @db.Boolean
+  syncFullHistory Boolean   @default(false) @db.Boolean
+  createdAt       DateTime? @default(now()) @db.Timestamp
+  updatedAt       DateTime  @updatedAt @db.Timestamp
+  Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String    @unique
 }
 
 model Rabbitmq {
-  id        String    @id @default(cuid())
-  enabled   Boolean   @default(false) @db.Boolean
-  events    Json      @db.JsonB
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("rabbitmqs")
+  id         String    @id @default(cuid())
+  enabled    Boolean   @default(false) @db.Boolean
+  events     Json      @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
 }
 
 model Sqs {
-  id        String    @id @default(cuid())
-  enabled   Boolean   @default(false) @db.Boolean
-  events    Json      @db.JsonB
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("sqss")
+  id         String    @id @default(cuid())
+  enabled    Boolean   @default(false) @db.Boolean
+  events     Json      @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
 }
 
 model Websocket {
-  id        String    @id @default(cuid())
-  enabled   Boolean   @default(false) @db.Boolean
-  events    Json      @db.JsonB
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("websockets")
+  id         String    @id @default(cuid())
+  enabled    Boolean   @default(false) @db.Boolean
+  events     Json      @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
 }
 
 model Typebot {
@@ -338,340 +295,284 @@ model Typebot {
   url             String           @db.VarChar(500)
   typebot         String           @db.VarChar(100)
   expire          Int?             @default(0) @db.Integer
-  keywordFinish   String?          @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?             @map("delay_message") @db.Integer
-  unknownMessage  String?          @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?         @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?         @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?         @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?             @map("debounce_time") @db.Integer
-  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime?        @updatedAt @map("updated_at") @db.Timestamptz()
-  ignoreJids      Json?            @map("ignore_jids")
-  triggerType     TriggerType?     @map("trigger_type")
-  triggerOperator TriggerOperator? @map("trigger_operator")
-  triggerValue    String?          @map("trigger_value")
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  TypebotSetting TypebotSetting[]
-
-  @@map("typebots")
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime?        @updatedAt @db.Timestamp
+  ignoreJids      Json?
+  triggerType     TriggerType?
+  triggerOperator TriggerOperator?
+  triggerValue    String?
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
+  TypebotSetting  TypebotSetting[]
 }
 
 model TypebotSetting {
-  id              String    @id @default(cuid())
-  expire          Int?      @default(0) @db.Integer
-  keywordFinish   String?   @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?      @map("delay_message") @db.Integer
-  unknownMessage  String?   @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?  @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?  @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?  @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?      @map("debounce_time") @db.Integer
-  ignoreJids      Json?     @map("ignore_jids")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  typebotIdFallback String?  @map("typebot_id_fallback") @db.VarChar(100)
-  Fallback          Typebot? @relation(fields: [typebotIdFallback], references: [id])
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("typebot_settings")
+  id                String    @id @default(cuid())
+  expire            Int?      @default(0) @db.Integer
+  keywordFinish     String?   @db.VarChar(100)
+  delayMessage      Int?      @db.Integer
+  unknownMessage    String?   @db.VarChar(100)
+  listeningFromMe   Boolean?  @default(false) @db.Boolean
+  stopBotFromMe     Boolean?  @default(false) @db.Boolean
+  keepOpen          Boolean?  @default(false) @db.Boolean
+  debounceTime      Int?      @db.Integer
+  typebotIdFallback String?   @db.VarChar(100)
+  ignoreJids        Json?
+  createdAt         DateTime? @default(now()) @db.Timestamp
+  updatedAt         DateTime  @updatedAt @db.Timestamp
+  Fallback          Typebot?  @relation(fields: [typebotIdFallback], references: [id])
+  Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId        String    @unique
 }
 
 model Media {
-  id        String    @id @default(cuid())
-  fileName  String    @unique @map("file_name") @db.VarChar(500)
-  type      String    @db.VarChar(100)
-  mimetype  String    @map("mime_type") @db.VarChar(100)
-  createdAt DateTime? @default(now()) @map("created_at") @db.Date
-
-  messageId String  @unique @map("message_id")
-  Message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("medias")
+  id         String    @id @default(cuid())
+  fileName   String    @unique @db.VarChar(500)
+  type       String    @db.VarChar(100)
+  mimetype   String    @db.VarChar(100)
+  createdAt  DateTime? @default(now()) @db.Date
+  Message    Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId  String    @unique
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
 }
 
 model OpenaiCreds {
-  id        String    @id @default(cuid())
-  name      String?   @unique @db.VarChar(255)
-  apiKey    String?   @unique @map("api_key") @db.VarChar(255)
-  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
+  id              String         @id @default(cuid())
+  name            String?        @unique @db.VarChar(255)
+  apiKey          String?        @unique @db.VarChar(255)
+  createdAt       DateTime?      @default(now()) @db.Timestamp
+  updatedAt       DateTime       @updatedAt @db.Timestamp
+  Instance        Instance       @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
   OpenaiAssistant OpenaiBot[]
   OpenaiSetting   OpenaiSetting?
-
-  @@map("openai_creds")
 }
 
 model OpenaiBot {
   id                String           @id @default(cuid())
   enabled           Boolean          @default(true) @db.Boolean
   description       String?          @db.VarChar(255)
-  assistantId       String?          @map("assistant_id") @db.VarChar(255)
-  functionUrl       String?          @map("function_url") @db.VarChar(500)
+  botType           OpenaiBotType
+  assistantId       String?          @db.VarChar(255)
+  functionUrl       String?          @db.VarChar(500)
   model             String?          @db.VarChar(100)
-  systemMessages    Json?            @map("system_messages") @db.JsonB
-  assistantMessages Json?            @map("assistant_messages") @db.JsonB
-  userMessages      Json?            @map("user_messages") @db.JsonB
-  maxTokens         Int?             @map("max_tokens") @db.Integer
+  systemMessages    Json?            @db.JsonB
+  assistantMessages Json?            @db.JsonB
+  userMessages      Json?            @db.JsonB
+  maxTokens         Int?             @db.Integer
   expire            Int?             @default(0) @db.Integer
-  keywordFinish     String?          @map("keyword_finish") @db.VarChar(100)
-  delayMessage      Int?             @map("delay_message") @db.Integer
-  unknownMessage    String?          @map("unknown_message") @db.VarChar(100)
-  listeningFromMe   Boolean?         @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe     Boolean?         @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen          Boolean?         @default(false) @map("keep_open") @db.Boolean
-  debounceTime      Int?             @map("debounce_time") @db.Integer
-  ignoreJids        Json?            @map("ignore_jids")
-  triggerType       TriggerType?     @map("trigger_type")
-  triggerOperator   TriggerOperator? @map("trigger_operator")
-  triggerValue      String?          @map("trigger_value")
-  createdAt         DateTime?        @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
-  botType           OpenaiBotType    @map("bot_type")
-
-  openaiCredsId String      @map("openai_creds_id")
-  OpenaiCreds   OpenaiCreds @relation(fields: [openaiCredsId], references: [id], onDelete: Cascade)
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  OpenaiSetting OpenaiSetting[]
-
-  @@map("openai_bots")
+  keywordFinish     String?          @db.VarChar(100)
+  delayMessage      Int?             @db.Integer
+  unknownMessage    String?          @db.VarChar(100)
+  listeningFromMe   Boolean?         @default(false) @db.Boolean
+  stopBotFromMe     Boolean?         @default(false) @db.Boolean
+  keepOpen          Boolean?         @default(false) @db.Boolean
+  debounceTime      Int?             @db.Integer
+  ignoreJids        Json?
+  triggerType       TriggerType?
+  triggerOperator   TriggerOperator?
+  triggerValue      String?
+  createdAt         DateTime?        @default(now()) @db.Timestamp
+  updatedAt         DateTime         @updatedAt @db.Timestamp
+  OpenaiCreds       OpenaiCreds      @relation(fields: [openaiCredsId], references: [id], onDelete: Cascade)
+  openaiCredsId     String
+  Instance          Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId        String
+  OpenaiSetting     OpenaiSetting[]
 }
 
 model IntegrationSession {
   id         String        @id @default(cuid())
-  sessionId  String        @unique @map("session_id") @db.VarChar(255)
-  remoteJid  String        @map("remote_jid") @db.VarChar(100)
-  pushName   String?       @map("push_name")
+  sessionId  String        @db.VarChar(255)
+  remoteJid  String        @db.VarChar(100)
+  pushName   String?
   status     SessionStatus
-  awaitUser  Boolean       @default(false) @map("await_user") @db.Boolean
+  awaitUser  Boolean       @default(false) @db.Boolean
   context    Json?
   type       String?       @db.VarChar(100)
-  createdAt  DateTime?     @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt  DateTime      @updatedAt @map("updated_at") @db.Timestamptz()
+  createdAt  DateTime?     @default(now()) @db.Timestamp
+  updatedAt  DateTime      @updatedAt @db.Timestamp
+  Message    Message[]
+  Instance   Instance      @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
   parameters Json?         @db.JsonB
-  botId      String?
 
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  Message Message[]
-
-  @@map("integration_sessions")
+  botId String?
 }
 
 model OpenaiSetting {
-  id              String    @id @default(cuid())
-  expire          Int?      @default(0) @db.Integer
-  keywordFinish   String?   @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?      @map("delay_message") @db.Integer
-  unknownMessage  String?   @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?  @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?  @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?  @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?      @map("debounce_time") @db.Integer
-  ignoreJids      Json?     @map("ignore_jids")
-  speechToText    Boolean?  @default(false) @map("speech_to_text") @db.Boolean
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  openaiCredsId String       @unique @map("openai_creds_id")
-  OpenaiCreds   OpenaiCreds? @relation(fields: [openaiCredsId], references: [id])
-
-  openaiIdFallback String?    @map("openai_id_fallback") @db.VarChar(100)
-  Fallback         OpenaiBot? @relation(fields: [openaiIdFallback], references: [id])
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("openai_settings")
+  id               String       @id @default(cuid())
+  expire           Int?         @default(0) @db.Integer
+  keywordFinish    String?      @db.VarChar(100)
+  delayMessage     Int?         @db.Integer
+  unknownMessage   String?      @db.VarChar(100)
+  listeningFromMe  Boolean?     @default(false) @db.Boolean
+  stopBotFromMe    Boolean?     @default(false) @db.Boolean
+  keepOpen         Boolean?     @default(false) @db.Boolean
+  debounceTime     Int?         @db.Integer
+  ignoreJids       Json?
+  speechToText     Boolean?     @default(false) @db.Boolean
+  createdAt        DateTime?    @default(now()) @db.Timestamp
+  updatedAt        DateTime     @updatedAt @db.Timestamp
+  OpenaiCreds      OpenaiCreds? @relation(fields: [openaiCredsId], references: [id])
+  openaiCredsId    String       @unique
+  Fallback         OpenaiBot?   @relation(fields: [openaiIdFallback], references: [id])
+  openaiIdFallback String?      @db.VarChar(100)
+  Instance         Instance     @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId       String       @unique
 }
 
 model Template {
   id         String    @id @default(cuid())
-  templateId String    @unique @map("template_id") @db.VarChar(255)
+  templateId String    @unique @db.VarChar(255)
   name       String    @unique @db.VarChar(255)
   template   Json      @db.JsonB
-  webhookUrl String?   @map("webhook_url") @db.VarChar(500)
-  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("templates")
+  webhookUrl String?   @db.VarChar(500)
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String
 }
 
 model Dify {
   id              String           @id @default(cuid())
   enabled         Boolean          @default(true) @db.Boolean
   description     String?          @db.VarChar(255)
-  botType         DifyBotType      @map("bot_type")
-  apiUrl          String?          @map("api_url") @db.VarChar(255)
-  apiKey          String?          @map("api_key") @db.VarChar(255)
+  botType         DifyBotType
+  apiUrl          String?          @db.VarChar(255)
+  apiKey          String?          @db.VarChar(255)
   expire          Int?             @default(0) @db.Integer
-  keywordFinish   String?          @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?             @map("delay_message") @db.Integer
-  unknownMessage  String?          @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?         @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?         @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?         @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?             @map("debounce_time") @db.Integer
-  ignoreJids      Json?            @map("ignore_jids")
-  triggerType     TriggerType?     @map("trigger_type")
-  triggerOperator TriggerOperator? @map("trigger_operator")
-  triggerValue    String?          @map("trigger_value")
-  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  DifySetting DifySetting[]
-
-  @@map("difys")
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
+  ignoreJids      Json?
+  triggerType     TriggerType?
+  triggerOperator TriggerOperator?
+  triggerValue    String?
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime         @updatedAt @db.Timestamp
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
+  DifySetting     DifySetting[]
 }
 
 model DifySetting {
   id              String    @id @default(cuid())
   expire          Int?      @default(0) @db.Integer
-  keywordFinish   String?   @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?      @map("delay_message") @db.Integer
-  unknownMessage  String?   @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?  @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?  @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?  @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?      @map("debounce_time") @db.Integer
-  ignoreJids      Json?     @map("ignore_jids")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  difyIdFallback String? @map("dify_id_fallback") @db.VarChar(100)
-  Fallback       Dify?   @relation(fields: [difyIdFallback], references: [id])
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("dify_settings")
+  keywordFinish   String?   @db.VarChar(100)
+  delayMessage    Int?      @db.Integer
+  unknownMessage  String?   @db.VarChar(100)
+  listeningFromMe Boolean?  @default(false) @db.Boolean
+  stopBotFromMe   Boolean?  @default(false) @db.Boolean
+  keepOpen        Boolean?  @default(false) @db.Boolean
+  debounceTime    Int?      @db.Integer
+  ignoreJids      Json?
+  createdAt       DateTime? @default(now()) @db.Timestamp
+  updatedAt       DateTime  @updatedAt @db.Timestamp
+  Fallback        Dify?     @relation(fields: [difyIdFallback], references: [id])
+  difyIdFallback  String?   @db.VarChar(100)
+  Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String    @unique
 }
 
 model EvolutionBot {
-  id              String           @id @default(cuid())
-  enabled         Boolean          @default(true) @db.Boolean
-  description     String?          @db.VarChar(255)
-  apiUrl          String?          @map("api_url") @db.VarChar(255)
-  apiKey          String?          @map("api_key") @db.VarChar(255)
-  expire          Int?             @default(0) @db.Integer
-  keywordFinish   String?          @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?             @map("delay_message") @db.Integer
-  unknownMessage  String?          @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?         @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?         @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?         @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?             @map("debounce_time") @db.Integer
-  ignoreJids      Json?            @map("ignore_jids")
-  triggerType     TriggerType?     @map("trigger_type")
-  triggerOperator TriggerOperator? @map("trigger_operator")
-  triggerValue    String?          @map("trigger_value")
-  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
+  id                  String                @id @default(cuid())
+  enabled             Boolean               @default(true) @db.Boolean
+  description         String?               @db.VarChar(255)
+  apiUrl              String?               @db.VarChar(255)
+  apiKey              String?               @db.VarChar(255)
+  expire              Int?                  @default(0) @db.Integer
+  keywordFinish       String?               @db.VarChar(100)
+  delayMessage        Int?                  @db.Integer
+  unknownMessage      String?               @db.VarChar(100)
+  listeningFromMe     Boolean?              @default(false) @db.Boolean
+  stopBotFromMe       Boolean?              @default(false) @db.Boolean
+  keepOpen            Boolean?              @default(false) @db.Boolean
+  debounceTime        Int?                  @db.Integer
+  ignoreJids          Json?
+  triggerType         TriggerType?
+  triggerOperator     TriggerOperator?
+  triggerValue        String?
+  createdAt           DateTime?             @default(now()) @db.Timestamp
+  updatedAt           DateTime              @updatedAt @db.Timestamp
+  Instance            Instance              @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId          String
   EvolutionBotSetting EvolutionBotSetting[]
-
-  @@map("evolution_bots")
 }
 
 model EvolutionBotSetting {
-  id              String    @id @default(cuid())
-  expire          Int?      @default(0) @db.Integer
-  keywordFinish   String?   @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?      @map("delay_message") @db.Integer
-  unknownMessage  String?   @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?  @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?  @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?  @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?      @map("debounce_time") @db.Integer
-  ignoreJids      Json?     @map("ignore_jids")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  botIdFallback String?       @map("bot_id_fallback") @db.VarChar(100)
-  Fallback      EvolutionBot? @relation(fields: [botIdFallback], references: [id])
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("evolution_bot_settings")
+  id              String        @id @default(cuid())
+  expire          Int?          @default(0) @db.Integer
+  keywordFinish   String?       @db.VarChar(100)
+  delayMessage    Int?          @db.Integer
+  unknownMessage  String?       @db.VarChar(100)
+  listeningFromMe Boolean?      @default(false) @db.Boolean
+  stopBotFromMe   Boolean?      @default(false) @db.Boolean
+  keepOpen        Boolean?      @default(false) @db.Boolean
+  debounceTime    Int?          @db.Integer
+  ignoreJids      Json?
+  createdAt       DateTime?     @default(now()) @db.Timestamp
+  updatedAt       DateTime      @updatedAt @db.Timestamp
+  Fallback        EvolutionBot? @relation(fields: [botIdFallback], references: [id])
+  botIdFallback   String?       @db.VarChar(100)
+  Instance        Instance      @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String        @unique
 }
 
 model Flowise {
   id              String           @id @default(cuid())
   enabled         Boolean          @default(true) @db.Boolean
   description     String?          @db.VarChar(255)
-  apiUrl          String?          @map("api_url") @db.VarChar(255)
-  apiKey          String?          @map("api_key") @db.VarChar(255)
+  apiUrl          String?          @db.VarChar(255)
+  apiKey          String?          @db.VarChar(255)
   expire          Int?             @default(0) @db.Integer
-  keywordFinish   String?          @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?             @map("delay_message") @db.Integer
-  unknownMessage  String?          @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?         @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?         @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?         @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?             @map("debounce_time") @db.Integer
-  ignoreJids      Json?            @map("ignore_jids")
-  triggerType     TriggerType?     @map("trigger_type")
-  triggerOperator TriggerOperator? @map("trigger_operator")
-  triggerValue    String?          @map("trigger_value")
-  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz()
-
-  instanceId String   @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  FlowiseSetting FlowiseSetting[]
-
-  @@map("flowises")
+  keywordFinish   String?          @db.VarChar(100)
+  delayMessage    Int?             @db.Integer
+  unknownMessage  String?          @db.VarChar(100)
+  listeningFromMe Boolean?         @default(false) @db.Boolean
+  stopBotFromMe   Boolean?         @default(false) @db.Boolean
+  keepOpen        Boolean?         @default(false) @db.Boolean
+  debounceTime    Int?             @db.Integer
+  ignoreJids      Json?
+  triggerType     TriggerType?
+  triggerOperator TriggerOperator?
+  triggerValue    String?
+  createdAt       DateTime?        @default(now()) @db.Timestamp
+  updatedAt       DateTime         @updatedAt @db.Timestamp
+  Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId      String
+  FlowiseSetting  FlowiseSetting[]
 }
 
 model FlowiseSetting {
-  id              String    @id @default(cuid())
-  expire          Int?      @default(0) @db.Integer
-  keywordFinish   String?   @map("keyword_finish") @db.VarChar(100)
-  delayMessage    Int?      @map("delay_message") @db.Integer
-  unknownMessage  String?   @map("unknown_message") @db.VarChar(100)
-  listeningFromMe Boolean?  @default(false) @map("listening_from_me") @db.Boolean
-  stopBotFromMe   Boolean?  @default(false) @map("stop_bot_from_me") @db.Boolean
-  keepOpen        Boolean?  @default(false) @map("keep_open") @db.Boolean
-  debounceTime    Int?      @map("debounce_time") @db.Integer
-  ignoreJids      Json?     @map("ignore_jids")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
-
-  flowiseIdFallback String?  @map("flowise_id_fallback") @db.VarChar(100)
-  Fallback          Flowise? @relation(fields: [flowiseIdFallback], references: [id])
-
-  instanceId String   @unique @map("instance_id")
-  Instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
-  @@map("flowise_settings")
+  id                String    @id @default(cuid())
+  expire            Int?      @default(0) @db.Integer
+  keywordFinish     String?   @db.VarChar(100)
+  delayMessage      Int?      @db.Integer
+  unknownMessage    String?   @db.VarChar(100)
+  listeningFromMe   Boolean?  @default(false) @db.Boolean
+  stopBotFromMe     Boolean?  @default(false) @db.Boolean
+  keepOpen          Boolean?  @default(false) @db.Boolean
+  debounceTime      Int?      @db.Integer
+  ignoreJids        Json?
+  createdAt         DateTime? @default(now()) @db.Timestamp
+  updatedAt         DateTime  @updatedAt @db.Timestamp
+  Fallback          Flowise?  @relation(fields: [flowiseIdFallback], references: [id])
+  flowiseIdFallback String?   @db.VarChar(100)
+  Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId        String    @unique
 }
 
 model IsOnWhatsapp {
