@@ -1477,7 +1477,7 @@ export class ChatwootService {
     let inReplyToExternalId = null;
 
     if (msg) {
-      inReplyToExternalId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId ?? msg.contextInfo?.stanzaId;
+      inReplyToExternalId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
       if (inReplyToExternalId) {
         const message = await this.getMessageByKeyId(instance, inReplyToExternalId);
         if (message?.chatwootMessageId) {
