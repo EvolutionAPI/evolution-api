@@ -10,7 +10,7 @@ import {
   CacheConf,
   ConfigService,
   Database,
-  DelInstance,
+  // DelInstance,
   HttpServer,
   ProviderSession,
 } from '../../config/env.config';
@@ -71,28 +71,30 @@ export class WAMonitoringService {
   private readonly providerSession = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));
 
   public delInstanceTime(instance: string) {
-    const time = this.configService.get<DelInstance>('DEL_INSTANCE');
-    if (typeof time === 'number' && time > 0) {
-      this.logger.verbose(`Instance "${instance}" don't have connection, will be removed in ${time} minutes`);
+    this.logger.verbose(instance);
+    return; // Never delete instance on timeouts
+    // const time = this.configService.get<DelInstance>('DEL_INSTANCE');
+    // if (typeof time === 'number' && time > 0) {
+    //   this.logger.verbose(`Instance "${instance}" don't have connection, will be removed in ${time} minutes`);
 
-      setTimeout(async () => {
-        if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
-          if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
-            if ((await this.waInstances[instance].findIntegration()).integration === Integration.WHATSAPP_BAILEYS) {
-              await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
-              this.waInstances[instance]?.client?.ws?.close();
-              this.waInstances[instance]?.client?.end(undefined);
-            }
-            this.waInstances[instance]?.removeRabbitmqQueues();
-            delete this.waInstances[instance];
-          } else {
-            this.waInstances[instance]?.removeRabbitmqQueues();
-            delete this.waInstances[instance];
-            this.eventEmitter.emit('remove.instance', instance, 'inner');
-          }
-        }
-      }, 1000 * 60 * time);
-    }
+    //   setTimeout(async () => {
+    //     if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
+    //       if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
+    //         if ((await this.waInstances[instance].findIntegration()).integration === Integration.WHATSAPP_BAILEYS) {
+    //           await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
+    //           this.waInstances[instance]?.client?.ws?.close();
+    //           this.waInstances[instance]?.client?.end(undefined);
+    //         }
+    //         this.waInstances[instance]?.removeRabbitmqQueues();
+    //         delete this.waInstances[instance];
+    //       } else {
+    //         this.waInstances[instance]?.removeRabbitmqQueues();
+    //         delete this.waInstances[instance];
+    //         this.eventEmitter.emit('remove.instance', instance, 'inner');
+    //       }
+    //     }
+    //   }, 1000 * 60 * time);
+    // }
   }
 
   public async instanceInfo(instanceName?: string, arrayReturn = false) {
@@ -517,25 +519,28 @@ export class WAMonitoringService {
   }
 
   private async deleteTempInstances(collections: Collection<Document>[]) {
-    const shouldDelete = this.configService.get<boolean>('DEL_TEMP_INSTANCES');
-    if (!shouldDelete) {
-      this.logger.verbose('Temp instances deletion is disabled');
-      return;
-    }
-    this.logger.verbose('Cleaning up temp instances');
-    const auths = await this.repository.auth.list();
-    if (auths.length === 0) {
-      this.logger.verbose('No temp instances found');
-      return;
-    }
-    let tempInstances = 0;
-    auths.forEach((auth) => {
-      if (collections.find((coll) => coll.namespace.replace(/^[\w-]+\./, '') === auth._id)) {
-        return;
-      }
-      tempInstances++;
-      this.eventEmitter.emit('remove.instance', auth._id, 'inner');
-    });
-    this.logger.verbose('Temp instances removed: ' + tempInstances);
+    this.logger.verbose(collections);
+    return; // Never delete temp instances
+
+    // const shouldDelete = this.configService.get<boolean>('DEL_TEMP_INSTANCES');
+    // if (!shouldDelete) {
+    //   this.logger.verbose('Temp instances deletion is disabled');
+    //   return;
+    // }
+    // this.logger.verbose('Cleaning up temp instances');
+    // const auths = await this.repository.auth.list();
+    // if (auths.length === 0) {
+    //   this.logger.verbose('No temp instances found');
+    //   return;
+    // }
+    // let tempInstances = 0;
+    // auths.forEach((auth) => {
+    //   if (collections.find((coll) => coll.namespace.replace(/^[\w-]+\./, '') === auth._id)) {
+    //     return;
+    //   }
+    //   tempInstances++;
+    //   this.eventEmitter.emit('remove.instance', auth._id, 'inner');
+    // });
+    // this.logger.verbose('Temp instances removed: ' + tempInstances);
   }
 }
