@@ -867,7 +867,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
       this.logger.verbose('Event received: contacts.update');
-      this.logger.info('THIS IS WHEN CONTACTS ARE UPDATED ON DATABASE' + JSON.stringify(contacts))
+      this.logger.info('THIS IS WHEN CONTACTS ARE UPDATED ON DATABASE' + JSON.stringify(contacts));
 
       this.logger.verbose('Verifying if contacts exists in database to update');
       const contactsRaw: ContactRaw[] = [];
@@ -1575,8 +1575,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (events['chats.update']) {
           this.logger.verbose('Listening event: chats.update');
-          const payload = events['chats.update'];
-          this.chatHandle['chats.update'](payload);
+          const payload = events['chats.update'].filter(
+            (x) => !settings.ignore_list || !settings.ignore_list.includes(x['id']),
+          );
+          if (payload.length > 0) {
+            this.chatHandle['chats.update'](payload);
+          }
         }
 
         if (events['chats.delete']) {
