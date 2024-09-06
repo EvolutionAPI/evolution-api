@@ -38,6 +38,7 @@ export class WebhookController extends EventController implements EventControlle
         enabled: data.webhook?.enabled,
         events: data.webhook?.events,
         url: data.webhook?.url,
+        headers: data.webhook?.headers,
         webhookBase64: data.webhook.base64,
         webhookByEvents: data.webhook.byEvents,
       },
@@ -46,6 +47,7 @@ export class WebhookController extends EventController implements EventControlle
         events: data.webhook?.events,
         instanceId: this.monitor.waInstances[instanceName].instanceId,
         url: data.webhook?.url,
+        headers: data.webhook?.headers,
         webhookBase64: data.webhook.base64,
         webhookByEvents: data.webhook.byEvents,
       },
@@ -71,6 +73,7 @@ export class WebhookController extends EventController implements EventControlle
 
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
     const webhookLocal = instance?.events;
+    const webhookHeaders = instance?.headers;
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const enabledLog = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
@@ -108,7 +111,10 @@ export class WebhookController extends EventController implements EventControlle
 
         try {
           if (instance?.enabled && isURL(instance.url, { require_tld: false })) {
-            const httpService = axios.create({ baseURL });
+            const httpService = axios.create({
+              baseURL,
+              headers: webhookHeaders as Record<string, string> | undefined,
+            });
 
             await httpService.post('', webhookData);
           }

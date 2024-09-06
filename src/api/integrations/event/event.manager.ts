@@ -126,6 +126,7 @@ export class EventManager {
           enabled: true,
           events: data.webhook?.events,
           url: data.webhook?.url,
+          headers: data.webhook?.headers,
           base64: data.webhook?.base64,
           byEvents: data.webhook?.byEvents,
         },

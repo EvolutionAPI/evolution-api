@@ -94,6 +94,7 @@ export declare namespace wa {
 
   export type LocalWebHook = LocalEvent & {
     url?: string;
+    headers?: JsonValue;
     webhookByEvents?: boolean;
     webhookBase64?: boolean;
   };
