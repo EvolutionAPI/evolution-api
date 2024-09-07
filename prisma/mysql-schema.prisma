@@ -181,6 +181,7 @@ model MessageUpdate {
 model Webhook {
   id              String    @id @default(cuid())
   url             String    @db.VarChar(500)
+  headers         Json?     @db.Json
   enabled         Boolean?  @default(true)
   events          Json?     @db.Json
   webhookByEvents Boolean?  @default(false)
