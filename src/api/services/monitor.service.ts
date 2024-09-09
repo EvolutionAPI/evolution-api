@@ -118,12 +118,16 @@ export class WAMonitoringService {
   public async cleaningUp(instanceName: string) {
     let instanceDbId: string;
     if (this.db.SAVE_DATA.INSTANCE) {
+      const findInstance = await this.prismaRepository.instance.findFirst({
+        where: { name: instanceName },
+      });
+
+      if (!findInstance) this.logger.error('Instance not found');
+
       const instance = await this.prismaRepository.instance.update({
         where: { name: instanceName },
         data: { connectionStatus: 'close' },
       });
-
-      if (!instance) this.logger.error('Instance not found');
 
       rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
 
@@ -149,6 +153,8 @@ export class WAMonitoringService {
     const instance = await this.prismaRepository.instance.findFirst({
       where: { name: instanceName },
     });
+
+    if (!instance) return;
 
     rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
 
@@ -194,7 +200,8 @@ export class WAMonitoringService {
         data: {
           id: data.instanceId,
           name: data.instanceName,
-          connectionStatus: data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : 'open',
+          connectionStatus:
+            data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : data.status ?? 'open',
           number: data.number,
           integration: data.integration || Integration.WHATSAPP_BAILEYS,
           token: data.hash,
@@ -225,6 +232,8 @@ export class WAMonitoringService {
       baileysCache: this.baileysCache,
       providerFiles: this.providerFiles,
     });
+
+    if (!instance) return;
 
     instance.setInstance({
       instanceId: instanceData.instanceId,

@@ -46,6 +46,10 @@ export class InstanceController {
         providerFiles: this.providerFiles,
       });
 
+      if (!instance) {
+        throw new BadRequestException('Invalid integration');
+      }
+
       const instanceId = v4();
 
       instanceData.instanceId = instanceId;
@@ -62,6 +66,7 @@ export class InstanceController {
         hash,
         number: instanceData.number,
         businessId: instanceData.businessId,
+        status: instanceData.status,
       });
 
       instance.setInstance({
@@ -146,7 +151,7 @@ export class InstanceController {
             integration: instanceData.integration,
             webhookWaBusiness,
             accessTokenWaBusiness,
-            status: 'created',
+            status: instance.connectionStatus.state,
           },
           hash,
           webhook: {
@@ -233,7 +238,7 @@ export class InstanceController {
           integration: instanceData.integration,
           webhookWaBusiness,
           accessTokenWaBusiness,
-          status: 'created',
+          status: instance.connectionStatus.state,
         },
         hash,
         webhook: {

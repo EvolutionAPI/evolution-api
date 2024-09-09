@@ -13,6 +13,7 @@
 * Fixed use chatwoot with evolution channel
 * Fix chatwoot reply quote with Cloud API
 * Use exchange name from .env on RabbitMQ
+* Fixed chatwoot screen
 
 # 2.1.0 (2024-08-26 15:33)
 

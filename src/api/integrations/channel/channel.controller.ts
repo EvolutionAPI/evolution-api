@@ -80,14 +80,18 @@ export class ChannelController {
       );
     }
 
-    return new BaileysStartupService(
-      data.configService,
-      data.eventEmitter,
-      data.prismaRepository,
-      data.cache,
-      data.chatwootCache,
-      data.baileysCache,
-      data.providerFiles,
-    );
+    if (instanceData.integration === Integration.WHATSAPP_BAILEYS) {
+      return new BaileysStartupService(
+        data.configService,
+        data.eventEmitter,
+        data.prismaRepository,
+        data.cache,
+        data.chatwootCache,
+        data.baileysCache,
+        data.providerFiles,
+      );
+    }
+
+    return null;
   }
 }

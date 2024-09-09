@@ -9,6 +9,7 @@ export class InstanceDto extends IntegrationDto {
   number?: string;
   integration?: string;
   token?: string;
+  status?: string;
   // settings
   rejectCall?: boolean;
   msgCall?: string;
