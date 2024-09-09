@@ -3,7 +3,7 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { EventDto } from '@api/integrations/event/event.dto';
 import { HttpStatus } from '@api/routes/index.router';
 import { eventManager } from '@api/server.module';
-import { ConfigService, WaBusiness } from '@config/env.config';
+import { ConfigService } from '@config/env.config';
 import { instanceSchema, webhookSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 

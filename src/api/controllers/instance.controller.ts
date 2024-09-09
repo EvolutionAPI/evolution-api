@@ -156,6 +156,7 @@ export class InstanceController {
           hash,
           webhook: {
             webhookUrl: instanceData?.webhook?.url,
+            webhookHeaders: instanceData?.webhook?.headers,
             webhookByEvents: instanceData?.webhook?.byEvents,
             webhookBase64: instanceData?.webhook?.base64,
           },
@@ -243,6 +244,7 @@ export class InstanceController {
         hash,
         webhook: {
           webhookUrl: instanceData?.webhook?.url,
+          webhookHeaders: instanceData?.webhook?.headers,
           webhookByEvents: instanceData?.webhook?.byEvents,
           webhookBase64: instanceData?.webhook?.base64,
         },

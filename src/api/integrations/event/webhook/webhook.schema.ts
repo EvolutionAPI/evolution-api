@@ -31,6 +31,7 @@ export const webhookSchema: JSONSchema7 = {
       properties: {
         enabled: { type: 'boolean' },
         url: { type: 'string' },
+        headers: { type: 'object' },
         byEvents: { type: 'boolean' },
         base64: { type: 'boolean' },
         events: {
