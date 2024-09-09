@@ -34,7 +34,14 @@
  * └──────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { AuthenticationCreds, AuthenticationState, BufferJSON, initAuthCreds, proto, SignalDataTypeMap } from 'baileys';
+import {
+  AuthenticationCreds,
+  AuthenticationState,
+  BufferJSON,
+  initAuthCreds,
+  proto,
+  SignalDataTypeMap,
+} from '@whiskeysockets/baileys';
 import { isNotEmpty } from 'class-validator';
 
 import { ProviderFiles } from '../api/provider/sessions';

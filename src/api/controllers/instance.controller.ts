@@ -1,4 +1,4 @@
-import { delay } from 'baileys';
+import { delay } from '@whiskeysockets/baileys';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';

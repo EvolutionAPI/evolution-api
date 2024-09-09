@@ -1,4 +1,10 @@
-import { AuthenticationCreds, AuthenticationState, initAuthCreds, proto, SignalDataTypeMap } from 'baileys';
+import {
+  AuthenticationCreds,
+  AuthenticationState,
+  initAuthCreds,
+  proto,
+  SignalDataTypeMap,
+} from '@whiskeysockets/baileys';
 
 import { CacheService } from '../api/services/cache.service';
 import { Logger } from '../config/logger.config';

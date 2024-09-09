@@ -1,5 +1,5 @@
+import { WASocket } from '@whiskeysockets/baileys';
 import axios from 'axios';
-import { WASocket } from 'baileys';
 import { execSync } from 'child_process';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -721,9 +721,7 @@ export class ChannelStartupService {
                 autoDelete: false,
               });
 
-              const eventName = event.replace(/_/g, '.').toLowerCase();
-
-              const queueName = `${this.instanceName}.${eventName}`;
+              const queueName = `${this.instanceName}.${event}`;
 
               await amqp.assertQueue(queueName, {
                 durable: true,
@@ -733,7 +731,7 @@ export class ChannelStartupService {
                 },
               });
 
-              await amqp.bindQueue(queueName, exchangeName, eventName);
+              await amqp.bindQueue(queueName, exchangeName, event);
 
               const message = {
                 event,
@@ -788,7 +786,7 @@ export class ChannelStartupService {
               autoDelete: false,
             });
 
-            const queueName = event;
+            const queueName = transformedWe;
 
             await amqp.assertQueue(queueName, {
               durable: true,
