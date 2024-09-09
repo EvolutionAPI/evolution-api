@@ -86,7 +86,7 @@ export class ContactRepository extends Repository {
         const contacts = data.map((contact) => {
           return {
             updateOne: {
-              filter: { id: contact.id },
+              filter: { id: contact.id, owner: instanceName },
               update: { ...contact },
               upsert: true,
             },

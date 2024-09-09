@@ -26,6 +26,7 @@ export class KwikController {
     const messages = connection.collection('messages');
     const pipeline: Document[] = [
       { $sort: { 'key.remoteJid': -1, messageTimestamp: -1 } },
+      { $match: { owner: instanceName }},
       {
         $group: {
           _id: '$key.remoteJid',
@@ -36,7 +37,7 @@ export class KwikController {
           fromMe: { $first: '$key.fromMe' },
         },
       },
-      { $match: { owner: instanceName, lastAllMsgTimestamp: { $gte: messageTimestamp } } },
+      { $match: { lastAllMsgTimestamp: { $gte: messageTimestamp } } },
       { $sort: { lastAllMsgTimestamp: -1 } },
     ];
 
