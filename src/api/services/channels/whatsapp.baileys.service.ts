@@ -867,7 +867,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
     'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
       this.logger.verbose('Event received: contacts.update');
-      this.logger.info('THIS IS WHEN CONTACTS ARE UPDATED ON DATABASE' + JSON.stringify(contacts));
 
       this.logger.verbose('Verifying if contacts exists in database to update');
       const contactsRaw: ContactRaw[] = [];
@@ -1082,7 +1081,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (
             (type !== 'notify' && type !== 'append') ||
-            received.message?.protocolMessage ||
+            //received.message?.protocolMessage || // To let update pass KWIK
             received.message?.pollUpdateMessage ||
             !received?.message
           ) {

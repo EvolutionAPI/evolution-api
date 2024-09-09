@@ -12,7 +12,7 @@ export class KwikController {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
   private isTextMessage(messageType: any) {
-    return ['senderKeyDistributionMessage', 'conversation', 'extendedTextMessage'].includes(messageType);
+    return ['senderKeyDistributionMessage', 'conversation', 'extendedTextMessage', 'protocolMessage'].includes(messageType);
   }
   public async fetchChats(
     { instanceName }: InstanceDto,
