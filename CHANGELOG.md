@@ -4,6 +4,7 @@
 
 * Define a global proxy to be used if the instance does not have one
 * Save is on whatsapp on the database
+* Add headers to the instance's webhook registration
 
 ### Fixed
 
