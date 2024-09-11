@@ -108,7 +108,7 @@ export class ChatbotController {
     callback: any,
   ) {
     if (userMessageDebounce[remoteJid]) {
-      userMessageDebounce[remoteJid].message += ` ${content}`;
+      userMessageDebounce[remoteJid].message += `\n${content}`;
       this.logger.log('message debounced: ' + userMessageDebounce[remoteJid].message);
       clearTimeout(userMessageDebounce[remoteJid].timeoutId);
     } else {
