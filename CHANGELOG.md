@@ -15,6 +15,7 @@
 * Fix chatwoot reply quote with Cloud API
 * Use exchange name from .env on RabbitMQ
 * Fixed chatwoot screen
+* It is now possible to send images via the Evolution Channel
 
 # 2.1.0 (2024-08-26 15:33)
 

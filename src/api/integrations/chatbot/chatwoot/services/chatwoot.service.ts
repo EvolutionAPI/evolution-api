@@ -635,7 +635,7 @@ export class ChatwootService {
           }
         }
       } else {
-        const jid = isGroup ? null : body.key.remoteJid;
+        const jid = body.key.remoteJid;
         contact = await this.createContact(
           instance,
           chatId,
