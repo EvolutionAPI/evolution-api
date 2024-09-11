@@ -333,10 +333,10 @@ export class BusinessStartupService extends ChannelStartupService {
               const mediaType = message.messages[0].document
                 ? 'document'
                 : message.messages[0].image
-                ? 'image'
-                : message.messages[0].audio
-                ? 'audio'
-                : 'video';
+                  ? 'image'
+                  : message.messages[0].audio
+                    ? 'audio'
+                    : 'video';
 
               const mimetype = result.headers['content-type'];
 
@@ -386,7 +386,7 @@ export class BusinessStartupService extends ChannelStartupService {
               ...this.messageInteractiveJson(received),
             },
             contextInfo: this.messageInteractiveJson(received)?.contextInfo,
-            messageType: 'conversation',
+            messageType: 'interactiveMessage',
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
             instanceId: this.instanceId,
@@ -399,7 +399,7 @@ export class BusinessStartupService extends ChannelStartupService {
               ...this.messageButtonJson(received),
             },
             contextInfo: this.messageButtonJson(received)?.contextInfo,
-            messageType: 'conversation',
+            messageType: 'buttonMessage',
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
             instanceId: this.instanceId,
@@ -425,7 +425,7 @@ export class BusinessStartupService extends ChannelStartupService {
               ...this.messageContactsJson(received),
             },
             contextInfo: this.messageContactsJson(received)?.contextInfo,
-            messageType: 'conversation',
+            messageType: 'contactMessage',
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
             instanceId: this.instanceId,
