@@ -148,7 +148,9 @@ export class WAMonitoringService {
   }
 
   public async cleaningStoreData(instanceName: string) {
-    execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+    if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+    }
 
     const instance = await this.prismaRepository.instance.findFirst({
       where: { name: instanceName },
