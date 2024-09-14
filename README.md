@@ -8,7 +8,7 @@
 [![Documentation](https://img.shields.io/badge/Documentation-Official-green)](https://doc.evolution-api.com)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](./LICENSE)
 [![Support](https://img.shields.io/badge/Donation-picpay-green)](https://app.picpay.com/user/davidsongomes1998)
-[![Support](https://img.shields.io/badge/Buy%20me-coffe-orange)](https://bmc.link/evolutionapi)
+[![Support](https://img.shields.io/badge/Buy%20me-coffee-orange)](https://bmc.link/evolutionapi)
 
 </div>
   
