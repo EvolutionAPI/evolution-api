@@ -122,7 +122,7 @@ export class WAMonitoringService {
         where: { name: instanceName },
       });
 
-      if (!findInstance) {
+      if (findInstance) {
         const instance = await this.prismaRepository.instance.update({
           where: { name: instanceName },
           data: { connectionStatus: 'close' },
