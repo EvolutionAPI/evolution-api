@@ -64,7 +64,7 @@ export class WAMonitoringService {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
 
-    const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
+    const clientName = this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
 
     const where = instanceName ? { name: instanceName, clientName } : { clientName };
 
@@ -122,17 +122,17 @@ export class WAMonitoringService {
         where: { name: instanceName },
       });
 
-      if (!findInstance) this.logger.error('Instance not found');
+      if (findInstance) {
+        const instance = await this.prismaRepository.instance.update({
+          where: { name: instanceName },
+          data: { connectionStatus: 'close' },
+        });
 
-      const instance = await this.prismaRepository.instance.update({
-        where: { name: instanceName },
-        data: { connectionStatus: 'close' },
-      });
+        rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
 
-      rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
-
-      instanceDbId = instance.id;
-      await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
+        instanceDbId = instance.id;
+        await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
+      }
     }
 
     if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
