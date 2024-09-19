@@ -974,14 +974,6 @@ export class TypebotController extends ChatbotController implements ChatbotContr
 
       if (!instanceData) throw new Error('Instance not found');
 
-      const settings = await this.prismaRepository.typebotSetting.findFirst({
-        where: {
-          instanceId: instance.instanceId,
-        },
-      });
-
-      if (this.checkIgnoreJids(settings?.ignoreJids, remoteJid)) return;
-
       const session = await this.getSession(remoteJid, instance);
 
       const content = getConversationMessage(msg);
@@ -996,6 +988,12 @@ export class TypebotController extends ChatbotController implements ChatbotContr
 
       if (!findBot) return;
 
+      const settings = await this.prismaRepository.typebotSetting.findFirst({
+        where: {
+          instanceId: instance.instanceId,
+        },
+      });
+
       const url = findBot?.url;
       const typebot = findBot?.typebot;
       let expire = findBot?.expire;
@@ -1006,32 +1004,19 @@ export class TypebotController extends ChatbotController implements ChatbotContr
       let stopBotFromMe = findBot?.stopBotFromMe;
       let keepOpen = findBot?.keepOpen;
       let debounceTime = findBot?.debounceTime;
+      let ignoreJids = findBot?.ignoreJids;
 
-      if (
-        !expire ||
-        !keywordFinish ||
-        !delayMessage ||
-        !unknownMessage ||
-        !listeningFromMe ||
-        !stopBotFromMe ||
-        !keepOpen
-      ) {
-        if (!expire) expire = settings.expire;
+      if (!expire) expire = settings.expire;
+      if (!keywordFinish) keywordFinish = settings.keywordFinish;
+      if (!delayMessage) delayMessage = settings.delayMessage;
+      if (!unknownMessage) unknownMessage = settings.unknownMessage;
+      if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
+      if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
+      if (!keepOpen) keepOpen = settings.keepOpen;
+      if (!debounceTime) debounceTime = settings.debounceTime;
+      if (!ignoreJids) ignoreJids = settings.ignoreJids;
 
-        if (!keywordFinish) keywordFinish = settings.keywordFinish;
-
-        if (!delayMessage) delayMessage = settings.delayMessage;
-
-        if (!unknownMessage) unknownMessage = settings.unknownMessage;
-
-        if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
-
-        if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
-
-        if (!keepOpen) keepOpen = settings.keepOpen;
-
-        if (!debounceTime) debounceTime = settings.debounceTime;
-      }
+      if (this.checkIgnoreJids(ignoreJids, remoteJid)) return;
 
       const key = msg.key as {
         id: string;

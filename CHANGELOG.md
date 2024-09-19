@@ -18,6 +18,7 @@
 * Fixed chatwoot screen
 * It is now possible to send images via the Evolution Channel
 * Removed "version" from docker-compose as it is obsolete (https://dev.to/ajeetraina/do-we-still-use-version-in-compose-3inp)
+* Fixed typebot ignoreJids being used only from default settings
 
 # 2.1.0 (2024-08-26 15:33)
 
