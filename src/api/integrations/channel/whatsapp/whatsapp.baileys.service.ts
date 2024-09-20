@@ -1982,56 +1982,7 @@ export class BaileysStartupService extends ChannelStartupService {
         delete messageRaw.message.extendedTextMessage;
       }
 
-      if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
-        const msg = await this.prismaRepository.message.create({
-          data: messageRaw,
-        });
-
-        if (isMedia && this.configService.get<S3>('S3').ENABLE) {
-          try {
-            const message: any = messageSent;
-            const media = await this.getBase64FromMediaMessage(
-              {
-                message,
-              },
-              true,
-            );
-
-            const { buffer, mediaType, fileName, size } = media;
-
-            const mimetype = mime.getType(fileName).toString();
-
-            const fullName = join(`${this.instance.id}`, messageSent.key.remoteJid, mediaType, fileName);
-
-            await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
-              'Content-Type': mimetype,
-            });
-
-            await this.prismaRepository.media.create({
-              data: {
-                messageId: msg.id,
-                instanceId: this.instanceId,
-                type: mediaType,
-                fileName: fullName,
-                mimetype,
-              },
-            });
-
-            const mediaUrl = await s3Service.getObjectUrl(fullName);
-
-            messageRaw.message.mediaUrl = mediaUrl;
-
-            await this.prismaRepository.message.update({
-              where: { id: msg.id },
-              data: messageRaw,
-            });
-          } catch (error) {
-            this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
-          }
-        }
-      }
-
-      if (isMedia && !this.configService.get<S3>('S3').ENABLE) {
+      if (isMedia) {
         const buffer = await downloadMediaMessage(
           { key: messageSent.key, message: messageSent?.message },
           'buffer',
