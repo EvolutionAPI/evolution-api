@@ -620,7 +620,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const existingChatIdSet = new Set(existingChatIds.map((chat) => chat.remoteJid));
 
       const chatsToInsert = chats
-        .filter((chat) => !existingChatIdSet.has(chat.id))
+        .filter((chat) => !existingChatIdSet?.has(chat.id))
         .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name }));
 
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
@@ -757,6 +757,7 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
       } catch (error) {
+        console.error(error);
         this.logger.error('line 817');
         this.logger.error(`Error: ${error.message}`);
       }
@@ -849,7 +850,7 @@ export class BaileysStartupService extends ChannelStartupService {
         );
 
         for (const chat of chats) {
-          if (chatsRepository.has(chat.id)) {
+          if (chatsRepository?.has(chat.id)) {
             continue;
           }
 
@@ -906,7 +907,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (messagesRepository.has(m.key.id)) {
+          if (messagesRepository?.has(m.key.id)) {
             continue;
           }
 
@@ -1053,6 +1054,7 @@ export class BaileysStartupService extends ChannelStartupService {
           };
 
           if (messageRaw.message.extendedTextMessage) {
+            messageRaw.messageType = 'conversation';
             messageRaw.message.conversation = messageRaw.message.extendedTextMessage.text;
             delete messageRaw.message.extendedTextMessage;
           }
@@ -1949,6 +1951,14 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted);
       }
 
+      const isMedia =
+        messageSent?.message?.imageMessage ||
+        messageSent?.message?.videoMessage ||
+        messageSent?.message?.stickerMessage ||
+        messageSent?.message?.documentMessage ||
+        messageSent?.message?.documentWithCaptionMessage ||
+        messageSent?.message?.audioMessage;
+
       const contentMsg = messageSent.message[getContentType(messageSent.message)] as any;
 
       if (Long.isLong(messageSent?.messageTimestamp)) {
@@ -1967,8 +1977,47 @@ export class BaileysStartupService extends ChannelStartupService {
       };
 
       if (messageRaw.message.extendedTextMessage) {
+        messageRaw.messageType = 'conversation';
         messageRaw.message.conversation = messageRaw.message.extendedTextMessage.text;
         delete messageRaw.message.extendedTextMessage;
+      }
+
+      if (isMedia) {
+        const buffer = await downloadMediaMessage(
+          { key: messageSent.key, message: messageSent?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }) as any,
+            reuploadRequest: this.client.updateMediaMessage,
+          },
+        );
+
+        messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+      }
+
+      if (this.configService.get<Openai>('OPENAI').ENABLED) {
+        const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+          where: {
+            instanceId: this.instanceId,
+          },
+          include: {
+            OpenaiCreds: true,
+          },
+        });
+
+        if (
+          openAiDefaultSettings &&
+          openAiDefaultSettings.openaiCredsId &&
+          openAiDefaultSettings.speechToText &&
+          messageSent?.message?.audioMessage
+        ) {
+          messageRaw.message.speechToText = await this.openaiService.speechToText(
+            openAiDefaultSettings.OpenaiCreds,
+            messageSent,
+            this.client.updateMediaMessage,
+          );
+        }
       }
 
       this.logger.log(messageRaw);
@@ -2052,7 +2101,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      return messageSent;
+      return messageRaw;
     } catch (error) {
       this.logger.error('line 2081');
       this.logger.error(error);
@@ -3314,7 +3363,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const cacheConf = configService.get<CacheConf>('CACHE');
 
     if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
-      if (await groupMetadataCache.has(groupJid)) {
+      if (await groupMetadataCache?.has(groupJid)) {
         console.log(`Cache request for group: ${groupJid}`);
         const meta = await groupMetadataCache.get(groupJid);
 
