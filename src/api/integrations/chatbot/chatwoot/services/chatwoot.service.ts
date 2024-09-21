@@ -223,6 +223,9 @@ export class ChatwootService {
       return true;
     }
 
+    console.log('organization', organization);
+    console.log('logo', logo);
+
     this.logger.log('Creating chatwoot bot contact');
     const contact =
       (await this.findContact(instance, '123456')) ||
@@ -322,6 +325,7 @@ export class ChatwootService {
       };
     }
 
+    console.log('data', data);
     const contact = await client.contacts.create({
       accountId: this.provider.accountId,
       data,
@@ -369,6 +373,10 @@ export class ChatwootService {
 
   public async addLabelToContact(nameInbox: string, contactId: number) {
     try {
+      const uri = this.configService.get<Chatwoot>('CHATWOOT').IMPORT.DATABASE.CONNECTION.URI;
+
+      if (!uri) return false;
+
       const sqlTags = `SELECT id FROM tags WHERE name = '${nameInbox}' LIMIT 1`;
 
       const tagData = (await this.pgClient.query(sqlTags))?.rows[0];
