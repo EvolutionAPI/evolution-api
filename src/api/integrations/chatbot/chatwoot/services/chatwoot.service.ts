@@ -223,9 +223,6 @@ export class ChatwootService {
       return true;
     }
 
-    console.log('organization', organization);
-    console.log('logo', logo);
-
     this.logger.log('Creating chatwoot bot contact');
     const contact =
       (await this.findContact(instance, '123456')) ||
@@ -325,7 +322,6 @@ export class ChatwootService {
       };
     }
 
-    console.log('data', data);
     const contact = await client.contacts.create({
       accountId: this.provider.accountId,
       data,
