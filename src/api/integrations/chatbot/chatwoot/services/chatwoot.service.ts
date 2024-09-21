@@ -1532,6 +1532,7 @@ export class ChatwootService {
       'audioMessage',
       'videoMessage',
       'stickerMessage',
+      'viewOnceMessageV2'
     ];
 
     const messageKeys = Object.keys(message);
@@ -1585,6 +1586,8 @@ export class ChatwootService {
       liveLocationMessage: msg.liveLocationMessage,
       listMessage: msg.listMessage,
       listResponseMessage: msg.listResponseMessage,
+      viewOnceMessageV2: msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url || msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url || msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
+
     };
 
     return types;
