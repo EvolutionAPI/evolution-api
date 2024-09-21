@@ -310,7 +310,7 @@ export class ChatwootService {
         avatar_url: avatar_url,
       };
 
-      if (jid.includes('@')) {
+      if ((jid && jid.includes('@')) || !jid) {
         data['phone_number'] = `+${phoneNumber}`;
       }
     } else {
@@ -1138,7 +1138,8 @@ export class ChatwootService {
         return { message: 'bot' };
       }
 
-      const chatId = body.conversation.meta.sender?.identifier;
+      const chatId =
+        body.conversation.meta.sender?.identifier || body.conversation.meta.sender?.phone_number.replace('+', '');
       // Chatwoot to Whatsapp
       const messageReceived = body.content
         ? body.content

@@ -333,10 +333,10 @@ export class BusinessStartupService extends ChannelStartupService {
               const mediaType = message.messages[0].document
                 ? 'document'
                 : message.messages[0].image
-                  ? 'image'
-                  : message.messages[0].audio
-                    ? 'audio'
-                    : 'video';
+                ? 'image'
+                : message.messages[0].audio
+                ? 'audio'
+                : 'video';
 
               const mimetype = result.headers['content-type'];
 

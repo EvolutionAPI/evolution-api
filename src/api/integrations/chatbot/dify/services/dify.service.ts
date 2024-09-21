@@ -238,14 +238,14 @@ export class DifyService {
           if (data.trim() === '' || !data.startsWith('{')) {
             return;
           }
-  
+
           try {
             const events = data.split('\n').filter((line) => line.trim() !== '');
-  
+
             for (const eventString of events) {
               if (eventString.trim().startsWith('{')) {
                 const event = JSON.parse(eventString);
-  
+
                 if (event?.event === 'agent_message') {
                   console.log('event:', event);
                   conversationId = conversationId ?? event?.conversation_id;
