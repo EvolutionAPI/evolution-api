@@ -6,6 +6,7 @@
 * Save is on whatsapp on the database
 * Add headers to the instance's webhook registration
 * Debounce message break is now "\n" instead of white space
+* Single view messages are now supported in chatwoot
 
 ### Fixed
 
