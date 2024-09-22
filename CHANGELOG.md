@@ -25,6 +25,7 @@
 * Changed axios timeout for manager requests for 30s
 * Update in Baileys version that fixes timeout when updating profile picture
 * Fixed issue when sending links in markdown by chatbots like Dify
+* Fixed issue with chatbots not respecting settings
 
 # 2.1.0 (2024-08-26 15:33)
 
