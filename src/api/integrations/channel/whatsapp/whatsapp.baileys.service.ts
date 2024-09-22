@@ -739,18 +739,23 @@ export class BaileysStartupService extends ChannelStartupService {
                 },
               });
 
-              const instance = { instanceName: this.instance.name, instanceId: this.instance.id };
+              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
+                const instance = { instanceName: this.instance.name, instanceId: this.instance.id };
 
-              const findParticipant = await this.chatwootService.findContact(instance, contact.remoteJid.split('@')[0]);
+                const findParticipant = await this.chatwootService.findContact(
+                  instance,
+                  contact.remoteJid.split('@')[0],
+                );
 
-              if (!findParticipant) {
-                return;
+                if (!findParticipant) {
+                  return;
+                }
+
+                this.chatwootService.updateContact(instance, findParticipant.id, {
+                  name: contact.pushName,
+                  avatar_url: contact.profilePicUrl,
+                });
               }
-
-              this.chatwootService.updateContact(instance, findParticipant.id, {
-                name: contact.pushName,
-                avatar_url: contact.profilePicUrl,
-              });
 
               return update;
             }),
