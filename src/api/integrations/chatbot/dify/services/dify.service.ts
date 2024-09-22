@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
@@ -14,7 +15,7 @@ export class DifyService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
-  ) { }
+  ) {}
 
   private readonly logger = new Logger('DifyService');
 
@@ -349,12 +350,7 @@ export class DifyService {
     }
   }
 
-  private async sendMessageWhatsApp(
-    instance: any,
-    remoteJid: string,
-    message: string,
-    settings: DifySetting
-  ) {
+  private async sendMessageWhatsApp(instance: any, remoteJid: string, message: string, settings: DifySetting) {
     const linkRegex = /(!?)\[(.*?)\]\((.*?)\)/g;
 
     let textBuffer = '';
@@ -393,20 +389,18 @@ export class DifyService {
               delay: settings?.delayMessage || 1000,
               text: textBuffer.trim(),
             },
-            false
+            false,
           );
           textBuffer = '';
         }
 
         if (mediaType === 'audio') {
-          await instance.audioWhatsapp(
-            {
-              number: remoteJid.split('@')[0],
-              delay: settings?.delayMessage || 1000,
-              audio: url,
-              caption: altText,
-            }
-          );
+          await instance.audioWhatsapp({
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            audio: url,
+            caption: altText,
+          });
         } else {
           await instance.mediaMessage(
             {
@@ -416,7 +410,7 @@ export class DifyService {
               media: url,
               caption: altText,
             },
-            false
+            false,
           );
         }
       } else {
@@ -440,7 +434,7 @@ export class DifyService {
           delay: settings?.delayMessage || 1000,
           text: textBuffer.trim(),
         },
-        false
+        false,
       );
     }
 

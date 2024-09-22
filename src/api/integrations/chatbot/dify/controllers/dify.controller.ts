@@ -736,17 +736,25 @@ export class DifyController extends ChatbotController implements ChatbotControll
 
       if (!findBot) return;
 
-      let listeningFromMe = findBot.listeningFromMe;
-      let stopBotFromMe = findBot.stopBotFromMe;
-      let debounceTime = findBot.debounceTime;
+      let expire = findBot?.expire;
+      let keywordFinish = findBot?.keywordFinish;
+      let delayMessage = findBot?.delayMessage;
+      let unknownMessage = findBot?.unknownMessage;
+      let listeningFromMe = findBot?.listeningFromMe;
+      let stopBotFromMe = findBot?.stopBotFromMe;
+      let keepOpen = findBot?.keepOpen;
+      let debounceTime = findBot?.debounceTime;
+      let ignoreJids = findBot?.ignoreJids;
 
-      if (!listeningFromMe || !stopBotFromMe || !debounceTime) {
-        if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
-
-        if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
-
-        if (!debounceTime) debounceTime = settings.debounceTime;
-      }
+      if (!expire) expire = settings.expire;
+      if (!keywordFinish) keywordFinish = settings.keywordFinish;
+      if (!delayMessage) delayMessage = settings.delayMessage;
+      if (!unknownMessage) unknownMessage = settings.unknownMessage;
+      if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
+      if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
+      if (!keepOpen) keepOpen = settings.keepOpen;
+      if (!debounceTime) debounceTime = settings.debounceTime;
+      if (!ignoreJids) ignoreJids = settings.ignoreJids;
 
       const key = msg.key as {
         id: string;
@@ -782,7 +790,18 @@ export class DifyController extends ChatbotController implements ChatbotControll
             remoteJid,
             findBot,
             session,
-            settings,
+            {
+              ...settings,
+              expire,
+              keywordFinish,
+              delayMessage,
+              unknownMessage,
+              listeningFromMe,
+              stopBotFromMe,
+              keepOpen,
+              debounceTime,
+              ignoreJids,
+            },
             debouncedContent,
             msg?.pushName,
           );
@@ -793,7 +812,18 @@ export class DifyController extends ChatbotController implements ChatbotControll
           remoteJid,
           findBot,
           session,
-          settings,
+          {
+            ...settings,
+            expire,
+            keywordFinish,
+            delayMessage,
+            unknownMessage,
+            listeningFromMe,
+            stopBotFromMe,
+            keepOpen,
+            debounceTime,
+            ignoreJids,
+          },
           content,
           msg?.pushName,
         );
