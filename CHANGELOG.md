@@ -1,4 +1,4 @@
-# 2.1.1 (develop)
+# 2.1.1 (2024-09-22 10:31)
 
 ### Features
 
@@ -6,6 +6,8 @@
 * Save is on whatsapp on the database
 * Add headers to the instance's webhook registration
 * Debounce message break is now "\n" instead of white space
+* Single view messages are now supported in chatwoot
+* Chatbots can now send any type of media
 
 ### Fixed
 
@@ -19,6 +21,11 @@
 * It is now possible to send images via the Evolution Channel
 * Removed "version" from docker-compose as it is obsolete (https://dev.to/ajeetraina/do-we-still-use-version-in-compose-3inp)
 * Fixed typebot ignoreJids being used only from default settings
+* Fixed Chatwoot inbox creation on save
+* Changed axios timeout for manager requests for 30s
+* Update in Baileys version that fixes timeout when updating profile picture
+* Fixed issue when sending links in markdown by chatbots like Dify
+* Fixed issue with chatbots not respecting settings
 
 # 2.1.0 (2024-08-26 15:33)
 

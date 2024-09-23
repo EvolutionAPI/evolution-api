@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
@@ -238,14 +239,14 @@ export class DifyService {
           if (data.trim() === '' || !data.startsWith('{')) {
             return;
           }
-  
+
           try {
             const events = data.split('\n').filter((line) => line.trim() !== '');
-  
+
             for (const eventString of events) {
               if (eventString.trim().startsWith('{')) {
                 const event = JSON.parse(eventString);
-  
+
                 if (event?.event === 'agent_message') {
                   console.log('event:', event);
                   conversationId = conversationId ?? event?.conversation_id;
@@ -350,50 +351,91 @@ export class DifyService {
   }
 
   private async sendMessageWhatsApp(instance: any, remoteJid: string, message: string, settings: DifySetting) {
-    const regex = /!?\[(.*?)\]\((.*?)\)/g;
+    const linkRegex = /(!?)\[(.*?)\]\((.*?)\)/g;
 
-    const result = [];
+    let textBuffer = '';
     let lastIndex = 0;
 
-    let match;
-    while ((match = regex.exec(message)) !== null) {
-      if (match.index > lastIndex) {
-        result.push({ text: message.slice(lastIndex, match.index).trim() });
+    let match: RegExpExecArray | null;
+
+    const getMediaType = (url: string): string | null => {
+      const extension = url.split('.').pop()?.toLowerCase();
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+      const audioExtensions = ['mp3', 'wav', 'aac', 'ogg'];
+      const videoExtensions = ['mp4', 'avi', 'mkv', 'mov'];
+      const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];
+
+      if (imageExtensions.includes(extension || '')) return 'image';
+      if (audioExtensions.includes(extension || '')) return 'audio';
+      if (videoExtensions.includes(extension || '')) return 'video';
+      if (documentExtensions.includes(extension || '')) return 'document';
+      return null;
+    };
+
+    while ((match = linkRegex.exec(message)) !== null) {
+      const [fullMatch, exclMark, altText, url] = match;
+      const mediaType = getMediaType(url);
+
+      const beforeText = message.slice(lastIndex, match.index);
+      if (beforeText) {
+        textBuffer += beforeText;
       }
 
-      result.push({ caption: match[1], url: match[2] });
+      if (mediaType) {
+        if (textBuffer.trim()) {
+          await instance.textMessage(
+            {
+              number: remoteJid.split('@')[0],
+              delay: settings?.delayMessage || 1000,
+              text: textBuffer.trim(),
+            },
+            false,
+          );
+          textBuffer = '';
+        }
 
-      lastIndex = regex.lastIndex;
+        if (mediaType === 'audio') {
+          await instance.audioWhatsapp({
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            audio: url,
+            caption: altText,
+          });
+        } else {
+          await instance.mediaMessage(
+            {
+              number: remoteJid.split('@')[0],
+              delay: settings?.delayMessage || 1000,
+              mediatype: mediaType,
+              media: url,
+              caption: altText,
+            },
+            false,
+          );
+        }
+      } else {
+        textBuffer += `[${altText}](${url})`;
+      }
+
+      lastIndex = linkRegex.lastIndex;
     }
 
     if (lastIndex < message.length) {
-      result.push({ text: message.slice(lastIndex).trim() });
+      const remainingText = message.slice(lastIndex);
+      if (remainingText.trim()) {
+        textBuffer += remainingText;
+      }
     }
 
-    for (const item of result) {
-      if (item.text) {
-        await instance.textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: item.text,
-          },
-          false,
-        );
-      }
-
-      if (item.url) {
-        await instance.mediaMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            mediatype: 'image',
-            media: item.url,
-            caption: item.caption,
-          },
-          false,
-        );
-      }
+    if (textBuffer.trim()) {
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: textBuffer.trim(),
+        },
+        false,
+      );
     }
 
     sendTelemetry('/message/sendText');

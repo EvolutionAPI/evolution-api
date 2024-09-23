@@ -310,7 +310,7 @@ export class ChatwootService {
         avatar_url: avatar_url,
       };
 
-      if (jid.includes('@')) {
+      if ((jid && jid.includes('@')) || !jid) {
         data['phone_number'] = `+${phoneNumber}`;
       }
     } else {
@@ -369,6 +369,10 @@ export class ChatwootService {
 
   public async addLabelToContact(nameInbox: string, contactId: number) {
     try {
+      const uri = this.configService.get<Chatwoot>('CHATWOOT').IMPORT.DATABASE.CONNECTION.URI;
+
+      if (!uri) return false;
+
       const sqlTags = `SELECT id FROM tags WHERE name = '${nameInbox}' LIMIT 1`;
 
       const tagData = (await this.pgClient.query(sqlTags))?.rows[0];
@@ -1138,7 +1142,8 @@ export class ChatwootService {
         return { message: 'bot' };
       }
 
-      const chatId = body.conversation.meta.sender?.identifier;
+      const chatId =
+        body.conversation.meta.sender?.identifier || body.conversation.meta.sender?.phone_number.replace('+', '');
       // Chatwoot to Whatsapp
       const messageReceived = body.content
         ? body.content
@@ -1527,6 +1532,7 @@ export class ChatwootService {
       'audioMessage',
       'videoMessage',
       'stickerMessage',
+      'viewOnceMessageV2'
     ];
 
     const messageKeys = Object.keys(message);
@@ -1580,6 +1586,8 @@ export class ChatwootService {
       liveLocationMessage: msg.liveLocationMessage,
       listMessage: msg.listMessage,
       listResponseMessage: msg.listResponseMessage,
+      viewOnceMessageV2: msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url || msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url || msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
+
     };
 
     return types;

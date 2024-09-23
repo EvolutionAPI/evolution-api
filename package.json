@@ -63,7 +63,6 @@
     "dayjs": "^1.11.7",
     "dotenv": "^16.4.5",
     "eventemitter2": "^6.4.9",
-    "evolution-manager-v2": "^0.0.2",
     "exiftool-vendored": "^22.0.0",
     "express": "^4.18.2",
     "express-async-errors": "^3.1.1",
