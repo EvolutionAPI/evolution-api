@@ -1227,7 +1227,7 @@ export class BaileysStartupService extends ChannelStartupService {
             this.logger.verbose('Contact found in database');
             const contactRaw: ContactRaw = {
               id: received.key.remoteJid,
-              pushName: contact[0].pushName,
+              pushName: contact[0].pushName || received.pushName,
               profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
               owner: this.instance.name,
             };
@@ -1255,8 +1255,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.logger.verbose('Inserting contact in database');
 
-          if (received?.key?.fromMe === false)
-            this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+          if (received?.key?.fromMe === true) {
+            contactRaw.pushName = null;
+          }
+          this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
         }
       } catch (error) {
         this.logger.error(error);
