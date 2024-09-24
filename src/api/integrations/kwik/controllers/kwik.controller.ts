@@ -12,7 +12,13 @@ export class KwikController {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
   private isTextMessage(messageType: any) {
-    return ['senderKeyDistributionMessage', 'conversation', 'extendedTextMessage', 'protocolMessage', 'messageContextInfo'].includes(messageType);
+    return [
+      'senderKeyDistributionMessage',
+      'conversation',
+      'extendedTextMessage',
+      'protocolMessage',
+      'messageContextInfo',
+    ].includes(messageType);
   }
   public async fetchChats(
     { instanceName }: InstanceDto,
@@ -26,7 +32,7 @@ export class KwikController {
     const messages = connection.collection('messages');
     const pipeline: Document[] = [
       { $sort: { 'key.remoteJid': -1, messageTimestamp: -1 } },
-      { $match: { owner: instanceName }},
+      { $match: { owner: instanceName } },
       {
         $group: {
           _id: '$key.remoteJid',
@@ -123,18 +129,13 @@ export class KwikController {
   public async cleanup({ instanceName }: InstanceDto) {
     const db = configService.get<Database>('DATABASE');
     const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
-    const messages = connection.collection('messages');
-    const messageUpdate = connection.collection('messageUpdate');
-    const chats = connection.collection('chats');
-    const contacts = connection.collection('contacts');
-    const x = messages.deleteMany({ owner: instanceName });
-    logger.error(x);
-    const y = chats.deleteMany({ owner: instanceName });
-    logger.error(y);
-    const z = contacts.deleteMany({ owner: instanceName });
-    logger.error(z);
-    messageUpdate.deleteMany({ owner: instanceName });
+    connection.collection('messages').deleteMany({ owner: instanceName });
+    connection.collection('chats').deleteMany({ owner: instanceName });
+    connection.collection('contacts').deleteMany({ owner: instanceName });
+    connection.collection('messageUpdate').deleteMany({ owner: instanceName });
     connection.collection('settings').deleteMany({ _id: instanceName });
+    connection.collection('integration').deleteMany({ _id: instanceName });
+    connection.collection('authentication').deleteMany({ _id: instanceName });
 
     return { status: 'ok' };
   }
