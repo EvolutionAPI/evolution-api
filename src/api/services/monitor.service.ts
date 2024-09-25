@@ -1,19 +1,18 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { ProviderFiles } from '@api/provider/sessions';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { channelController } from '@api/server.module';
+import { Events, Integration } from '@api/types/wa.types';
+import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+import { INSTANCE_DIR, STORE_DIR } from '@config/path.config';
+import { NotFoundException } from '@exceptions';
 import { execSync } from 'child_process';
 import EventEmitter2 from 'eventemitter2';
 import { rmSync } from 'fs';
 import { join } from 'path';
 
-import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '../../config/env.config';
-import { Logger } from '../../config/logger.config';
-import { INSTANCE_DIR, STORE_DIR } from '../../config/path.config';
-import { NotFoundException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
-import { ProviderFiles } from '../provider/sessions';
-import { PrismaRepository } from '../repository/repository.service';
-import { Integration } from '../types/wa.types';
 import { CacheService } from './cache.service';
-import { BaileysStartupService } from './channels/whatsapp.baileys.service';
-import { BusinessStartupService } from './channels/whatsapp.business.service';
 
 export class WAMonitoringService {
   constructor(
@@ -35,8 +34,8 @@ export class WAMonitoringService {
   private readonly db: Partial<Database> = {};
   private readonly redis: Partial<CacheConf> = {};
 
-  private readonly logger = new Logger(WAMonitoringService.name);
-  public readonly waInstances: Record<string, BaileysStartupService | BusinessStartupService> = {};
+  private readonly logger = new Logger('WAMonitoringService');
+  public readonly waInstances: Record<string, any> = {};
 
   private readonly providerSession = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));
 
@@ -51,11 +50,8 @@ export class WAMonitoringService {
               this.waInstances[instance]?.client?.ws?.close();
               this.waInstances[instance]?.client?.end(undefined);
             }
-            this.waInstances[instance]?.removeRabbitmqQueues();
-            delete this.waInstances[instance];
+            this.eventEmitter.emit('remove.instance', instance, 'inner');
           } else {
-            this.waInstances[instance]?.removeRabbitmqQueues();
-            delete this.waInstances[instance];
             this.eventEmitter.emit('remove.instance', instance, 'inner');
           }
         }
@@ -68,7 +64,7 @@ export class WAMonitoringService {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
 
-    const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
+    const clientName = this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
 
     const where = instanceName ? { name: instanceName, clientName } : { clientName };
 
@@ -120,23 +116,30 @@ export class WAMonitoringService {
   }
 
   public async cleaningUp(instanceName: string) {
-    if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
-      const instance = await this.prismaRepository.instance.update({
+    let instanceDbId: string;
+    if (this.db.SAVE_DATA.INSTANCE) {
+      const findInstance = await this.prismaRepository.instance.findFirst({
         where: { name: instanceName },
-        data: { connectionStatus: 'close' },
       });
 
-      if (!instance) this.logger.error('Instance not found');
+      if (findInstance) {
+        const instance = await this.prismaRepository.instance.update({
+          where: { name: instanceName },
+          data: { connectionStatus: 'close' },
+        });
 
-      rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
+        rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
 
-      await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
-      return;
+        instanceDbId = instance.id;
+        await this.prismaRepository.session.deleteMany({ where: { sessionId: instance.id } });
+      }
     }
 
     if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
       await this.cache.delete(instanceName);
-      return;
+      if (instanceDbId) {
+        await this.cache.delete(instanceDbId);
+      }
     }
 
     if (this.providerSession?.ENABLED) {
@@ -145,11 +148,15 @@ export class WAMonitoringService {
   }
 
   public async cleaningStoreData(instanceName: string) {
-    execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+    if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      execSync(`rm -rf ${join(STORE_DIR, 'chatwoot', instanceName + '*')}`);
+    }
 
     const instance = await this.prismaRepository.instance.findFirst({
       where: { name: instanceName },
     });
+
+    if (!instance) return;
 
     rmSync(join(INSTANCE_DIR, instance.id), { recursive: true, force: true });
 
@@ -165,7 +172,7 @@ export class WAMonitoringService {
     await this.prismaRepository.proxy.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.rabbitmq.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.sqs.deleteMany({ where: { instanceId: instance.id } });
-    await this.prismaRepository.typebotSession.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.integrationSession.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.typebot.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.websocket.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.setting.deleteMany({ where: { instanceId: instance.id } });
@@ -178,7 +185,7 @@ export class WAMonitoringService {
     try {
       if (this.providerSession?.ENABLED) {
         await this.loadInstancesFromProvider();
-      } else if (this.db.ENABLED && this.db.SAVE_DATA.INSTANCE) {
+      } else if (this.db.SAVE_DATA.INSTANCE) {
         await this.loadInstancesFromDatabasePostgres();
       } else if (this.redis.REDIS.ENABLED && this.redis.REDIS.SAVE_INSTANCES) {
         await this.loadInstancesFromRedis();
@@ -190,68 +197,54 @@ export class WAMonitoringService {
 
   public async saveInstance(data: any) {
     try {
-      if (this.db.ENABLED) {
-        const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
-        await this.prismaRepository.instance.create({
-          data: {
-            id: data.instanceId,
-            name: data.instanceName,
-            connectionStatus: data.integration && data.integration === Integration.WHATSAPP_BUSINESS ? 'open' : 'close',
-            number: data.number,
-            integration: data.integration || Integration.WHATSAPP_BAILEYS,
-            token: data.hash,
-            clientName: clientName,
-            businessId: data.businessId,
-          },
-        });
-      }
+      const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
+      await this.prismaRepository.instance.create({
+        data: {
+          id: data.instanceId,
+          name: data.instanceName,
+          connectionStatus:
+            data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : data.status ?? 'open',
+          number: data.number,
+          integration: data.integration || Integration.WHATSAPP_BAILEYS,
+          token: data.hash,
+          clientName: clientName,
+          businessId: data.businessId,
+        },
+      });
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  public deleteInstance(instanceName: string) {
+    try {
+      this.eventEmitter.emit('remove.instance', instanceName, 'inner');
     } catch (error) {
       this.logger.error(error);
     }
   }
 
   private async setInstance(instanceData: InstanceDto) {
-    let instance: BaileysStartupService | BusinessStartupService;
+    const instance = channelController.init(instanceData, {
+      configService: this.configService,
+      eventEmitter: this.eventEmitter,
+      prismaRepository: this.prismaRepository,
+      cache: this.cache,
+      chatwootCache: this.chatwootCache,
+      baileysCache: this.baileysCache,
+      providerFiles: this.providerFiles,
+    });
 
-    if (instanceData.integration && instanceData.integration === Integration.WHATSAPP_BUSINESS) {
-      instance = new BusinessStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.prismaRepository,
-        this.cache,
-        this.chatwootCache,
-        this.baileysCache,
-        this.providerFiles,
-      );
+    if (!instance) return;
 
-      instance.setInstance({
-        instanceId: instanceData.instanceId,
-        instanceName: instanceData.instanceName,
-        integration: instanceData.integration,
-        token: instanceData.token,
-        number: instanceData.number,
-        businessId: instanceData.businessId,
-      });
-    } else {
-      instance = new BaileysStartupService(
-        this.configService,
-        this.eventEmitter,
-        this.prismaRepository,
-        this.cache,
-        this.chatwootCache,
-        this.baileysCache,
-        this.providerFiles,
-      );
-
-      instance.setInstance({
-        instanceId: instanceData.instanceId,
-        instanceName: instanceData.instanceName,
-        integration: instanceData.integration,
-        token: instanceData.token,
-        number: instanceData.number,
-        businessId: instanceData.businessId,
-      });
-    }
+    instance.setInstance({
+      instanceId: instanceData.instanceId,
+      instanceName: instanceData.instanceName,
+      integration: instanceData.integration,
+      token: instanceData.token,
+      number: instanceData.number,
+      businessId: instanceData.businessId,
+    });
 
     await instance.connectToWhatsapp();
 
@@ -339,6 +332,8 @@ export class WAMonitoringService {
   private removeInstance() {
     this.eventEmitter.on('remove.instance', async (instanceName: string) => {
       try {
+        await this.waInstances[instanceName]?.sendDataWebhook(Events.REMOVE_INSTANCE, null);
+
         this.cleaningUp(instanceName);
         this.cleaningStoreData(instanceName);
       } finally {
@@ -353,7 +348,12 @@ export class WAMonitoringService {
     });
     this.eventEmitter.on('logout.instance', async (instanceName: string) => {
       try {
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) this.waInstances[instanceName]?.clearCacheChatwoot();
+        await this.waInstances[instanceName]?.sendDataWebhook(Events.LOGOUT_INSTANCE, null);
+
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+          this.waInstances[instanceName]?.clearCacheChatwoot();
+        }
+
         this.cleaningUp(instanceName);
       } finally {
         this.logger.warn(`Instance "${instanceName}" - LOGOUT`);

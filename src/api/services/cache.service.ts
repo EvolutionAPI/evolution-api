@@ -1,16 +1,15 @@
+import { ICache } from '@api/abstract/abstract.cache';
+import { Logger } from '@config/logger.config';
 import { BufferJSON } from 'baileys';
 
-import { Logger } from '../../config/logger.config';
-import { ICache } from '../abstract/abstract.cache';
-
 export class CacheService {
-  private readonly logger = new Logger(CacheService.name);
+  private readonly logger = new Logger('CacheService');
 
   constructor(private readonly cache: ICache) {
     if (cache) {
-      this.logger.info(`cacheservice created using cache engine: ${cache.constructor?.name}`);
+      this.logger.verbose(`cacheservice created using cache engine: ${cache.constructor?.name}`);
     } else {
-      this.logger.info(`cacheservice disabled`);
+      this.logger.verbose(`cacheservice disabled`);
     }
   }
 
@@ -22,6 +21,9 @@ export class CacheService {
   }
 
   public async hGet(key: string, field: string) {
+    if (!this.cache) {
+      return null;
+    }
     try {
       const data = await this.cache.hGet(key, field);
 
@@ -36,14 +38,17 @@ export class CacheService {
     }
   }
 
-  async set(key: string, value: any) {
+  async set(key: string, value: any, ttl?: number) {
     if (!this.cache) {
       return;
     }
-    this.cache.set(key, value);
+    this.cache.set(key, value, ttl);
   }
 
   public async hSet(key: string, field: string, value: any) {
+    if (!this.cache) {
+      return;
+    }
     try {
       const json = JSON.stringify(value, BufferJSON.replacer);
 
@@ -68,6 +73,9 @@ export class CacheService {
   }
 
   async hDelete(key: string, field: string) {
+    if (!this.cache) {
+      return false;
+    }
     try {
       await this.cache.hDelete(key, field);
       return true;

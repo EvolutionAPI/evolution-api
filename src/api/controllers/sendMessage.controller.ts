@@ -1,7 +1,4 @@
-import { isBase64, isURL } from 'class-validator';
-
-import { BadRequestException } from '../../exceptions';
-import { InstanceDto } from '../dto/instance.dto';
+import { InstanceDto } from '@api/dto/instance.dto';
 import {
   SendAudioDto,
   SendButtonDto,
@@ -15,8 +12,10 @@ import {
   SendStickerDto,
   SendTemplateDto,
   SendTextDto,
-} from '../dto/sendMessage.dto';
-import { WAMonitoringService } from '../services/monitor.service';
+} from '@api/dto/sendMessage.dto';
+import { WAMonitoringService } from '@api/services/monitor.service';
+import { BadRequestException } from '@exceptions';
+import { isBase64, isURL } from 'class-validator';
 
 export class SendMessageController {
   constructor(private readonly waMonitor: WAMonitoringService) {}

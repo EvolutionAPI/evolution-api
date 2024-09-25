@@ -1,4 +1,4 @@
-import { HttpStatus } from '../api/routes/index.router';
+import { HttpStatus } from '@api/routes/index.router';
 
 export class InternalServerErrorException {
   constructor(...objectError: any[]) {

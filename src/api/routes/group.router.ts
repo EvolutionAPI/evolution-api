@@ -1,20 +1,4 @@
-import { RequestHandler, Router } from 'express';
-
-import {
-  AcceptGroupInviteSchema,
-  createGroupSchema,
-  getParticipantsSchema,
-  groupInviteSchema,
-  groupJidSchema,
-  groupSendInviteSchema,
-  toggleEphemeralSchema,
-  updateGroupDescriptionSchema,
-  updateGroupPictureSchema,
-  updateGroupSubjectSchema,
-  updateParticipantsSchema,
-  updateSettingsSchema,
-} from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
+import { RouterBroker } from '@api/abstract/abstract.router';
 import {
   AcceptGroupInvite,
   CreateGroupDto,
@@ -28,8 +12,24 @@ import {
   GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
-} from '../dto/group.dto';
-import { groupController } from '../server.module';
+} from '@api/dto/group.dto';
+import { groupController } from '@api/server.module';
+import {
+  AcceptGroupInviteSchema,
+  createGroupSchema,
+  getParticipantsSchema,
+  groupInviteSchema,
+  groupJidSchema,
+  groupSendInviteSchema,
+  toggleEphemeralSchema,
+  updateGroupDescriptionSchema,
+  updateGroupPictureSchema,
+  updateGroupSubjectSchema,
+  updateParticipantsSchema,
+  updateSettingsSchema,
+} from '@validate/validate.schema';
+import { RequestHandler, Router } from 'express';
+
 import { HttpStatus } from './index.router';
 
 export class GroupRouter extends RouterBroker {
@@ -198,5 +198,5 @@ export class GroupRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

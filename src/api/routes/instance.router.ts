@@ -1,10 +1,10 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
+import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
+import { instanceController } from '@api/server.module';
+import { ConfigService } from '@config/env.config';
+import { instanceSchema, presenceOnlySchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
-import { ConfigService } from '../../config/env.config';
-import { instanceSchema, presenceOnlySchema } from '../../validate/validate.schema';
-import { RouterBroker } from '../abstract/abstract.router';
-import { InstanceDto, SetPresenceDto } from '../dto/instance.dto';
-import { instanceController } from '../server.module';
 import { HttpStatus } from './index.router';
 
 export class InstanceRouter extends RouterBroker {
@@ -95,5 +95,5 @@ export class InstanceRouter extends RouterBroker {
       });
   }
 
-  public readonly router = Router();
+  public readonly router: Router = Router();
 }

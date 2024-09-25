@@ -1,6 +1,6 @@
-import { InstanceDto } from '../dto/instance.dto';
-import { TemplateDto } from '../dto/template.dto';
-import { TemplateService } from '../services/template.service';
+import { InstanceDto } from '@api/dto/instance.dto';
+import { TemplateDto } from '@api/dto/template.dto';
+import { TemplateService } from '@api/services/template.service';
 
 export class TemplateController {
   constructor(private readonly templateService: TemplateService) {}

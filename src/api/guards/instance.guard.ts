@@ -1,19 +1,12 @@
+import { InstanceDto } from '@api/dto/instance.dto';
+import { cache, waMonitor } from '@api/server.module';
+import { CacheConf, configService } from '@config/env.config';
+import { BadRequestException, ForbiddenException, InternalServerErrorException, NotFoundException } from '@exceptions';
+import { prismaServer } from '@libs/prisma.connect';
 import { NextFunction, Request, Response } from 'express';
-
-import { CacheConf, configService, Database } from '../../config/env.config';
-import {
-  BadRequestException,
-  ForbiddenException,
-  InternalServerErrorException,
-  NotFoundException,
-} from '../../exceptions';
-import { prismaServer } from '../../libs/prisma.connect';
-import { InstanceDto } from '../dto/instance.dto';
-import { cache, waMonitor } from '../server.module';
 
 async function getInstance(instanceName: string) {
   try {
-    const db = configService.get<Database>('DATABASE');
     const cacheConf = configService.get<CacheConf>('CACHE');
 
     const exists = !!waMonitor.waInstances[instanceName];
@@ -24,13 +17,9 @@ async function getInstance(instanceName: string) {
       return exists || keyExists;
     }
 
-    if (db.ENABLED) {
-      const prisma = prismaServer;
+    const prisma = prismaServer;
 
-      return exists || (await prisma.instance.findMany({ where: { name: instanceName } })).length > 0;
-    }
-
-    return false;
+    return exists || (await prisma.instance.findMany({ where: { name: instanceName } })).length > 0;
   } catch (error) {
     throw new InternalServerErrorException(error?.toString());
   }
@@ -61,8 +50,6 @@ export async function instanceLoggedGuard(req: Request, _: Response, next: NextF
     }
 
     if (waMonitor.waInstances[instance.instanceName]) {
-      waMonitor.waInstances[instance.instanceName]?.removeRabbitmqQueues();
-      waMonitor.waInstances[instance.instanceName]?.removeSqsQueues();
       delete waMonitor.waInstances[instance.instanceName];
     }
   }

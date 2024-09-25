@@ -1,0 +1,42 @@
+version: '3.3'
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    networks:
+      - evolution-net
+    command: ["postgres", "-c", "max_connections=1000"]
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=PASSWORD
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    expose:
+      - 5432
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    networks:
+      - evolution-net
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=EMAIL
+      - PGADMIN_DEFAULT_PASSWORD=PASSWORD  
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - 4000:80
+    links:
+      - postgres
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge

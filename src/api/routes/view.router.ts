@@ -1,7 +1,6 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
 import express, { Router } from 'express';
 import path from 'path';
-
-import { RouterBroker } from '../abstract/abstract.router';
 
 export class ViewsRouter extends RouterBroker {
   public readonly router: Router;
@@ -12,9 +11,6 @@ export class ViewsRouter extends RouterBroker {
 
     const basePath = path.join(process.cwd(), 'manager', 'dist');
     const indexPath = path.join(basePath, 'index.html');
-
-    console.log('Base path:', basePath);
-    console.log('Index path:', indexPath);
 
     this.router.use(express.static(basePath));
 

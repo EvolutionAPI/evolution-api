@@ -1,23 +1,18 @@
-import 'express-async-errors';
-
+import { ProviderFiles } from '@api/provider/sessions';
+import { PrismaRepository } from '@api/repository/repository.service';
+import { HttpStatus, router } from '@api/routes/index.router';
+import { eventManager, waMonitor } from '@api/server.module';
+import { Auth, configService, Cors, HttpServer, ProviderSession, Webhook } from '@config/env.config';
+import { onUnexpectedError } from '@config/error.config';
+import { Logger } from '@config/logger.config';
+import { ROOT_DIR } from '@config/path.config';
+import * as Sentry from '@sentry/node';
+import { ServerUP } from '@utils/server-up';
 import axios from 'axios';
 import compression from 'compression';
 import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
-
-import { initAMQP, initGlobalQueues } from './api/integrations/rabbitmq/libs/amqp.server';
-import { initSQS } from './api/integrations/sqs/libs/sqs.server';
-import { initIO } from './api/integrations/websocket/libs/socket.server';
-import { ProviderFiles } from './api/provider/sessions';
-import { PrismaRepository } from './api/repository/repository.service';
-import { HttpStatus, router } from './api/routes/index.router';
-import { waMonitor } from './api/server.module';
-import { Auth, configService, Cors, HttpServer, ProviderSession, Rabbitmq, Sqs, Webhook } from './config/env.config';
-import { onUnexpectedError } from './config/error.config';
-import { Logger } from './config/logger.config';
-import { ROOT_DIR } from './config/path.config';
-import { ServerUP } from './utils/server-up';
 
 function initWA() {
   waMonitor.loadInstance();
@@ -26,6 +21,19 @@ function initWA() {
 async function bootstrap() {
   const logger = new Logger('SERVER');
   const app = express();
+  const dsn = process.env.SENTRY_DSN;
+
+  if (dsn) {
+    logger.info('Sentry - ON');
+    Sentry.init({
+      dsn: dsn,
+      environment: process.env.NODE_ENV || 'development',
+      tracesSampleRate: 1.0,
+      profilesSampleRate: 1.0,
+    });
+
+    Sentry.setupExpressErrorHandler(app);
+  }
 
   let providerFiles: ProviderFiles = null;
   if (configService.get<ProviderSession>('PROVIDER').ENABLED) {
@@ -131,19 +139,11 @@ async function bootstrap() {
   ServerUP.app = app;
   const server = ServerUP[httpServer.TYPE];
 
+  eventManager.init(server);
+
   server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
   initWA();
-
-  initIO(server);
-
-  if (configService.get<Rabbitmq>('RABBITMQ')?.ENABLED) {
-    initAMQP().then(() => {
-      if (configService.get<Rabbitmq>('RABBITMQ')?.GLOBAL_ENABLED) initGlobalQueues();
-    });
-  }
-
-  if (configService.get<Sqs>('SQS')?.ENABLED) initSQS();
 
   onUnexpectedError();
 }

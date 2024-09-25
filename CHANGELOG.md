@@ -1,3 +1,123 @@
+# 2.1.1 (2024-09-22 10:31)
+
+### Features
+
+* Define a global proxy to be used if the instance does not have one
+* Save is on whatsapp on the database
+* Add headers to the instance's webhook registration
+* Debounce message break is now "\n" instead of white space
+* Single view messages are now supported in chatwoot
+* Chatbots can now send any type of media
+
+### Fixed
+
+* Validate if cache exists before accessing it
+* Missing autoCreate chatwoot in instance create
+* Fixed bugs in the frontend, on the event screens
+* Fixed use chatwoot with evolution channel
+* Fix chatwoot reply quote with Cloud API
+* Use exchange name from .env on RabbitMQ
+* Fixed chatwoot screen
+* It is now possible to send images via the Evolution Channel
+* Removed "version" from docker-compose as it is obsolete (https://dev.to/ajeetraina/do-we-still-use-version-in-compose-3inp)
+* Fixed typebot ignoreJids being used only from default settings
+* Fixed Chatwoot inbox creation on save
+* Changed axios timeout for manager requests for 30s
+* Update in Baileys version that fixes timeout when updating profile picture
+* Fixed issue when sending links in markdown by chatbots like Dify
+* Fixed issue with chatbots not respecting settings
+
+# 2.1.0 (2024-08-26 15:33)
+
+### Features
+
+* Improved layout manager
+* Translation in manager: English, Portuguese, Spanish and French
+* Evolution Bot Integration
+* Option to disable chatwoot bot contact with CHATWOOT_BOT_CONTACT
+* Added flowise integration
+* Added evolution channel on instance create
+* Change in license to Apache-2.0
+* Mark All in events
+
+### Fixed
+
+* Refactor integrations structure for modular system
+* Fixed dify agent integration
+* Update Baileys Version
+* Fixed proxy config in manager
+* Fixed send messages in groups
+* S3 saving media sent from me
+* Fixed duplication bot when use startTypebot
+
+### Break Changes
+
+* Payloads for events changed (create Instance and set events). Check postman to understand
+
+# 2.0.10 (2024-08-16 16:23)
+
+### Features
+
+* OpenAI send images when markdown
+* Dify send images when markdown
+* Sentry implemented
+
+### Fixed
+
+* Fix on get profilePicture
+* Added S3_REGION on minio settings
+
+# 2.0.9 (2024-08-15 12:31)
+
+### Features
+
+* Added ignoreJids in chatwoot settings
+* Dify now identifies images
+* Openai now identifies images
+
+### Fixed
+
+* Path mapping & deps fix & bundler changed to tsup
+* Improve database scripts to retrieve the provider from env file
+* Update contacts database with unique index
+* Save chat name
+* Correction of media as attachments in chatwoot when using a Meta API Instance and not Baileys
+* Update Baileys version 6.7.6
+* Deprecate buttons and list in new Baileys version
+* Changed labels to be unique on the same instance
+* Remove instance from redis even if using database
+* Unified integration session system so they don't overlap
+* Temporary fix for pictureUrl bug in groups
+* Fix on migrations
+
+# 2.0.9-rc (2024-08-09 18:00)
+
+### Features
+
+* Added general session button in typebot, dify and openai in manager
+* Added compatibility with mysql through prisma
+
+### Fixed
+
+* Import contacts with image in chatwoot
+* Fix conversationId when is dify agent
+* Fixed loading of selects in the manager
+* Add restart button to sessions screen
+* Adjustments to docker files
+* StopBotFromMe working with chatwoot
+
+# 2.0.8-rc (2024-08-08 20:23)
+
+### Features
+
+* Variables passed to the input in dify
+* OwnerJid passed to typebot
+* Function for openai assistant added
+
+### Fixed
+
+* Adjusts in telemetry
+
 # 2.0.7-rc (2024-08-03 14:04)
 
 ### Fixed

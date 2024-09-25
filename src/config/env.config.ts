@@ -20,7 +20,7 @@ export type Cors = {
 
 export type LogBaileys = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 
-export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK' | 'WEBHOOKS';
+export type LogLevel = 'ERROR' | 'WARN' | 'DEBUG' | 'INFO' | 'LOG' | 'VERBOSE' | 'DARK' | 'WEBHOOKS' | 'WEBSOCKET';
 
 export type Log = {
   LEVEL: LogLevel[];
@@ -43,6 +43,8 @@ export type SaveData = {
   CONTACTS: boolean;
   CHATS: boolean;
   LABELS: boolean;
+  IS_ON_WHATSAPP: boolean;
+  IS_ON_WHATSAPP_DAYS: number;
 };
 
 export type DBConnection = {
@@ -51,7 +53,6 @@ export type DBConnection = {
 };
 export type Database = {
   CONNECTION: DBConnection;
-  ENABLED: boolean;
   PROVIDER: string;
   SAVE_DATA: SaveData;
 };
@@ -182,6 +183,7 @@ export type Chatwoot = {
   ENABLED: boolean;
   MESSAGE_DELETE: boolean;
   MESSAGE_READ: boolean;
+  BOT_CONTACT: boolean;
   IMPORT: {
     DATABASE: {
       CONNECTION: {
@@ -202,6 +204,7 @@ export type S3 = {
   ENABLE: boolean;
   PORT?: number;
   USE_SSL?: boolean;
+  REGION?: string;
 };
 
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
@@ -285,7 +288,6 @@ export class ConfigService {
           URI: process.env.DATABASE_CONNECTION_URI || '',
           CLIENT_NAME: process.env.DATABASE_CONNECTION_CLIENT_NAME || 'evolution',
         },
-        ENABLED: process.env?.DATABASE_ENABLED === 'true',
         PROVIDER: process.env.DATABASE_PROVIDER || 'postgresql',
         SAVE_DATA: {
           INSTANCE: process.env?.DATABASE_SAVE_DATA_INSTANCE === 'true',
@@ -295,6 +297,8 @@ export class ConfigService {
           CHATS: process.env?.DATABASE_SAVE_DATA_CHATS === 'true',
           HISTORIC: process.env?.DATABASE_SAVE_DATA_HISTORIC === 'true',
           LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
+          IS_ON_WHATSAPP: process.env?.DATABASE_SAVE_IS_ON_WHATSAPP === 'true',
+          IS_ON_WHATSAPP_DAYS: Number.parseInt(process.env?.DATABASE_SAVE_IS_ON_WHATSAPP_DAYS ?? '7'),
         },
       },
       RABBITMQ: {
@@ -359,6 +363,7 @@ export class ConfigService {
           'VERBOSE',
           'DARK',
           'WEBHOOKS',
+          'WEBSOCKET',
         ],
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
@@ -426,6 +431,7 @@ export class ConfigService {
         ENABLED: process.env?.CHATWOOT_ENABLED === 'true',
         MESSAGE_DELETE: process.env.CHATWOOT_MESSAGE_DELETE === 'true',
         MESSAGE_READ: process.env.CHATWOOT_MESSAGE_READ === 'true',
+        BOT_CONTACT: !process.env.CHATWOOT_BOT_CONTACT || process.env.CHATWOOT_BOT_CONTACT === 'true',
         IMPORT: {
           DATABASE: {
             CONNECTION: {
@@ -463,6 +469,7 @@ export class ConfigService {
         ENABLE: process.env?.S3_ENABLED === 'true',
         PORT: Number.parseInt(process.env?.S3_PORT || '9000'),
         USE_SSL: process.env?.S3_USE_SSL === 'true',
+        REGION: process.env?.S3_REGION,
       },
       AUTHENTICATION: {
         API_KEY: {

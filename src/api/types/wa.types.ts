@@ -33,6 +33,8 @@ export enum Events {
   LABELS_ASSOCIATION = 'labels.association',
   CREDS_UPDATE = 'creds.update',
   MESSAGING_HISTORY_SET = 'messaging-history.set',
+  REMOVE_INSTANCE = 'remove.instance',
+  LOGOUT_INSTANCE = 'logout.instance',
 }
 
 export declare namespace wa {
@@ -56,14 +58,6 @@ export declare namespace wa {
     number?: string;
     integration?: string;
     businessId?: string;
-  };
-
-  export type LocalWebHook = {
-    enabled?: boolean;
-    url?: string;
-    events?: JsonValue;
-    webhookByEvents?: boolean;
-    webhookBase64?: boolean;
   };
 
   export type LocalChatwoot = {
@@ -93,19 +87,16 @@ export declare namespace wa {
     syncFullHistory?: boolean;
   };
 
-  export type LocalWebsocket = {
+  export type LocalEvent = {
     enabled?: boolean;
     events?: JsonValue;
   };
 
-  export type LocalRabbitmq = {
-    enabled?: boolean;
-    events?: JsonValue;
-  };
-
-  export type LocalSqs = {
-    enabled?: boolean;
-    events?: JsonValue;
+  export type LocalWebHook = LocalEvent & {
+    url?: string;
+    headers?: JsonValue;
+    webhookByEvents?: boolean;
+    webhookBase64?: boolean;
   };
 
   type Session = {
@@ -144,4 +135,5 @@ export const MessageSubtype = [
 export const Integration = {
   WHATSAPP_BUSINESS: 'WHATSAPP-BUSINESS',
   WHATSAPP_BAILEYS: 'WHATSAPP-BAILEYS',
+  EVOLUTION: 'EVOLUTION',
 };
