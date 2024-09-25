@@ -121,6 +121,7 @@ import { readFileSync } from 'fs';
 import Long from 'long';
 import mime from 'mime';
 import NodeCache from 'node-cache';
+import cron from 'node-cron';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
@@ -367,7 +368,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (connection === 'open') {
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
-      this.instance.profilePictureUrl = (await this.profilePicture(this.instance.wuid)).profilePictureUrl;
+      try {
+        const profilePic = await this.profilePicture(this.instance.wuid);
+        this.instance.profilePictureUrl = profilePic.profilePictureUrl;
+      } catch (error) {
+        this.instance.profilePictureUrl = null;
+      }
       const formattedWuid = this.instance.wuid.split('@')[0].padEnd(30, ' ');
       const formattedName = this.instance.name;
       this.logger.info(
@@ -402,6 +408,7 @@ export class BaileysStartupService extends ChannelStartupService {
             status: 'open',
           },
         );
+        this.syncChatwootLostMessages();
       }
     }
   }
@@ -3638,14 +3645,15 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private prepareMessage(message: proto.IWebMessageInfo): any {
-    const contentMsg = message?.message[getContentType(message.message)] as any;
+    const contentType = getContentType(message.message);
+    const contentMsg = message?.message[contentType] as any;
 
     const messageRaw = {
       key: message.key,
       pushName: message.pushName,
       message: { ...message.message },
       contextInfo: contentMsg?.contextInfo,
-      messageType: getContentType(message.message) || 'unknown',
+      messageType: contentType || 'unknown',
       messageTimestamp: message.messageTimestamp as number,
       instanceId: this.instanceId,
       source: getDevice(message.key.id),
@@ -3658,5 +3666,18 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     return messageRaw;
+  }
+
+  private async syncChatwootLostMessages() {
+    if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
+      const chatwootConfig = await this.findChatwoot();
+      const prepare = (message: any) => this.prepareMessage(message);
+      this.chatwootService.syncLostMessages({ instanceName: this.instance.name }, chatwootConfig, prepare);
+
+      const task = cron.schedule('0,30 * * * *', async () => {
+        this.chatwootService.syncLostMessages({ instanceName: this.instance.name }, chatwootConfig, prepare);
+      });
+      task.start();
+    }
   }
 }

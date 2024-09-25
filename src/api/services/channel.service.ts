@@ -294,7 +294,7 @@ export class ChannelStartupService {
     this.clearCacheChatwoot();
   }
 
-  public async findChatwoot(): Promise<ChatwootDto> {
+  public async findChatwoot(): Promise<ChatwootDto | null> {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
       return null;
     }

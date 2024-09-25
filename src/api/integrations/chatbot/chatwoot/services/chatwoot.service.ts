@@ -7,7 +7,7 @@ import { PrismaRepository } from '@api/repository/repository.service';
 import { CacheService } from '@api/services/cache.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Events } from '@api/types/wa.types';
-import { Chatwoot, ConfigService, HttpServer } from '@config/env.config';
+import { Chatwoot, ConfigService, Database, HttpServer } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import ChatwootClient, {
   ChatwootAPIConfig,
@@ -24,6 +24,7 @@ import i18next from '@utils/i18n';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { proto } from 'baileys';
+import dayjs from 'dayjs';
 import FormData from 'form-data';
 import Jimp from 'jimp';
 import Long from 'long';
@@ -53,7 +54,7 @@ export class ChatwootService {
 
   private pgClient = postgresClient.getChatwootConnection();
 
-  private async getProvider(instance: InstanceDto) {
+  private async getProvider(instance: InstanceDto): Promise<ChatwootModel | null> {
     const cacheKey = `${instance.instanceName}:getProvider`;
     if (await this.cache.has(cacheKey)) {
       const provider = (await this.cache.get(cacheKey)) as ChatwootModel;
@@ -715,7 +716,7 @@ export class ChatwootService {
     }
   }
 
-  public async getInbox(instance: InstanceDto) {
+  public async getInbox(instance: InstanceDto): Promise<inbox | null> {
     const cacheKey = `${instance.instanceName}:getInbox`;
     if (await this.cache.has(cacheKey)) {
       return (await this.cache.get(cacheKey)) as inbox;
@@ -837,12 +838,6 @@ export class ChatwootService {
     if (!client) {
       this.logger.warn('client not found');
       return null;
-    }
-
-    if (!this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT) {
-      this.logger.log('Chatwoot bot contact is disabled');
-
-      return true;
     }
 
     const contact = await this.findContact(instance, '123456');
@@ -1186,10 +1181,10 @@ export class ChatwootService {
 
       const cwBotContact = this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT;
 
-      if (cwBotContact && chatId === '123456' && body.message_type === 'outgoing') {
+      if (chatId === '123456' && body.message_type === 'outgoing') {
         const command = messageReceived.replace('/', '');
 
-        if (command.includes('init') || command.includes('iniciar')) {
+        if (cwBotContact && (command.includes('init') || command.includes('iniciar'))) {
           const state = waInstance?.connectionStatus?.state;
 
           if (state !== 'open') {
@@ -1242,7 +1237,7 @@ export class ChatwootService {
           }
         }
 
-        if (command === 'disconnect' || command === 'desconectar') {
+        if (cwBotContact && (command === 'disconnect' || command === 'desconectar')) {
           const msgLogout = i18next.t('cw.inbox.disconnect', {
             inboxName: body.inbox.name,
           });
@@ -1532,7 +1527,7 @@ export class ChatwootService {
       'audioMessage',
       'videoMessage',
       'stickerMessage',
-      'viewOnceMessageV2'
+      'viewOnceMessageV2',
     ];
 
     const messageKeys = Object.keys(message);
@@ -1586,8 +1581,10 @@ export class ChatwootService {
       liveLocationMessage: msg.liveLocationMessage,
       listMessage: msg.listMessage,
       listResponseMessage: msg.listResponseMessage,
-      viewOnceMessageV2: msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url || msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url || msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
-
+      viewOnceMessageV2:
+        msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
+        msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
+        msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
     };
 
     return types;
@@ -2375,5 +2372,64 @@ export class ChatwootService {
     } catch (error) {
       this.logger.error(`Error on update avatar in recent conversations: ${error.toString()}`);
     }
+  }
+
+  public async syncLostMessages(
+    instance: InstanceDto,
+    chatwootConfig: ChatwootDto,
+    prepareMessage: (message: any) => any,
+  ) {
+    if (!this.isImportHistoryAvailable()) {
+      return;
+    }
+    if (!this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
+      return;
+    }
+
+    const inbox = await this.getInbox(instance);
+
+    const sqlMessages = `select * from messages m
+    where account_id = ${chatwootConfig.accountId}
+    and inbox_id = ${inbox.id}
+    and created_at >= now() - interval '6h'
+    order by created_at desc`;
+
+    const messagesData = (await this.pgClient.query(sqlMessages))?.rows;
+    const ids: string[] = messagesData
+      .filter((message) => !!message.source_id)
+      .map((message) => message.source_id.replace('WAID:', ''));
+
+    const savedMessages = await this.prismaRepository.message.findMany({
+      where: {
+        Instance: { name: instance.instanceName },
+        messageTimestamp: { gte: dayjs().subtract(6, 'hours').unix() },
+        AND: ids.map((id) => ({ key: { path: ['id'], not: id } })),
+      },
+    });
+
+    const filteredMessages = savedMessages.filter(
+      (msg: any) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid),
+    );
+    const messagesRaw: any[] = [];
+    for (const m of filteredMessages) {
+      if (!m.message || !m.key || !m.messageTimestamp) {
+        continue;
+      }
+
+      if (Long.isLong(m?.messageTimestamp)) {
+        m.messageTimestamp = m.messageTimestamp?.toNumber();
+      }
+
+      messagesRaw.push(prepareMessage(m as any));
+    }
+
+    this.addHistoryMessages(
+      instance,
+      messagesRaw.filter((msg) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid)),
+    );
+
+    await chatwootImport.importHistoryMessages(instance, this, inbox, this.provider);
+    const waInstance = this.waMonitor.waInstances[instance.instanceName];
+    waInstance.clearCacheChatwoot();
   }
 }
