@@ -890,6 +890,13 @@ export class ChatwootService {
     sourceId?: string,
     quotedMsg?: MessageModel,
   ) {
+    if (sourceId) {
+      const messageAlreadySaved = await chatwootImport.getExistingSourceIds([sourceId]);
+      if (messageAlreadySaved.size > 0) {
+        this.logger.warn('Message already saved on chatwoot');
+        return null;
+      }
+    }
     const data = new FormData();
 
     if (content) {
