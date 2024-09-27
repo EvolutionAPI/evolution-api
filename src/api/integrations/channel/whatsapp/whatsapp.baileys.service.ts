@@ -1179,7 +1179,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
             remoteJid: received.key.remoteJid,
-            pushName: received.pushName,
+            pushName: received.key.fromMe ? '' : (received.key.fromMe == null ? '' : contact.pushName),
             profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
             instanceId: this.instanceId,
           };
@@ -1191,7 +1191,7 @@ export class BaileysStartupService extends ChannelStartupService {
           if (contact) {
             const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
               remoteJid: received.key.remoteJid,
-              pushName: contact.pushName,
+              pushName: received.key.fromMe ? '' : (received.key.fromMe == null ? '' : contact.pushName),
               profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
               instanceId: this.instanceId,
             };
