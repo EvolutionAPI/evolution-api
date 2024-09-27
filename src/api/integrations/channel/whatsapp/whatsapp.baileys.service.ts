@@ -439,7 +439,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return webMessageInfo[0].message;
     } catch (error) {
-      this.logger.error('line 508');
       return { conversation: '' };
     }
   }
@@ -594,7 +593,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return await this.createClient(number);
     } catch (error) {
-      this.logger.error('line 667');
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
     }
@@ -604,7 +602,6 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       return await this.createClient(this.phoneNumber);
     } catch (error) {
-      this.logger.error('line 677');
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
     }
@@ -763,7 +760,6 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       } catch (error) {
         console.error(error);
-        this.logger.error('line 817');
         this.logger.error(`Error: ${error.message}`);
       }
     },
@@ -953,7 +949,6 @@ export class BaileysStartupService extends ChannelStartupService {
         messages = undefined;
         chats = undefined;
       } catch (error) {
-        this.logger.error('line 1011');
         this.logger.error(error);
       }
     },
@@ -1141,7 +1136,6 @@ export class BaileysStartupService extends ChannelStartupService {
                     data: messageRaw,
                   });
                 } catch (error) {
-                  this.logger.error('line 1181');
                   this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
                 }
               }
@@ -1232,7 +1226,6 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         }
       } catch (error) {
-        this.logger.error('line 1318');
         this.logger.error(error);
       }
     },
@@ -2020,7 +2013,6 @@ export class BaileysStartupService extends ChannelStartupService {
               data: messageRaw,
             });
           } catch (error) {
-            this.logger.error('line 1181');
             this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
           }
         }
@@ -2056,7 +2048,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return messageRaw;
     } catch (error) {
-      this.logger.error('line 2097');
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
@@ -2109,7 +2100,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { presence: data.presence };
     } catch (error) {
-      this.logger.error('line 2134');
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
@@ -2122,7 +2112,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { presence: data.presence };
     } catch (error) {
-      this.logger.error('line 2147');
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
@@ -2353,7 +2342,6 @@ export class BaileysStartupService extends ChannelStartupService {
         { userJid: this.instance.wuid },
       );
     } catch (error) {
-      this.logger.error('line 2378');
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString() || error);
     }
@@ -2395,7 +2383,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return webpBuffer;
     } catch (error) {
-      this.logger.error('line 2420');
       console.error('Erro ao converter a imagem para WebP:', error);
       throw error;
     }
@@ -2812,7 +2799,6 @@ export class BaileysStartupService extends ChannelStartupService {
       await this.client.readMessages(keys);
       return { message: 'Read messages', read: 'success' };
     } catch (error) {
-      this.logger.error('line 2818');
       throw new InternalServerErrorException('Read messages fail', error.toString());
     }
   }
@@ -2878,7 +2864,6 @@ export class BaileysStartupService extends ChannelStartupService {
         archived: true,
       };
     } catch (error) {
-      this.logger.error('line 2884');
       throw new InternalServerErrorException({
         archived: false,
         message: ['An error occurred while archiving the chat. Open a calling.', error.toString()],
@@ -2916,7 +2901,6 @@ export class BaileysStartupService extends ChannelStartupService {
         markedChatUnread: true,
       };
     } catch (error) {
-      this.logger.error('line 2922');
       throw new InternalServerErrorException({
         markedChatUnread: false,
         message: ['An error occurred while marked unread the chat. Open a calling.', error.toString()],
@@ -2928,7 +2912,6 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       return await this.client.sendMessage(del.remoteJid, { delete: del });
     } catch (error) {
-      this.logger.error('line 2934');
       throw new InternalServerErrorException('Error while deleting message for everyone', error?.toString());
     }
   }
@@ -3020,7 +3003,6 @@ export class BaileysStartupService extends ChannelStartupService {
         buffer: getBuffer ? buffer : null,
       };
     } catch (error) {
-      this.logger.error('line 3026');
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
@@ -3062,7 +3044,6 @@ export class BaileysStartupService extends ChannelStartupService {
         },
       };
     } catch (error) {
-      this.logger.error('line 3068');
       throw new InternalServerErrorException('Error updating privacy settings', error.toString());
     }
   }
@@ -3088,7 +3069,6 @@ export class BaileysStartupService extends ChannelStartupService {
         ...profile,
       };
     } catch (error) {
-      this.logger.error('line 3094');
       throw new InternalServerErrorException('Error updating profile name', error.toString());
     }
   }
@@ -3099,7 +3079,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      this.logger.error('line 3105');
       throw new InternalServerErrorException('Error updating profile name', error.toString());
     }
   }
@@ -3110,7 +3089,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      this.logger.error('line 3116');
       throw new InternalServerErrorException('Error updating profile status', error.toString());
     }
   }
@@ -3152,7 +3130,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      this.logger.error('line 3158');
       throw new InternalServerErrorException('Error updating profile picture', error.toString());
     }
   }
@@ -3165,7 +3142,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      this.logger.error('line 3171');
       throw new InternalServerErrorException('Error removing profile picture', error.toString());
     }
   }
@@ -3186,7 +3162,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { block: 'success' };
     } catch (error) {
-      this.logger.error('line 3192');
       throw new InternalServerErrorException('Error blocking user', error.toString());
     }
   }
@@ -3217,7 +3192,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return null;
     } catch (error) {
-      this.logger.error('line 3223');
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
@@ -3239,7 +3213,6 @@ export class BaileysStartupService extends ChannelStartupService {
         edit: data.key,
       });
     } catch (error) {
-      this.logger.error('line 3245');
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
@@ -3282,7 +3255,6 @@ export class BaileysStartupService extends ChannelStartupService {
         return { numberJid: contact.jid, labelId: data.labelId, remove: true };
       }
     } catch (error) {
-      this.logger.error('line 3288');
       throw new BadRequestException(`Unable to ${data.action} label to chat`, error.toString());
     }
   }
@@ -3304,7 +3276,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return meta;
     } catch (error) {
-      this.logger.error('line 3310');
       this.logger.error(error);
       return null;
     }
@@ -3357,7 +3328,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return group;
     } catch (error) {
-      this.logger.error('line 3363');
       this.logger.error(error);
       throw new InternalServerErrorException('Error creating group', error.toString());
     }
@@ -3397,7 +3367,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      this.logger.error('line 3403');
       throw new InternalServerErrorException('Error update group picture', error.toString());
     }
   }
@@ -3408,7 +3377,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      this.logger.error('line 3414');
       throw new InternalServerErrorException('Error updating group subject', error.toString());
     }
   }
@@ -3419,7 +3387,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { update: 'success' };
     } catch (error) {
-      this.logger.error('line 3425');
       throw new InternalServerErrorException('Error updating group description', error.toString());
     }
   }
@@ -3454,7 +3421,6 @@ export class BaileysStartupService extends ChannelStartupService {
       if (reply === 'inner') {
         return;
       }
-      this.logger.error('line 3460');
       throw new NotFoundException('Error fetching group', error.toString());
     }
   }
@@ -3496,7 +3462,6 @@ export class BaileysStartupService extends ChannelStartupService {
       const code = await this.client.groupInviteCode(id.groupJid);
       return { inviteUrl: `https://chat.whatsapp.com/${code}`, inviteCode: code };
     } catch (error) {
-      this.logger.error('line 3502');
       throw new NotFoundException('No invite code', error.toString());
     }
   }
@@ -3505,7 +3470,6 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       return await this.client.groupGetInviteInfo(id.inviteCode);
     } catch (error) {
-      this.logger.error('line 3511');
       throw new NotFoundException('No invite info', id.inviteCode);
     }
   }
@@ -3531,7 +3495,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return { send: true, inviteUrl };
     } catch (error) {
-      this.logger.error('line 3537');
       throw new NotFoundException('No send invite');
     }
   }
@@ -3541,7 +3504,6 @@ export class BaileysStartupService extends ChannelStartupService {
       const groupJid = await this.client.groupAcceptInvite(id.inviteCode);
       return { accepted: true, groupJid: groupJid };
     } catch (error) {
-      this.logger.error('line 3547');
       throw new NotFoundException('Accept invite error', error.toString());
     }
   }
@@ -3551,7 +3513,6 @@ export class BaileysStartupService extends ChannelStartupService {
       const inviteCode = await this.client.groupRevokeInvite(id.groupJid);
       return { revoked: true, inviteCode };
     } catch (error) {
-      this.logger.error('line 3557');
       throw new NotFoundException('Revoke error', error.toString());
     }
   }
@@ -3584,7 +3545,6 @@ export class BaileysStartupService extends ChannelStartupService {
       return { participants: parsedParticipants };
     } catch (error) {
       console.error(error);
-      this.logger.error('line 3583');
       throw new NotFoundException('No participants', error.toString());
     }
   }
@@ -3599,7 +3559,6 @@ export class BaileysStartupService extends ChannelStartupService {
       );
       return { updateParticipants: updateParticipants };
     } catch (error) {
-      this.logger.error('line 3598');
       throw new BadRequestException('Error updating participants', error.toString());
     }
   }
@@ -3609,7 +3568,6 @@ export class BaileysStartupService extends ChannelStartupService {
       const updateSetting = await this.client.groupSettingUpdate(update.groupJid, update.action);
       return { updateSetting: updateSetting };
     } catch (error) {
-      this.logger.error('line 3608');
       throw new BadRequestException('Error updating setting', error.toString());
     }
   }
@@ -3619,7 +3577,6 @@ export class BaileysStartupService extends ChannelStartupService {
       await this.client.groupToggleEphemeral(update.groupJid, update.expiration);
       return { success: true };
     } catch (error) {
-      this.logger.error('line 3618');
       throw new BadRequestException('Error updating setting', error.toString());
     }
   }
@@ -3629,7 +3586,6 @@ export class BaileysStartupService extends ChannelStartupService {
       await this.client.groupLeave(id.groupJid);
       return { groupJid: id.groupJid, leave: true };
     } catch (error) {
-      this.logger.error('line 3628');
       throw new BadRequestException('Unable to leave the group', error.toString());
     }
   }
@@ -3643,6 +3599,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const messageRaw = {
       key: message.key,
       pushName: message.pushName,
+      status: message.status,
       message: { ...message.message },
       contextInfo: contentMsg?.contextInfo,
       messageType: getContentType(message.message) || 'unknown',
@@ -3655,6 +3612,12 @@ export class BaileysStartupService extends ChannelStartupService {
       messageRaw.messageType = 'conversation';
       messageRaw.message.conversation = messageRaw.message.extendedTextMessage.text;
       delete messageRaw.message.extendedTextMessage;
+    }
+
+    if (messageRaw.message.documentWithCaptionMessage) {
+      messageRaw.messageType = 'documentMessage';
+      messageRaw.message.documentMessage = messageRaw.message.documentWithCaptionMessage.message.documentMessage;
+      delete messageRaw.message.documentWithCaptionMessage;
     }
 
     return messageRaw;
