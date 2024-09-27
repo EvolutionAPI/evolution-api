@@ -546,7 +546,7 @@ class ChatwootImport {
   public updateMessageSourceID(messageId: string | number, sourceId: string) {
     const pgClient = postgresClient.getChatwootConnection();
 
-    const sql = `UPDATE messages SET source_id = $1, status = 0 WHERE id = $2;`;
+    const sql = `UPDATE messages SET source_id = $1, status = 0, created_at = NOW(), updated_at = NOW() WHERE id = $2;`;
 
     return pgClient.query(sql, [`WAID:${sourceId}`, messageId]);
   }
