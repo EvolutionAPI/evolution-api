@@ -1179,7 +1179,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
             remoteJid: received.key.remoteJid,
-            pushName: received.key.fromMe ? '' : (received.key.fromMe == null ? '' : contact.pushName),
+            pushName: received.key.fromMe ? '' : (received.key.fromMe == null ? '' : received.pushName),
             profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
             instanceId: this.instanceId,
           };
@@ -1189,13 +1189,6 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (contact) {
-            const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
-              remoteJid: received.key.remoteJid,
-              pushName: received.key.fromMe ? '' : (received.key.fromMe == null ? '' : contact.pushName),
-              profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
-              instanceId: this.instanceId,
-            };
-
             this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
