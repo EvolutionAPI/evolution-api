@@ -542,6 +542,14 @@ class ChatwootImport {
   public isIgnorePhoneNumber(remoteJid: string) {
     return this.isGroup(remoteJid) || remoteJid === 'status@broadcast' || remoteJid === '0@s.whatsapp.net';
   }
+
+  public updateMessageSourceID(messageId: string | number, sourceId: string) {
+    const pgClient = postgresClient.getChatwootConnection();
+
+    const sql = `UPDATE messages SET source_id = $1, status = 0 WHERE id = $2;`;
+
+    return pgClient.query(sql, [`WAID:${sourceId}`, messageId]);
+  }
 }
 
 export const chatwootImport = new ChatwootImport();

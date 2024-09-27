@@ -1453,6 +1453,10 @@ export class ChatwootService {
         chatwootIsRead: chatwootMessageIds.isRead,
       },
     });
+
+    if (this.isImportHistoryAvailable()) {
+      chatwootImport.updateMessageSourceID(chatwootMessageIds.messageId, key.id);
+    }
   }
 
   private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageModel> {
