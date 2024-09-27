@@ -54,7 +54,7 @@ export class ChatwootController {
     return response;
   }
 
-  public async findChatwoot(instance: InstanceDto) {
+  public async findChatwoot(instance: InstanceDto): Promise<ChatwootDto & { webhook_url: string }> {
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) throw new BadRequestException('Chatwoot is disabled');
 
     const result = await this.chatwootService.find(instance);

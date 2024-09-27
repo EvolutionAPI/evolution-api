@@ -50,7 +50,7 @@ class ChatwootImport {
     const actualValue = this.historyMessages.has(instance.instanceName)
       ? this.historyMessages.get(instance.instanceName)
       : [];
-    this.historyMessages.set(instance.instanceName, actualValue.concat(messagesRaw));
+    this.historyMessages.set(instance.instanceName, [...actualValue, ...messagesRaw]);
   }
 
   public addHistoryContacts(instance: InstanceDto, contactsRaw: Contact[]) {
@@ -169,6 +169,24 @@ class ChatwootImport {
     }
   }
 
+  private async getExistingSourceIds(sourceIds: string[]): Promise<Set<string>> {
+    const existingSourceIdsSet = new Set<string>();
+
+    if (sourceIds.length === 0) {
+      return existingSourceIdsSet;
+    }
+
+    const query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+    const pgClient = postgresClient.getChatwootConnection();
+    const result = await pgClient.query(query, [sourceIds]);
+
+    for (const row of result.rows) {
+      existingSourceIdsSet.add(row.source_id);
+    }
+
+    return existingSourceIdsSet;
+  }
+
   public async importHistoryMessages(
     instance: InstanceDto,
     chatwootService: ChatwootService,
@@ -185,7 +203,7 @@ class ChatwootImport {
 
       let totalMessagesImported = 0;
 
-      const messagesOrdered = this.historyMessages.get(instance.instanceName) || [];
+      let messagesOrdered = this.historyMessages.get(instance.instanceName) || [];
       if (messagesOrdered.length === 0) {
         return 0;
       }
@@ -216,6 +234,8 @@ class ChatwootImport {
         });
       });
 
+      const existingSourceIds = await this.getExistingSourceIds(messagesOrdered.map((message: any) => message.key.id));
+      messagesOrdered = messagesOrdered.filter((message: any) => !existingSourceIds.has(message.key.id));
       // processing messages in batch
       const batchSize = 4000;
       let messagesChunk: Message[] = this.sliceIntoChunks(messagesOrdered, batchSize);
@@ -233,8 +253,8 @@ class ChatwootImport {
 
           // inserting messages in chatwoot db
           let sqlInsertMsg = `INSERT INTO messages
-            (content, account_id, inbox_id, conversation_id, message_type, private, content_type,
-            sender_type, sender_id, created_at, updated_at) VALUES `;
+            (content, processed_message_content, account_id, inbox_id, conversation_id, message_type, private, content_type,
+            sender_type, sender_id, source_id, created_at, updated_at) VALUES `;
           const bindInsertMsg = [provider.accountId, inbox.id];
 
           messagesByPhoneNumber.forEach((messages: any[], phoneNumber: string) => {
@@ -269,11 +289,14 @@ class ChatwootImport {
               bindInsertMsg.push(message.key.fromMe ? chatwootUser.user_id : fksChatwoot.contact_id);
               const bindSenderId = `$${bindInsertMsg.length}`;
 
+              bindInsertMsg.push('WAID:' + message.key.id);
+              const bindSourceId = `$${bindInsertMsg.length}`;
+
               bindInsertMsg.push(message.messageTimestamp as number);
               const bindmessageTimestamp = `$${bindInsertMsg.length}`;
 
-              sqlInsertMsg += `(${bindContent}, $1, $2, ${bindConversationId}, ${bindMessageType}, FALSE, 0,
-                  ${bindSenderType},${bindSenderId}, to_timestamp(${bindmessageTimestamp}), to_timestamp(${bindmessageTimestamp})),`;
+              sqlInsertMsg += `(${bindContent}, ${bindContent}, $1, $2, ${bindConversationId}, ${bindMessageType}, FALSE, 0,
+                  ${bindSenderType},${bindSenderId},${bindSourceId}, to_timestamp(${bindmessageTimestamp}), to_timestamp(${bindmessageTimestamp})),`;
             });
           });
           if (bindInsertMsg.length > 2) {
@@ -518,6 +541,14 @@ class ChatwootImport {
 
   public isIgnorePhoneNumber(remoteJid: string) {
     return this.isGroup(remoteJid) || remoteJid === 'status@broadcast' || remoteJid === '0@s.whatsapp.net';
+  }
+
+  public updateMessageSourceID(messageId: string | number, sourceId: string) {
+    const pgClient = postgresClient.getChatwootConnection();
+
+    const sql = `UPDATE messages SET source_id = $1, status = 0, created_at = NOW(), updated_at = NOW() WHERE id = $2;`;
+
+    return pgClient.query(sql, [`WAID:${sourceId}`, messageId]);
   }
 }
 
