@@ -164,7 +164,7 @@ export class EvolutionStartupService extends ChannelStartupService {
 
         await this.updateContact({
           remoteJid: messageRaw.key.remoteJid,
-          pushName: messageRaw.pushName,
+          pushName:  messageRaw.key.fromMe ? '' : (messageRaw.key.fromMe == null ? '' : received.pushName),
           profilePicUrl: received.profilePicUrl,
         });
       }
