@@ -70,6 +70,24 @@ export class KwikRouter extends RouterBroker {
 
       return res.status(HttpStatus.OK).json(response);
     });
+
+    this.router.post(this.routerPath('textSearch'), ...guards, async (req, res) => {
+      logger.verbose('request received in textSearch');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) => kwikController.textSearch(instance, req.body),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
   }
 
   public readonly router = Router();
