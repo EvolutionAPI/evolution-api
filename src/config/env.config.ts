@@ -270,7 +270,7 @@ export class ConfigService {
       },
       CORS: {
         ORIGIN: process.env.CORS_ORIGIN?.split(',') || ['*'],
-        METHODS: (process.env.CORS_METHODS?.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'],
+        METHODS: (process.env.CORS_METHODS?.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'] as HttpMethods[],
         CREDENTIALS: process.env?.CORS_CREDENTIALS === 'true',
       },
       SSL_CONF: {
@@ -364,7 +364,7 @@ export class ConfigService {
           'DARK',
           'WEBHOOKS',
           'WEBSOCKET',
-        ],
+        ] as LogLevel[],
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
