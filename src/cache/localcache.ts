@@ -80,8 +80,19 @@ export class LocalCache implements ICache {
     }
   }
 
-  async hDelete() {
-    console.log('hDelete not implemented');
-    return 0;
+  async hDelete(key: string, field: string) {
+    try {
+      const data = LocalCache.localCache.get(this.buildKey(key)) as Object;
+
+      if (data && field in data) {
+        delete data[field];
+        LocalCache.localCache.set(key, data);
+        return 1;
+      }
+
+      return 0;
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 }
