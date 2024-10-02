@@ -47,10 +47,12 @@ export class LocalCache implements ICache {
 
   async hGet() {
     console.log('hGet not implemented');
+    return null
   }
 
   async hSet() {
     console.log('hSet not implemented');
+    return null
   }
 
   async hDelete() {
