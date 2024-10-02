@@ -1,8 +1,11 @@
 import { ICache } from '@api/abstract/abstract.cache';
 import { CacheConf, CacheConfLocal, ConfigService } from '@config/env.config';
 import NodeCache from 'node-cache';
+import { BufferJSON } from 'baileys';
+import { Logger } from '@config/logger.config';
 
 export class LocalCache implements ICache {
+  private readonly logger = new Logger('LocalCache');
   private conf: CacheConfLocal;
   static localCache = new NodeCache();
 
@@ -45,14 +48,36 @@ export class LocalCache implements ICache {
     return `${this.module}:${key}`;
   }
 
-  async hGet() {
-    console.log('hGet not implemented');
-    return null
+  async hGet(key: string, field: string) {
+    try {
+      const data = LocalCache.localCache.get(this.buildKey(key)) as Object;
+
+      if (data && field in data) {
+        return JSON.parse(data[field], BufferJSON.reviver);
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
-  async hSet() {
-    console.log('hSet not implemented');
-    return null
+  async hSet(key: string, field: string, value: any) {
+    try {
+      const json = JSON.stringify(value, BufferJSON.replacer);
+
+      let hash = LocalCache.localCache.get(this.buildKey(key));
+
+      if (!hash) {
+        hash = {};
+      }
+
+      hash[field] = json;
+      LocalCache.localCache.set(key, hash);
+
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   async hDelete() {
