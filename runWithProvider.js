@@ -6,7 +6,8 @@ const { DATABASE_PROVIDER } = process.env;
 
 if (!DATABASE_PROVIDER) {
   console.error('DATABASE_PROVIDER is not set in the .env file');
-  process.exit(1);
+  DATABASE_PROVIDER = "postgresql"
+  // process.exit(1);
 }
 
 const command = process.argv
