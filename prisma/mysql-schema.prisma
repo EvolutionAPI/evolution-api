@@ -159,6 +159,7 @@ model Message {
   MessageUpdate                MessageUpdate[]
   Media                        Media?
   webhookUrl                   String?         @db.VarChar(500)
+  status                       Int?            @db.Int
 
   sessionId String?
   session   IntegrationSession? @relation(fields: [sessionId], references: [id])
@@ -573,4 +574,12 @@ model FlowiseSetting {
   flowiseIdFallback String?   @db.VarChar(100)
   Instance          Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId        String    @unique
+}
+
+model IsOnWhatsapp {
+  id         String   @id @default(cuid())
+  remoteJid  String   @unique @db.VarChar(100)
+  jidOptions String
+  createdAt  DateTime @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt  DateTime @updatedAt @db.Timestamp
 }

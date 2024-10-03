@@ -600,7 +600,7 @@ export class ChannelStartupService {
       where: {
         instanceId: this.instanceId,
         remoteJid: query.where?.remoteJid,
-        messageId: query.where?.id,
+        keyId: query.where?.id,
       },
       skip: query.offset * (query?.page === 1 ? 0 : (query?.page as number) - 1),
       take: query.offset,

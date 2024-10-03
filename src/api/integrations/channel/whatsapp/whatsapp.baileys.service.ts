@@ -1074,7 +1074,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (this.configService.get<Openai>('OPENAI').ENABLED) {
+          if (this.configService.get<Openai>('OPENAI').ENABLED && received?.message?.audioMessage) {
             const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
               where: {
                 instanceId: this.instanceId,
@@ -1084,12 +1084,7 @@ export class BaileysStartupService extends ChannelStartupService {
               },
             });
 
-            if (
-              openAiDefaultSettings &&
-              openAiDefaultSettings.openaiCredsId &&
-              openAiDefaultSettings.speechToText &&
-              received?.message?.audioMessage
-            ) {
+            if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
               messageRaw.message.speechToText = await this.openaiService.speechToText(
                 openAiDefaultSettings.OpenaiCreds,
                 received,
@@ -1180,7 +1175,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
             remoteJid: received.key.remoteJid,
-            pushName: received.key.fromMe ? '' : (received.key.fromMe == null ? '' : received.pushName),
+            pushName: received.key.fromMe ? '' : received.key.fromMe == null ? '' : received.pushName,
             profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
             instanceId: this.instanceId,
           };
@@ -1945,7 +1940,7 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
 
-      if (this.configService.get<Openai>('OPENAI').ENABLED) {
+      if (this.configService.get<Openai>('OPENAI').ENABLED && messageRaw?.message?.audioMessage) {
         const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
           where: {
             instanceId: this.instanceId,
@@ -1955,12 +1950,7 @@ export class BaileysStartupService extends ChannelStartupService {
           },
         });
 
-        if (
-          openAiDefaultSettings &&
-          openAiDefaultSettings.openaiCredsId &&
-          openAiDefaultSettings.speechToText &&
-          messageRaw?.message?.audioMessage
-        ) {
+        if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
           messageRaw.message.speechToText = await this.openaiService.speechToText(
             openAiDefaultSettings.OpenaiCreds,
             messageRaw,
