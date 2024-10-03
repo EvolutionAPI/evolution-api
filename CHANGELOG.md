@@ -3,6 +3,7 @@
 ### Features
 
 * Sync lost messages on chatwoot
+* Set the maximum number of listeners that can be registered for events
 
 ### Fixed
 
