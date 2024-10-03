@@ -2734,7 +2734,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (!numberVerified && (user.number.startsWith('52') || user.number.startsWith('54'))) {
           let prefix = '';
           if (user.number.startsWith('52')) {
-            prefix = '1';
+            prefix = '';
           }
           if (user.number.startsWith('54')) {
             prefix = '9';
