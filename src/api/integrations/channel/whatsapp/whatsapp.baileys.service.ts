@@ -1195,10 +1195,11 @@ export class BaileysStartupService extends ChannelStartupService {
               );
             }
 
-            this.prismaRepository.contact.updateMany({
-              where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
-              data: contactRaw,
-            });
+            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
+              await this.prismaRepository.contact.create({
+                data: contactRaw,
+              });
+
             return;
           }
 

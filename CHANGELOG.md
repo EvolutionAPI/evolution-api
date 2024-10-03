@@ -18,6 +18,7 @@
 * Update baileys version
 * Update in Baileys version that fixes timeout when updating profile picture
 * Adjusts for fix timeout error on send status message
+* Chatwoot verbose logs
 
 # 2.1.1 (2024-09-22 10:31)
 
