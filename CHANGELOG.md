@@ -15,6 +15,7 @@
 * Fixed openai setting when send a message with chatwoot
 * Fix buildkey function in hSet and hDelete
 * Fix mexico number
+* Update baileys version
 
 # 2.1.1 (2024-09-22 10:31)
 
