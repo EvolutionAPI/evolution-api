@@ -1,11 +1,9 @@
+import { prismaRepository } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
 import { INSTANCE_DIR } from '@config/path.config';
-import { prismaServer } from '@libs/prisma.connect';
 import { AuthenticationState, BufferJSON, initAuthCreds, WAProto as proto } from 'baileys';
 import fs from 'fs/promises';
 import path from 'path';
-
-const prisma = prismaServer;
 
 // const fixFileName = (file: string): string | undefined => {
 //   if (!file) {
@@ -18,7 +16,7 @@ const prisma = prismaServer;
 
 export async function keyExists(sessionId: string): Promise<any> {
   try {
-    const key = await prisma.session.findUnique({ where: { sessionId: sessionId } });
+    const key = await prismaRepository.session.findUnique({ where: { sessionId: sessionId } });
     return !!key;
   } catch (error) {
     return false;
@@ -29,13 +27,13 @@ export async function saveKey(sessionId: string, keyJson: any): Promise<any> {
   const exists = await keyExists(sessionId);
   try {
     if (!exists)
-      return await prisma.session.create({
+      return await prismaRepository.session.create({
         data: {
           sessionId: sessionId,
           creds: JSON.stringify(keyJson),
         },
       });
-    await prisma.session.update({
+    await prismaRepository.session.update({
       where: { sessionId: sessionId },
       data: { creds: JSON.stringify(keyJson) },
     });
@@ -48,7 +46,7 @@ export async function getAuthKey(sessionId: string): Promise<any> {
   try {
     const register = await keyExists(sessionId);
     if (!register) return null;
-    const auth = await prisma.session.findUnique({ where: { sessionId: sessionId } });
+    const auth = await prismaRepository.session.findUnique({ where: { sessionId: sessionId } });
     return JSON.parse(auth?.creds);
   } catch (error) {
     return null;
@@ -59,7 +57,7 @@ async function deleteAuthKey(sessionId: string): Promise<any> {
   try {
     const register = await keyExists(sessionId);
     if (!register) return;
-    await prisma.session.delete({ where: { sessionId: sessionId } });
+    await prismaRepository.session.delete({ where: { sessionId: sessionId } });
   } catch (error) {
     return;
   }
