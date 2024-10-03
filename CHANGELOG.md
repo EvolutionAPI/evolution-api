@@ -1,3 +1,17 @@
+# 2.1.2 (develop)
+
+### Features
+
+* Sync lost messages on chatwoot
+
+### Fixed
+
+* Fetch status message
+* Adjusts in migrations
+* Update pushName in chatwoot
+* Validate message before sending chatwoot
+* Adds the message status to the return of the "prepareMessage" function
+
 # 2.1.1 (2024-09-22 10:31)
 
 ### Features
