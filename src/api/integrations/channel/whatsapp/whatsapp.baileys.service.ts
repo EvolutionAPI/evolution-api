@@ -1741,9 +1741,25 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (sender === 'status@broadcast') {
-      const jidList = message['status'].option.statusJidList;
+      let jidList;
+      if (message['status'].option.allContacts) {
+        const contacts = await this.prismaRepository.contact.findMany({
+          where: {
+            instanceId: this.instanceId,
+            remoteJid: {
+              not: {
+                endsWith: '@g.us',
+              },
+            },
+          },
+        });
 
-      const batchSize = 500;
+        jidList = contacts.map((contact) => contact.remoteJid);
+      } else {
+        jidList = message['status'].option.statusJidList;
+      }
+
+      const batchSize = 10;
 
       const batches = Array.from({ length: Math.ceil(jidList.length / batchSize) }, (_, i) =>
         jidList.slice(i * batchSize, i * batchSize + batchSize),

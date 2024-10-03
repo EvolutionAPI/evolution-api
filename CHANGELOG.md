@@ -16,6 +16,8 @@
 * Fix buildkey function in hSet and hDelete
 * Fix mexico number
 * Update baileys version
+* Update in Baileys version that fixes timeout when updating profile picture
+* Adjusts for fix timeout error on send status message
 
 # 2.1.1 (2024-09-22 10:31)
 
