@@ -20,6 +20,7 @@
 * Adjusts for fix timeout error on send status message
 * Chatwoot verbose logs
 * Adjusts on prisma connections
+* License terms updated
 
 # 2.1.1 (2024-09-22 10:31)
 
