@@ -269,8 +269,8 @@ export class ConfigService {
         DISABLE_MANAGER: process.env?.SERVER_DISABLE_MANAGER === 'true',
       },
       CORS: {
-        ORIGIN: process.env.CORS_ORIGIN.split(',') || ['*'],
-        METHODS: (process.env.CORS_METHODS.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'],
+        ORIGIN: process.env.CORS_ORIGIN?.split(',') || ['*'],
+        METHODS: (process.env.CORS_METHODS?.split(',') as HttpMethods[]) || ['POST', 'GET', 'PUT', 'DELETE'] as HttpMethods[],
         CREDENTIALS: process.env?.CORS_CREDENTIALS === 'true',
       },
       SSL_CONF: {
@@ -354,7 +354,7 @@ export class ConfigService {
         LANGUAGE: process.env.WA_BUSINESS_LANGUAGE || 'en',
       },
       LOG: {
-        LEVEL: (process.env?.LOG_LEVEL.split(',') as LogLevel[]) || [
+        LEVEL: (process.env?.LOG_LEVEL?.split(',') as LogLevel[]) || [
           'ERROR',
           'WARN',
           'DEBUG',
@@ -364,7 +364,7 @@ export class ConfigService {
           'DARK',
           'WEBHOOKS',
           'WEBSOCKET',
-        ],
+        ] as LogLevel[],
         COLOR: process.env?.LOG_COLOR === 'true',
         BAILEYS: (process.env?.LOG_BAILEYS as LogBaileys) || 'error',
       },
