@@ -12,6 +12,7 @@
 * Validate message before sending chatwoot
 * Adds the message status to the return of the "prepareMessage" function
 * Fixed openai setting when send a message with chatwoot
+* Fix buildkey function in hSet and hDelete
 
 # 2.1.1 (2024-09-22 10:31)
 
