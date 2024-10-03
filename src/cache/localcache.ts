@@ -73,7 +73,7 @@ export class LocalCache implements ICache {
       }
 
       hash[field] = json;
-      LocalCache.localCache.set(key, hash);
+      LocalCache.localCache.set(this.buildKey(key), hash);
 
     } catch (error) {
       this.logger.error(error);
@@ -86,7 +86,7 @@ export class LocalCache implements ICache {
 
       if (data && field in data) {
         delete data[field];
-        LocalCache.localCache.set(key, data);
+        LocalCache.localCache.set(this.buildKey(key), data);
         return 1;
       }
 
