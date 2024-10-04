@@ -111,12 +111,9 @@ We are proud to collaborate with the following content creators who have contrib
 
 Evolution API is licensed under the Apache License 2.0, with the following additional conditions:
 
-1. **Multi-tenant SaaS service**: Unless explicitly authorized in writing, you may not use the Evolution API source code to operate a multi-tenant environment.
-    - Tenant Definition: Within the context of Evolution API, one tenant corresponds to one workspace. The workspace provides a separated area for each tenant's data and configurations.
+1. **LOGO and copyright information**: In the process of using Evolution API's frontend components, you may not remove or modify the LOGO or copyright information in the Evolution API console or applications. This restriction is inapplicable to uses of Evolution API that do not involve its frontend components.
 
-2. **LOGO and copyright information**: In the process of using Evolution API's frontend components, you may not remove or modify the LOGO or copyright information in the Evolution API console or applications. This restriction is inapplicable to uses of Evolution API that do not involve its frontend components.
-
-3. **Usage Notification Requirement**: If Evolution API is used as part of any project, including closed-source systems (e.g., proprietary software), the user is required to display a clear notification within the system that Evolution API is being utilized. This notification should be visible to system administrators and accessible from the system's documentation or settings page. Failure to comply with this requirement may result in the necessity for a commercial license, as determined by the producer.
+2. **Usage Notification Requirement**: If Evolution API is used as part of any project, including closed-source systems (e.g., proprietary software), the user is required to display a clear notification within the system that Evolution API is being utilized. This notification should be visible to system administrators and accessible from the system's documentation or settings page. Failure to comply with this requirement may result in the necessity for a commercial license, as determined by the producer.
 
 Please contact contato@atendai.com to inquire about licensing matters.
 
