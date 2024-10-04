@@ -1907,6 +1907,9 @@ export class ChatwootService {
                 path: ['id'],
                 equals: quotedId,
               },
+              chatwootMessageId: {
+                not: null,
+              },
             },
           });
 
