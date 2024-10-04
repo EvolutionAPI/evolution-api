@@ -24,6 +24,7 @@
 * License terms updated
 * Fixed send message to group without no cache (local or redis)
 * Fixed startTypebot with startSession = true
+* Fixed issue of always creating a new label when saving chatwoot
 
 # 2.1.1 (2024-09-22 10:31)
 
