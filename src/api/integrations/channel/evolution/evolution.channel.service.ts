@@ -7,6 +7,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Openai } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
+import { deleteTempFile, getTempFile } from '@utils/getTempFile';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import mime from 'mime';
@@ -164,7 +165,7 @@ export class EvolutionStartupService extends ChannelStartupService {
 
         await this.updateContact({
           remoteJid: messageRaw.key.remoteJid,
-          pushName:  messageRaw.key.fromMe ? '' : (messageRaw.key.fromMe == null ? '' : received.pushName),
+          pushName: messageRaw.key.fromMe ? '' : messageRaw.key.fromMe == null ? '' : received.pushName,
           profilePicUrl: received.profilePicUrl,
         });
       }
@@ -433,11 +434,14 @@ export class EvolutionStartupService extends ChannelStartupService {
     }
   }
 
-  public async mediaMessage(data: SendMediaDto, isIntegration = false) {
-    const message = await this.prepareMediaMessage(data);
+  public async mediaMessage(data: SendMediaDto, file?: any, isIntegration = false) {
+    const mediaData: SendMediaDto = { ...data };
 
-    console.log('message', message);
-    return await this.sendMessageWithTyping(
+    if (file) mediaData.media = await getTempFile(file, this.instanceId);
+
+    const message = await this.prepareMediaMessage(mediaData);
+
+    const mediaSent = await this.sendMessageWithTyping(
       data.number,
       { ...message },
       {
@@ -450,6 +454,10 @@ export class EvolutionStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
+
+    if (file) await deleteTempFile(file, this.instanceId);
+
+    return mediaSent;
   }
 
   public async processAudio(audio: string, number: string) {
@@ -475,10 +483,14 @@ export class EvolutionStartupService extends ChannelStartupService {
     return prepareMedia;
   }
 
-  public async audioWhatsapp(data: SendAudioDto, isIntegration = false) {
-    const message = await this.processAudio(data.audio, data.number);
+  public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
+    const mediaData: SendAudioDto = { ...data };
 
-    return await this.sendMessageWithTyping(
+    if (file) mediaData.audio = await getTempFile(file, this.instanceId);
+
+    const message = await this.processAudio(mediaData.audio, data.number);
+
+    const audioSent = await this.sendMessageWithTyping(
       data.number,
       { ...message },
       {
@@ -491,6 +503,10 @@ export class EvolutionStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
+
+    if (file) await deleteTempFile(file, this.instanceId);
+
+    return audioSent;
   }
 
   public async buttonMessage() {

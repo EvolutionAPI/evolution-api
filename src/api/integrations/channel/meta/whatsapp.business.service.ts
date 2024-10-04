@@ -22,6 +22,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Database, Openai, S3, WaBusiness } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
+import { deleteTempFile, getTempFile } from '@utils/getTempFile';
 import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -1026,10 +1027,14 @@ export class BusinessStartupService extends ChannelStartupService {
     }
   }
 
-  public async mediaMessage(data: SendMediaDto, isIntegration = false) {
-    const message = await this.prepareMediaMessage(data);
+  public async mediaMessage(data: SendMediaDto, file?: any, isIntegration = false) {
+    const mediaData: SendMediaDto = { ...data };
 
-    return await this.sendMessageWithTyping(
+    if (file) mediaData.media = await getTempFile(file, this.instanceId);
+
+    const message = await this.prepareMediaMessage(mediaData);
+
+    const mediaSent = await this.sendMessageWithTyping(
       data.number,
       { ...message },
       {
@@ -1042,6 +1047,10 @@ export class BusinessStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
+
+    if (file) await deleteTempFile(file, this.instanceId);
+
+    return mediaSent;
   }
 
   public async processAudio(audio: string, number: string) {
@@ -1072,10 +1081,14 @@ export class BusinessStartupService extends ChannelStartupService {
     return prepareMedia;
   }
 
-  public async audioWhatsapp(data: SendAudioDto, isIntegration = false) {
-    const message = await this.processAudio(data.audio, data.number);
+  public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
+    const mediaData: SendAudioDto = { ...data };
 
-    return await this.sendMessageWithTyping(
+    if (file) mediaData.audio = await getTempFile(file, this.instanceId);
+
+    const message = await this.processAudio(mediaData.audio, data.number);
+
+    const audioSent = await this.sendMessageWithTyping(
       data.number,
       { ...message },
       {
@@ -1088,6 +1101,10 @@ export class BusinessStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
+
+    if (file) await deleteTempFile(file, this.instanceId);
+
+    return audioSent;
   }
 
   public async buttonMessage(data: SendButtonDto) {

@@ -105,4 +105,35 @@ const getObjectUrl = async (fileName: string, expiry?: number) => {
   }
 };
 
-export { BUCKET, getObjectUrl, uploadFile };
+const uploadTempFile = async (
+  folder: string,
+  fileName: string,
+  file: Buffer | Transform | Readable,
+  size: number,
+  metadata: Metadata,
+) => {
+  if (minioClient) {
+    const objectName = join(folder, fileName);
+    try {
+      metadata['custom-header-application'] = 'evolution-api';
+      return await minioClient.putObject(bucketName, objectName, file, size, metadata);
+    } catch (error) {
+      logger.error(error);
+      return error;
+    }
+  }
+};
+
+const deleteFile = async (folder: string, fileName: string) => {
+  if (minioClient) {
+    const objectName = join(folder, fileName);
+    try {
+      return await minioClient.removeObject(bucketName, objectName);
+    } catch (error) {
+      logger.error(error);
+      return error;
+    }
+  }
+};
+
+export { BUCKET, deleteFile, getObjectUrl, uploadFile, uploadTempFile };

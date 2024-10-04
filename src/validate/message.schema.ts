@@ -108,7 +108,7 @@ export const mediaMessageSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['number', 'mediatype', 'media'],
+  required: ['number', 'mediatype'],
 };
 
 export const audioMessageSchema: JSONSchema7 = {
@@ -134,7 +134,7 @@ export const audioMessageSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['number', 'audio'],
+  required: ['number'],
 };
 
 export const statusMessageSchema: JSONSchema7 = {
@@ -158,7 +158,7 @@ export const statusMessageSchema: JSONSchema7 = {
     },
     allContacts: { type: 'boolean', enum: [true, false] },
   },
-  required: ['type', 'content'],
+  required: ['type'],
 };
 
 export const stickerMessageSchema: JSONSchema7 = {
@@ -184,7 +184,7 @@ export const stickerMessageSchema: JSONSchema7 = {
       },
     },
   },
-  required: ['number', 'sticker'],
+  required: ['number'],
 };
 
 export const locationMessageSchema: JSONSchema7 = {

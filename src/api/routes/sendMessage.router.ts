@@ -29,8 +29,11 @@ import {
   textMessageSchema,
 } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
+import multer from 'multer';
 
 import { HttpStatus } from './index.router';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 export class MessageRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
@@ -56,43 +59,51 @@ export class MessageRouter extends RouterBroker {
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .post(this.routerPath('sendMedia'), ...guards, async (req, res) => {
+      .post(this.routerPath('sendMedia'), ...guards, upload.single('file'), async (req, res) => {
+        const bodyData = req.body;
+
         const response = await this.dataValidate<SendMediaDto>({
           request: req,
           schema: mediaMessageSchema,
           ClassRef: SendMediaDto,
-          execute: (instance, data) => sendMessageController.sendMedia(instance, data),
+          execute: (instance) => sendMessageController.sendMedia(instance, bodyData, req.file as any),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .post(this.routerPath('sendWhatsAppAudio'), ...guards, async (req, res) => {
+      .post(this.routerPath('sendWhatsAppAudio'), ...guards, upload.single('file'), async (req, res) => {
+        const bodyData = req.body;
+
         const response = await this.dataValidate<SendAudioDto>({
           request: req,
           schema: audioMessageSchema,
           ClassRef: SendMediaDto,
-          execute: (instance, data) => sendMessageController.sendWhatsAppAudio(instance, data),
+          execute: (instance) => sendMessageController.sendWhatsAppAudio(instance, bodyData, req.file as any),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
       })
       // TODO: Revisar funcionamento do envio de Status
-      .post(this.routerPath('sendStatus'), ...guards, async (req, res) => {
+      .post(this.routerPath('sendStatus'), ...guards, upload.single('file'), async (req, res) => {
+        const bodyData = req.body;
+
         const response = await this.dataValidate<SendStatusDto>({
           request: req,
           schema: statusMessageSchema,
           ClassRef: SendStatusDto,
-          execute: (instance, data) => sendMessageController.sendStatus(instance, data),
+          execute: (instance) => sendMessageController.sendStatus(instance, bodyData, req.file as any),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
       })
-      .post(this.routerPath('sendSticker'), ...guards, async (req, res) => {
+      .post(this.routerPath('sendSticker'), ...guards, upload.single('file'), async (req, res) => {
+        const bodyData = req.body;
+
         const response = await this.dataValidate<SendStickerDto>({
           request: req,
           schema: stickerMessageSchema,
           ClassRef: SendStickerDto,
-          execute: (instance, data) => sendMessageController.sendSticker(instance, data),
+          execute: (instance) => sendMessageController.sendSticker(instance, bodyData, req.file as any),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

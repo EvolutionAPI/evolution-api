@@ -70,6 +70,7 @@ import { BadRequestException, InternalServerErrorException, NotFoundException } 
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
 import { Instance } from '@prisma/client';
+import { deleteTempFile, getTempFile } from '@utils/getTempFile';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
@@ -2266,12 +2267,20 @@ export class BaileysStartupService extends ChannelStartupService {
     throw new BadRequestException('Type not found');
   }
 
-  public async statusMessage(data: SendStatusDto) {
-    const status = await this.formatStatusMessage(data);
+  public async statusMessage(data: SendStatusDto, file?: any) {
+    const mediaData: SendStatusDto = { ...data };
 
-    return await this.sendMessageWithTyping('status@broadcast', {
+    if (file) mediaData.content = await getTempFile(file, this.instanceId);
+
+    const status = await this.formatStatusMessage(mediaData);
+
+    const statusSent = await this.sendMessageWithTyping('status@broadcast', {
       status,
     });
+
+    if (file) await deleteTempFile(file, this.instanceId);
+
+    return statusSent;
   }
 
   private async prepareMediaMessage(mediaMessage: MediaMessage) {
@@ -2395,7 +2404,11 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  public async mediaSticker(data: SendStickerDto) {
+  public async mediaSticker(data: SendStickerDto, file?: any) {
+    const mediaData: SendStickerDto = { ...data };
+
+    if (file) mediaData.sticker = await getTempFile(file, this.instanceId);
+
     const convert = await this.convertToWebP(data.sticker);
     const gifPlayback = data.sticker.includes('.gif');
     const result = await this.sendMessageWithTyping(
@@ -2413,13 +2426,19 @@ export class BaileysStartupService extends ChannelStartupService {
       },
     );
 
+    if (file) await deleteTempFile(file, this.instanceId);
+
     return result;
   }
 
-  public async mediaMessage(data: SendMediaDto, isIntegration = false) {
-    const generate = await this.prepareMediaMessage(data);
+  public async mediaMessage(data: SendMediaDto, file?: any, isIntegration = false) {
+    const mediaData: SendMediaDto = { ...data };
 
-    return await this.sendMessageWithTyping(
+    if (file) mediaData.media = await getTempFile(file, this.instanceId);
+
+    const generate = await this.prepareMediaMessage(mediaData);
+
+    const mediaSent = await this.sendMessageWithTyping(
       data.number,
       { ...generate.message },
       {
@@ -2431,6 +2450,10 @@ export class BaileysStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
+
+    if (file) await deleteTempFile(file, this.instanceId);
+
+    return mediaSent;
   }
 
   public async processAudioMp4(audio: string) {
@@ -2534,13 +2557,17 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
-  public async audioWhatsapp(data: SendAudioDto, isIntegration = false) {
+  public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
+    const mediaData: SendAudioDto = { ...data };
+
+    if (file) mediaData.audio = await getTempFile(file, this.instanceId);
+
     if (!data?.encoding && data?.encoding !== false) {
       data.encoding = true;
     }
 
     if (data?.encoding) {
-      const convert = await this.processAudio(data.audio);
+      const convert = await this.processAudio(mediaData.audio);
 
       if (Buffer.isBuffer(convert)) {
         const result = this.sendMessageWithTyping<AnyMessageContent>(
@@ -2553,6 +2580,8 @@ export class BaileysStartupService extends ChannelStartupService {
           { presence: 'recording', delay: data?.delay },
           isIntegration,
         );
+
+        if (file) await deleteTempFile(file, this.instanceId);
 
         return result;
       } else {
