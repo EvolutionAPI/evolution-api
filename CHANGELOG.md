@@ -26,6 +26,7 @@
 * Fixed startTypebot with startSession = true
 * Fixed issue of always creating a new label when saving chatwoot
 * Fixed getBase64FromMediaMessage with convertToMp4
+* Fixed bug when send message when don't have mentionsEveryOne on payload
 
 # 2.1.1 (2024-09-22 10:31)
 
