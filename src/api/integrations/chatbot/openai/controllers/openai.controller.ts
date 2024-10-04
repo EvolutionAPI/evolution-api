@@ -935,7 +935,7 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
 
       const content = getConversationMessage(msg);
 
-      const findBot = (await this.findBotTrigger(
+      let findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
@@ -943,7 +943,25 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
         session,
       )) as OpenaiBot;
 
-      if (!findBot) return;
+      if (!findBot) {
+        const fallback = await this.settingsRepository.findFirst({
+          where: {
+            instanceId: instance.instanceId,
+          },
+        });
+
+        if (fallback?.openaiIdFallback) {
+          const findFallback = await this.botRepository.findFirst({
+            where: {
+              id: fallback.openaiIdFallback,
+            },
+          });
+
+          findBot = findFallback;
+        } else {
+          return;
+        }
+      }
 
       let expire = findBot?.expire;
       let keywordFinish = findBot?.keywordFinish;

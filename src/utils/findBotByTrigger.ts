@@ -129,21 +129,5 @@ export const findBotByTrigger = async (
 
   if (findTriggerContains) return findTriggerContains;
 
-  const fallback = await settingsRepository.findFirst({
-    where: {
-      instanceId: instanceId,
-    },
-  });
-
-  if (fallback?.openaiIdFallback) {
-    const findFallback = await botRepository.findFirst({
-      where: {
-        id: fallback.openaiIdFallback,
-      },
-    });
-
-    if (findFallback) return findFallback;
-  }
-
   return null;
 };

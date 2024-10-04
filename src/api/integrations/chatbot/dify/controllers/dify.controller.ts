@@ -726,7 +726,7 @@ export class DifyController extends ChatbotController implements ChatbotControll
 
       const content = getConversationMessage(msg);
 
-      const findBot = (await this.findBotTrigger(
+      let findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
@@ -734,7 +734,25 @@ export class DifyController extends ChatbotController implements ChatbotControll
         session,
       )) as DifyModel;
 
-      if (!findBot) return;
+      if (!findBot) {
+        const fallback = await this.settingsRepository.findFirst({
+          where: {
+            instanceId: instance.instanceId,
+          },
+        });
+
+        if (fallback?.difyIdFallback) {
+          const findFallback = await this.botRepository.findFirst({
+            where: {
+              id: fallback.difyIdFallback,
+            },
+          });
+
+          findBot = findFallback;
+        } else {
+          return;
+        }
+      }
 
       let expire = findBot?.expire;
       let keywordFinish = findBot?.keywordFinish;

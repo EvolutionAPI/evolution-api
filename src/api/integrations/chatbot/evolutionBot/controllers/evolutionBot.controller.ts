@@ -698,7 +698,7 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
 
       const content = getConversationMessage(msg);
 
-      const findBot = (await this.findBotTrigger(
+      let findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
@@ -706,7 +706,25 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
         session,
       )) as EvolutionBot;
 
-      if (!findBot) return;
+      if (!findBot) {
+        const fallback = await this.settingsRepository.findFirst({
+          where: {
+            instanceId: instance.instanceId,
+          },
+        });
+
+        if (fallback?.botIdFallback) {
+          const findFallback = await this.botRepository.findFirst({
+            where: {
+              id: fallback.botIdFallback,
+            },
+          });
+
+          findBot = findFallback;
+        } else {
+          return;
+        }
+      }
 
       let expire = findBot?.expire;
       let keywordFinish = findBot?.keywordFinish;

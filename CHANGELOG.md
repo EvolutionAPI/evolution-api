@@ -28,6 +28,7 @@
 * Fixed getBase64FromMediaMessage with convertToMp4
 * Fixed bug when send message when don't have mentionsEveryOne on payload
 * Does not search message without chatwoot Message Id for reply
+* Fixed bot fallback not working on integrations
 
 # 2.1.1 (2024-09-22 10:31)
 

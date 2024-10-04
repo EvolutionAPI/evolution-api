@@ -985,7 +985,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
 
       const content = getConversationMessage(msg);
 
-      const findBot = (await this.findBotTrigger(
+      let findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
@@ -993,7 +993,25 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         session,
       )) as TypebotModel;
 
-      if (!findBot) return;
+      if (!findBot) {
+        const fallback = await this.settingsRepository.findFirst({
+          where: {
+            instanceId: instance.instanceId,
+          },
+        });
+
+        if (fallback?.typebotIdFallback) {
+          const findFallback = await this.botRepository.findFirst({
+            where: {
+              id: fallback.typebotIdFallback,
+            },
+          });
+
+          findBot = findFallback;
+        } else {
+          return;
+        }
+      }
 
       const settings = await this.prismaRepository.typebotSetting.findFirst({
         where: {

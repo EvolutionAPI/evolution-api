@@ -698,7 +698,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
 
       const content = getConversationMessage(msg);
 
-      const findBot = (await this.findBotTrigger(
+      let findBot = (await this.findBotTrigger(
         this.botRepository,
         this.settingsRepository,
         content,
@@ -706,7 +706,25 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
         session,
       )) as Flowise;
 
-      if (!findBot) return;
+      if (!findBot) {
+        const fallback = await this.settingsRepository.findFirst({
+          where: {
+            instanceId: instance.instanceId,
+          },
+        });
+
+        if (fallback?.flowiseIdFallback) {
+          const findFallback = await this.botRepository.findFirst({
+            where: {
+              id: fallback.flowiseIdFallback,
+            },
+          });
+
+          findBot = findFallback;
+        } else {
+          return;
+        }
+      }
 
       let expire = findBot?.expire;
       let keywordFinish = findBot?.keywordFinish;
