@@ -216,6 +216,7 @@ export class OpenaiService {
               media: url,
               caption: altText,
             },
+            null,
             false,
           );
         }

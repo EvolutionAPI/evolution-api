@@ -540,7 +540,6 @@ export class ChatwootService {
     try {
       this.logger.verbose('--- Start createConversation ---');
       this.logger.verbose(`Instance: ${JSON.stringify(instance)}`);
-      this.logger.verbose(`Body: ${JSON.stringify(body)}`);
 
       const client = await this.clientCw(instance);
 
@@ -1122,7 +1121,7 @@ export class ChatwootService {
         data.caption = caption;
       }
 
-      const messageSent = await waInstance?.mediaMessage(data, true);
+      const messageSent = await waInstance?.mediaMessage(data, null, true);
 
       return messageSent;
     } catch (error) {

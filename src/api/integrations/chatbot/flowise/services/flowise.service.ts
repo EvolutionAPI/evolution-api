@@ -171,6 +171,7 @@ export class FlowiseService {
               media: url,
               caption: altText,
             },
+            null,
             false,
           );
         }

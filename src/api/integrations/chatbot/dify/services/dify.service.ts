@@ -410,6 +410,7 @@ export class DifyService {
               media: url,
               caption: altText,
             },
+            null,
             false,
           );
         }

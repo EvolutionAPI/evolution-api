@@ -243,6 +243,7 @@ export class TypebotService {
               mediatype: 'image',
               media: message.content.url,
             },
+            null,
             false,
           );
 
@@ -257,6 +258,7 @@ export class TypebotService {
               mediatype: 'video',
               media: message.content.url,
             },
+            null,
             false,
           );
 

@@ -1196,8 +1196,10 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
-              await this.prismaRepository.contact.create({
-                data: contactRaw,
+              await this.prismaRepository.contact.upsert({
+                where: { remoteJid_instanceId: { remoteJid: contactRaw.remoteJid, instanceId: contactRaw.instanceId } },
+                create: contactRaw,
+                update: contactRaw,
               });
 
             return;

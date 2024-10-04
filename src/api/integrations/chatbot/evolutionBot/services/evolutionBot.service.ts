@@ -13,7 +13,7 @@ export class EvolutionBotService {
     private readonly waMonitor: WAMonitoringService,
     private readonly configService: ConfigService,
     private readonly prismaRepository: PrismaRepository,
-  ) { }
+  ) {}
 
   private readonly logger = new Logger('EvolutionBotService');
 
@@ -150,20 +150,18 @@ export class EvolutionBotService {
               delay: settings?.delayMessage || 1000,
               text: textBuffer.trim(),
             },
-            false
+            false,
           );
           textBuffer = '';
         }
 
         if (mediaType === 'audio') {
-          await instance.audioWhatsapp(
-            {
-              number: remoteJid.split('@')[0],
-              delay: settings?.delayMessage || 1000,
-              audio: url,
-              caption: altText,
-            }
-          );
+          await instance.audioWhatsapp({
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            audio: url,
+            caption: altText,
+          });
         } else {
           await instance.mediaMessage(
             {
@@ -173,7 +171,8 @@ export class EvolutionBotService {
               media: url,
               caption: altText,
             },
-            false
+            null,
+            false,
           );
         }
       } else {
@@ -197,7 +196,7 @@ export class EvolutionBotService {
           delay: settings?.delayMessage || 1000,
           text: textBuffer.trim(),
         },
-        false
+        false,
       );
     }
 
@@ -213,7 +212,6 @@ export class EvolutionBotService {
       },
     });
   }
-
 
   private async initNewSession(
     instance: any,
