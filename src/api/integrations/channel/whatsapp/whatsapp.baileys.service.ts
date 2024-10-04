@@ -1678,7 +1678,7 @@ export class BaileysStartupService extends ChannelStartupService {
     // participants?: GroupParticipant[],
   ) {
     sender = sender.toLowerCase();
-    
+
     const option: any = {
       quoted,
     };
@@ -3332,7 +3332,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     return await this.findGroup({ groupJid }, 'inner');
-  }
+  };
 
   public async createGroup(create: CreateGroupDto) {
     try {
