@@ -73,23 +73,35 @@ export class KwikRouter extends RouterBroker {
 
     this.router.post(this.routerPath('cleanChats'), ...guards, async (req, res) => {
       logger.verbose('request received in cleanChats');
+      logger.verbose('request received in cleanChats');
       logger.verbose('request body: ');
       logger.verbose(req.body);
-
       logger.verbose('request query: ');
       logger.verbose(req.query);
-
-      logger.error('request received in cleanChats');
-      logger.error('request body: ');
-      logger.error(req.body);
-      logger.error('request query: ');
-      logger.error(req.query);
 
       const response = await this.dataValidate<InstanceDto>({
         request: req,
         schema: null,
         ClassRef: InstanceDto,
         execute: (instance) => kwikController.cleanChats(instance),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
+
+    this.router.post(this.routerPath('textSearch'), ...guards, async (req, res) => {
+      logger.verbose('request received in textSearch');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) => kwikController.textSearch(instance, req.body),
       });
 
       return res.status(HttpStatus.OK).json(response);

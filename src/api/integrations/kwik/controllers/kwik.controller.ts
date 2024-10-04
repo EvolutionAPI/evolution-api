@@ -9,6 +9,14 @@ import { SettingsService } from '../../../services/settings.service';
 
 const logger = new Logger('KwikController');
 
+type SearchObject = {
+  text_search: string;
+  where: {
+    owner: string;
+    messageTimestamp: Record<string, any>; // Generic key-value pair
+  }[];
+};
+
 export class KwikController {
   constructor(private readonly waMonitor: WAMonitoringService, private readonly settingsService: SettingsService) {}
 
@@ -197,5 +205,40 @@ export class KwikController {
     }
 
     return { status: 'ok' };
+  }
+
+  public async textSearch({ instanceName }: InstanceDto, query: SearchObject) {
+    logger.error('request received in textSearch');
+    logger.error(instanceName);
+    logger.error(query);
+
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    query.where.forEach((w) => {
+      logger.error(w.messageTimestamp);
+      logger.error(w.owner);
+    });
+    const messages = await connection
+      .collection('messages')
+      .find({
+        // $and: [
+        //   {
+        //     $or: query.where,
+        //   },
+        //   {
+        $text: { $search: query.text_search },
+        //   },
+        // ],
+      })
+      .limit(10)
+      .toArray();
+
+    // const conversations = messages.map((m) => `${m.owner}#${m.key.remoteJid}#${m.messageTimestamp}`);
+    // logger.error('DELETEME: messages -> ');
+    // logger.error(conversations);
+
+    // logger.error(messages.length);
+
+    return { messages };
   }
 }
