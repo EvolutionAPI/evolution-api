@@ -1676,6 +1676,8 @@ export class BaileysStartupService extends ChannelStartupService {
     ephemeralExpiration?: number,
     // participants?: GroupParticipant[],
   ) {
+    sender = sender.toLowerCase();
+    
     const option: any = {
       quoted,
     };
