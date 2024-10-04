@@ -1,8 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
-import { cache, waMonitor } from '@api/server.module';
+import { cache, prismaRepository, waMonitor } from '@api/server.module';
 import { CacheConf, configService } from '@config/env.config';
 import { BadRequestException, ForbiddenException, InternalServerErrorException, NotFoundException } from '@exceptions';
-import { prismaServer } from '@libs/prisma.connect';
 import { NextFunction, Request, Response } from 'express';
 
 async function getInstance(instanceName: string) {
@@ -17,9 +16,7 @@ async function getInstance(instanceName: string) {
       return exists || keyExists;
     }
 
-    const prisma = prismaServer;
-
-    return exists || (await prisma.instance.findMany({ where: { name: instanceName } })).length > 0;
+    return exists || (await prismaRepository.instance.findMany({ where: { name: instanceName } })).length > 0;
   } catch (error) {
     throw new InternalServerErrorException(error?.toString());
   }

@@ -1195,10 +1195,11 @@ export class BaileysStartupService extends ChannelStartupService {
               );
             }
 
-            this.prismaRepository.contact.updateMany({
-              where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
-              data: contactRaw,
-            });
+            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
+              await this.prismaRepository.contact.create({
+                data: contactRaw,
+              });
+
             return;
           }
 
@@ -1743,9 +1744,25 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (sender === 'status@broadcast') {
-      const jidList = message['status'].option.statusJidList;
+      let jidList;
+      if (message['status'].option.allContacts) {
+        const contacts = await this.prismaRepository.contact.findMany({
+          where: {
+            instanceId: this.instanceId,
+            remoteJid: {
+              not: {
+                endsWith: '@g.us',
+              },
+            },
+          },
+        });
 
-      const batchSize = 500;
+        jidList = contacts.map((contact) => contact.remoteJid);
+      } else {
+        jidList = message['status'].option.statusJidList;
+      }
+
+      const batchSize = 10;
 
       const batches = Array.from({ length: Math.ceil(jidList.length / batchSize) }, (_, i) =>
         jidList.slice(i * batchSize, i * batchSize + batchSize),
@@ -2736,7 +2753,7 @@ export class BaileysStartupService extends ChannelStartupService {
         if (!numberVerified && (user.number.startsWith('52') || user.number.startsWith('54'))) {
           let prefix = '';
           if (user.number.startsWith('52')) {
-            prefix = '1';
+            prefix = '';
           }
           if (user.number.startsWith('54')) {
             prefix = '9';

@@ -9,6 +9,8 @@ a. Multi-tenant SaaS service: Unless explicitly authorized in writing, you may n
 
 b. LOGO and copyright information: In the process of using Evolution API's frontend components, you may not remove or modify the LOGO or copyright information in the Evolution API console or applications. This restriction is inapplicable to uses of Evolution API that do not involve its frontend components.
 
+c. Usage Notification Requirement: If Evolution API is used as part of any project, including closed-source systems (e.g., proprietary software), the user is required to display a clear notification within the system that Evolution API is being utilized. This notification should be visible to system administrators and accessible from the system's documentation or settings page. Failure to comply with this requirement may result in the necessity for a commercial license, as determined by the producer.
+
 Please contact contato@atendai.com to inquire about licensing matters.
 
 2. As a contributor, you should agree that:
