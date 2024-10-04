@@ -20,6 +20,9 @@ Evolution API began as a WhatsApp controller API based on [CodeChat](https://git
 
 Today, Evolution API is not limited to WhatsApp. It integrates with various platforms such as Typebot, Chatwoot, Dify, and OpenAI, offering a broad array of functionalities beyond messaging. Evolution API supports both the Baileys-based WhatsApp API and the official WhatsApp Business API, with upcoming support for Instagram and Messenger.
 
+## Looking for a Lightweight Version?
+For those who need a more streamlined and performance-optimized version, check out [Evolution API Lite](https://github.com/EvolutionAPI/evolution-api-lite). It's designed specifically for microservices, focusing solely on connectivity without integrations or audio conversion features. Ideal for environments that prioritize simplicity and efficiency.
+
 ## Types of Connections
 
 Evolution API supports multiple types of connections to WhatsApp, enabling flexible and powerful integration options:
@@ -83,23 +86,6 @@ Join our Evolution Pro community for expert support and a weekly call to answer 
 
 https://github.com/sponsors/EvolutionAPI
 
-#### PicPay
-
-<div align="center">
-  <a href="https://app.picpay.com/user/davidsongomes1998" target="_blank" rel="noopener noreferrer">
-    <img src="./public/images/picpay-qr.jpeg" style="width: 50% !important;">
-  </a>
-</div>
-
-#### Buy me coffe - PIX
-
-<div align="center">
-  <img src="./public/images/qrcode-pix.png" style="width: 50% !important;">
-  <p><b>CHAVE PIX (Telefone):</b> (74)99987-9409</p>
-</div>
-
-</br>
-
 # Content Creator Partners
 
 We are proud to collaborate with the following content creators who have contributed valuable insights and tutorials about Evolution API:
@@ -130,8 +116,10 @@ Evolution API is licensed under the Apache License 2.0, with the following addit
 
 2. **LOGO and copyright information**: In the process of using Evolution API's frontend components, you may not remove or modify the LOGO or copyright information in the Evolution API console or applications. This restriction is inapplicable to uses of Evolution API that do not involve its frontend components.
 
+3. **Usage Notification Requirement**: If Evolution API is used as part of any project, including closed-source systems (e.g., proprietary software), the user is required to display a clear notification within the system that Evolution API is being utilized. This notification should be visible to system administrators and accessible from the system's documentation or settings page. Failure to comply with this requirement may result in the necessity for a commercial license, as determined by the producer.
+
 Please contact contato@atendai.com to inquire about licensing matters.
 
 Apart from the specific conditions mentioned above, all other rights and restrictions follow the Apache License 2.0. Detailed information about the Apache License 2.0 can be found at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-© 2024 AtendAI
+© 2024 Evolution API
