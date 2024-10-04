@@ -374,23 +374,30 @@ export class ChatwootService {
 
       if (!uri) return false;
 
-      const sqlTags = `SELECT id FROM tags WHERE name = '${nameInbox}' LIMIT 1`;
-
-      const tagData = (await this.pgClient.query(sqlTags))?.rows[0];
+      const sqlTags = `SELECT id, taggings_count FROM tags WHERE name = $1 LIMIT 1`;
+      const tagData = (await this.pgClient.query(sqlTags, [nameInbox]))?.rows[0];
       let tagId = tagData?.id;
       const taggingsCount = tagData?.taggings_count || 0;
 
-      const sqlTag = `INSERT INTO tags (name, taggings_count) VALUES ('${nameInbox}', ${
-        taggingsCount + 1
-      }) ON CONFLICT (name) DO UPDATE SET taggings_count = ${taggingsCount + 1} RETURNING id`;
+      const sqlTag = `INSERT INTO tags (name, taggings_count) 
+                      VALUES ($1, $2) 
+                      ON CONFLICT (name) 
+                      DO UPDATE SET taggings_count = tags.taggings_count + 1 
+                      RETURNING id`;
 
-      tagId = (await this.pgClient.query(sqlTag))?.rows[0]?.id;
+      tagId = (await this.pgClient.query(sqlTag, [nameInbox, taggingsCount + 1]))?.rows[0]?.id;
 
-      await this.pgClient.query(sqlTag);
+      const sqlCheckTagging = `SELECT 1 FROM taggings 
+                               WHERE tag_id = $1 AND taggable_type = 'Contact' AND taggable_id = $2 AND context = 'labels' LIMIT 1`;
 
-      const sqlInsertLabel = `INSERT INTO taggings (tag_id, taggable_type, taggable_id, context, created_at) VALUES (${tagId}, 'Contact', ${contactId}, 'labels', NOW())`;
+      const taggingExists = (await this.pgClient.query(sqlCheckTagging, [tagId, contactId]))?.rowCount > 0;
 
-      await this.pgClient.query(sqlInsertLabel);
+      if (!taggingExists) {
+        const sqlInsertLabel = `INSERT INTO taggings (tag_id, taggable_type, taggable_id, context, created_at) 
+                                VALUES ($1, 'Contact', $2, 'labels', NOW())`;
+
+        await this.pgClient.query(sqlInsertLabel, [tagId, contactId]);
+      }
 
       return true;
     } catch (error) {
