@@ -113,6 +113,7 @@ import makeWASocket, {
 } from 'baileys';
 import { Label } from 'baileys/lib/Types/Label';
 import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
+import { spawn } from 'child_process';
 import { isBase64, isURL } from 'class-validator';
 import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
@@ -2454,53 +2455,69 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async processAudioMp4(audio: string) {
-    let inputAudioStream: PassThrough;
+    let inputStream: PassThrough;
 
     if (isURL(audio)) {
-      const timestamp = new Date().getTime();
-      const url = `${audio}?timestamp=${timestamp}`;
-
-      const config: any = {
-        responseType: 'stream',
-      };
-
-      const response = await axios.get(url, config);
-      inputAudioStream = response.data.pipe(new PassThrough());
+      const response = await axios.get(audio, { responseType: 'stream' });
+      inputStream = response.data;
     } else {
       const audioBuffer = Buffer.from(audio, 'base64');
-      inputAudioStream = new PassThrough();
-      inputAudioStream.end(audioBuffer);
+      inputStream = new PassThrough();
+      inputStream.end(audioBuffer);
     }
 
-    return new Promise((resolve, reject) => {
-      const outputAudioStream = new PassThrough();
-      const chunks: Buffer[] = [];
+    return new Promise<Buffer>((resolve, reject) => {
+      const ffmpegProcess = spawn(ffmpegPath.path, [
+        '-i',
+        'pipe:0',
+        '-vn',
+        '-ab',
+        '128k',
+        '-ar',
+        '44100',
+        '-f',
+        'mp4',
+        '-movflags',
+        'frag_keyframe+empty_moov',
+        'pipe:1',
+      ]);
 
-      outputAudioStream.on('data', (chunk) => chunks.push(chunk));
-      outputAudioStream.on('end', () => {
-        const outputBuffer = Buffer.concat(chunks);
-        resolve(outputBuffer);
+      const outputChunks: Buffer[] = [];
+      let stderrData = '';
+
+      ffmpegProcess.stdout.on('data', (chunk) => {
+        outputChunks.push(chunk);
       });
 
-      outputAudioStream.on('error', (error) => {
-        console.log('error', error);
+      ffmpegProcess.stderr.on('data', (data) => {
+        stderrData += data.toString();
+        this.logger.verbose(`ffmpeg stderr: ${data}`);
+      });
+
+      ffmpegProcess.on('error', (error) => {
+        console.error('Error in ffmpeg process', error);
         reject(error);
       });
 
-      ffmpeg.setFfmpegPath(ffmpegPath.path);
+      ffmpegProcess.on('close', (code) => {
+        if (code === 0) {
+          this.logger.verbose('Audio converted to mp4');
+          const outputBuffer = Buffer.concat(outputChunks);
+          resolve(outputBuffer);
+        } else {
+          this.logger.error(`ffmpeg exited with code ${code}`);
+          this.logger.error(`ffmpeg stderr: ${stderrData}`);
+          reject(new Error(`ffmpeg exited with code ${code}: ${stderrData}`));
+        }
+      });
 
-      ffmpeg(inputAudioStream)
-        .outputFormat('mp4')
-        .noVideo()
-        .audioCodec('aac')
-        .audioBitrate('128k')
-        .audioFrequency(44100)
-        .addOutputOptions('-f ipod')
-        .pipe(outputAudioStream, { end: true })
-        .on('error', function (error) {
-          console.log('error', error);
-          reject(error);
-        });
+      inputStream.pipe(ffmpegProcess.stdin);
+
+      inputStream.on('error', (err) => {
+        console.error('Error in inputStream', err);
+        ffmpegProcess.stdin.end();
+        reject(err);
+      });
     });
   }
 
@@ -2995,28 +3012,33 @@ export class BaileysStartupService extends ChannelStartupService {
       const typeMessage = getContentType(msg.message);
 
       const ext = mime.getExtension(mediaMessage?.['mimetype']);
-
       const fileName = mediaMessage?.['fileName'] || `${msg.key.id}.${ext}` || `${v4()}.${ext}`;
 
       if (convertToMp4 && typeMessage === 'audioMessage') {
-        const convert = await this.processAudioMp4(buffer.toString('base64'));
+        try {
+          const convert = await this.processAudioMp4(buffer.toString('base64'));
 
-        if (Buffer.isBuffer(convert)) {
-          const result = {
-            mediaType,
-            fileName,
-            caption: mediaMessage['caption'],
-            size: {
-              fileLength: mediaMessage['fileLength'],
-              height: mediaMessage['height'],
-              width: mediaMessage['width'],
-            },
-            mimetype: 'audio/mp4',
-            base64: convert,
-            buffer: getBuffer ? convert : null,
-          };
+          if (Buffer.isBuffer(convert)) {
+            const result = {
+              mediaType,
+              fileName,
+              caption: mediaMessage['caption'],
+              size: {
+                fileLength: mediaMessage['fileLength'],
+                height: mediaMessage['height'],
+                width: mediaMessage['width'],
+              },
+              mimetype: 'audio/mp4',
+              base64: convert.toString('base64'),
+              buffer: getBuffer ? convert : null,
+            };
 
-          return result;
+            return result;
+          }
+        } catch (error) {
+          this.logger.error('Error converting audio to mp4:');
+          this.logger.error(error);
+          throw new BadRequestException('Failed to convert audio to MP4');
         }
       }
 
@@ -3034,6 +3056,7 @@ export class BaileysStartupService extends ChannelStartupService {
         buffer: getBuffer ? buffer : null,
       };
     } catch (error) {
+      this.logger.error('Error processing media message:');
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
