@@ -22,7 +22,8 @@
 * Chatwoot verbose logs
 * Adjusts on prisma connections
 * License terms updated
-* fixed send message to group without no cache (local or redis)
+* Fixed send message to group without no cache (local or redis)
+* Fixed startTypebot with startSession = true
 
 # 2.1.1 (2024-09-22 10:31)
 

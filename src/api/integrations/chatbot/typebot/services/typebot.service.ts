@@ -286,6 +286,7 @@ export class TypebotService {
         }
       }
 
+      console.log('input', input);
       if (input) {
         if (input.type === 'choice input') {
           let formattedText = '';
@@ -402,24 +403,6 @@ export class TypebotService {
           session = data.session;
         }
 
-        await this.sendWAMessage(
-          instance,
-          session,
-          {
-            expire: expire,
-            keywordFinish: keywordFinish,
-            delayMessage: delayMessage,
-            unknownMessage: unknownMessage,
-            listeningFromMe: listeningFromMe,
-            stopBotFromMe: stopBotFromMe,
-            keepOpen: keepOpen,
-          },
-          remoteJid,
-          data.messages,
-          data.input,
-          data.clientSideActions,
-        );
-
         if (data.messages.length === 0) {
           const content = getConversationMessage(msg.message);
 
@@ -502,6 +485,24 @@ export class TypebotService {
           }
         }
 
+        await this.sendWAMessage(
+          instance,
+          session,
+          {
+            expire: expire,
+            keywordFinish: keywordFinish,
+            delayMessage: delayMessage,
+            unknownMessage: unknownMessage,
+            listeningFromMe: listeningFromMe,
+            stopBotFromMe: stopBotFromMe,
+            keepOpen: keepOpen,
+          },
+          remoteJid,
+          data.messages,
+          data.input,
+          data.clientSideActions,
+        );
+
         return;
       }
     }
@@ -521,7 +522,7 @@ export class TypebotService {
         unknownMessage: unknownMessage,
         listeningFromMe: listeningFromMe,
         remoteJid: remoteJid,
-        pushName: msg.pushName,
+        pushName: msg?.pushName,
         botId: findTypebot.id,
       });
 
