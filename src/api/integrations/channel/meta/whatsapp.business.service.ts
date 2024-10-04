@@ -22,7 +22,6 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Database, Openai, S3, WaBusiness } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
-import { deleteTempFile, getTempFile } from '@utils/getTempFile';
 import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -1030,7 +1029,7 @@ export class BusinessStartupService extends ChannelStartupService {
   public async mediaMessage(data: SendMediaDto, file?: any, isIntegration = false) {
     const mediaData: SendMediaDto = { ...data };
 
-    if (file) mediaData.media = await getTempFile(file, this.instanceId);
+    if (file) mediaData.media = file.buffer.toString('base64');
 
     const message = await this.prepareMediaMessage(mediaData);
 
@@ -1047,8 +1046,6 @@ export class BusinessStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
-
-    if (file) await deleteTempFile(file, this.instanceId);
 
     return mediaSent;
   }
@@ -1084,7 +1081,7 @@ export class BusinessStartupService extends ChannelStartupService {
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
     const mediaData: SendAudioDto = { ...data };
 
-    if (file) mediaData.audio = await getTempFile(file, this.instanceId);
+    if (file) mediaData.audio = file.buffer.toString('base64');
 
     const message = await this.processAudio(mediaData.audio, data.number);
 
@@ -1101,8 +1098,6 @@ export class BusinessStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
-
-    if (file) await deleteTempFile(file, this.instanceId);
 
     return audioSent;
   }

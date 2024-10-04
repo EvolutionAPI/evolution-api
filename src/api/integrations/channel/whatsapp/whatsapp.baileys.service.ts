@@ -70,7 +70,6 @@ import { BadRequestException, InternalServerErrorException, NotFoundException } 
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
 import { Instance } from '@prisma/client';
-import { deleteTempFile, getTempFile } from '@utils/getTempFile';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
@@ -2270,15 +2269,13 @@ export class BaileysStartupService extends ChannelStartupService {
   public async statusMessage(data: SendStatusDto, file?: any) {
     const mediaData: SendStatusDto = { ...data };
 
-    if (file) mediaData.content = await getTempFile(file, this.instanceId);
+    if (file) mediaData.content = file.buffer.toString('base64');
 
     const status = await this.formatStatusMessage(mediaData);
 
     const statusSent = await this.sendMessageWithTyping('status@broadcast', {
       status,
     });
-
-    if (file) await deleteTempFile(file, this.instanceId);
 
     return statusSent;
   }
@@ -2407,7 +2404,7 @@ export class BaileysStartupService extends ChannelStartupService {
   public async mediaSticker(data: SendStickerDto, file?: any) {
     const mediaData: SendStickerDto = { ...data };
 
-    if (file) mediaData.sticker = await getTempFile(file, this.instanceId);
+    if (file) mediaData.sticker = file.buffer.toString('base64');
 
     const convert = await this.convertToWebP(data.sticker);
     const gifPlayback = data.sticker.includes('.gif');
@@ -2426,15 +2423,13 @@ export class BaileysStartupService extends ChannelStartupService {
       },
     );
 
-    if (file) await deleteTempFile(file, this.instanceId);
-
     return result;
   }
 
   public async mediaMessage(data: SendMediaDto, file?: any, isIntegration = false) {
     const mediaData: SendMediaDto = { ...data };
 
-    if (file) mediaData.media = await getTempFile(file, this.instanceId);
+    if (file) mediaData.media = file.buffer.toString('base64');
 
     const generate = await this.prepareMediaMessage(mediaData);
 
@@ -2450,8 +2445,6 @@ export class BaileysStartupService extends ChannelStartupService {
       },
       isIntegration,
     );
-
-    if (file) await deleteTempFile(file, this.instanceId);
 
     return mediaSent;
   }
@@ -2560,7 +2553,7 @@ export class BaileysStartupService extends ChannelStartupService {
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
     const mediaData: SendAudioDto = { ...data };
 
-    if (file) mediaData.audio = await getTempFile(file, this.instanceId);
+    if (file) mediaData.audio = file.buffer.toString('base64');
 
     if (!data?.encoding && data?.encoding !== false) {
       data.encoding = true;
@@ -2580,8 +2573,6 @@ export class BaileysStartupService extends ChannelStartupService {
           { presence: 'recording', delay: data?.delay },
           isIntegration,
         );
-
-        if (file) await deleteTempFile(file, this.instanceId);
 
         return result;
       } else {
