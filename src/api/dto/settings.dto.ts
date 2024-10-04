@@ -7,4 +7,5 @@ export class SettingsDto {
   read_status?: boolean;
   sync_full_history?: boolean;
   ignore_list?: string[];
+  initial_connection?: number;
 }

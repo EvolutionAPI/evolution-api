@@ -5,11 +5,12 @@ import { Logger } from '../../../../config/logger.config';
 import { dbserver } from '../../../../libs/db.connect';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { WAMonitoringService } from '../../../services/monitor.service';
+import { SettingsService } from '../../../services/settings.service';
 
 const logger = new Logger('KwikController');
 
 export class KwikController {
-  constructor(private readonly waMonitor: WAMonitoringService) {}
+  constructor(private readonly waMonitor: WAMonitoringService, private readonly settingsService: SettingsService) {}
 
   private isTextMessage(messageType: any) {
     return [
@@ -183,5 +184,18 @@ export class KwikController {
         newVal: 1,
       };
     }
+  }
+  public async cleanChats(instance: InstanceDto) {
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    const settings = this.settingsService.find(instance);
+    const initialConnection = (await settings).initial_connection;
+    if (initialConnection) {
+      connection
+        .collection('messages')
+        .deleteMany({ owner: instance.instanceName, messageTimestamp: { $lt: initialConnection } });
+    }
+
+    return { status: 'ok' };
   }
 }

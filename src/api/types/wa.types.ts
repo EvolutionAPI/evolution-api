@@ -84,6 +84,7 @@ export declare namespace wa {
     read_status?: boolean;
     sync_full_history?: boolean;
     ignore_list?: string[];
+    initial_connection?: number;
   };
 
   export type LocalWebsocket = {

@@ -70,6 +70,30 @@ export class KwikRouter extends RouterBroker {
 
       return res.status(HttpStatus.OK).json(response);
     });
+
+    this.router.post(this.routerPath('cleanChats'), ...guards, async (req, res) => {
+      logger.verbose('request received in cleanChats');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      logger.error('request received in cleanChats');
+      logger.error('request body: ');
+      logger.error(req.body);
+      logger.error('request query: ');
+      logger.error(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) => kwikController.cleanChats(instance),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
   }
 
   public readonly router = Router();
