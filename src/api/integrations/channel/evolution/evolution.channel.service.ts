@@ -7,6 +7,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Openai } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
+import { status } from '@utils/renderStatus';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import mime from 'mime';
@@ -273,72 +274,59 @@ export class EvolutionStartupService extends ChannelStartupService {
 
       const messageId = v4();
 
-      let messageRaw: any;
+      let messageRaw: any = {
+        key: { fromMe: true, id: messageId, remoteJid: number },
+        messageTimestamp: Math.round(new Date().getTime() / 1000),
+        webhookUrl,
+        source: 'unknown',
+        instanceId: this.instanceId,
+        status: status[1],
+      };
 
       if (message?.mediaType === 'image') {
         messageRaw = {
-          key: { fromMe: true, id: messageId, remoteJid: number },
+          ...messageRaw,
           message: {
             mediaUrl: message.media,
             quoted,
           },
           messageType: 'imageMessage',
-          messageTimestamp: Math.round(new Date().getTime() / 1000),
-          webhookUrl,
-          source: 'unknown',
-          instanceId: this.instanceId,
         };
       } else if (message?.mediaType === 'video') {
         messageRaw = {
-          key: { fromMe: true, id: messageId, remoteJid: number },
+          ...messageRaw,
           message: {
             mediaUrl: message.media,
             quoted,
           },
           messageType: 'videoMessage',
-          messageTimestamp: Math.round(new Date().getTime() / 1000),
-          webhookUrl,
-          source: 'unknown',
-          instanceId: this.instanceId,
         };
       } else if (message?.mediaType === 'audio') {
         messageRaw = {
-          key: { fromMe: true, id: messageId, remoteJid: number },
+          ...messageRaw,
           message: {
             mediaUrl: message.media,
             quoted,
           },
           messageType: 'audioMessage',
-          messageTimestamp: Math.round(new Date().getTime() / 1000),
-          webhookUrl,
-          source: 'unknown',
-          instanceId: this.instanceId,
         };
       } else if (message?.mediaType === 'document') {
         messageRaw = {
-          key: { fromMe: true, id: messageId, remoteJid: number },
+          ...messageRaw,
           message: {
             mediaUrl: message.media,
             quoted,
           },
           messageType: 'documentMessage',
-          messageTimestamp: Math.round(new Date().getTime() / 1000),
-          webhookUrl,
-          source: 'unknown',
-          instanceId: this.instanceId,
         };
       } else {
         messageRaw = {
-          key: { fromMe: true, id: messageId, remoteJid: number },
+          ...messageRaw,
           message: {
             ...message,
             quoted,
           },
           messageType: 'conversation',
-          messageTimestamp: Math.round(new Date().getTime() / 1000),
-          webhookUrl,
-          source: 'unknown',
-          instanceId: this.instanceId,
         };
       }
 
@@ -484,10 +472,10 @@ export class EvolutionStartupService extends ChannelStartupService {
     const mediaData: SendAudioDto = { ...data };
 
     if (file?.buffer) {
-        mediaData.audio = file.buffer.toString('base64');
+      mediaData.audio = file.buffer.toString('base64');
     } else {
-        console.error("El archivo o buffer no está definido correctamente.");
-        throw new Error("File or buffer is undefined.");
+      console.error('El archivo o buffer no estï¿½ definido correctamente.');
+      throw new Error('File or buffer is undefined.');
     }
 
     const message = await this.processAudio(mediaData.audio, data.number);

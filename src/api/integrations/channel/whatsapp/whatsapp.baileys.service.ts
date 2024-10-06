@@ -72,6 +72,7 @@ import { Boom } from '@hapi/boom';
 import { Instance } from '@prisma/client';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
+import { status } from '@utils/renderStatus';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
@@ -569,7 +570,6 @@ export class BaileysStartupService extends ChannelStartupService {
         const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
         const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
         const isNewsletter = isJidNewsletter(jid);
-        // const isNewsletter = jid && jid.includes('newsletter');
 
         return isGroupJid || isBroadcast || isNewsletter;
       },
@@ -1230,14 +1230,6 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], settings: any) => {
-      const status: Record<number, wa.StatusMessage> = {
-        0: 'ERROR',
-        1: 'PENDING',
-        2: 'SERVER_ACK',
-        3: 'DELIVERY_ACK',
-        4: 'READ',
-        5: 'PLAYED',
-      };
       for await (const { key, update } of args) {
         if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
           return;
@@ -2575,46 +2567,46 @@ export class BaileysStartupService extends ChannelStartupService {
     const mediaData: SendAudioDto = { ...data };
 
     if (file?.buffer) {
-        mediaData.audio = file.buffer.toString('base64');
+      mediaData.audio = file.buffer.toString('base64');
     } else if (!isURL(data.audio) && !isBase64(data.audio)) {
-        console.error('Invalid file or audio source');
-        throw new BadRequestException('File buffer, URL, or base64 audio is required');
+      console.error('Invalid file or audio source');
+      throw new BadRequestException('File buffer, URL, or base64 audio is required');
     }
 
     if (!data?.encoding && data?.encoding !== false) {
-        data.encoding = true;
+      data.encoding = true;
     }
 
     if (data?.encoding) {
-        const convert = await this.processAudio(mediaData.audio);
+      const convert = await this.processAudio(mediaData.audio);
 
-        if (Buffer.isBuffer(convert)) {
-            const result = this.sendMessageWithTyping<AnyMessageContent>(
-                data.number,
-                {
-                    audio: convert,
-                    ptt: true,
-                    mimetype: 'audio/ogg; codecs=opus',
-                },
-                { presence: 'recording', delay: data?.delay },
-                isIntegration,
-            );
+      if (Buffer.isBuffer(convert)) {
+        const result = this.sendMessageWithTyping<AnyMessageContent>(
+          data.number,
+          {
+            audio: convert,
+            ptt: true,
+            mimetype: 'audio/ogg; codecs=opus',
+          },
+          { presence: 'recording', delay: data?.delay },
+          isIntegration,
+        );
 
-            return result;
-        } else {
-            throw new InternalServerErrorException('Failed to convert audio');
-        }
+        return result;
+      } else {
+        throw new InternalServerErrorException('Failed to convert audio');
+      }
     }
 
     return await this.sendMessageWithTyping<AnyMessageContent>(
-        data.number,
-        {
-            audio: isURL(data.audio) ? { url: data.audio } : Buffer.from(data.audio, 'base64'),
-            ptt: true,
-            mimetype: 'audio/ogg; codecs=opus',
-        },
-        { presence: 'recording', delay: data?.delay },
-        isIntegration,
+      data.number,
+      {
+        audio: isURL(data.audio) ? { url: data.audio } : Buffer.from(data.audio, 'base64'),
+        ptt: true,
+        mimetype: 'audio/ogg; codecs=opus',
+      },
+      { presence: 'recording', delay: data?.delay },
+      isIntegration,
     );
   }
 
@@ -3659,7 +3651,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const messageRaw = {
       key: message.key,
       pushName: message.pushName,
-      status: message.status,
+      status: status[message.status],
       message: { ...message.message },
       contextInfo: contentMsg?.contextInfo,
       messageType: contentType || 'unknown',

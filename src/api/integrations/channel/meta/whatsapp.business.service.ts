@@ -22,6 +22,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Database, Openai, S3, WaBusiness } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
+import { status } from '@utils/renderStatus';
 import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -895,12 +896,12 @@ export class BusinessStartupService extends ChannelStartupService {
 
       const messageRaw: any = {
         key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
-        //pushName: messageSent.pushName,
         message: this.convertMessageToRaw(message, content),
         messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
         instanceId: this.instanceId,
         webhookUrl,
+        status: status[1],
         source: 'unknown',
       };
 
@@ -1082,11 +1083,10 @@ export class BusinessStartupService extends ChannelStartupService {
     const mediaData: SendAudioDto = { ...data };
 
     if (file?.buffer) {
-        // Asegurarse de que file y buffer existen antes de usarlos
-        mediaData.audio = file.buffer.toString('base64');
+      mediaData.audio = file.buffer.toString('base64');
     } else {
-        console.error('El archivo no tiene buffer o file es undefined');
-        throw new Error('File or buffer is undefined');
+      console.error('El archivo no tiene buffer o file es undefined');
+      throw new Error('File or buffer is undefined');
     }
 
     const message = await this.processAudio(mediaData.audio, data.number);
