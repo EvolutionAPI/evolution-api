@@ -47,11 +47,14 @@ export class SendMessageController {
   }
 
   public async sendWhatsAppAudio({ instanceName }: InstanceDto, data: SendAudioDto, file?: any) {
-    if (file || isURL(data.audio) || isBase64(data.audio)) {
-      return await this.waMonitor.waInstances[instanceName].audioWhatsapp(data, file);
+    if (file?.buffer || isURL(data.audio) || isBase64(data.audio)) {
+        // Si file existe y tiene buffer, o si es una URL o Base64, continúa
+        return await this.waMonitor.waInstances[instanceName].audioWhatsapp(data, file);
+    } else {
+        console.error('El archivo no tiene buffer o el audio no es una URL o Base64 válida');
+        throw new BadRequestException('Owned media must be a url, base64, or valid file with buffer');
     }
-    throw new BadRequestException('Owned media must be a url or base64');
-  }
+}
 
   public async sendButtons({ instanceName }: InstanceDto, data: SendButtonDto) {
     return await this.waMonitor.waInstances[instanceName].buttonMessage(data);
