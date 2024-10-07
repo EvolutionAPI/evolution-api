@@ -548,6 +548,9 @@ export class EvolutionStartupService extends ChannelStartupService {
   public async fetchProfile() {
     throw new BadRequestException('Method not available on Evolution Channel');
   }
+  public async offerCall() {
+    throw new BadRequestException('Method not available on WhatsApp Business API');
+  }
   public async sendPresence() {
     throw new BadRequestException('Method not available on Evolution Channel');
   }

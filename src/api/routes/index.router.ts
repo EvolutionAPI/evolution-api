@@ -11,6 +11,7 @@ import fs from 'fs';
 import mime from 'mime';
 import path from 'path';
 
+import { CallRouter } from './call.router';
 import { ChatRouter } from './chat.router';
 import { GroupRouter } from './group.router';
 import { InstanceRouter } from './instance.router';
@@ -79,6 +80,7 @@ router
   })
   .use('/instance', new InstanceRouter(configService, ...guards).router)
   .use('/message', new MessageRouter(...guards).router)
+  .use('/call', new CallRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
   .use('/template', new TemplateRouter(configService, ...guards).router)

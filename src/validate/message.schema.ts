@@ -54,6 +54,17 @@ const quotedOptionsSchema: JSONSchema7 = {
   },
 };
 
+export const offerCallSchema: JSONSchema7 = {
+  $id: v4(),
+  type: 'object',
+  properties: {
+    number: { ...numberDefinition },
+    isVideo: { type: 'boolean', enum: [true, false] },
+    callDuration: { type: 'integer', minimum: 1, maximum: 15 },
+  },
+  required: ['number', 'callDuration'],
+};
+
 export const textMessageSchema: JSONSchema7 = {
   $id: v4(),
   type: 'object',
