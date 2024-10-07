@@ -627,7 +627,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const chatsToInsert = chats
         .filter((chat) => !existingChatIdSet?.has(chat.id))
-        .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name }));
+        .map((chat) => ({
+          remoteJid: chat.id,
+          instanceId: this.instanceId,
+          name: chat.name,
+          unreadMessages: chat.unreadCount !== undefined ? chat.unreadCount : 0,
+        }));
 
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
 
@@ -661,6 +666,7 @@ export class BaileysStartupService extends ChannelStartupService {
             instanceId: this.instanceId,
             remoteJid: chat.id,
             name: chat.name,
+            unreadMessages: typeof chat.unreadCount === 'number' ? chat.unreadCount : 0,
           },
           data: { remoteJid: chat.id },
         });
@@ -1231,6 +1237,8 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], settings: any) => {
+      const unreadChatToUpdate: Record<string, number> = {}; // {remoteJid: readedMessages}
+
       for await (const { key, update } of args) {
         if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
           return;
@@ -1273,8 +1281,6 @@ export class BaileysStartupService extends ChannelStartupService {
             return;
           }
 
-          if (status[update.status] === 'READ' && !key.fromMe) return;
-
           if (update.message === null && update.status === undefined) {
             this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
@@ -1302,6 +1308,17 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             return;
+          } else if (update.status !== undefined && status[update.status] !== findMessage.status) {
+            if (!unreadChatToUpdate[key.remoteJid!]) {
+              unreadChatToUpdate[key.remoteJid!] = 0;
+            }
+
+            unreadChatToUpdate[key.remoteJid!]++;
+
+            this.prismaRepository.message.update({
+              where: { id: findMessage.id },
+              data: { status: status[update.status] },
+            });
           }
 
           const message: any = {
@@ -1321,6 +1338,17 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.prismaRepository.messageUpdate.create({
               data: message,
             });
+        }
+      }
+
+      for await (const [remoteJid, unreadMessages] of Object.entries(unreadChatToUpdate)) {
+        const chat = await this.prismaRepository.chat.findFirst({ where: { remoteJid } });
+
+        if (chat) {
+          this.prismaRepository.chat.update({
+            where: { id: chat.id },
+            data: { unreadMessages: Math.max(0, chat.unreadMessages - unreadMessages) },
+          });
         }
       }
     },
@@ -2006,7 +2034,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
             const mimetype = mime.getType(fileName).toString();
 
-            const fullName = join(`${this.instance.id}`, messageRaw.key.remoteJid, `${messageRaw.key.id}`, mediaType, fileName);
+            const fullName = join(
+              `${this.instance.id}`,
+              messageRaw.key.remoteJid,
+              `${messageRaw.key.id}`,
+              mediaType,
+              fileName,
+            );
 
             await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
               'Content-Type': mimetype,
