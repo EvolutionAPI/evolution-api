@@ -46,6 +46,11 @@ export class Metadata {
   encoding?: boolean;
 }
 
+export class OfferCallDto extends Metadata {
+  isVideo?: boolean;
+  callDuration?: number;
+}
+
 export class SendTextDto extends Metadata {
   text: string;
 }

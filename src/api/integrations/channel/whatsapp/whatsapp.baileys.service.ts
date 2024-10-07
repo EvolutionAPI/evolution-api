@@ -32,6 +32,7 @@ import { HandleLabelDto, LabelDto } from '@api/dto/label.dto';
 import {
   ContactMessage,
   MediaMessage,
+  OfferCallDto,
   Options,
   SendAudioDto,
   SendContactDto,
@@ -1667,6 +1668,25 @@ export class BaileysStartupService extends ChannelStartupService {
         os: null,
         isBusiness: false,
       };
+    }
+  }
+
+  public async offerCall({ number, callDuration }: OfferCallDto) {
+    const jid = this.createJid(number);
+
+    try {
+      const call = await this.client.offerCall(jid);
+      if (callDuration) {
+        setTimeout(async () => {
+          console.log('Terminating call');
+          const aaa = await this.client.terminateCall(call.id, call.to);
+          console.log(aaa);
+        }, callDuration * 1000);
+      }
+
+      return call;
+    } catch (error) {
+      return error;
     }
   }
 

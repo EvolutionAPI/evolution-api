@@ -1,5 +1,6 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import {
+  OfferCallDto,
   SendAudioDto,
   SendButtonDto,
   SendContactDto,
@@ -82,5 +83,9 @@ export class SendMessageController {
 
   public async sendStatus({ instanceName }: InstanceDto, data: SendStatusDto, file?: any) {
     return await this.waMonitor.waInstances[instanceName].statusMessage(data, file);
+  }
+
+  public async offerCall({ instanceName }: InstanceDto, data: OfferCallDto) {
+    return await this.waMonitor.waInstances[instanceName].offerCall(data);
   }
 }
