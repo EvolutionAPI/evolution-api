@@ -1,4 +1,9 @@
-# 2.1.3 (develop)
+# 2.2.0 (develop)
+
+### Features
+
+* Fake Call function
+* Added unreadMessages to chats
 
 ### Fixed
 
