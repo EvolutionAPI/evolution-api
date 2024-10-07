@@ -1281,8 +1281,6 @@ export class BaileysStartupService extends ChannelStartupService {
             return;
           }
 
-          //if (status[update.status] === 'READ' && !key.fromMe) return;
-
           if (update.message === null && update.status === undefined) {
             this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
@@ -1310,8 +1308,8 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             return;
-          } else if (update.message !== undefined && update.message !== findMessage.status) {
-            if (unreadChatToUpdate[key.remoteJid!] === undefined) {
+          } else if (update.status !== undefined && status[update.status] !== findMessage.status) {
+            if (!unreadChatToUpdate[key.remoteJid!]) {
               unreadChatToUpdate[key.remoteJid!] = 0;
             }
 
