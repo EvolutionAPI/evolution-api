@@ -1,6 +1,6 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { OfferCallDto } from '@api/dto/call.dto';
-import { sendMessageController } from '@api/server.module';
+import { callController } from '@api/server.module';
 import { offerCallSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
@@ -14,7 +14,7 @@ export class CallRouter extends RouterBroker {
         request: req,
         schema: offerCallSchema,
         ClassRef: OfferCallDto,
-        execute: (instance, data) => sendMessageController.offerCall(instance, data),
+        execute: (instance, data) => callController.offerCall(instance, data),
       });
 
       return res.status(HttpStatus.CREATED).json(response);

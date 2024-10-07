@@ -1,6 +1,5 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import {
-  OfferCallDto,
   SendAudioDto,
   SendButtonDto,
   SendContactDto,
@@ -49,13 +48,13 @@ export class SendMessageController {
 
   public async sendWhatsAppAudio({ instanceName }: InstanceDto, data: SendAudioDto, file?: any) {
     if (file?.buffer || isURL(data.audio) || isBase64(data.audio)) {
-        // Si file existe y tiene buffer, o si es una URL o Base64, continúa
-        return await this.waMonitor.waInstances[instanceName].audioWhatsapp(data, file);
+      // Si file existe y tiene buffer, o si es una URL o Base64, continúa
+      return await this.waMonitor.waInstances[instanceName].audioWhatsapp(data, file);
     } else {
-        console.error('El archivo no tiene buffer o el audio no es una URL o Base64 válida');
-        throw new BadRequestException('Owned media must be a url, base64, or valid file with buffer');
+      console.error('El archivo no tiene buffer o el audio no es una URL o Base64 válida');
+      throw new BadRequestException('Owned media must be a url, base64, or valid file with buffer');
     }
-}
+  }
 
   public async sendButtons({ instanceName }: InstanceDto, data: SendButtonDto) {
     return await this.waMonitor.waInstances[instanceName].buttonMessage(data);
@@ -86,9 +85,5 @@ export class SendMessageController {
 
   public async sendStatus({ instanceName }: InstanceDto, data: SendStatusDto, file?: any) {
     return await this.waMonitor.waInstances[instanceName].statusMessage(data, file);
-  }
-
-  public async offerCall({ instanceName }: InstanceDto, data: OfferCallDto) {
-    return await this.waMonitor.waInstances[instanceName].offerCall(data);
   }
 }
