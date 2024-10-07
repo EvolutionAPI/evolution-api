@@ -627,7 +627,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const chatsToInsert = chats
         .filter((chat) => !existingChatIdSet?.has(chat.id))
-        .map((chat) => ({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name }));
+        .map((chat) => ({
+          remoteJid: chat.id,
+          instanceId: this.instanceId,
+          name: chat.name,
+          unreadMessages: chat.unreadCount !== undefined ? chat.unreadCount : 0,
+        }));
 
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
 
