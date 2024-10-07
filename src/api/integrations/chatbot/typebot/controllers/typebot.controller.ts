@@ -5,7 +5,7 @@ import { TypebotService } from '@api/integrations/chatbot/typebot/services/typeb
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Events } from '@api/types/wa.types';
-import { Auth, configService, HttpServer, Typebot } from '@config/env.config';
+import { configService, Typebot } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
 import { Typebot as TypebotModel } from '@prisma/client';
@@ -609,13 +609,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
       }
     }
 
-    const prefilledVariables = {
-      remoteJid: remoteJid,
-      instanceName: instance.instanceName,
-      serverUrl: configService.get<HttpServer>('SERVER').URL,
-      apiKey: configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
-      ownerJid: instanceData.number,
-    };
+    const prefilledVariables: any = {};
 
     if (variables?.length) {
       variables.forEach((variable: { name: string | number; value: string }) => {
@@ -674,6 +668,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         stopBotFromMe,
         keepOpen,
         'init',
+        prefilledVariables,
       );
 
       // const response = await this.typebotService.createNewSession(instanceData, {
