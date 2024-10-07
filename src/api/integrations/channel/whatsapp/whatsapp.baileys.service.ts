@@ -598,6 +598,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       this.loadChatwoot();
       this.loadSettings();
+      this.loadWebhook();
       this.loadProxy();
 
       return await this.createClient(number);
@@ -1152,18 +1153,20 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (isMedia && !this.configService.get<S3>('S3').ENABLE) {
-            const buffer = await downloadMediaMessage(
-              { key: received.key, message: received?.message },
-              'buffer',
-              {},
-              {
-                logger: P({ level: 'error' }) as any,
-                reuploadRequest: this.client.updateMediaMessage,
-              },
-            );
+          if (this.localWebhook.enabled) {
+            if (isMedia && this.localWebhook.webhookBase64) {
+              const buffer = await downloadMediaMessage(
+                { key: received.key, message: received?.message },
+                'buffer',
+                {},
+                {
+                  logger: P({ level: 'error' }) as any,
+                  reuploadRequest: this.client.updateMediaMessage,
+                },
+              );
 
-            messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+              messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+            }
           }
 
           this.logger.log(messageRaw);
@@ -2070,18 +2073,20 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      if (isMedia && !this.configService.get<S3>('S3').ENABLE) {
-        const buffer = await downloadMediaMessage(
-          { key: messageRaw.key, message: messageRaw?.message },
-          'buffer',
-          {},
-          {
-            logger: P({ level: 'error' }) as any,
-            reuploadRequest: this.client.updateMediaMessage,
-          },
-        );
+      if (this.localWebhook.enabled) {
+        if (isMedia && this.localWebhook.webhookBase64) {
+          const buffer = await downloadMediaMessage(
+            { key: messageRaw.key, message: messageRaw?.message },
+            'buffer',
+            {},
+            {
+              logger: P({ level: 'error' }) as any,
+              reuploadRequest: this.client.updateMediaMessage,
+            },
+          );
 
-        messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+          messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+        }
       }
 
       this.logger.log(messageRaw);
