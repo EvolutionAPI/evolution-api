@@ -123,6 +123,7 @@ model Chat {
   updatedAt  DateTime? @updatedAt @db.Timestamp
   Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId String
+  unreadMessages Int @default(0)
 }
 
 model Contact {
