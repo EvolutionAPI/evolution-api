@@ -356,6 +356,7 @@ export class TypebotService {
     stopBotFromMe: boolean,
     keepOpen: boolean,
     content: string,
+    prefilledVariables?: any,
   ) {
     if (session && expire && expire > 0) {
       const now = Date.now();
@@ -397,6 +398,7 @@ export class TypebotService {
           remoteJid: remoteJid,
           pushName: msg.pushName,
           botId: findTypebot.id,
+          prefilledVariables: prefilledVariables,
         });
 
         if (data.session) {
@@ -524,6 +526,7 @@ export class TypebotService {
         remoteJid: remoteJid,
         pushName: msg?.pushName,
         botId: findTypebot.id,
+        prefilledVariables: prefilledVariables,
       });
 
       if (data?.session) {

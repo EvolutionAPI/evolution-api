@@ -159,7 +159,7 @@ model Message {
   MessageUpdate                MessageUpdate[]
   Media                        Media?
   webhookUrl                   String?         @db.VarChar(500)
-  status                       Int?            @db.Int
+  status                       String?         @db.VarChar(30)
 
   sessionId String?
   session   IntegrationSession? @relation(fields: [sessionId], references: [id])
