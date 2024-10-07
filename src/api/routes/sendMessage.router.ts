@@ -1,6 +1,5 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import {
-  OfferCallDto,
   SendAudioDto,
   SendButtonDto,
   SendContactDto,
@@ -22,7 +21,6 @@ import {
   listMessageSchema,
   locationMessageSchema,
   mediaMessageSchema,
-  offerCallSchema,
   pollMessageSchema,
   reactionMessageSchema,
   statusMessageSchema,
@@ -166,16 +164,6 @@ export class MessageRouter extends RouterBroker {
           schema: buttonMessageSchema,
           ClassRef: SendButtonDto,
           execute: (instance, data) => sendMessageController.sendButtons(instance, data),
-        });
-
-        return res.status(HttpStatus.CREATED).json(response);
-      })
-      .post(this.routerPath('offerCall'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<OfferCallDto>({
-          request: req,
-          schema: offerCallSchema,
-          ClassRef: OfferCallDto,
-          execute: (instance, data) => sendMessageController.offerCall(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);

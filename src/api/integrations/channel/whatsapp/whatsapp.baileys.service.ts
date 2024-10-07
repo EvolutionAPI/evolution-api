@@ -1,3 +1,4 @@
+import { OfferCallDto } from '@api/dto/call.dto';
 import {
   ArchiveChatDto,
   BlockUserDto,
@@ -32,7 +33,6 @@ import { HandleLabelDto, LabelDto } from '@api/dto/label.dto';
 import {
   ContactMessage,
   MediaMessage,
-  OfferCallDto,
   Options,
   SendAudioDto,
   SendContactDto,
@@ -1671,14 +1671,12 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  public async offerCall({ number, callDuration }: OfferCallDto) {
+  public async offerCall({ number, isVideo, callDuration }: OfferCallDto) {
     const jid = this.createJid(number);
 
     try {
-      const call = await this.client.offerCall(jid);
-      if (callDuration) {
-        setTimeout(() => this.client.terminateCall(call.id, call.to), callDuration * 1000);
-      }
+      const call = await this.client.offerCall(jid, isVideo);
+      setTimeout(() => this.client.terminateCall(call.id, call.to), callDuration * 1000);
 
       return call;
     } catch (error) {
