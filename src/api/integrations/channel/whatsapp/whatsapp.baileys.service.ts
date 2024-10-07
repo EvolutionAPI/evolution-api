@@ -1677,11 +1677,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const call = await this.client.offerCall(jid);
       if (callDuration) {
-        setTimeout(async () => {
-          console.log('Terminating call');
-          const aaa = await this.client.terminateCall(call.id, call.to);
-          console.log(aaa);
-        }, callDuration * 1000);
+        setTimeout(() => this.client.terminateCall(call.id, call.to), callDuration * 1000);
       }
 
       return call;
