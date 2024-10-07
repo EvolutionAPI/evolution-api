@@ -626,6 +626,7 @@ export class ChannelStartupService {
                 "Chat"."updatedAt",
                 "Contact"."pushName",
                 "Contact"."profilePicUrl"
+                "Contact"."unreadMessages"
             FROM "Chat"
             INNER JOIN "Message" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid'
             LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
@@ -639,7 +640,8 @@ export class ChannelStartupService {
                 "Chat"."createdAt",
                 "Chat"."updatedAt",
                 "Contact"."pushName",
-                "Contact"."profilePicUrl"
+                "Contact"."profilePicUrl",
+                "Contact"."unreadMessages"
             ORDER BY "Chat"."updatedAt" DESC;
         `;
     } else {
@@ -653,6 +655,7 @@ export class ChannelStartupService {
                 "Chat"."updatedAt",
                 "Contact"."pushName",
                 "Contact"."profilePicUrl"
+                "Contact"."unreadMessages"
             FROM "Chat"
             INNER JOIN "Message" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid'
             LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
@@ -666,6 +669,7 @@ export class ChannelStartupService {
                 "Chat"."updatedAt",
                 "Contact"."pushName",
                 "Contact"."profilePicUrl"
+                "Contact"."unreadMessages"
             ORDER BY "Chat"."updatedAt" DESC;
         `;
     }
