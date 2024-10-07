@@ -3,6 +3,7 @@
 ### Fixed
 
 * Fixed prefilledVariables in startTypebot
+* Fix duplicate file upload
 
 # 2.1.2 (2024-10-06 10:09)
 
