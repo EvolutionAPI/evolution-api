@@ -983,8 +983,10 @@ export class BaileysStartupService extends ChannelStartupService {
         for (const received of messages) {
           if (received.message?.conversation || received.message?.extendedTextMessage?.text) {
             const text = received.message?.conversation || received.message?.extendedTextMessage?.text;
+
             if (text == 'requestPlaceholder' && !requestId) {
               const messageId = await this.client.requestPlaceholderResend(received.key);
+
               console.log('requested placeholder resync, id=', messageId);
             } else if (requestId) {
               console.log('Message received from phone, id=', requestId, received);
@@ -1018,6 +1020,7 @@ export class BaileysStartupService extends ChannelStartupService {
               message: received,
               retry: 0,
             });
+
             continue;
           }
 
@@ -1034,7 +1037,7 @@ export class BaileysStartupService extends ChannelStartupService {
             received.message?.pollUpdateMessage ||
             !received?.message
           ) {
-            return;
+            continue;
           }
 
           if (Long.isLong(received.messageTimestamp)) {
@@ -1042,7 +1045,7 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (settings?.groupsIgnore && received.key.remoteJid.includes('@g.us')) {
-            return;
+            continue;
           }
 
           const messageRaw = this.prepareMessage(received);
@@ -1105,9 +1108,15 @@ export class BaileysStartupService extends ChannelStartupService {
               data: messageRaw,
             });
 
-            if (received.key.fromMe === false && msg.status === status[3]) {
-              // is received  not read message
-              await this.updateChatUnreadMessages(received.key.remoteJid);
+            if (received.key.fromMe === false) {
+              if (msg.status === status[3]) {
+                this.logger.log(`Update not read messages ${received.key.remoteJid}`);
+                // is received  not read message
+                await this.updateChatUnreadMessages(received.key.remoteJid);
+              } else if (msg.status === status[4]) {
+                this.logger.log(`Update readed messages ${received.key.remoteJid} - ${msg.messageTimestamp}`);
+                this.updateMessagesReadedByTimestamp(received.key.remoteJid, msg.messageTimestamp);
+              }
             }
 
             if (isMedia) {
@@ -1122,11 +1131,8 @@ export class BaileysStartupService extends ChannelStartupService {
                   );
 
                   const { buffer, mediaType, fileName, size } = media;
-
                   const mimetype = mime.getType(fileName).toString();
-
                   const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
-
                   await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
                     'Content-Type': mimetype,
                   });
@@ -1193,7 +1199,7 @@ export class BaileysStartupService extends ChannelStartupService {
           };
 
           if (contactRaw.remoteJid === 'status@broadcast') {
-            return;
+            continue;
           }
 
           if (contact) {
@@ -1214,7 +1220,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 update: contactRaw,
               });
 
-            return;
+            continue;
           }
 
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
@@ -1241,11 +1247,11 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], settings: any) => {
-      const readChatToUpdate: Record<string, true> = {}; // remoteJid[]
+      const readChatToUpdate: Record<string, true> = {}; // {remoteJid: true}
 
       for await (const { key, update } of args) {
         if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
-          return;
+          continue;
         }
 
         if (status[update.status] === 'READ' && key.fromMe) {
@@ -1260,6 +1266,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (key.remoteJid !== 'status@broadcast') {
           let pollUpdates: any;
+
           if (update.pollUpdates) {
             const pollCreation = await this.getMessage(key);
 
@@ -1282,7 +1289,7 @@ export class BaileysStartupService extends ChannelStartupService {
           });
 
           if (!findMessage) {
-            return;
+            continue;
           }
 
           if (update.message === null && update.status === undefined) {
@@ -1311,26 +1318,14 @@ export class BaileysStartupService extends ChannelStartupService {
               );
             }
 
-            return;
+            continue;
           } else if (update.status !== undefined && status[update.status] !== findMessage.status) {
             if (!key.fromMe && key.remoteJid) {
               readChatToUpdate[key.remoteJid] = true;
 
               if (status[update.status] === status[4]) {
-                // Mark to read old messages
-                await this.prismaRepository.message.updateMany({
-                  where: {
-                    AND: [
-                      { key: { path: ['remoteJid'], equals: key.remoteJid } },
-                      { key: { path: ['fromMe'], equals: false } },
-                      { messageTimestamp: { lt: findMessage.messageTimestamp } }, // Delivered messages
-                      {
-                        OR: [{ status: null }, { status: status[3] }],
-                      },
-                    ],
-                  },
-                  data: { status: status[4] },
-                });
+                this.logger.log(`Update as read ${key.remoteJid} - ${findMessage.messageTimestamp}`);
+                this.updateMessagesReadedByTimestamp(key.remoteJid, findMessage.messageTimestamp);
               }
             }
 
@@ -3748,6 +3743,30 @@ export class BaileysStartupService extends ChannelStartupService {
       });
       task.start();
     }
+  }
+
+  private async updateMessagesReadedByTimestamp(remoteJid: string, timestamp?: number): Promise<number> {
+    if (timestamp === undefined || timestamp === null) return 0;
+
+    const result = await this.prismaRepository.message.updateMany({
+      where: {
+        AND: [
+          { key: { path: ['remoteJid'], equals: remoteJid } },
+          { key: { path: ['fromMe'], equals: false } },
+          { messageTimestamp: { lte: timestamp } },
+          {
+            OR: [{ status: null }, { status: status[3] }],
+          },
+        ],
+      },
+      data: { status: status[4] },
+    });
+
+    if (result) {
+      return result.count;
+    }
+
+    return 0;
   }
 
   private async updateChatUnreadMessages(remoteJid: string): Promise<number> {
