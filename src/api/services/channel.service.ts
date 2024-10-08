@@ -577,6 +577,7 @@ export class ChannelStartupService {
         messageTimestamp: true,
         instanceId: true,
         source: true,
+        contextInfo: true,
         MessageUpdate: {
           select: {
             status: true,
