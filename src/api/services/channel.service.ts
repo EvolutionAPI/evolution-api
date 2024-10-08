@@ -14,6 +14,7 @@ import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import { Contact, Message } from '@prisma/client';
 import { WASocket } from 'baileys';
+import { isArray } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import { v4 } from 'uuid';
 
@@ -309,7 +310,9 @@ export class ChannelStartupService {
       return null;
     }
 
-    const ignoreJidsArray = Array.isArray(data.ignoreJids) ? data.ignoreJids.map((event) => String(event)) : [];
+    const ignoreJidsArray = Array.isArray(data.ignoreJids)
+      ? data.ignoreJids.map((event) => String(event))
+      : [];
 
     return {
       enabled: data?.enabled,
@@ -537,7 +540,9 @@ export class ChannelStartupService {
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
           keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
-          keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
+          keyFilters?.participants
+            ? { key: { path: ['participants'], equals: keyFilters?.participants } }
+            : {},
         ],
       },
     });
@@ -560,7 +565,9 @@ export class ChannelStartupService {
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
           keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
-          keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
+          keyFilters?.participants
+            ? { key: { path: ['participants'], equals: keyFilters?.participants } }
+            : {},
         ],
       },
       orderBy: {
@@ -615,33 +622,65 @@ export class ChannelStartupService {
       : null;
 
     const result = await this.prismaRepository.$queryRaw`
-            SELECT
-                "Chat"."id",
-                "Chat"."remoteJid",
-                "Chat"."name",
-                "Chat"."labels",
-                "Chat"."createdAt",
-                "Chat"."updatedAt",
-                "Contact"."pushName",
-                "Contact"."profilePicUrl",
-                "Chat"."unreadMessages"
-            FROM "Chat"
-            INNER JOIN "Message" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid'
-            LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
-            WHERE "Chat"."instanceId" = ${this.instanceId}
-            ${remoteJid ? 'AND "Chat"."remoteJid" = ${remoteJid}' : ''}
-            GROUP BY
-                "Chat"."id",
-                "Chat"."remoteJid",
-                "Chat"."name",
-                "Chat"."labels",
-                "Chat"."createdAt",
-                "Chat"."updatedAt",
-                "Contact"."pushName",
-                "Contact"."profilePicUrl",
-                "Chat"."unreadMessages"
-            ORDER BY "Chat"."updatedAt" DESC;
-        `;
+        SELECT
+          "Chat"."id",
+          "Chat"."remoteJid",
+          "Chat"."name",
+          "Chat"."labels",
+          "Chat"."createdAt",
+          "Chat"."updatedAt",
+          "Contact"."pushName",
+          "Contact"."profilePicUrl",
+          (ARRAY_AGG("Message"."id" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_id,
+          (ARRAY_AGG("Message"."key" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_key,
+          (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_pushName,
+          (ARRAY_AGG("Message"."participant" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_participant,
+          (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_messageType,
+          (ARRAY_AGG("Message"."message" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message,
+          (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_contextInfo,
+          (ARRAY_AGG("Message"."source" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_source,
+          (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_messageTimestamp,
+          (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instanceId,
+          (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_sessionId,
+          (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
+        FROM "Chat"
+        LEFT JOIN "Message" ON "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
+        LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
+        WHERE 
+          "Chat"."instanceId" like ${this.instanceId}
+          ${remoteJid ? 'AND "Chat"."remoteJid" like ${remoteJid}' : ''}
+        GROUP BY
+          "Chat"."id",
+          "Chat"."remoteJid",
+          "Contact"."id"
+        ORDER BY "Chat"."updatedAt" DESC;
+        `.then((chats) => {
+      if (chats && isArray(chats) && chats.length > 0) {
+        return chats.map((chat) => {
+          return {
+            ...chat,
+            lastMessage: chat.last_message_id
+              ? {
+                  id: chat.last_message_id,
+                  key: chat.last_message_key,
+                  pushName: chat.last_message_pushName,
+                  participant: chat.last_message_participant,
+                  messageType: chat.last_message_messageType,
+                  message: chat.last_message_message,
+                  contextInfo: chat.last_message_contextInfo,
+                  source: chat.last_message_source,
+                  messageTimestamp: chat.last_message_messageTimestamp,
+                  instanceId: chat.last_message_instanceId,
+                  sessionId: chat.last_message_sessionId,
+                  status: chat.last_message_status,
+                }
+              : undefined,
+          };
+        });
+      }
+
+      return [];
+    });
 
     return result;
   }
