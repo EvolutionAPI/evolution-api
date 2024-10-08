@@ -666,7 +666,6 @@ export class BaileysStartupService extends ChannelStartupService {
             instanceId: this.instanceId,
             remoteJid: chat.id,
             name: chat.name,
-            unreadMessages: typeof chat.unreadCount === 'number' ? chat.unreadCount : 0,
           },
           data: { remoteJid: chat.id },
         });
@@ -1106,6 +1105,11 @@ export class BaileysStartupService extends ChannelStartupService {
               data: messageRaw,
             });
 
+            if (received.key.fromMe === false && msg.status === status[3]) {
+              // is received  not read message
+              await this.updateChatUnreadMessages(received.key.remoteJid);
+            }
+
             if (isMedia) {
               if (this.configService.get<S3>('S3').ENABLE) {
                 try {
@@ -1237,7 +1241,7 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], settings: any) => {
-      const unreadChatToUpdate: Record<string, number> = {}; // {remoteJid: readedMessages}
+      const readChatToUpdate: Record<string, true> = {}; // remoteJid[]
 
       for await (const { key, update } of args) {
         if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
@@ -1309,13 +1313,28 @@ export class BaileysStartupService extends ChannelStartupService {
 
             return;
           } else if (update.status !== undefined && status[update.status] !== findMessage.status) {
-            if (!unreadChatToUpdate[key.remoteJid!]) {
-              unreadChatToUpdate[key.remoteJid!] = 0;
+            if (!key.fromMe && key.remoteJid) {
+              readChatToUpdate[key.remoteJid] = true;
+
+              if (status[update.status] === status[4]) {
+                // Mark to read old messages
+                await this.prismaRepository.message.updateMany({
+                  where: {
+                    AND: [
+                      { key: { path: ['remoteJid'], equals: key.remoteJid } },
+                      { key: { path: ['fromMe'], equals: false } },
+                      { messageTimestamp: { lt: findMessage.messageTimestamp } }, // Delivered messages
+                      {
+                        OR: [{ status: null }, { status: status[3] }],
+                      },
+                    ],
+                  },
+                  data: { status: status[4] },
+                });
+              }
             }
 
-            unreadChatToUpdate[key.remoteJid!]++;
-
-            this.prismaRepository.message.update({
+            await this.prismaRepository.message.update({
               where: { id: findMessage.id },
               data: { status: status[update.status] },
             });
@@ -1341,16 +1360,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      for await (const [remoteJid, unreadMessages] of Object.entries(unreadChatToUpdate)) {
-        const chat = await this.prismaRepository.chat.findFirst({ where: { remoteJid } });
-
-        if (chat) {
-          this.prismaRepository.chat.update({
-            where: { id: chat.id },
-            data: { unreadMessages: Math.max(0, chat.unreadMessages - unreadMessages) },
-          });
-        }
-      }
+      await Promise.all(Object.keys(readChatToUpdate).map((remoteJid) => this.updateChatUnreadMessages(remoteJid)));
     },
   };
 
@@ -3708,6 +3718,10 @@ export class BaileysStartupService extends ChannelStartupService {
       source: getDevice(message.key.id),
     };
 
+    if (!messageRaw.status && message.key.fromMe === false) {
+      messageRaw.status = status[3]; // DELIVERED MESSAGE
+    }
+
     if (messageRaw.message.extendedTextMessage) {
       messageRaw.messageType = 'conversation';
       messageRaw.message.conversation = messageRaw.message.extendedTextMessage.text;
@@ -3734,5 +3748,29 @@ export class BaileysStartupService extends ChannelStartupService {
       });
       task.start();
     }
+  }
+
+  private async updateChatUnreadMessages(remoteJid: string): Promise<number> {
+    const [chat, unreadMessages] = await Promise.all([
+      this.prismaRepository.chat.findFirst({ where: { remoteJid } }),
+      this.prismaRepository.message.count({
+        where: {
+          AND: [
+            { key: { path: ['remoteJid'], equals: remoteJid } },
+            { key: { path: ['fromMe'], equals: false } },
+            { status: { equals: status[3] } },
+          ],
+        },
+      }),
+    ]);
+
+    if (chat && chat.unreadMessages !== unreadMessages) {
+      await this.prismaRepository.chat.update({
+        where: { id: chat.id },
+        data: { unreadMessages },
+      });
+    }
+
+    return unreadMessages;
   }
 }
