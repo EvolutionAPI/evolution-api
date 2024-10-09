@@ -11,10 +11,7 @@ const logger = new Logger('KwikController');
 
 type SearchObject = {
   text_search: string;
-  where: {
-    owner: string;
-    messageTimestamp: Record<string, any>; // Generic key-value pair
-  }[];
+  where: string[];
 };
 
 export class KwikController {
@@ -208,37 +205,45 @@ export class KwikController {
   }
 
   public async textSearch({ instanceName }: InstanceDto, query: SearchObject) {
-    logger.error('request received in textSearch');
-    logger.error(instanceName);
-    logger.error(query);
+    logger.verbose('request received in textSearch');
+    logger.verbose(instanceName);
+    logger.verbose(query);
 
     const db = configService.get<Database>('DATABASE');
     const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
-    query.where.forEach((w) => {
-      logger.error(w.messageTimestamp);
-      logger.error(w.owner);
-    });
     const messages = await connection
       .collection('messages')
       .find({
-        // $and: [
-        //   {
-        //     $or: query.where,
-        //   },
-        //   {
+        owner: { $in: query.where },
         $text: { $search: query.text_search },
-        //   },
-        // ],
       })
-      .limit(10)
+      .limit(100)
       .toArray();
 
-    // const conversations = messages.map((m) => `${m.owner}#${m.key.remoteJid}#${m.messageTimestamp}`);
-    // logger.error('DELETEME: messages -> ');
-    // logger.error(conversations);
+    const data = [];
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      const info = message.key.remoteJid.split('@');
+      let type;
+      let tinfo;
+      if (info[1] == 'g.us') {
+        tinfo = await this.waMonitor.waInstances[message.owner].findGroup({ groupJid: message.key.remoteJid }, 'inner');
 
-    // logger.error(messages.length);
+        type = 'GROUP';
+      } else {
+        tinfo = await connection.collection('contacts').findOne({ owner: message.owner, id: message.key.remoteJid });
+        type = 'CONTACT';
+      }
+      data.push({
+        message: message,
 
-    return { messages };
+        owner: message.owner,
+        conversation: `${message.owner}#${info}`,
+        type: type,
+        info: tinfo,
+      });
+    }
+
+    return { data };
   }
 }
