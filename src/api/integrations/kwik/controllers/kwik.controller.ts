@@ -221,17 +221,44 @@ export class KwikController {
       .toArray();
 
     const data = [];
+
+    const uniqueContacts = Array.from(
+      new Set(messages.filter((m) => !m.key.remoteJid.includes('@g.us')).map((m) => `${m.owner}#${m.key.remoteJid}`)),
+    );
+    const contacts_promises = uniqueContacts.map((m) => {
+      return connection.collection('contacts').findOne({ owner: m.split('#')[0], id: m.split('#')[1] });
+    });
+    const uniqueGroups = Array.from(
+      new Set(messages.filter((m) => m.key.remoteJid.includes('@g.us')).map((m) => `${m.owner}#${m.key.remoteJid}`)),
+    );
+
+    const groups_promises = uniqueGroups.map(async (g) => {
+      const instanceName = g.split('#')[0];
+      const groupJid = g.split('#')[1];
+      const group = await this.waMonitor.waInstances[instanceName].findGroup({ groupJid }, 'inner');
+
+      return group ? { ...group, instanceName } : null;
+    });
+
+    const [...contacts_solved] = await Promise.all([...contacts_promises]);
+    const [...groups_solved] = await Promise.all([...groups_promises]);
+
+    const contacts = Object.fromEntries(contacts_solved.map((c) => [`${c.owner}#${c.id}`, c]));
+    const groups = Object.fromEntries(
+      groups_solved.filter((g) => g !== null).map((g) => [`${g.instanceName}#${g.id}`, g]),
+    );
+
     for (let i = 0; i < messages.length; i++) {
       const message = messages[i];
       const info = message.key.remoteJid.split('@');
       let type;
       let tinfo;
       if (info[1] == 'g.us') {
-        tinfo = await this.waMonitor.waInstances[message.owner].findGroup({ groupJid: message.key.remoteJid }, 'inner');
+        tinfo = groups[`${message.owner}#${message.key.remoteJid}`];
 
         type = 'GROUP';
       } else {
-        tinfo = await connection.collection('contacts').findOne({ owner: message.owner, id: message.key.remoteJid });
+        tinfo = contacts[`${message.owner}#${message.key.remoteJid}`];
         type = 'CONTACT';
       }
       data.push({
