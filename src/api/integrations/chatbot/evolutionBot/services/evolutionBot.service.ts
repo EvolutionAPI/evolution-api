@@ -190,21 +190,51 @@ export class EvolutionBotService {
     }
 
     if (textBuffer.trim()) {
-      await instance.textMessage(
-        {
-          number: remoteJid.split('@')[0],
-          delay: settings?.delayMessage || 1000,
-          text: textBuffer.trim(),
-        },
-        false,
-      );
+
+      const multipleMessages = textBuffer.trim().split("\n\n");
+
+      if (multipleMessages) {
+        for (let index = 0; index < multipleMessages.length; index++) {
+          const message = multipleMessages[index];
+
+          const delayPerChar = 200 
+          const minDelay = 1000
+          const maxDelay = 20000
+          const delay = Math.min(Math.max(message.length * delayPerChar, minDelay), maxDelay);
+
+
+
+          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+            await instance.client.presenceSubscribe(remoteJid);
+            await instance.client.sendPresenceUpdate('composing', remoteJid);
+          }
+          
+          await new Promise<void>((resolve) => {
+            setTimeout(async () => {
+              await instance.textMessage(
+                {
+                  number: remoteJid.split('@')[0],
+                  delay: settings?.delayMessage || 1000, 
+                  text: message,
+                },
+                false
+              );
+              resolve();
+            }, delay);
+          });
+
+          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+            await instance.client.sendPresenceUpdate('paused', remoteJid);
+          }
+        }
+      }
     }
 
     sendTelemetry('/message/sendText');
 
     await this.prismaRepository.integrationSession.update({
       where: {
-        id: session.id,
+        id: session.id, 
       },
       data: {
         status: 'opened',
