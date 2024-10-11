@@ -101,6 +101,7 @@ import makeWASocket, {
   isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
+  MessageUserReceiptUpdate,
   MiscMessageGenerationOptions,
   ParticipantAction,
   prepareWAMessageMedia,
@@ -1112,12 +1113,18 @@ export class BaileysStartupService extends ChannelStartupService {
             if (received.key.fromMe === false) {
               if (msg.status === status[3]) {
                 this.logger.log(`Update not read messages ${received.key.remoteJid}`);
-                // is received  not read message
+
                 await this.updateChatUnreadMessages(received.key.remoteJid);
               } else if (msg.status === status[4]) {
                 this.logger.log(`Update readed messages ${received.key.remoteJid} - ${msg.messageTimestamp}`);
-                this.updateMessagesReadedByTimestamp(received.key.remoteJid, msg.messageTimestamp);
+
+                await this.updateMessagesReadedByTimestamp(received.key.remoteJid, msg.messageTimestamp);
               }
+            } else {
+              // is send message by me
+              this.logger.log(`Update readed messages ${received.key.remoteJid} - ${msg.messageTimestamp}`);
+
+              await this.updateMessagesReadedByTimestamp(received.key.remoteJid, msg.messageTimestamp);
             }
 
             if (isMedia) {
@@ -1250,6 +1257,8 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], settings: any) => {
+      this.logger.log(`Update messages ${JSON.stringify(args, undefined, 2)}`);
+
       const readChatToUpdate: Record<string, true> = {}; // {remoteJid: true}
 
       for await (const { key, update } of args) {
@@ -1514,12 +1523,30 @@ export class BaileysStartupService extends ChannelStartupService {
           this.messageHandle['messages.update'](payload, settings);
         }
 
+        if (events['message-receipt.update']) {
+          const payload = events['message-receipt.update'] as MessageUserReceiptUpdate[];
+          const remotesJidMap: Record<string, number> = {};
+
+          for (const event of payload) {
+            if (typeof event.key.remoteJid === 'string' && typeof event.receipt.readTimestamp === 'number') {
+              remotesJidMap[event.key.remoteJid] = event.receipt.readTimestamp;
+            }
+          }
+
+          await Promise.all(
+            Object.keys(remotesJidMap).map(async (remoteJid) =>
+              this.updateMessagesReadedByTimestamp(remoteJid, remotesJidMap[remoteJid]),
+            ),
+          );
+        }
+
         if (events['presence.update']) {
           const payload = events['presence.update'];
 
           if (settings?.groupsIgnore && payload.id.includes('@g.us')) {
             return;
           }
+
           this.sendDataWebhook(Events.PRESENCE_UPDATE, payload);
         }
 
@@ -3768,6 +3795,10 @@ export class BaileysStartupService extends ChannelStartupService {
     });
 
     if (result) {
+      if (result.count > 0) {
+        this.updateChatUnreadMessages(remoteJid);
+      }
+
       return result.count;
     }
 
