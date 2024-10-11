@@ -119,6 +119,7 @@ export class EvolutionBotService {
 
     let match: RegExpExecArray | null;
 
+
     const getMediaType = (url: string): string | null => {
       const extension = url.split('.').pop()?.toLowerCase();
       const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
@@ -189,45 +190,52 @@ export class EvolutionBotService {
       }
     }
 
-    if (textBuffer.trim()) {
+    const splitMessages = settings.splitMessages ?? false; 
+    const timePerChar = settings.timePerChar ?? 0; 
+    const minDelay = 1000;
+    const maxDelay = 20000;
 
+    if (splitMessages) {
       const multipleMessages = textBuffer.trim().split("\n\n");
-
-      if (multipleMessages) {
-        for (let index = 0; index < multipleMessages.length; index++) {
-          const message = multipleMessages[index];
-
-          const delayPerChar = 200 
-          const minDelay = 1000
-          const maxDelay = 20000
-          const delay = Math.min(Math.max(message.length * delayPerChar, minDelay), maxDelay);
-
-
-
-          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-            await instance.client.presenceSubscribe(remoteJid);
-            await instance.client.sendPresenceUpdate('composing', remoteJid);
-          }
-          
-          await new Promise<void>((resolve) => {
-            setTimeout(async () => {
-              await instance.textMessage(
-                {
-                  number: remoteJid.split('@')[0],
-                  delay: settings?.delayMessage || 1000, 
-                  text: message,
-                },
-                false
-              );
-              resolve();
-            }, delay);
-          });
-
-          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-            await instance.client.sendPresenceUpdate('paused', remoteJid);
-          }
+    
+      for (let index = 0; index < multipleMessages.length; index++) {
+        const message = multipleMessages[index];
+    
+        const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
+    
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.presenceSubscribe(remoteJid);
+          await instance.client.sendPresenceUpdate('composing', remoteJid);
+        }
+    
+        await new Promise<void>((resolve) => {
+          setTimeout(async () => {
+            await instance.textMessage(
+              {
+                number: remoteJid.split('@')[0],
+                delay: settings?.delayMessage || 1000,
+                text: message,
+              },
+              false
+            );
+            resolve();
+          }, delay);
+        });
+    
+        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+          await instance.client.sendPresenceUpdate('paused', remoteJid);
         }
       }
+    } else {
+      
+      await instance.textMessage(
+        {
+          number: remoteJid.split('@')[0],
+          delay: settings?.delayMessage || 1000,
+          text: textBuffer.trim(),
+        },
+        false
+      );
     }
 
     sendTelemetry('/message/sendText');
