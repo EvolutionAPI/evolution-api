@@ -104,6 +104,7 @@ model Instance {
   EvolutionBotSetting     EvolutionBotSetting?
   Flowise                 Flowise[]
   FlowiseSetting          FlowiseSetting?
+  Pusher                  Pusher?
 }
 
 model Session {
@@ -115,15 +116,15 @@ model Session {
 }
 
 model Chat {
-  id         String    @id @default(cuid())
-  remoteJid  String    @db.VarChar(100)
-  name       String?   @db.VarChar(100)
-  labels     Json?     @db.JsonB
-  createdAt  DateTime? @default(now()) @db.Timestamp
-  updatedAt  DateTime? @updatedAt @db.Timestamp
-  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId String
-  unreadMessages Int @default(0)
+  id             String    @id @default(cuid())
+  remoteJid      String    @db.VarChar(100)
+  name           String?   @db.VarChar(100)
+  labels         Json?     @db.JsonB
+  createdAt      DateTime? @default(now()) @db.Timestamp
+  updatedAt      DateTime? @updatedAt @db.Timestamp
+  Instance       Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId     String
+  unreadMessages Int       @default(0)
 }
 
 model Contact {
@@ -284,6 +285,21 @@ model Sqs {
 model Websocket {
   id         String    @id @default(cuid())
   enabled    Boolean   @default(false) @db.Boolean
+  events     Json      @db.JsonB
+  createdAt  DateTime? @default(now()) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
+}
+
+model Pusher {
+  id         String    @id @default(cuid())
+  enabled    Boolean   @default(false) @db.Boolean
+  appId      String    @db.VarChar(100)
+  key        String    @db.VarChar(100)
+  secret     String    @db.VarChar(100)
+  cluster    String    @db.VarChar(100)
+  useTLS     Boolean   @default(false) @db.Boolean
   events     Json      @db.JsonB
   createdAt  DateTime? @default(now()) @db.Timestamp
   updatedAt  DateTime  @updatedAt @db.Timestamp

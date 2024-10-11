@@ -3,6 +3,7 @@ import { v4 } from 'uuid';
 
 import { EventController } from './event.controller';
 
+export * from '@api/integrations/event/pusher/pusher.schema';
 export * from '@api/integrations/event/webhook/webhook.schema';
 
 export const eventSchema: JSONSchema7 = {

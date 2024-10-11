@@ -25,6 +25,16 @@ export class EventDto {
     enabled?: boolean;
     events?: string[];
   };
+
+  pusher?: {
+    enabled?: boolean;
+    appId?: string;
+    key?: string;
+    secret?: string;
+    cluster?: string;
+    useTLS?: boolean;
+    events?: string[];
+  };
 }
 
 export function EventInstanceMixin<TBase extends Constructor>(Base: TBase) {
@@ -50,6 +60,16 @@ export function EventInstanceMixin<TBase extends Constructor>(Base: TBase) {
 
     rabbitmq?: {
       enabled?: boolean;
+      events?: string[];
+    };
+
+    pusher?: {
+      enabled?: boolean;
+      appId?: string;
+      key?: string;
+      secret?: string;
+      cluster?: string;
+      useTLS?: boolean;
       events?: string[];
     };
   };

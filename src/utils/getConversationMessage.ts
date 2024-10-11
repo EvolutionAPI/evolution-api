@@ -57,7 +57,7 @@ const getMessageContent = (types: any) => {
   let result = typeKey ? types[typeKey] : undefined;
 
   if (types.externalAdReplyBody) {
-      result = result ? `${result}\n${types.externalAdReplyBody}` : types.externalAdReplyBody;
+    result = result ? `${result}\n${types.externalAdReplyBody}` : types.externalAdReplyBody;
   }
 
   return result;

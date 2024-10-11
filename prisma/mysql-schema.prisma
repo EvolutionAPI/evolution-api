@@ -104,6 +104,7 @@ model Instance {
   EvolutionBotSetting     EvolutionBotSetting?
   Flowise                 Flowise[]
   FlowiseSetting          FlowiseSetting?
+  Pusher                  Pusher?
 }
 
 model Session {
@@ -282,6 +283,21 @@ model Sqs {
 model Websocket {
   id         String    @id @default(cuid())
   enabled    Boolean   @default(false)
+  events     Json      @db.Json
+  createdAt  DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
+}
+
+model Pusher {
+  id         String    @id @default(cuid())
+  enabled    Boolean   @default(false)
+  appId      String    @db.VarChar(100)
+  key        String    @db.VarChar(100)
+  secret     String    @db.VarChar(100)
+  cluster    String    @db.VarChar(100)
+  useTLS     Boolean   @default(false)
   events     Json      @db.Json
   createdAt  DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
   updatedAt  DateTime  @updatedAt @db.Timestamp

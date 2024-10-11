@@ -99,6 +99,14 @@ export declare namespace wa {
     webhookBase64?: boolean;
   };
 
+  export type LocalPusher = LocalEvent & {
+    appId?: string;
+    key?: string;
+    secret?: string;
+    cluster?: string;
+    useTLS?: boolean;
+  };
+
   type Session = {
     remoteJid?: string;
     sessionId?: string;

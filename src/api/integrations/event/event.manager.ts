@@ -1,3 +1,4 @@
+import { PusherController } from '@api/integrations/event/pusher/pusher.controller';
 import { RabbitmqController } from '@api/integrations/event/rabbitmq/rabbitmq.controller';
 import { SqsController } from '@api/integrations/event/sqs/sqs.controller';
 import { WebhookController } from '@api/integrations/event/webhook/webhook.controller';
@@ -13,6 +14,7 @@ export class EventManager {
   private webhookController: WebhookController;
   private rabbitmqController: RabbitmqController;
   private sqsController: SqsController;
+  private pusherController: PusherController;
 
   constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     this.prisma = prismaRepository;
@@ -22,6 +24,7 @@ export class EventManager {
     this.webhook = new WebhookController(prismaRepository, waMonitor);
     this.rabbitmq = new RabbitmqController(prismaRepository, waMonitor);
     this.sqs = new SqsController(prismaRepository, waMonitor);
+    this.pusher = new PusherController(prismaRepository, waMonitor);
   }
 
   public set prisma(prisma: PrismaRepository) {
@@ -72,10 +75,18 @@ export class EventManager {
     return this.sqsController;
   }
 
+  public set pusher(pusher: PusherController) {
+    this.pusherController = pusher;
+  }
+  public get pusher() {
+    return this.pusherController;
+  }
+
   public init(httpServer: Server): void {
     this.websocket.init(httpServer);
     this.rabbitmq.init();
     this.sqs.init();
+    this.pusher.init();
   }
 
   public async emit(eventData: {
@@ -93,6 +104,7 @@ export class EventManager {
     await this.rabbitmq.emit(eventData);
     await this.sqs.emit(eventData);
     await this.webhook.emit(eventData);
+    await this.pusher.emit(eventData);
   }
 
   public async setInstance(instanceName: string, data: any): Promise<any> {
@@ -129,6 +141,19 @@ export class EventManager {
           headers: data.webhook?.headers,
           base64: data.webhook?.base64,
           byEvents: data.webhook?.byEvents,
+        },
+      });
+
+    if (data.pusher)
+      await this.pusher.set(instanceName, {
+        pusher: {
+          enabled: true,
+          events: data.pusher?.events,
+          appId: data.pusher?.appId,
+          key: data.pusher?.key,
+          secret: data.pusher?.secret,
+          cluster: data.pusher?.cluster,
+          useTLS: data.pusher?.useTLS,
         },
       });
   }
