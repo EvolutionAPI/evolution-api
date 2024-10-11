@@ -115,15 +115,15 @@ model Session {
 }
 
 model Chat {
-  id         String    @id @default(cuid())
-  remoteJid  String    @db.VarChar(100)
-  name       String?   @db.VarChar(100)
-  labels     Json?     @db.JsonB
-  createdAt  DateTime? @default(now()) @db.Timestamp
-  updatedAt  DateTime? @updatedAt @db.Timestamp
-  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId String
-  unreadMessages Int @default(0)
+  id             String    @id @default(cuid())
+  remoteJid      String    @db.VarChar(100)
+  name           String?   @db.VarChar(100)
+  labels         Json?     @db.JsonB
+  createdAt      DateTime? @default(now()) @db.Timestamp
+  updatedAt      DateTime? @updatedAt @db.Timestamp
+  Instance       Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId     String
+  unreadMessages Int       @default(0)
 }
 
 model Contact {
@@ -505,6 +505,8 @@ model EvolutionBot {
   keepOpen            Boolean?              @default(false) @db.Boolean
   debounceTime        Int?                  @db.Integer
   ignoreJids          Json?
+  splitMessages       Boolean?              @default(false) @db.Boolean
+  timePerChar         Int?                  @default(50) @db.Integer
   triggerType         TriggerType?
   triggerOperator     TriggerOperator?
   triggerValue        String?
@@ -526,6 +528,8 @@ model EvolutionBotSetting {
   keepOpen        Boolean?      @default(false) @db.Boolean
   debounceTime    Int?          @db.Integer
   ignoreJids      Json?
+  splitMessages   Boolean?      @default(false) @db.Boolean
+  timePerChar     Int?          @default(0) @db.Integer
   createdAt       DateTime?     @default(now()) @db.Timestamp
   updatedAt       DateTime      @updatedAt @db.Timestamp
   Fallback        EvolutionBot? @relation(fields: [botIdFallback], references: [id])
