@@ -767,7 +767,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
       if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
       if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
       if (!keepOpen) keepOpen = settings.keepOpen;
-      if (!debounceTime) debounceTime = settings.debounceTime;
+      if (debounceTime === undefined || debounceTime === null) debounceTime = settings.debounceTime;
       if (!ignoreJids) ignoreJids = settings.ignoreJids;
       if (splitMessages === undefined || splitMessages === null) splitMessages = settings?.splitMessages ?? false;
       if (timePerChar === undefined || timePerChar === null) timePerChar = settings?.timePerChar ?? 0;

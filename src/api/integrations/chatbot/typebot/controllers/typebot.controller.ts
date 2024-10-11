@@ -670,52 +670,6 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         'init',
         prefilledVariables,
       );
-
-      // const response = await this.typebotService.createNewSession(instanceData, {
-      //   enabled: true,
-      //   url: url,
-      //   typebot: typebot,
-      //   remoteJid: remoteJid,
-      //   expire: expire,
-      //   keywordFinish: keywordFinish,
-      //   delayMessage: delayMessage,
-      //   unknownMessage: unknownMessage,
-      //   listeningFromMe: listeningFromMe,
-      //   stopBotFromMe: stopBotFromMe,
-      //   keepOpen: keepOpen,
-      //   prefilledVariables: prefilledVariables,
-      //   typebotId: findBot.id,
-      // });
-
-      // if (response.session) {
-      //   await this.typebotService.sendWAMessage(
-      //     instanceData,
-      //     response.session,
-      //     {
-      //       expire: expire,
-      //       keywordFinish: keywordFinish,
-      //       delayMessage: delayMessage,
-      //       unknownMessage: unknownMessage,
-      //       listeningFromMe: listeningFromMe,
-      //       stopBotFromMe: stopBotFromMe,
-      //       keepOpen: keepOpen,
-      //     },
-      //     remoteJid,
-      //     response.messages,
-      //     response.input,
-      //     response.clientSideActions,
-      //   );
-
-      //   this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
-      //     remoteJid: remoteJid,
-      //     url: url,
-      //     typebot: typebot,
-      //     prefilledVariables: prefilledVariables,
-      //     sessionId: `${response.sessionId}`,
-      //   });
-      // } else {
-      //   throw new Error('Session ID not found in response');
-      // }
     } else {
       const id = Math.floor(Math.random() * 10000000000).toString();
 
