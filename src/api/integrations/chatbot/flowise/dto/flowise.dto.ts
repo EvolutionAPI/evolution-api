@@ -17,6 +17,8 @@ export class FlowiseDto {
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   ignoreJids?: any;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }
 
 export class FlowiseSettingDto {
@@ -30,4 +32,6 @@ export class FlowiseSettingDto {
   debounceTime?: number;
   flowiseIdFallback?: string;
   ignoreJids?: any;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }

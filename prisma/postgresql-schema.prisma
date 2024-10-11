@@ -395,6 +395,8 @@ model OpenaiBot {
   stopBotFromMe     Boolean?         @default(false) @db.Boolean
   keepOpen          Boolean?         @default(false) @db.Boolean
   debounceTime      Int?             @db.Integer
+  splitMessages     Boolean?         @default(false) @db.Boolean
+  timePerChar       Int?             @default(50) @db.Integer
   ignoreJids        Json?
   triggerType       TriggerType?
   triggerOperator   TriggerOperator?
@@ -438,6 +440,8 @@ model OpenaiSetting {
   keepOpen         Boolean?     @default(false) @db.Boolean
   debounceTime     Int?         @db.Integer
   ignoreJids       Json?
+  splitMessages    Boolean?     @default(false) @db.Boolean
+  timePerChar      Int?         @default(50) @db.Integer
   speechToText     Boolean?     @default(false) @db.Boolean
   createdAt        DateTime?    @default(now()) @db.Timestamp
   updatedAt        DateTime     @updatedAt @db.Timestamp
@@ -477,6 +481,8 @@ model Dify {
   keepOpen        Boolean?         @default(false) @db.Boolean
   debounceTime    Int?             @db.Integer
   ignoreJids      Json?
+  splitMessages   Boolean?         @default(false) @db.Boolean
+  timePerChar     Int?             @default(50) @db.Integer
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
@@ -498,6 +504,8 @@ model DifySetting {
   keepOpen        Boolean?  @default(false) @db.Boolean
   debounceTime    Int?      @db.Integer
   ignoreJids      Json?
+  splitMessages   Boolean?  @default(false) @db.Boolean
+  timePerChar     Int?      @default(50) @db.Integer
   createdAt       DateTime? @default(now()) @db.Timestamp
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Fallback        Dify?     @relation(fields: [difyIdFallback], references: [id])
@@ -521,6 +529,8 @@ model EvolutionBot {
   keepOpen            Boolean?              @default(false) @db.Boolean
   debounceTime        Int?                  @db.Integer
   ignoreJids          Json?
+  splitMessages       Boolean?              @default(false) @db.Boolean
+  timePerChar         Int?                  @default(50) @db.Integer
   triggerType         TriggerType?
   triggerOperator     TriggerOperator?
   triggerValue        String?
@@ -542,6 +552,8 @@ model EvolutionBotSetting {
   keepOpen        Boolean?      @default(false) @db.Boolean
   debounceTime    Int?          @db.Integer
   ignoreJids      Json?
+  splitMessages   Boolean?      @default(false) @db.Boolean
+  timePerChar     Int?          @default(50) @db.Integer
   createdAt       DateTime?     @default(now()) @db.Timestamp
   updatedAt       DateTime      @updatedAt @db.Timestamp
   Fallback        EvolutionBot? @relation(fields: [botIdFallback], references: [id])
@@ -565,6 +577,8 @@ model Flowise {
   keepOpen        Boolean?         @default(false) @db.Boolean
   debounceTime    Int?             @db.Integer
   ignoreJids      Json?
+  splitMessages   Boolean?         @default(false) @db.Boolean
+  timePerChar     Int?             @default(50) @db.Integer
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
@@ -586,6 +600,8 @@ model FlowiseSetting {
   keepOpen          Boolean?  @default(false) @db.Boolean
   debounceTime      Int?      @db.Integer
   ignoreJids        Json?
+  splitMessages     Boolean?  @default(false) @db.Boolean
+  timePerChar       Int?      @default(50) @db.Integer
   createdAt         DateTime? @default(now()) @db.Timestamp
   updatedAt         DateTime  @updatedAt @db.Timestamp
   Fallback          Flowise?  @relation(fields: [flowiseIdFallback], references: [id])

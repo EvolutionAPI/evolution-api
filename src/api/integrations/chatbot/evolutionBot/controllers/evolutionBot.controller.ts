@@ -50,7 +50,9 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
       !data.stopBotFromMe ||
       !data.keepOpen ||
       !data.debounceTime ||
-      !data.ignoreJids
+      !data.ignoreJids ||
+      !data.splitMessages ||
+      !data.timePerChar
     ) {
       const defaultSettingCheck = await this.settingsRepository.findFirst({
         where: {
@@ -67,6 +69,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
       if (!data.keepOpen) data.keepOpen = defaultSettingCheck?.keepOpen || false;
       if (!data.debounceTime) data.debounceTime = defaultSettingCheck?.debounceTime || 0;
       if (!data.ignoreJids) data.ignoreJids = defaultSettingCheck?.ignoreJids || [];
+      if (!data.splitMessages) data.splitMessages = defaultSettingCheck?.splitMessages || false;
+      if (!data.timePerChar) data.timePerChar = defaultSettingCheck?.timePerChar || 0;
 
       if (!defaultSettingCheck) {
         await this.settings(instance, {
@@ -79,6 +83,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         });
       }
     }
@@ -162,6 +168,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -335,6 +343,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -420,6 +430,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
             debounceTime: data.debounceTime,
             botIdFallback: data.botIdFallback,
             ignoreJids: data.ignoreJids,
+            splitMessages: data.splitMessages,
+            timePerChar: data.timePerChar,
           },
         });
 
@@ -434,6 +446,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
           debounceTime: updateSettings.debounceTime,
           botIdFallback: updateSettings.botIdFallback,
           ignoreJids: updateSettings.ignoreJids,
+          splitMessages: updateSettings.splitMessages,
+          timePerChar: updateSettings.timePerChar,
         };
       }
 
@@ -449,6 +463,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
           debounceTime: data.debounceTime,
           botIdFallback: data.botIdFallback,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
           instanceId: instanceId,
         },
       });
@@ -464,6 +480,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
         debounceTime: newSetttings.debounceTime,
         botIdFallback: newSetttings.botIdFallback,
         ignoreJids: newSetttings.ignoreJids,
+        splitMessages: newSetttings.splitMessages,
+        timePerChar: newSetttings.timePerChar,
       };
     } catch (error) {
       this.logger.error(error);
@@ -500,6 +518,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
           stopBotFromMe: false,
           keepOpen: false,
           ignoreJids: [],
+          splitMessages: false,
+          timePerChar: 0,
           botIdFallback: '',
           fallback: null,
         };
@@ -514,6 +534,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
+        splitMessages: settings.splitMessages,
+        timePerChar: settings.timePerChar,
         botIdFallback: settings.botIdFallback,
         fallback: settings.Fallback,
       };
@@ -735,6 +757,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
       let keepOpen = findBot?.keepOpen;
       let debounceTime = findBot?.debounceTime;
       let ignoreJids = findBot?.ignoreJids;
+      let splitMessages = findBot?.splitMessages;
+      let timePerChar = findBot?.timePerChar;
 
       if (!expire) expire = settings.expire;
       if (!keywordFinish) keywordFinish = settings.keywordFinish;
@@ -745,6 +769,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
       if (!keepOpen) keepOpen = settings.keepOpen;
       if (!debounceTime) debounceTime = settings.debounceTime;
       if (!ignoreJids) ignoreJids = settings.ignoreJids;
+      if (splitMessages === undefined || splitMessages === null) splitMessages = settings?.splitMessages ?? false;
+      if (timePerChar === undefined || timePerChar === null) timePerChar = settings?.timePerChar ?? 0;
 
       const key = msg.key as {
         id: string;
@@ -791,6 +817,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
               keepOpen,
               debounceTime,
               ignoreJids,
+              splitMessages,
+              timePerChar,
             },
             debouncedContent,
             msg?.pushName,
@@ -813,6 +841,8 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
             keepOpen,
             debounceTime,
             ignoreJids,
+            splitMessages,
+            timePerChar,
           },
           content,
           msg?.pushName,

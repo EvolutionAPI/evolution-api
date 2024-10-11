@@ -29,6 +29,8 @@ export class OpenaiDto {
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   ignoreJids?: any;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }
 
 export class OpenaiSettingDto {
@@ -44,4 +46,6 @@ export class OpenaiSettingDto {
   openaiIdFallback?: string;
   ignoreJids?: any;
   speechToText?: boolean;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }

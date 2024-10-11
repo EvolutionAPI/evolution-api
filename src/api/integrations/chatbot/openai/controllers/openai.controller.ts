@@ -191,7 +191,9 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
       !data.stopBotFromMe ||
       !data.keepOpen ||
       !data.debounceTime ||
-      !data.ignoreJids
+      !data.ignoreJids ||
+      !data.splitMessages ||
+      !data.timePerChar
     ) {
       const defaultSettingCheck = await this.settingsRepository.findFirst({
         where: {
@@ -209,6 +211,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
       if (!data.keepOpen) data.keepOpen = defaultSettingCheck?.keepOpen || false;
       if (!data.debounceTime) data.debounceTime = defaultSettingCheck?.debounceTime || 0;
       if (!data.ignoreJids) data.ignoreJids = defaultSettingCheck?.ignoreJids || [];
+      if (!data.splitMessages) data.splitMessages = defaultSettingCheck?.splitMessages || false;
+      if (!data.timePerChar) data.timePerChar = defaultSettingCheck?.timePerChar || 0;
 
       if (!data.openaiCredsId) {
         throw new Error('Openai Creds Id is required');
@@ -226,6 +230,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         });
       }
     }
@@ -338,6 +344,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -546,6 +554,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -637,6 +647,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
             speechToText: data.speechToText,
             openaiIdFallback: data.openaiIdFallback,
             ignoreJids: data.ignoreJids,
+            splitMessages: data.splitMessages,
+            timePerChar: data.timePerChar,
           },
         });
 
@@ -653,6 +665,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           speechToText: updateSettings.speechToText,
           openaiIdFallback: updateSettings.openaiIdFallback,
           ignoreJids: updateSettings.ignoreJids,
+          splitMessages: updateSettings.splitMessages,
+          timePerChar: updateSettings.timePerChar,
         };
       }
 
@@ -671,6 +685,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           ignoreJids: data.ignoreJids,
           speechToText: data.speechToText,
           instanceId: instanceId,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -686,6 +702,9 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
         debounceTime: newSetttings.debounceTime,
         openaiIdFallback: newSetttings.openaiIdFallback,
         ignoreJids: newSetttings.ignoreJids,
+        speechToText: newSetttings.speechToText,
+        splitMessages: newSetttings.splitMessages,
+        timePerChar: newSetttings.timePerChar,
       };
     } catch (error) {
       this.logger.error(error);
@@ -726,6 +745,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
           stopBotFromMe: false,
           keepOpen: false,
           ignoreJids: [],
+          splitMessages: false,
+          timePerChar: 0,
           openaiIdFallback: null,
           speechToText: false,
           fallback: null,
@@ -742,6 +763,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
+        splitMessages: settings.splitMessages,
+        timePerChar: settings.timePerChar,
         openaiIdFallback: settings.openaiIdFallback,
         speechToText: settings.speechToText,
         fallback: settings.Fallback,
@@ -972,6 +995,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
       let keepOpen = findBot?.keepOpen;
       let debounceTime = findBot?.debounceTime;
       let ignoreJids = findBot?.ignoreJids;
+      let splitMessages = findBot?.splitMessages;
+      let timePerChar = findBot?.timePerChar;
 
       if (!expire) expire = settings.expire;
       if (!keywordFinish) keywordFinish = settings.keywordFinish;
@@ -982,6 +1007,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
       if (!keepOpen) keepOpen = settings.keepOpen;
       if (!debounceTime) debounceTime = settings.debounceTime;
       if (!ignoreJids) ignoreJids = settings.ignoreJids;
+      if (splitMessages === undefined || splitMessages === null) splitMessages = settings?.splitMessages ?? false;
+      if (timePerChar === undefined || timePerChar === null) timePerChar = settings?.timePerChar ?? 0;
 
       const key = msg.key as {
         id: string;
@@ -1030,6 +1057,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
                 keepOpen,
                 debounceTime,
                 ignoreJids,
+                splitMessages,
+                timePerChar,
               },
               debouncedContent,
             );
@@ -1053,6 +1082,8 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
                 keepOpen,
                 debounceTime,
                 ignoreJids,
+                splitMessages,
+                timePerChar,
               },
               debouncedContent,
             );

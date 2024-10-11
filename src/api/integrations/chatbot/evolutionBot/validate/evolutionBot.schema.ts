@@ -40,6 +40,8 @@ export const evolutionBotSchema: JSONSchema7 = {
     keepOpen: { type: 'boolean' },
     debounceTime: { type: 'integer' },
     ignoreJids: { type: 'array', items: { type: 'string' } },
+    splitMessages: { type: 'boolean' },
+    timePerChar: { type: 'integer' },
   },
   required: ['enabled', 'apiUrl', 'triggerType'],
   ...isNotEmpty('enabled', 'apiUrl', 'triggerType'),
@@ -70,6 +72,8 @@ export const evolutionBotSettingSchema: JSONSchema7 = {
     debounceTime: { type: 'integer' },
     ignoreJids: { type: 'array', items: { type: 'string' } },
     botIdFallback: { type: 'string' },
+    splitMessages: { type: 'boolean' },
+    timePerChar: { type: 'integer' },
   },
   required: [
     'expire',
@@ -81,6 +85,8 @@ export const evolutionBotSettingSchema: JSONSchema7 = {
     'keepOpen',
     'debounceTime',
     'ignoreJids',
+    'splitMessages',
+    'timePerChar',
   ],
   ...isNotEmpty(
     'expire',
@@ -92,6 +98,8 @@ export const evolutionBotSettingSchema: JSONSchema7 = {
     'keepOpen',
     'debounceTime',
     'ignoreJids',
+    'splitMessages',
+    'timePerChar',
   ),
 };
 

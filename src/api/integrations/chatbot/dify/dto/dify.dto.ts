@@ -18,6 +18,8 @@ export class DifyDto {
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   ignoreJids?: any;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }
 
 export class DifySettingDto {
@@ -31,4 +33,6 @@ export class DifySettingDto {
   debounceTime?: number;
   difyIdFallback?: string;
   ignoreJids?: any;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }

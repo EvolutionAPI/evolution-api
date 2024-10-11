@@ -54,7 +54,9 @@ export class DifyController extends ChatbotController implements ChatbotControll
       !data.stopBotFromMe ||
       !data.keepOpen ||
       !data.debounceTime ||
-      !data.ignoreJids
+      !data.ignoreJids ||
+      !data.splitMessages ||
+      !data.timePerChar
     ) {
       const defaultSettingCheck = await this.settingsRepository.findFirst({
         where: {
@@ -71,6 +73,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
       if (!data.keepOpen) data.keepOpen = defaultSettingCheck?.keepOpen || false;
       if (!data.debounceTime) data.debounceTime = defaultSettingCheck?.debounceTime || 0;
       if (!data.ignoreJids) data.ignoreJids = defaultSettingCheck?.ignoreJids || [];
+      if (!data.splitMessages) data.splitMessages = defaultSettingCheck?.splitMessages || false;
+      if (!data.timePerChar) data.timePerChar = defaultSettingCheck?.timePerChar || 0;
 
       if (!defaultSettingCheck) {
         await this.settings(instance, {
@@ -83,6 +87,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
           keepOpen: data.keepOpen,
           debounceTime: data.debounceTime,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         });
       }
     }
@@ -168,6 +174,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -349,6 +357,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
           triggerOperator: data.triggerOperator,
           triggerValue: data.triggerValue,
           ignoreJids: data.ignoreJids,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -438,6 +448,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
             debounceTime: data.debounceTime,
             difyIdFallback: data.difyIdFallback,
             ignoreJids: data.ignoreJids,
+            splitMessages: data.splitMessages,
+            timePerChar: data.timePerChar,
           },
         });
 
@@ -452,6 +464,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
           debounceTime: updateSettings.debounceTime,
           difyIdFallback: updateSettings.difyIdFallback,
           ignoreJids: updateSettings.ignoreJids,
+          splitMessages: updateSettings.splitMessages,
+          timePerChar: updateSettings.timePerChar,
         };
       }
 
@@ -468,6 +482,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
           difyIdFallback: data.difyIdFallback,
           ignoreJids: data.ignoreJids,
           instanceId: instanceId,
+          splitMessages: data.splitMessages,
+          timePerChar: data.timePerChar,
         },
       });
 
@@ -482,6 +498,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
         debounceTime: newSetttings.debounceTime,
         difyIdFallback: newSetttings.difyIdFallback,
         ignoreJids: newSetttings.ignoreJids,
+        splitMessages: newSetttings.splitMessages,
+        timePerChar: newSetttings.timePerChar,
       };
     } catch (error) {
       this.logger.error(error);
@@ -520,6 +538,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
           stopBotFromMe: false,
           keepOpen: false,
           ignoreJids: [],
+          splitMessages: false,
+          timePerChar: 0,
           difyIdFallback: '',
           fallback: null,
         };
@@ -534,6 +554,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
         stopBotFromMe: settings.stopBotFromMe,
         keepOpen: settings.keepOpen,
         ignoreJids: settings.ignoreJids,
+        splitMessages: settings.splitMessages,
+        timePerChar: settings.timePerChar,
         difyIdFallback: settings.difyIdFallback,
         fallback: settings.Fallback,
       };
@@ -763,6 +785,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
       let keepOpen = findBot?.keepOpen;
       let debounceTime = findBot?.debounceTime;
       let ignoreJids = findBot?.ignoreJids;
+      let splitMessages = findBot?.splitMessages;
+      let timePerChar = findBot?.timePerChar;
 
       if (!expire) expire = settings.expire;
       if (!keywordFinish) keywordFinish = settings.keywordFinish;
@@ -771,8 +795,10 @@ export class DifyController extends ChatbotController implements ChatbotControll
       if (!listeningFromMe) listeningFromMe = settings.listeningFromMe;
       if (!stopBotFromMe) stopBotFromMe = settings.stopBotFromMe;
       if (!keepOpen) keepOpen = settings.keepOpen;
-      if (!debounceTime) debounceTime = settings.debounceTime;
+      if (debounceTime === undefined || debounceTime === null) debounceTime = settings.debounceTime;
       if (!ignoreJids) ignoreJids = settings.ignoreJids;
+      if (splitMessages === undefined || splitMessages === null) splitMessages = settings?.splitMessages ?? false;
+      if (timePerChar === undefined || timePerChar === null) timePerChar = settings?.timePerChar ?? 0;
 
       const key = msg.key as {
         id: string;
@@ -819,6 +845,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
               keepOpen,
               debounceTime,
               ignoreJids,
+              splitMessages,
+              timePerChar,
             },
             debouncedContent,
             msg?.pushName,
@@ -841,6 +869,8 @@ export class DifyController extends ChatbotController implements ChatbotControll
             keepOpen,
             debounceTime,
             ignoreJids,
+            splitMessages,
+            timePerChar,
           },
           content,
           msg?.pushName,

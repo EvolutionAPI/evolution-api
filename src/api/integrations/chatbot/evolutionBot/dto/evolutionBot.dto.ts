@@ -17,6 +17,8 @@ export class EvolutionBotDto {
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   ignoreJids?: any;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }
 
 export class EvolutionBotSettingDto {
@@ -30,4 +32,6 @@ export class EvolutionBotSettingDto {
   debounceTime?: number;
   botIdFallback?: string;
   ignoreJids?: any;
+  splitMessages?: boolean;
+  timePerChar?: number;
 }

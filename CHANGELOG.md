@@ -5,6 +5,7 @@
 * Fake Call function
 * Added unreadMessages to chats
 * Pusher event integration
+* Add support for splitMessages and timePerChar in Integrations
 
 ### Fixed
 

@@ -143,16 +143,54 @@ export class FlowiseService {
       }
 
       if (mediaType) {
+        const splitMessages = settings.splitMessages ?? false;
+        const timePerChar = settings.timePerChar ?? 0;
+        const minDelay = 1000;
+        const maxDelay = 20000;
+
         if (textBuffer.trim()) {
-          await instance.textMessage(
-            {
-              number: remoteJid.split('@')[0],
-              delay: settings?.delayMessage || 1000,
-              text: textBuffer.trim(),
-            },
-            false,
-          );
-          textBuffer = '';
+          if (splitMessages) {
+            const multipleMessages = textBuffer.trim().split('\n\n');
+
+            for (let index = 0; index < multipleMessages.length; index++) {
+              const message = multipleMessages[index];
+
+              const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
+
+              if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+                await instance.client.presenceSubscribe(remoteJid);
+                await instance.client.sendPresenceUpdate('composing', remoteJid);
+              }
+
+              await new Promise<void>((resolve) => {
+                setTimeout(async () => {
+                  await instance.textMessage(
+                    {
+                      number: remoteJid.split('@')[0],
+                      delay: settings?.delayMessage || 1000,
+                      text: message,
+                    },
+                    false,
+                  );
+                  resolve();
+                }, delay);
+              });
+
+              if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+                await instance.client.sendPresenceUpdate('paused', remoteJid);
+              }
+            }
+          } else {
+            await instance.textMessage(
+              {
+                number: remoteJid.split('@')[0],
+                delay: settings?.delayMessage || 1000,
+                text: textBuffer.trim(),
+              },
+              false,
+            );
+            textBuffer = '';
+          }
         }
 
         if (mediaType === 'audio') {
@@ -189,15 +227,54 @@ export class FlowiseService {
       }
     }
 
+    const splitMessages = settings.splitMessages ?? false;
+    const timePerChar = settings.timePerChar ?? 0;
+    const minDelay = 1000;
+    const maxDelay = 20000;
+
     if (textBuffer.trim()) {
-      await instance.textMessage(
-        {
-          number: remoteJid.split('@')[0],
-          delay: settings?.delayMessage || 1000,
-          text: textBuffer.trim(),
-        },
-        false,
-      );
+      if (splitMessages) {
+        const multipleMessages = textBuffer.trim().split('\n\n');
+
+        for (let index = 0; index < multipleMessages.length; index++) {
+          const message = multipleMessages[index];
+
+          const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
+
+          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+            await instance.client.presenceSubscribe(remoteJid);
+            await instance.client.sendPresenceUpdate('composing', remoteJid);
+          }
+
+          await new Promise<void>((resolve) => {
+            setTimeout(async () => {
+              await instance.textMessage(
+                {
+                  number: remoteJid.split('@')[0],
+                  delay: settings?.delayMessage || 1000,
+                  text: message,
+                },
+                false,
+              );
+              resolve();
+            }, delay);
+          });
+
+          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+            await instance.client.sendPresenceUpdate('paused', remoteJid);
+          }
+        }
+      } else {
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: textBuffer.trim(),
+          },
+          false,
+        );
+        textBuffer = '';
+      }
     }
 
     sendTelemetry('/message/sendText');
