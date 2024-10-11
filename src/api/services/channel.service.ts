@@ -662,9 +662,8 @@ export class ChannelStartupService {
           GROUP BY
             "Chat"."id",
             "Chat"."remoteJid",
-            "Contact"."id",
-            "Message"."messageTimestamp"
-          ORDER BY "Message"."messageTimestamp" DESC NULLS LAST, "Chat"."updatedAt" DESC;
+            "Contact"."id"
+          ORDER BY last_message_messageTimestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
           `;
     } else {
       results = await this.prismaRepository.$queryRaw`
@@ -698,9 +697,8 @@ export class ChannelStartupService {
           GROUP BY
             "Chat"."id",
             "Chat"."remoteJid",
-            "Contact"."id",
-            "Message"."messageTimestamp"
-          ORDER BY "Message"."messageTimestamp" DESC NULLS LAST, "Chat"."updatedAt" DESC;
+            "Contact"."id"
+          ORDER BY last_message_messageTimestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
           `;
     }
 
