@@ -45,6 +45,7 @@ import {
   SendTextDto,
   StatusMessage,
 } from '@api/dto/sendMessage.dto';
+import { startConnection } from '@api/integrations/channel/whatsapp/wavoip';
 import { chatwootImport } from '@api/integrations/chatbot/chatwoot/utils/chatwoot-import-helper';
 import * as s3Service from '@api/integrations/storage/s3/libs/minio.server';
 import { ProviderFiles } from '@api/provider/sessions';
@@ -371,6 +372,12 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'open') {
+      try {
+        await startConnection(this.client, { token: this.token, ...this.instance });
+      } catch (error) {
+        this.logger.error(error);
+      }
+
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       try {
         const profilePic = await this.profilePicture(this.instance.wuid);

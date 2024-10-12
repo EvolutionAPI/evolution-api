@@ -89,7 +89,8 @@
     "sharp": "^0.32.2",
     "socket.io": "^4.7.1",
     "tsup": "^8.2.4",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "voice-calls-baileys": "^1.0.5"
   },
   "devDependencies": {
     "@types/compression": "^1.7.2",
