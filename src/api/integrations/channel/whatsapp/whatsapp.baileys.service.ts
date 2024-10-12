@@ -3552,6 +3552,9 @@ export class BaileysStartupService extends ChannelStartupService {
         restrict: group.restrict,
         announce: group.announce,
         participants: group.participants,
+        isCommunity: group.isCommunity,
+        isCommunityAnnounce: group.isCommunityAnnounce,
+        linkedParent: group.linkedParent,
       };
     } catch (error) {
       if (reply === 'inner') {
@@ -3581,6 +3584,9 @@ export class BaileysStartupService extends ChannelStartupService {
         descId: group.descId,
         restrict: group.restrict,
         announce: group.announce,
+        isCommunity: group.isCommunity,
+        isCommunityAnnounce: group.isCommunityAnnounce,
+        linkedParent: group.linkedParent,
       };
 
       if (getParticipants.getParticipants == 'true') {
