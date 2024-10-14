@@ -644,18 +644,18 @@ export class ChannelStartupService {
             "Chat"."unreadMessages",
             (ARRAY_AGG("Message"."id" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_id,
             (ARRAY_AGG("Message"."key" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_key,
-            (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_pushName,
+            (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_push_name,
             (ARRAY_AGG("Message"."participant" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_participant,
-            (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_messageType,
+            (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_type,
             (ARRAY_AGG("Message"."message" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message,
-            (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_contextInfo,
+            (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_context_info,
             (ARRAY_AGG("Message"."source" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_source,
-            (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_messageTimestamp,
-            (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instanceId,
-            (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_sessionId,
+            (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_timestamp,
+            (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instance_id,
+            (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
             (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
           FROM "Chat"
-          LEFT JOIN "Message" ON "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
+          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
           LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
           WHERE 
             "Chat"."instanceId" = ${this.instanceId}
@@ -663,7 +663,7 @@ export class ChannelStartupService {
             "Chat"."id",
             "Chat"."remoteJid",
             "Contact"."id"
-          ORDER BY last_message_messageTimestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
+          ORDER BY last_message_message_timestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
           `;
     } else {
       results = await this.prismaRepository.$queryRaw`
@@ -679,26 +679,26 @@ export class ChannelStartupService {
             "Chat"."unreadMessages",
             (ARRAY_AGG("Message"."id" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_id,
             (ARRAY_AGG("Message"."key" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_key,
-            (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_pushName,
+            (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_push_name,
             (ARRAY_AGG("Message"."participant" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_participant,
-            (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_messageType,
+            (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_type,
             (ARRAY_AGG("Message"."message" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message,
-            (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_contextInfo,
+            (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_context_info,
             (ARRAY_AGG("Message"."source" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_source,
-            (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_messageTimestamp,
-            (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instanceId,
-            (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_sessionId,
+            (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_timestamp,
+            (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instance_id,
+            (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
             (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
           FROM "Chat"
-          LEFT JOIN "Message" ON "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
+          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
           LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
           WHERE 
-            "Chat"."instanceId" = ${this.instanceId} AND "Chat"."remoteJid" = ${remoteJid}
+            "Chat"."instanceId" = ${this.instanceId} AND "Chat"."remoteJid" = ${remoteJid} and "Message"."messageType" != 'reactionMessage'
           GROUP BY
             "Chat"."id",
             "Chat"."remoteJid",
             "Contact"."id"
-          ORDER BY last_message_messageTimestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
+          ORDER BY last_message_message_timestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
           `;
     }
 
@@ -718,15 +718,15 @@ export class ChannelStartupService {
             ? {
                 id: chat.last_message_id,
                 key: chat.last_message_key,
-                pushName: chat.last_message_pushName,
+                pushName: chat.last_message_push_name,
                 participant: chat.last_message_participant,
-                messageType: chat.last_message_messageType,
+                messageType: chat.last_message_message_type,
                 message: chat.last_message_message,
-                contextInfo: chat.last_message_contextInfo,
+                contextInfo: chat.last_message_context_info,
                 source: chat.last_message_source,
-                messageTimestamp: chat.last_message_messageTimestamp,
-                instanceId: chat.last_message_instanceId,
-                sessionId: chat.last_message_sessionId,
+                messageTimestamp: chat.last_message_message_timestamp,
+                instanceId: chat.last_message_instance_id,
+                sessionId: chat.last_message_session_id,
                 status: chat.last_message_status,
               }
             : undefined,
