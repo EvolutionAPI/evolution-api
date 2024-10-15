@@ -954,9 +954,10 @@ export class ChatwootService {
       const replyToIds = await this.getReplyToIds(messageBody, instance);
 
       if (replyToIds.in_reply_to || replyToIds.in_reply_to_external_id) {
-        data.append('content_attributes', {
-          ...replyToIds,
-        });
+        const content = JSON.stringify({
+          ...replyToIds
+        })
+        data.append('content_attributes', content);
       }
     }
 
