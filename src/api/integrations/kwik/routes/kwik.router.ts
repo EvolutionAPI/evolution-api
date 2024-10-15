@@ -30,6 +30,7 @@ export class KwikRouter extends RouterBroker {
             Number(req.query.skip),
             req.query.sort,
             Number(req.query.messageTimestamp),
+            req.query.remoteJid ? req.query.remoteJid.toString() : null,
           ),
       });
 

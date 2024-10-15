@@ -32,13 +32,18 @@ export class KwikController {
     skip: number,
     sort: any,
     messageTimestamp: number,
+    remoteJid?: string,
   ) {
     const db = configService.get<Database>('DATABASE');
     const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
     const messages = connection.collection('messages');
+    let match: { owner: string; 'key.remoteJid'?: string } = { owner: instanceName };
+    if (remoteJid) {
+      match = { ...match, 'key.remoteJid': remoteJid };
+    }
     const pipeline: Document[] = [
       { $sort: { 'key.remoteJid': -1, messageTimestamp: -1 } },
-      { $match: { owner: instanceName } },
+      { $match: match },
       {
         $group: {
           _id: '$key.remoteJid',
