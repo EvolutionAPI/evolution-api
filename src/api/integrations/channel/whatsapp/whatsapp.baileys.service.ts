@@ -1898,17 +1898,6 @@ export class BaileysStartupService extends ChannelStartupService {
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
-      if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-        const body = {
-          key: { remoteJid: isWA.jid },
-        };
-
-        this.chatwootService.eventWhatsapp(
-          'contact.is_not_in_wpp',
-          { instanceName: this.instance.name, instanceId: this.instance.id },
-          body,
-        );
-      }
       throw new BadRequestException(isWA);
     }
 
