@@ -107,6 +107,32 @@ export class KwikRouter extends RouterBroker {
 
       return res.status(HttpStatus.OK).json(response);
     });
+
+    this.router.get(this.routerPath('messageOffset'), ...guards, async (req, res) => {
+      logger.verbose('request received in messageOffset');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) =>
+          kwikController.messageOffset(
+            instance,
+            req.body.message_timestamp,
+            req.body.remote_jid,
+            req.body.sort,
+            req.body.limit,
+            req.body.chat_message_id,
+          ),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
   }
 
   public readonly router = Router();

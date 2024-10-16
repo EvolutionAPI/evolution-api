@@ -26,6 +26,58 @@ export class KwikController {
       'messageContextInfo',
     ].includes(messageType);
   }
+
+  private async findOffsetByUUID(query, sortOrder, docUUID, batchSize = 1000) {
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    const collection = connection.collection('messages');
+
+    let offset = 0;
+    let found = false;
+
+    while (!found) {
+      // Fetch a batch of documents sorted as per the query
+      const batch = await collection.find(query).sort(sortOrder).skip(offset).limit(batchSize).toArray();
+      const index = batch.findIndex((doc) => doc.key.id === docUUID);
+
+      if (index !== -1) {
+        // If the document is found in the batch, calculate its offset
+        found = true;
+        offset += index;
+      } else if (batch.length < batchSize) {
+        // If the batch is smaller than batchSize, we have exhausted the collection
+        throw new Error(`Document with UUID ${docUUID} not found in the collection.`);
+      } else {
+        // Otherwise, move the offset forward by the batch size and continue searching
+        offset += batchSize;
+      }
+    }
+
+    return offset;
+  }
+
+  private firstMultipleBefore(X, Y) {
+    return Math.floor(Y / X) * X;
+  }
+
+  public async messageOffset(
+    { instanceName }: InstanceDto,
+    messageTimestamp: number,
+    remoteJid: string,
+    sort: any,
+    limit: number,
+    docUUID: string,
+  ) {
+    const query = {
+      'key.remoteJid': remoteJid,
+      messageTimestamp: { $gte: messageTimestamp },
+      owner: instanceName,
+    };
+    const offset = await this.findOffsetByUUID(query, sort, docUUID);
+    const multiple = this.firstMultipleBefore(limit, offset);
+    return multiple;
+  }
+
   public async fetchChats(
     { instanceName }: InstanceDto,
     limit: number,
