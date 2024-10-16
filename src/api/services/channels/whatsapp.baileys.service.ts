@@ -1232,6 +1232,10 @@ export class BaileysStartupService extends ChannelStartupService {
               owner: this.instance.name,
             };
 
+            if (received?.key?.fromMe === true){
+              contactRaw.pushName = null
+            }
+
             this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
             this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
@@ -1244,7 +1248,9 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             this.logger.verbose('Updating contact in database');
-            await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+            
+            if(contactRaw.pushName)
+              await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
             return;
           }
 
@@ -1257,7 +1263,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (received?.key?.fromMe === true)
             contactRaw.pushName = null;
-          if (contactRaw.pushName)
+
             this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
         }
       } catch (error) {
