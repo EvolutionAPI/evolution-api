@@ -867,7 +867,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
     'contacts.update': async (contacts: Partial<Contact>[], database: Database) => {
       this.logger.verbose('Event received: contacts.update');
-
       this.logger.verbose('Verifying if contacts exists in database to update');
       const contactsRaw: ContactRaw[] = [];
       for await (const contact of contacts) {
@@ -882,8 +881,9 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
       this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
 
+      //REMOVING DUE TO CREATING NULL CONTACTS ( ADDING FILTER )
       this.logger.verbose('Updating contacts in database');
-      this.repository.contact.update(contactsRaw, this.instance.name, database.SAVE_DATA.CONTACTS);
+      this.repository.contact.update(contactsRaw.filter(contact => contact.pushName), this.instance.name, database.SAVE_DATA.CONTACTS);
     },
   };
 
@@ -1059,7 +1059,7 @@ export class BaileysStartupService extends ChannelStartupService {
       settings: SettingsRaw,
     ) => {
       try {
-        this.logger.verbose('Event received: messages.upsert');
+        this.logger.verbose('Event received: messages.upsert');   
         for (const received of messages) {
           if (
             this.localChatwoot.enabled &&
@@ -1246,6 +1246,10 @@ export class BaileysStartupService extends ChannelStartupService {
               owner: this.instance.name,
             };
 
+            if (received?.key?.fromMe === true){
+              contactRaw.pushName = null
+            }
+
             this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
             this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
 
@@ -1258,7 +1262,9 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             this.logger.verbose('Updating contact in database');
-            await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+            
+            if(contactRaw.pushName)
+              await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
             return;
           }
 
@@ -1269,10 +1275,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.logger.verbose('Inserting contact in database');
 
-          if (received?.key?.fromMe === true) {
+          if (received?.key?.fromMe === true)
             contactRaw.pushName = null;
-          }
-          this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
+
+            this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
         }
       } catch (error) {
         this.logger.error(error);
