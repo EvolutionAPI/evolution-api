@@ -59,14 +59,25 @@ export class WAMonitoringService {
     }
   }
 
-  public async instanceInfo(instanceName?: string): Promise<any> {
-    if (instanceName && !this.waInstances[instanceName]) {
-      throw new NotFoundException(`Instance "${instanceName}" not found`);
+  public async instanceInfo(instanceNames?: string[]): Promise<any> {
+    const inexistentInstances = instanceNames ? instanceNames.filter((instance) => !this.waInstances[instance]) : [];
+
+    if (inexistentInstances.length > 0) {
+      throw new NotFoundException(
+        `Instance${inexistentInstances.length > 1 ? 's' : ''} "${inexistentInstances.join(', ')}" not found`,
+      );
     }
 
     const clientName = this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
 
-    const where = instanceName ? { name: instanceName, clientName } : { clientName };
+    const where = instanceNames
+      ? {
+          name: {
+            in: instanceNames,
+          },
+          clientName,
+        }
+      : { clientName };
 
     const instances = await this.prismaRepository.instance.findMany({
       where,
@@ -112,7 +123,7 @@ export class WAMonitoringService {
       throw new NotFoundException(`Instance "${instanceName}" not found`);
     }
 
-    return this.instanceInfo(instanceName);
+    return this.instanceInfo([instanceName]);
   }
 
   public async cleaningUp(instanceName: string) {
