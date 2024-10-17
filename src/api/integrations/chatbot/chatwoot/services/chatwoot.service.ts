@@ -1137,10 +1137,26 @@ export class ChatwootService {
     }
   }
 
-  public async onSendMessageError(instance: InstanceDto, conversation: number, error?: string) {
+  public async onSendMessageError(instance: InstanceDto, conversation: number, error?: any) {
+    this.logger.verbose(`onSendMessageError ${JSON.stringify(error)}`);
+
     const client = await this.clientCw(instance);
 
     if (!client) {
+      return;
+    }
+
+    if (error && error?.status === 400 && error?.message[0]?.exists === false) {
+      client.messages.create({
+        accountId: this.provider.accountId,
+        conversationId: conversation,
+        data: {
+          content: `${i18next.t('cw.message.numbernotinwhatsapp')}`,
+          message_type: 'outgoing',
+          private: true,
+        },
+      });
+
       return;
     }
 
@@ -1149,7 +1165,7 @@ export class ChatwootService {
       conversationId: conversation,
       data: {
         content: i18next.t('cw.message.notsent', {
-          error: error?.length > 0 ? `_${error}_` : '',
+          error: error ? `_${error.toString()}_` : '',
         }),
         message_type: 'outgoing',
         private: true,
@@ -1393,7 +1409,7 @@ export class ChatwootService {
               );
             } catch (error) {
               if (!messageSent && body.conversation?.id) {
-                this.onSendMessageError(instance, body.conversation?.id, error.toString());
+                this.onSendMessageError(instance, body.conversation?.id, error);
               }
               throw error;
             }
@@ -1851,27 +1867,6 @@ export class ChatwootService {
           this.logger.warn('Ignoring message from jid: ' + body?.key?.remoteJid);
           return;
         }
-      }
-
-      if (event === 'contact.is_not_in_wpp') {
-        const getConversation = await this.createConversation(instance, body);
-
-        if (!getConversation) {
-          this.logger.warn('conversation not found');
-          return;
-        }
-
-        client.messages.create({
-          accountId: this.provider.accountId,
-          conversationId: getConversation,
-          data: {
-            content: `🚨 ${i18next.t('numbernotinwhatsapp')}`,
-            message_type: 'outgoing',
-            private: true,
-          },
-        });
-
-        return;
       }
 
       if (event === 'messages.upsert' || event === 'send.message') {
