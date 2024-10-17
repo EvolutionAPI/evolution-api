@@ -300,7 +300,7 @@ export class KwikController {
     const [...contacts_solved] = await Promise.all([...contacts_promises]);
     const [...groups_solved] = await Promise.all([...groups_promises]);
 
-    const contacts = Object.fromEntries(contacts_solved.map((c) => [`${c.owner}#${c.id}`, c]));
+    const contacts = Object.fromEntries(contacts_solved.filter((c) => c != null).map((c) => [`${c.owner}#${c.id}`, c]));
     const groups = Object.fromEntries(
       groups_solved.filter((g) => g !== null).map((g) => [`${g.instanceName}#${g.id}`, g]),
     );
