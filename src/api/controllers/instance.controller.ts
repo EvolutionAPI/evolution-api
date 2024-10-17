@@ -360,27 +360,25 @@ export class InstanceController {
   public async fetchInstances({ instanceName, instanceId, number }: InstanceDto, key: string) {
     const env = this.configService.get<Auth>('AUTHENTICATION').API_KEY;
 
-    let name = instanceName;
-    // let arrayReturn = false;
-
     if (env.KEY !== key) {
-      const instanceByKey = await this.prismaRepository.instance.findMany({
+      const instancesByKey = await this.prismaRepository.instance.findMany({
         where: {
           token: key,
+          name: instanceName || undefined,
+          id: instanceId || undefined,
         },
       });
 
-      if (instanceByKey) {
-        name = instanceByKey[0].name;
-        // arrayReturn = true;
+      if (instancesByKey.length > 0) {
+        const names = instancesByKey.map((instance) => instance.name);
+
+        return this.waMonitor.instanceInfo(names);
       } else {
         throw new UnauthorizedException();
       }
     }
 
-    if (name) {
-      return this.waMonitor.instanceInfo(name);
-    } else if (instanceId || number) {
+    if (instanceId || number) {
       return this.waMonitor.instanceInfoById(instanceId, number);
     }
 

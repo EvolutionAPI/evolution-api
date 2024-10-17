@@ -1699,7 +1699,7 @@ export class BaileysStartupService extends ChannelStartupService {
           website: business?.website?.shift(),
         };
       } else {
-        const info: Instance = await waMonitor.instanceInfo(instanceName);
+        const info: Instance = await waMonitor.instanceInfo([instanceName]);
         const business = await this.fetchBusinessProfile(jid);
 
         return {
