@@ -955,8 +955,8 @@ export class ChatwootService {
 
       if (replyToIds.in_reply_to || replyToIds.in_reply_to_external_id) {
         const content = JSON.stringify({
-          ...replyToIds
-        })
+          ...replyToIds,
+        });
         data.append('content_attributes', content);
       }
     }
@@ -1613,7 +1613,16 @@ export class ChatwootService {
       thumbnailUrl: string;
       sourceUrl: string;
     }
-    const adsMessage: AdsMessage | undefined = msg.extendedTextMessage?.contextInfo?.externalAdReply;
+
+    const adsMessage: AdsMessage | undefined = {
+      title: msg.extendedTextMessage?.contextInfo?.externalAdReply?.title || msg.contextInfo?.externalAdReply?.title,
+      body: msg.extendedTextMessage?.contextInfo?.externalAdReply?.body || msg.contextInfo?.externalAdReply?.body,
+      thumbnailUrl:
+        msg.extendedTextMessage?.contextInfo?.externalAdReply?.thumbnailUrl ||
+        msg.contextInfo?.externalAdReply?.thumbnailUrl,
+      sourceUrl:
+        msg.extendedTextMessage?.contextInfo?.externalAdReply?.sourceUrl || msg.contextInfo?.externalAdReply?.sourceUrl,
+    };
 
     return adsMessage;
   }
@@ -1911,7 +1920,7 @@ export class ChatwootService {
 
         const isMedia = this.isMediaMessage(body.message);
 
-        const adsMessage = this.getAdsMessage(body.message);
+        const adsMessage = this.getAdsMessage(body);
 
         const reactionMessage = this.getReactionMessage(body.message);
 
@@ -2059,11 +2068,13 @@ export class ChatwootService {
           fileStream.push(null);
 
           const truncStr = (str: string, len: number) => {
+            if (!str) return '';
+
             return str.length > len ? str.substring(0, len) + '...' : str;
           };
 
           const title = truncStr(adsMessage.title, 40);
-          const description = truncStr(adsMessage.body, 75);
+          const description = truncStr(adsMessage?.body, 75);
 
           const send = await this.sendData(
             getConversation,
