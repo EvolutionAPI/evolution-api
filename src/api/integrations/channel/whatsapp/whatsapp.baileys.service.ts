@@ -2807,8 +2807,6 @@ export class BaileysStartupService extends ChannelStartupService {
       },
     };
 
-    console.log(JSON.stringify(message));
-
     return await this.sendMessageWithTyping(data.number, message, {
       delay: data?.delay,
       presence: 'composing',
