@@ -1,5 +1,6 @@
 import { NumberBusiness } from '@api/dto/chat.dto';
 import {
+  Button,
   ContactMessage,
   MediaMessage,
   Options,
@@ -12,6 +13,7 @@ import {
   SendReactionDto,
   SendTemplateDto,
   SendTextDto,
+  TypeButton,
 } from '@api/dto/sendMessage.dto';
 import * as s3Service from '@api/integrations/storage/s3/libs/minio.server';
 import { ProviderFiles } from '@api/provider/sessions';
@@ -24,12 +26,14 @@ import { Chatwoot, ConfigService, Database, Openai, S3, WaBusiness } from '@conf
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
 import { status } from '@utils/renderStatus';
 import axios from 'axios';
+import { proto } from 'baileys';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
 import { createReadStream } from 'fs';
 import mime from 'mime';
 import { join } from 'path';
+import { v4 } from 'uuid';
 
 export class BusinessStartupService extends ChannelStartupService {
   constructor(
@@ -1108,42 +1112,97 @@ export class BusinessStartupService extends ChannelStartupService {
     return audioSent;
   }
 
-  public async buttonMessage(data: SendButtonsDto) {
-    const embeddedMedia: any = {};
+  private toJSONString(button: Button): string {
+    const toString = (obj: any) => JSON.stringify(obj);
 
-    const btnItems = {
-      text: data.buttons.map((btn) => btn.text),
-      ids: data.buttons.map((btn) => btn.id),
+    const json = {
+      call: () => toString({ display_text: button.displayText, phone_number: button.phoneNumber }),
+      reply: () => toString({ display_text: button.displayText, id: button.id }),
+      copy: () => toString({ display_text: button.displayText, copy_code: button.copyCode }),
+      url: () =>
+        toString({
+          display_text: button.displayText,
+          url: button.url,
+          merchant_url: button.url,
+        }),
     };
 
-    if (!arrayUnique(btnItems.text) || !arrayUnique(btnItems.ids)) {
-      throw new BadRequestException('Button texts cannot be repeated', 'Button IDs cannot be repeated.');
-    }
+    return json[button.type]?.() || '';
+  }
 
-    return await this.sendMessageWithTyping(
-      data.number,
-      {
-        text: !embeddedMedia?.mediaKey ? data.title : undefined,
-        buttons: data.buttons.map((button) => {
-          return {
-            type: 'reply',
-            reply: {
-              title: button.text,
-              id: button.id,
+  private readonly mapType = new Map<TypeButton, string>([
+    ['reply', 'quick_reply'],
+    ['copy', 'cta_copy'],
+    ['url', 'cta_url'],
+    ['call', 'cta_call'],
+  ]);
+
+  public async buttonMessage(data: SendButtonsDto) {
+    const generate = await (async () => {
+      if (data?.thumbnailUrl) {
+        return await this.prepareMediaMessage({
+          mediatype: 'image',
+          media: data.thumbnailUrl,
+        });
+      }
+    })();
+
+    const buttons = data.buttons.map((value) => {
+      return {
+        name: this.mapType.get(value.type),
+        buttonParamsJson: this.toJSONString(value),
+      };
+    });
+
+    const message: proto.IMessage = {
+      viewOnceMessage: {
+        message: {
+          messageContextInfo: {
+            deviceListMetadata: {},
+            deviceListMetadataVersion: 2,
+          },
+          interactiveMessage: {
+            body: {
+              text: (() => {
+                let t = '*' + data.title + '*';
+                if (data?.description) {
+                  t += '\n\n';
+                  t += data.description;
+                  t += '\n';
+                }
+                return t;
+              })(),
             },
-          };
-        }),
-        [embeddedMedia?.mediaKey]: embeddedMedia?.message,
+            footer: {
+              text: data?.footer,
+            },
+            header: (() => {
+              if (generate?.message?.imageMessage) {
+                return {
+                  hasMediaAttachment: !!generate.message.imageMessage,
+                  imageMessage: generate.message.imageMessage,
+                };
+              }
+            })(),
+            nativeFlowMessage: {
+              buttons: buttons,
+              messageParamsJson: JSON.stringify({
+                from: 'api',
+                templateId: v4(),
+              }),
+            },
+          },
+        },
       },
-      {
-        delay: data?.delay,
-        presence: 'composing',
-        quoted: data?.quoted,
-        linkPreview: data?.linkPreview,
-        mentionsEveryOne: data?.mentionsEveryOne,
-        mentioned: data?.mentioned,
-      },
-    );
+    };
+
+    return await this.sendMessageWithTyping(data.number, message, {
+      delay: data?.delay,
+      presence: 'composing',
+      quoted: data?.quoted,
+      mentionsEveryOne: data?.mentionsEveryOne,
+      mentioned: data?.mentioned,
+    });
   }
 
   public async locationMessage(data: SendLocationDto) {
