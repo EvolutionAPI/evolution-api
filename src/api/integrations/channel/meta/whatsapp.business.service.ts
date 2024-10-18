@@ -4,7 +4,7 @@ import {
   MediaMessage,
   Options,
   SendAudioDto,
-  SendButtonDto,
+  SendButtonsDto,
   SendContactDto,
   SendListDto,
   SendLocationDto,
@@ -1108,7 +1108,7 @@ export class BusinessStartupService extends ChannelStartupService {
     return audioSent;
   }
 
-  public async buttonMessage(data: SendButtonDto) {
+  public async buttonMessage(data: SendButtonsDto) {
     const embeddedMedia: any = {};
 
     const btnItems = {
