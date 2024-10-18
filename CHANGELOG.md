@@ -3,6 +3,8 @@
 ### Features
 
 * Fake Call function
+* Send List with Baileys
+* Send Buttons with Baileys
 * Added unreadMessages to chats
 * Pusher event integration
 * Add support for splitMessages and timePerChar in Integrations
@@ -12,7 +14,11 @@
 * Fixed prefilledVariables in startTypebot
 * Fix duplicate file upload
 * Mark as read from me and groups
-* fetch chats query
+* Fetch chats query
+* Ads messages in chatwoot
+* Add indexes to improve performance in Evolution
+* Add logical or permanent message deletion based on env config
+* Add support for fetching multiple instances by key
 
 # 2.1.2 (2024-10-06 10:09)
 

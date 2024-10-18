@@ -90,14 +90,22 @@ export class SendAudioDto extends Metadata {
   audio: string;
 }
 
-class Button {
-  text: string;
-  id: string;
+export type TypeButton = 'reply' | 'copy' | 'url' | 'call';
+
+export class Button {
+  type: TypeButton;
+  displayText: string;
+  id?: string;
+  url?: string;
+  copyCode?: string;
+  phoneNumber?: string;
 }
-export class SendButtonDto extends Metadata {
+
+export class SendButtonsDto extends Metadata {
+  thumbnailUrl?: string;
   title: string;
-  description: string;
-  footerText?: string;
+  description?: string;
+  footer?: string;
   buttons: Button[];
 }
 

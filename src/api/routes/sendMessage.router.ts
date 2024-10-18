@@ -1,7 +1,7 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import {
   SendAudioDto,
-  SendButtonDto,
+  SendButtonsDto,
   SendContactDto,
   SendListDto,
   SendLocationDto,
@@ -16,7 +16,7 @@ import {
 import { sendMessageController } from '@api/server.module';
 import {
   audioMessageSchema,
-  buttonMessageSchema,
+  buttonsMessageSchema,
   contactMessageSchema,
   listMessageSchema,
   locationMessageSchema,
@@ -159,10 +159,10 @@ export class MessageRouter extends RouterBroker {
         return res.status(HttpStatus.CREATED).json(response);
       })
       .post(this.routerPath('sendButtons'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<SendButtonDto>({
+        const response = await this.dataValidate<SendButtonsDto>({
           request: req,
-          schema: buttonMessageSchema,
-          ClassRef: SendButtonDto,
+          schema: buttonsMessageSchema,
+          ClassRef: SendButtonsDto,
           execute: (instance, data) => sendMessageController.sendButtons(instance, data),
         });
 
