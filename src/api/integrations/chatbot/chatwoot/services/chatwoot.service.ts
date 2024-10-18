@@ -2042,7 +2042,8 @@ export class ChatwootService {
           return;
         }
 
-        if (adsMessage) {
+        const isAdsMessage = (adsMessage && adsMessage.title) || adsMessage.body || adsMessage.thumbnailUrl;
+        if (isAdsMessage) {
           const imgBuffer = await axios.get(adsMessage.thumbnailUrl, { responseType: 'arraybuffer' });
 
           const extension = mime.getExtension(imgBuffer.headers['content-type']);
