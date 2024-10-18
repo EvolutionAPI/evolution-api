@@ -170,22 +170,26 @@ class ChatwootImport {
   }
 
   public async getExistingSourceIds(sourceIds: string[]): Promise<Set<string>> {
-    const existingSourceIdsSet = new Set<string>();
+    try {
+      const existingSourceIdsSet = new Set<string>();
 
-    if (sourceIds.length === 0) {
+      if (sourceIds.length === 0) {
+        return existingSourceIdsSet;
+      }
+
+      const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`); // Make sure the sourceId is always formatted as WAID:1234567890
+      const query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+      const pgClient = postgresClient.getChatwootConnection();
+      const result = await pgClient.query(query, [formattedSourceIds]);
+
+      for (const row of result.rows) {
+        existingSourceIdsSet.add(row.source_id);
+      }
+
       return existingSourceIdsSet;
+    } catch (error) {
+      return null;
     }
-
-    const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`); // Make sure the sourceId is always formatted as WAID:1234567890
-    const query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
-    const pgClient = postgresClient.getChatwootConnection();
-    const result = await pgClient.query(query, [formattedSourceIds]);
-
-    for (const row of result.rows) {
-      existingSourceIdsSet.add(row.source_id);
-    }
-
-    return existingSourceIdsSet;
   }
 
   public async importHistoryMessages(

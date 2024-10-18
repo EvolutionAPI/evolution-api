@@ -933,9 +933,11 @@ export class ChatwootService {
   ) {
     if (sourceId && this.isImportHistoryAvailable()) {
       const messageAlreadySaved = await chatwootImport.getExistingSourceIds([sourceId]);
-      if (messageAlreadySaved.size > 0) {
-        this.logger.warn('Message already saved on chatwoot');
-        return null;
+      if (messageAlreadySaved) {
+        if (messageAlreadySaved.size > 0) {
+          this.logger.warn('Message already saved on chatwoot');
+          return null;
+        }
       }
     }
     const data = new FormData();
@@ -2442,57 +2444,61 @@ export class ChatwootService {
     chatwootConfig: ChatwootDto,
     prepareMessage: (message: any) => any,
   ) {
-    if (!this.isImportHistoryAvailable()) {
-      return;
-    }
-    if (!this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
-      return;
-    }
-
-    const inbox = await this.getInbox(instance);
-
-    const sqlMessages = `select * from messages m
-    where account_id = ${chatwootConfig.accountId}
-    and inbox_id = ${inbox.id}
-    and created_at >= now() - interval '6h'
-    order by created_at desc`;
-
-    const messagesData = (await this.pgClient.query(sqlMessages))?.rows;
-    const ids: string[] = messagesData
-      .filter((message) => !!message.source_id)
-      .map((message) => message.source_id.replace('WAID:', ''));
-
-    const savedMessages = await this.prismaRepository.message.findMany({
-      where: {
-        Instance: { name: instance.instanceName },
-        messageTimestamp: { gte: dayjs().subtract(6, 'hours').unix() },
-        AND: ids.map((id) => ({ key: { path: ['id'], not: id } })),
-      },
-    });
-
-    const filteredMessages = savedMessages.filter(
-      (msg: any) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid),
-    );
-    const messagesRaw: any[] = [];
-    for (const m of filteredMessages) {
-      if (!m.message || !m.key || !m.messageTimestamp) {
-        continue;
+    try {
+      if (!this.isImportHistoryAvailable()) {
+        return;
+      }
+      if (!this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
+        return;
       }
 
-      if (Long.isLong(m?.messageTimestamp)) {
-        m.messageTimestamp = m.messageTimestamp?.toNumber();
+      const inbox = await this.getInbox(instance);
+
+      const sqlMessages = `select * from messages m
+      where account_id = ${chatwootConfig.accountId}
+      and inbox_id = ${inbox.id}
+      and created_at >= now() - interval '6h'
+      order by created_at desc`;
+
+      const messagesData = (await this.pgClient.query(sqlMessages))?.rows;
+      const ids: string[] = messagesData
+        .filter((message) => !!message.source_id)
+        .map((message) => message.source_id.replace('WAID:', ''));
+
+      const savedMessages = await this.prismaRepository.message.findMany({
+        where: {
+          Instance: { name: instance.instanceName },
+          messageTimestamp: { gte: dayjs().subtract(6, 'hours').unix() },
+          AND: ids.map((id) => ({ key: { path: ['id'], not: id } })),
+        },
+      });
+
+      const filteredMessages = savedMessages.filter(
+        (msg: any) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid),
+      );
+      const messagesRaw: any[] = [];
+      for (const m of filteredMessages) {
+        if (!m.message || !m.key || !m.messageTimestamp) {
+          continue;
+        }
+
+        if (Long.isLong(m?.messageTimestamp)) {
+          m.messageTimestamp = m.messageTimestamp?.toNumber();
+        }
+
+        messagesRaw.push(prepareMessage(m as any));
       }
 
-      messagesRaw.push(prepareMessage(m as any));
+      this.addHistoryMessages(
+        instance,
+        messagesRaw.filter((msg) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid)),
+      );
+
+      await chatwootImport.importHistoryMessages(instance, this, inbox, this.provider);
+      const waInstance = this.waMonitor.waInstances[instance.instanceName];
+      waInstance.clearCacheChatwoot();
+    } catch (error) {
+      return;
     }
-
-    this.addHistoryMessages(
-      instance,
-      messagesRaw.filter((msg) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid)),
-    );
-
-    await chatwootImport.importHistoryMessages(instance, this, inbox, this.provider);
-    const waInstance = this.waMonitor.waInstances[instance.instanceName];
-    waInstance.clearCacheChatwoot();
   }
 }
