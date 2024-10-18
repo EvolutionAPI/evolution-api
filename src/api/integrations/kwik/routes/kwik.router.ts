@@ -30,6 +30,7 @@ export class KwikRouter extends RouterBroker {
             Number(req.query.skip),
             req.query.sort,
             Number(req.query.messageTimestamp),
+            req.query.remoteJid ? req.query.remoteJid.toString() : null,
           ),
       });
 
@@ -66,6 +67,68 @@ export class KwikRouter extends RouterBroker {
         schema: null,
         ClassRef: InstanceDto,
         execute: (instance) => kwikController.instanceInfo(instance, Number(req.query.messageTimestamp)),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
+
+    this.router.post(this.routerPath('cleanChats'), ...guards, async (req, res) => {
+      logger.verbose('request received in cleanChats');
+      logger.verbose('request received in cleanChats');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) => kwikController.cleanChats(instance),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
+
+    this.router.post(this.routerPath('textSearch'), ...guards, async (req, res) => {
+      logger.verbose('request received in textSearch');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) => kwikController.textSearch(instance, req.body),
+      });
+
+      return res.status(HttpStatus.OK).json(response);
+    });
+
+    this.router.get(this.routerPath('messageOffset'), ...guards, async (req, res) => {
+      logger.verbose('request received in messageOffset');
+      logger.verbose('request body: ');
+      logger.verbose(req.body);
+
+      logger.verbose('request query: ');
+      logger.verbose(req.query);
+
+      const response = await this.dataValidate<InstanceDto>({
+        request: req,
+        schema: null,
+        ClassRef: InstanceDto,
+        execute: (instance) =>
+          kwikController.messageOffset(
+            instance,
+            req.body.message_timestamp,
+            req.body.remote_jid,
+            req.body.sort,
+            req.body.limit,
+            req.body.chat_message_id,
+          ),
       });
 
       return res.status(HttpStatus.OK).json(response);

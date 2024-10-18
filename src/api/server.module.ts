@@ -183,6 +183,6 @@ export const sendMessageController = new SendMessageController(waMonitor);
 export const chatController = new ChatController(waMonitor);
 export const groupController = new GroupController(waMonitor);
 export const labelController = new LabelController(waMonitor);
-export const kwikController = new KwikController(waMonitor);
+export const kwikController = new KwikController(waMonitor, settingsService);
 
 logger.info('Module - ON');

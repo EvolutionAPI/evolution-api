@@ -1003,6 +1003,7 @@ export const settingsSchema: JSONSchema7 = {
     read_status: { type: 'boolean', enum: [true, false] },
     sync_full_history: { type: 'boolean', enum: [true, false] },
     ignore_list: { type: 'array', items: { type: 'string' } },
+    initial_connection: { type: 'integer', minLength: 1 },
   },
   required: ['reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status', 'sync_full_history'],
   ...isNotEmpty('reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status', 'sync_full_history'),

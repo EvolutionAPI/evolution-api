@@ -12,6 +12,7 @@ export class SettingsRaw {
   read_status?: boolean;
   sync_full_history?: boolean;
   ignore_list?: string[];
+  initial_connection?: number;
 }
 
 const settingsSchema = new Schema<SettingsRaw>({
@@ -24,6 +25,7 @@ const settingsSchema = new Schema<SettingsRaw>({
   read_status: { type: Boolean, required: true },
   sync_full_history: { type: Boolean, required: true },
   ignore_list: { type: [String], required: false },
+  initial_connection: { type: Number, required: false },
 });
 
 export const SettingsModel = dbserver?.model(SettingsRaw.name, settingsSchema, 'settings');

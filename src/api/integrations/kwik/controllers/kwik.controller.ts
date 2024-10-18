@@ -5,11 +5,17 @@ import { Logger } from '../../../../config/logger.config';
 import { dbserver } from '../../../../libs/db.connect';
 import { InstanceDto } from '../../../dto/instance.dto';
 import { WAMonitoringService } from '../../../services/monitor.service';
+import { SettingsService } from '../../../services/settings.service';
 
 const logger = new Logger('KwikController');
 
+type SearchObject = {
+  text_search: string;
+  where: string[];
+};
+
 export class KwikController {
-  constructor(private readonly waMonitor: WAMonitoringService) {}
+  constructor(private readonly waMonitor: WAMonitoringService, private readonly settingsService: SettingsService) {}
 
   private isTextMessage(messageType: any) {
     return [
@@ -20,19 +26,76 @@ export class KwikController {
       'messageContextInfo',
     ].includes(messageType);
   }
+
+  private async findOffsetByUUID(query, sortOrder, docUUID, batchSize = 1000) {
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    const collection = connection.collection('messages');
+
+    let offset = 0;
+    let found = false;
+
+    while (!found) {
+      // Fetch a batch of documents sorted as per the query
+      const batch = await collection.find(query).sort(sortOrder).skip(offset).limit(batchSize).toArray();
+      const index = batch.findIndex((doc) => doc.key.id === docUUID);
+
+      if (index !== -1) {
+        // If the document is found in the batch, calculate its offset
+        found = true;
+        offset += index;
+      } else if (batch.length < batchSize) {
+        // If the batch is smaller than batchSize, we have exhausted the collection
+        throw new Error(`Document with UUID ${docUUID} not found in the collection.`);
+      } else {
+        // Otherwise, move the offset forward by the batch size and continue searching
+        offset += batchSize;
+      }
+    }
+
+    return offset;
+  }
+
+  private firstMultipleBefore(X, Y) {
+    return Math.floor(Y / X) * X;
+  }
+
+  public async messageOffset(
+    { instanceName }: InstanceDto,
+    messageTimestamp: number,
+    remoteJid: string,
+    sort: any,
+    limit: number,
+    docUUID: string,
+  ) {
+    const query = {
+      'key.remoteJid': remoteJid,
+      messageTimestamp: { $gte: messageTimestamp },
+      owner: instanceName,
+    };
+    const offset = await this.findOffsetByUUID(query, sort, docUUID);
+    const multiple = this.firstMultipleBefore(limit, offset);
+    return multiple;
+  }
+
   public async fetchChats(
     { instanceName }: InstanceDto,
     limit: number,
     skip: number,
     sort: any,
     messageTimestamp: number,
+    remoteJid?: string,
   ) {
     const db = configService.get<Database>('DATABASE');
     const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
     const messages = connection.collection('messages');
+    let match: { owner: string; 'key.remoteJid'?: string } = { owner: instanceName };
+    if (remoteJid) {
+      match = { ...match, 'key.remoteJid': remoteJid };
+    }
     const pipeline: Document[] = [
       { $sort: { 'key.remoteJid': -1, messageTimestamp: -1 } },
-      { $match: { owner: instanceName } },
+      { $match: match },
       {
         $group: {
           _id: '$key.remoteJid',
@@ -183,5 +246,88 @@ export class KwikController {
         newVal: 1,
       };
     }
+  }
+  public async cleanChats(instance: InstanceDto) {
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    const settings = this.settingsService.find(instance);
+    const initialConnection = (await settings).initial_connection;
+    if (initialConnection) {
+      connection
+        .collection('messages')
+        .deleteMany({ owner: instance.instanceName, messageTimestamp: { $lt: initialConnection } });
+    }
+
+    return { status: 'ok' };
+  }
+
+  public async textSearch({ instanceName }: InstanceDto, query: SearchObject) {
+    logger.verbose('request received in textSearch');
+    logger.verbose(instanceName);
+    logger.verbose(query);
+
+    const db = configService.get<Database>('DATABASE');
+    const connection = dbserver.getClient().db(db.CONNECTION.DB_PREFIX_NAME + '-whatsapp-api');
+    const messages = await connection
+      .collection('messages')
+      .find({
+        owner: { $in: query.where },
+        $text: { $search: query.text_search },
+      })
+      .limit(100)
+      .toArray();
+
+    const data = [];
+
+    const uniqueContacts = Array.from(
+      new Set(messages.filter((m) => !m.key.remoteJid.includes('@g.us')).map((m) => `${m.owner}#${m.key.remoteJid}`)),
+    );
+    const contacts_promises = uniqueContacts.map((m) => {
+      return connection.collection('contacts').findOne({ owner: m.split('#')[0], id: m.split('#')[1] });
+    });
+    const uniqueGroups = Array.from(
+      new Set(messages.filter((m) => m.key.remoteJid.includes('@g.us')).map((m) => `${m.owner}#${m.key.remoteJid}`)),
+    );
+
+    const groups_promises = uniqueGroups.map(async (g) => {
+      const instanceName = g.split('#')[0];
+      const groupJid = g.split('#')[1];
+      const group = await this.waMonitor.waInstances[instanceName].findGroup({ groupJid }, 'inner');
+
+      return group ? { ...group, instanceName } : null;
+    });
+
+    const [...contacts_solved] = await Promise.all([...contacts_promises]);
+    const [...groups_solved] = await Promise.all([...groups_promises]);
+
+    const contacts = Object.fromEntries(contacts_solved.filter((c) => c != null).map((c) => [`${c.owner}#${c.id}`, c]));
+    const groups = Object.fromEntries(
+      groups_solved.filter((g) => g !== null).map((g) => [`${g.instanceName}#${g.id}`, g]),
+    );
+
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      const info = message.key.remoteJid.split('@');
+      let type;
+      let tinfo;
+      if (info[1] == 'g.us') {
+        tinfo = groups[`${message.owner}#${message.key.remoteJid}`];
+
+        type = 'GROUP';
+      } else {
+        tinfo = contacts[`${message.owner}#${message.key.remoteJid}`];
+        type = 'CONTACT';
+      }
+      data.push({
+        message: message,
+
+        owner: message.owner,
+        conversation: `${message.owner}#${info}`,
+        type: type,
+        info: tinfo,
+      });
+    }
+
+    return { data };
   }
 }

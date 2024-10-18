@@ -979,6 +979,13 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
+          if (settings.initial_connection && (m.messageTimestamp as number) <= settings.initial_connection) {
+            this.logger.verbose(
+              `[messaging-history.set] Ignore -> ${m.messageTimestamp} <= ${settings.initial_connection}`,
+            );
+            continue;
+          }
+
           if (messagesRepository.has(m.key.id)) {
             continue;
           }
@@ -1096,6 +1103,13 @@ export class BaileysStartupService extends ChannelStartupService {
           if (settings?.groups_ignore && received.key.remoteJid.includes('@g.us')) {
             this.logger.verbose('group ignored');
             return;
+          }
+
+          if (settings?.initial_connection && (received.messageTimestamp as number) <= settings.initial_connection) {
+            this.logger.verbose(
+              `[messages.upsert] Ignore -> ${received.messageTimestamp} <= ${settings.initial_connection}`,
+            );
+            continue;
           }
 
           if (settings?.ignore_list && settings.ignore_list.includes(received.key.remoteJid)) {

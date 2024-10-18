@@ -223,6 +223,7 @@ export class ChannelStartupService {
       read_status: data.read_status,
       sync_full_history: data.sync_full_history,
       ignore_list: data.ignore_list,
+      initial_connection: data.initial_connection,
     };
   }
 

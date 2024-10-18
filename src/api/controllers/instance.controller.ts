@@ -402,6 +402,7 @@ export class InstanceController {
         read_status: read_status || false,
         sync_full_history: sync_full_history ?? false,
         ignore_list: [],
+        initial_connection: null,
       };
 
       this.logger.verbose('settings: ' + JSON.stringify(settings));
