@@ -2644,6 +2644,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const { data } = await axios.post(process.env.API_AUDIO_CONVERTER, formData, {
         headers: {
           ...formData.getHeaders(),
+          apikey: process.env.API_AUDIO_CONVERTER_KEY,
         },
       });
 
