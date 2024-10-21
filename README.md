@@ -75,10 +75,6 @@ To continuously improve our services, we have implemented telemetry that collect
 Join our Evolution Pro community for expert support and a weekly call to answer questions. Visit the link below to learn more and subscribe:
 
 [Click here to learn more](https://evolution-api.com/suporte-pro)
-<br>
-<a href="https://evolution-api.com/suporte-pro">
-  <img src="./public/images/evolution-pro.png" alt="Subscribe" width="600">
-</a>
 
 # Donate to the project.
 
