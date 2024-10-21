@@ -125,6 +125,7 @@ import { isArray, isBase64, isURL } from 'class-validator';
 import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
 import ffmpeg from 'fluent-ffmpeg';
+import FormData from 'form-data';
 import { readFileSync } from 'fs';
 import Long from 'long';
 import mime from 'mime';
@@ -2631,53 +2632,75 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async processAudio(audio: string): Promise<Buffer> {
-    let inputAudioStream: PassThrough;
+    if (process.env.API_AUDIO_CONVERTER) {
+      const formData = new FormData();
 
-    if (isURL(audio)) {
-      const timestamp = new Date().getTime();
-      const url = `${audio}?timestamp=${timestamp}`;
+      if (isURL(audio)) {
+        formData.append('url', audio);
+      } else {
+        formData.append('base64', audio);
+      }
 
-      const config: any = {
-        responseType: 'stream',
-      };
+      const { data } = await axios.post(process.env.API_AUDIO_CONVERTER, formData, {
+        headers: {
+          ...formData.getHeaders(),
+        },
+      });
 
-      const response = await axios.get(url, config);
-      inputAudioStream = response.data.pipe(new PassThrough());
+      if (!data.audio) {
+        throw new InternalServerErrorException('Failed to convert audio');
+      }
+
+      return Buffer.from(data.audio, 'base64');
     } else {
-      const audioBuffer = Buffer.from(audio, 'base64');
-      inputAudioStream = new PassThrough();
-      inputAudioStream.end(audioBuffer);
-    }
+      let inputAudioStream: PassThrough;
 
-    return new Promise((resolve, reject) => {
-      const outputAudioStream = new PassThrough();
-      const chunks: Buffer[] = [];
+      if (isURL(audio)) {
+        const timestamp = new Date().getTime();
+        const url = `${audio}?timestamp=${timestamp}`;
 
-      outputAudioStream.on('data', (chunk) => chunks.push(chunk));
-      outputAudioStream.on('end', () => {
-        const outputBuffer = Buffer.concat(chunks);
-        resolve(outputBuffer);
-      });
+        const config: any = {
+          responseType: 'stream',
+        };
 
-      outputAudioStream.on('error', (error) => {
-        console.log('error', error);
-        reject(error);
-      });
+        const response = await axios.get(url, config);
+        inputAudioStream = response.data.pipe(new PassThrough());
+      } else {
+        const audioBuffer = Buffer.from(audio, 'base64');
+        inputAudioStream = new PassThrough();
+        inputAudioStream.end(audioBuffer);
+      }
 
-      ffmpeg.setFfmpegPath(ffmpegPath.path);
+      return new Promise((resolve, reject) => {
+        const outputAudioStream = new PassThrough();
+        const chunks: Buffer[] = [];
 
-      ffmpeg(inputAudioStream)
-        .outputFormat('ogg')
-        .noVideo()
-        .audioCodec('libopus')
-        .addOutputOptions('-avoid_negative_ts make_zero')
-        .audioChannels(1)
-        .pipe(outputAudioStream, { end: true })
-        .on('error', function (error) {
+        outputAudioStream.on('data', (chunk) => chunks.push(chunk));
+        outputAudioStream.on('end', () => {
+          const outputBuffer = Buffer.concat(chunks);
+          resolve(outputBuffer);
+        });
+
+        outputAudioStream.on('error', (error) => {
           console.log('error', error);
           reject(error);
         });
-    });
+
+        ffmpeg.setFfmpegPath(ffmpegPath.path);
+
+        ffmpeg(inputAudioStream)
+          .outputFormat('ogg')
+          .noVideo()
+          .audioCodec('libopus')
+          .addOutputOptions('-avoid_negative_ts make_zero')
+          .audioChannels(1)
+          .pipe(outputAudioStream, { end: true })
+          .on('error', function (error) {
+            console.log('error', error);
+            reject(error);
+          });
+      });
+    }
   }
 
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
