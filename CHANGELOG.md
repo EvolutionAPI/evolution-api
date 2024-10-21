@@ -8,6 +8,7 @@
 * Added unreadMessages to chats
 * Pusher event integration
 * Add support for splitMessages and timePerChar in Integrations
+* Audio Converter via API
 
 ### Fixed
 
