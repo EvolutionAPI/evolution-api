@@ -2633,6 +2633,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async processAudio(audio: string): Promise<Buffer> {
     if (process.env.API_AUDIO_CONVERTER) {
+      this.logger.verbose('Using audio converter API');
       const formData = new FormData();
 
       if (isURL(audio)) {
@@ -2652,6 +2653,7 @@ export class BaileysStartupService extends ChannelStartupService {
         throw new InternalServerErrorException('Failed to convert audio');
       }
 
+      this.logger.verbose('Audio converted');
       return Buffer.from(data.audio, 'base64');
     } else {
       let inputAudioStream: PassThrough;
