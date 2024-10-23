@@ -9,7 +9,7 @@ import { dbserver } from './libs/db.connect';
 
   await collection.createIndex({ 'key.remoteJid': -1, messageTimestamp: -1 });
 
-  collection.createIndex(
+  await collection.createIndex(
     {
       'message.templateMessage.hydratedFourRowTemplate.hydratedContentText': 'text',
       'message.templateMessage.hydratedFourRowTemplate.hydratedFooterText': 'text',
