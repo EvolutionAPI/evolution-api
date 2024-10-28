@@ -1071,6 +1071,25 @@ export class BaileysStartupService extends ChannelStartupService {
           if (settings?.groupsIgnore && received.key.remoteJid.includes('@g.us')) {
             continue;
           }
+          const existingChat = await this.prismaRepository.chat.findFirst({
+            where: { instanceId: this.instanceId, remoteJid: received.key.remoteJid },
+          });
+
+          if (!!existingChat) {
+            const chatToInsert = {
+              remoteJid: received.key.remoteJid,
+              instanceId: this.instanceId,
+              name: received.pushName || '',
+              unreadMessages: 0,
+            };
+
+            this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
+            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
+              await this.prismaRepository.chat.create({
+                data: chatToInsert,
+              });
+            }
+          }
 
           const messageRaw = this.prepareMessage(received);
 
@@ -1386,6 +1405,26 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.prismaRepository.messageUpdate.create({
               data: message,
             });
+
+          const existingChat = await this.prismaRepository.chat.findFirst({
+            where: { instanceId: this.instanceId, remoteJid: message.key.remoteJid },
+          });
+
+          if (!!existingChat) {
+            const chatToInsert = {
+              remoteJid: message.key.remoteJid,
+              instanceId: this.instanceId,
+              name: message.pushName || '',
+              unreadMessages: 0,
+            };
+
+            this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
+            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
+              await this.prismaRepository.chat.create({
+                data: chatToInsert,
+              });
+            }
+          }
         }
       }
 
