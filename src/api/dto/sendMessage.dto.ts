@@ -70,7 +70,7 @@ export class SendPollDto extends Metadata {
   messageSecret?: Uint8Array;
 }
 
-export type MediaType = 'image' | 'document' | 'video' | 'audio';
+export type MediaType = 'image' | 'document' | 'video' | 'audio' | 'ptv';
 
 export class SendMediaDto extends Metadata {
   mediatype: MediaType;
@@ -80,6 +80,10 @@ export class SendMediaDto extends Metadata {
   fileName?: string;
   // url or base64
   media: string;
+}
+
+export class SendPtvDto extends Metadata {
+  video: string;
 }
 
 export class SendStickerDto extends Metadata {

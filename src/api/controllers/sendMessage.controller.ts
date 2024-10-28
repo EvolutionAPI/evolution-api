@@ -7,6 +7,7 @@ import {
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
+  SendPtvDto,
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
@@ -35,6 +36,13 @@ export class SendMessageController {
 
     if (file || isURL(data?.media) || isBase64(data?.media)) {
       return await this.waMonitor.waInstances[instanceName].mediaMessage(data, file);
+    }
+    throw new BadRequestException('Owned media must be a url or base64');
+  }
+
+  public async sendPtv({ instanceName }: InstanceDto, data: SendPtvDto, file?: any) {
+    if (file || isURL(data?.video) || isBase64(data?.video)) {
+      return await this.waMonitor.waInstances[instanceName].ptvMessage(data, file);
     }
     throw new BadRequestException('Owned media must be a url or base64');
   }

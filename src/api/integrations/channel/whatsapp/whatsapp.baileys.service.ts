@@ -42,6 +42,7 @@ import {
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
+  SendPtvDto,
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
@@ -309,7 +310,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-            qrcode,
+          qrcode,
         ),
       );
 
@@ -913,18 +914,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-            (
-              await this.prismaRepository.message.findMany({
-                select: { key: true },
-                where: { instanceId: this.instanceId },
-              })
-            ).map((message) => {
-              const key = message.key as {
-                id: string;
-              };
+          (
+            await this.prismaRepository.message.findMany({
+              select: { key: true },
+              where: { instanceId: this.instanceId },
+            })
+          ).map((message) => {
+            const key = message.key as {
+              id: string;
+            };
 
-              return key.id;
-            }),
+            return key.id;
+          }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -2052,6 +2053,7 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent?.message?.imageMessage ||
         messageSent?.message?.videoMessage ||
         messageSent?.message?.stickerMessage ||
+        messageSent?.message?.ptvMessage ||
         messageSent?.message?.documentMessage ||
         messageSent?.message?.documentWithCaptionMessage ||
         messageSent?.message?.audioMessage;
@@ -2397,9 +2399,11 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async prepareMediaMessage(mediaMessage: MediaMessage) {
     try {
+      const type = mediaMessage.mediatype === 'ptv' ? 'video' : mediaMessage.mediatype;
+
       const prepareMedia = await prepareWAMessageMedia(
         {
-          [mediaMessage.mediatype]: isURL(mediaMessage.media)
+          [type]: isURL(mediaMessage.media)
             ? { url: mediaMessage.media }
             : Buffer.from(mediaMessage.media, 'base64'),
         } as any,
@@ -2451,6 +2455,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
           mimetype = response.headers['content-type'];
         }
+      }
+
+      if (mediaMessage.mediatype === 'ptv') {
+        prepareMedia[mediaType] = prepareMedia[type + 'Message'];
       }
 
       prepareMedia[mediaType].caption = mediaMessage?.caption;
@@ -2543,6 +2551,37 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async mediaMessage(data: SendMediaDto, file?: any, isIntegration = false) {
     const mediaData: SendMediaDto = { ...data };
+
+    if (file) mediaData.media = file.buffer.toString('base64');
+
+    const generate = await this.prepareMediaMessage(mediaData);
+
+    const mediaSent = await this.sendMessageWithTyping(
+      data.number,
+      { ...generate.message },
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
+      },
+      isIntegration,
+    );
+
+    return mediaSent;
+  }
+
+  public async ptvMessage(data: SendPtvDto, file?: any, isIntegration = false) {
+    const mediaData: SendMediaDto = {
+      number: data.number,
+      media: data.video,
+      mediatype: 'ptv',
+      delay: data?.delay,
+      quoted: data?.quoted,
+      mentionsEveryOne: data?.mentionsEveryOne,
+      mentioned: data?.mentioned,
+    };
 
     if (file) mediaData.media = file.buffer.toString('base64');
 

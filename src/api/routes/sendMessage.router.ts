@@ -7,6 +7,7 @@ import {
   SendLocationDto,
   SendMediaDto,
   SendPollDto,
+  SendPtvDto,
   SendReactionDto,
   SendStatusDto,
   SendStickerDto,
@@ -22,6 +23,7 @@ import {
   locationMessageSchema,
   mediaMessageSchema,
   pollMessageSchema,
+  ptvMessageSchema,
   reactionMessageSchema,
   statusMessageSchema,
   stickerMessageSchema,
@@ -67,6 +69,18 @@ export class MessageRouter extends RouterBroker {
           schema: mediaMessageSchema,
           ClassRef: SendMediaDto,
           execute: (instance) => sendMessageController.sendMedia(instance, bodyData, req.file as any),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('sendPtv'), ...guards, upload.single('file'), async (req, res) => {
+        const bodyData = req.body;
+
+        const response = await this.dataValidate<SendPtvDto>({
+          request: req,
+          schema: ptvMessageSchema,
+          ClassRef: SendPtvDto,
+          execute: (instance) => sendMessageController.sendPtv(instance, bodyData, req.file as any),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
