@@ -9,6 +9,7 @@
 * Pusher event integration
 * Add support for splitMessages and timePerChar in Integrations
 * Audio Converter via API
+* Send PTV messages with Baileys
 
 ### Fixed
 
