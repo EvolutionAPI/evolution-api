@@ -73,6 +73,7 @@
     "jsonschema": "^1.4.1",
     "link-preview-js": "^3.0.4",
     "long": "^5.2.3",
+    "mediainfo.js": "^0.3.2",
     "mime": "^3.0.0",
     "minio": "^8.0.1",
     "multer": "^1.4.5-lts.1",

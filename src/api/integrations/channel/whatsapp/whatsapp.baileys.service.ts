@@ -141,8 +141,69 @@ import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 import { PassThrough } from 'stream';
 import { v4 } from 'uuid';
+import { Readable } from 'stream';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
+
+// Adicione a função getVideoDuration no início do arquivo
+async function getVideoDuration(input: Buffer | string | Readable): Promise<number> {
+  const MediaInfoFactory = (await import('mediainfo.js')).default;
+  const mediainfo = await MediaInfoFactory({ format: 'JSON' });
+
+  let fileSize: number;
+  let readChunk: (size: number, offset: number) => Promise<Buffer>;
+
+  if (Buffer.isBuffer(input)) {
+    fileSize = input.length;
+    readChunk = async (size: number, offset: number): Promise<Buffer> => {
+      return input.slice(offset, offset + size);
+    };
+  } else if (typeof input === 'string') {
+    const fs = await import('fs');
+    const stat = await fs.promises.stat(input);
+    fileSize = stat.size;
+    const fd = await fs.promises.open(input, 'r');
+
+    readChunk = async (size: number, offset: number): Promise<Buffer> => {
+      const buffer = Buffer.alloc(size);
+      await fd.read(buffer, 0, size, offset);
+      return buffer;
+    };
+
+    try {
+      const result = await mediainfo.analyzeData(() => fileSize, readChunk);
+      const jsonResult = JSON.parse(result);
+
+      const generalTrack = jsonResult.media.track.find((t: any) => t['@type'] === 'General');
+      const duration = generalTrack.Duration;
+
+      return Math.round(parseFloat(duration));
+    } finally {
+      await fd.close();
+    }
+  } else if (input instanceof Readable) {
+    const chunks: Buffer[] = [];
+    for await (const chunk of input) {
+      chunks.push(chunk);
+    }
+    const data = Buffer.concat(chunks);
+    fileSize = data.length;
+
+    readChunk = async (size: number, offset: number): Promise<Buffer> => {
+      return data.slice(offset, offset + size);
+    };
+  } else {
+    throw new Error('Tipo de entrada não suportado');
+  }
+
+  const result = await mediainfo.analyzeData(() => fileSize, readChunk);
+  const jsonResult = JSON.parse(result);
+
+  const generalTrack = jsonResult.media.track.find((t: any) => t['@type'] === 'General');
+  const duration = generalTrack.Duration;
+
+  return Math.round(parseFloat(duration));
+}
 
 export class BaileysStartupService extends ChannelStartupService {
   constructor(
@@ -1101,6 +1162,7 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.stickerMessage ||
             received?.message?.documentMessage ||
             received?.message?.documentWithCaptionMessage ||
+            received?.message?.ptvMessage ||
             received?.message?.audioMessage;
 
           if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
@@ -2097,6 +2159,7 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent?.message?.ptvMessage ||
         messageSent?.message?.documentMessage ||
         messageSent?.message?.documentWithCaptionMessage ||
+        messageSent?.message?.ptvMessage ||
         messageSent?.message?.audioMessage;
 
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && !isIntegration) {
@@ -2500,6 +2563,37 @@ export class BaileysStartupService extends ChannelStartupService {
 
       if (mediaMessage.mediatype === 'ptv') {
         prepareMedia[mediaType] = prepareMedia[type + 'Message'];
+        mimetype = 'video/mp4';
+        
+        if (!prepareMedia[mediaType]) {
+          throw new Error('Failed to prepare video message');
+        }
+
+        try {
+          let mediaInput;
+          if (isURL(mediaMessage.media)) {
+            mediaInput = mediaMessage.media;
+          } else {
+            const mediaBuffer = Buffer.from(mediaMessage.media, 'base64');
+            if (!mediaBuffer || mediaBuffer.length === 0) {
+              throw new Error('Invalid media buffer');
+            }
+            mediaInput = mediaBuffer;
+          }
+
+          const duration = await getVideoDuration(mediaInput);
+          if (!duration || duration <= 0) {
+            throw new Error('Invalid media duration');
+          }
+
+          this.logger.verbose(`Video duration: ${duration} seconds`);
+          prepareMedia[mediaType].seconds = duration;
+
+        } catch (error) {
+          this.logger.error('Error getting video duration:');
+          this.logger.error(error);
+          throw new Error(`Failed to get video duration: ${error.message}`);
+        }
       }
 
       prepareMedia[mediaType].caption = mediaMessage?.caption;
