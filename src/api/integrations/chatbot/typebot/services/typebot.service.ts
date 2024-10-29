@@ -223,16 +223,88 @@ export class TypebotService {
 
           formattedText = formattedText.replace(/\n$/, '');
 
-          await instance.textMessage(
-            {
+          if (formattedText.includes('[buttons]')) {
+            const buttonJson = {
               number: remoteJid.split('@')[0],
-              delay: settings?.delayMessage || 1000,
-              text: formattedText,
-            },
-            false,
-          );
+              thumbnailUrl: undefined,
+              title: '',
+              description: '',
+              footer: '',
+              buttons: [],
+            };
 
-          sendTelemetry('/message/sendText');
+            const thumbnailUrlMatch = formattedText.match(/\[thumbnailUrl\]([\s\S]*?)(?=\[title\])/);
+            const titleMatch = formattedText.match(/\[title\]([\s\S]*?)(?=\[description\])/);
+            const descriptionMatch = formattedText.match(/\[description\]([\s\S]*?)(?=\[footer\])/);
+            const footerMatch = formattedText.match(/\[footer\]([\s\S]*?)(?=\[(?:reply|pix|copy|call|url))/);
+
+            if (titleMatch) buttonJson.title = titleMatch[1].trim();
+            if (thumbnailUrlMatch) buttonJson.thumbnailUrl = thumbnailUrlMatch[1].trim();
+            if (descriptionMatch) buttonJson.description = descriptionMatch[1].trim();
+            if (footerMatch) buttonJson.footer = footerMatch[1].trim();
+
+            const buttonTypes = {
+              reply: /\[reply\]([\s\S]*?)(?=\[(?:reply|pix|copy|call|url)|$)/g,
+              pix: /\[pix\]([\s\S]*?)(?=\[(?:reply|pix|copy|call|url)|$)/g,
+              copy: /\[copy\]([\s\S]*?)(?=\[(?:reply|pix|copy|call|url)|$)/g,
+              call: /\[call\]([\s\S]*?)(?=\[(?:reply|pix|copy|call|url)|$)/g,
+              url: /\[url\]([\s\S]*?)(?=\[(?:reply|pix|copy|call|url)|$)/g,
+            };
+
+            for (const [type, pattern] of Object.entries(buttonTypes)) {
+              let match;
+              while ((match = pattern.exec(formattedText)) !== null) {
+                const content = match[1].trim();
+                const button: any = { type };
+
+                switch (type) {
+                  case 'pix':
+                    button.currency = content.match(/currency: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    button.name = content.match(/name: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    button.keyType = content.match(/keyType: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    button.key = content.match(/key: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    break;
+
+                  case 'reply':
+                    button.displayText = content.match(/displayText: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    button.id = content.match(/id: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    break;
+
+                  case 'copy':
+                    button.displayText = content.match(/displayText: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    button.copyCode = content.match(/copyCode: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    break;
+
+                  case 'call':
+                    button.displayText = content.match(/displayText: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    button.phoneNumber = content.match(/phone: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    break;
+
+                  case 'url':
+                    button.displayText = content.match(/displayText: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    button.url = content.match(/url: (.*?)(?:\n|$)/)?.[1]?.trim();
+                    break;
+                }
+
+                if (Object.keys(button).length > 1) {
+                  buttonJson.buttons.push(button);
+                }
+              }
+            }
+
+            await instance.buttonMessage(buttonJson);
+          } else {
+            await instance.textMessage(
+              {
+                number: remoteJid.split('@')[0],
+                delay: settings?.delayMessage || 1000,
+                text: formattedText,
+              },
+              false,
+            );
+
+            sendTelemetry('/message/sendText');
+          }
         }
 
         if (message.type === 'image') {

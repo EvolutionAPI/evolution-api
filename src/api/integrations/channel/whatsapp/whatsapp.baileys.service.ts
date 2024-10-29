@@ -139,9 +139,8 @@ import P from 'pino';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
-import { PassThrough } from 'stream';
+import { PassThrough, Readable } from 'stream';
 import { v4 } from 'uuid';
-import { Readable } from 'stream';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
@@ -372,7 +371,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-          qrcode,
+            qrcode,
         ),
       );
 
@@ -976,18 +975,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-          (
-            await this.prismaRepository.message.findMany({
-              select: { key: true },
-              where: { instanceId: this.instanceId },
-            })
-          ).map((message) => {
-            const key = message.key as {
-              id: string;
-            };
+            (
+              await this.prismaRepository.message.findMany({
+                select: { key: true },
+                where: { instanceId: this.instanceId },
+              })
+            ).map((message) => {
+              const key = message.key as {
+                id: string;
+              };
 
-            return key.id;
-          }),
+              return key.id;
+            }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1138,7 +1137,7 @@ export class BaileysStartupService extends ChannelStartupService {
             where: { instanceId: this.instanceId, remoteJid: received.key.remoteJid },
           });
 
-          if (!!existingChat) {
+          if (existingChat) {
             const chatToInsert = {
               remoteJid: received.key.remoteJid,
               instanceId: this.instanceId,
@@ -1474,7 +1473,7 @@ export class BaileysStartupService extends ChannelStartupService {
             where: { instanceId: this.instanceId, remoteJid: message.remoteJid },
           });
 
-          if (!!existingChat) {
+          if (existingChat) {
             const chatToInsert = {
               remoteJid: message.remoteJid,
               instanceId: this.instanceId,
@@ -2507,9 +2506,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const prepareMedia = await prepareWAMessageMedia(
         {
-          [type]: isURL(mediaMessage.media)
-            ? { url: mediaMessage.media }
-            : Buffer.from(mediaMessage.media, 'base64'),
+          [type]: isURL(mediaMessage.media) ? { url: mediaMessage.media } : Buffer.from(mediaMessage.media, 'base64'),
         } as any,
         { upload: this.client.waUploadToServer },
       );
@@ -2564,7 +2561,7 @@ export class BaileysStartupService extends ChannelStartupService {
       if (mediaMessage.mediatype === 'ptv') {
         prepareMedia[mediaType] = prepareMedia[type + 'Message'];
         mimetype = 'video/mp4';
-        
+
         if (!prepareMedia[mediaType]) {
           throw new Error('Failed to prepare video message');
         }
@@ -2588,7 +2585,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.logger.verbose(`Video duration: ${duration} seconds`);
           prepareMedia[mediaType].seconds = duration;
-
         } catch (error) {
           this.logger.error('Error getting video duration:');
           this.logger.error(error);
@@ -2954,43 +2950,43 @@ export class BaileysStartupService extends ChannelStartupService {
           currency: button.currency,
           total_amount: {
             value: 0,
-            offset: 100
+            offset: 100,
           },
           reference_id: this.generateRandomId(),
-          type: "physical-goods",
+          type: 'physical-goods',
           order: {
-            status: "pending",
+            status: 'pending',
             subtotal: {
               value: 0,
-              offset: 100
+              offset: 100,
             },
-            order_type: "ORDER",
+            order_type: 'ORDER',
             items: [
               {
-                name: "",
+                name: '',
                 amount: {
                   value: 0,
-                  offset: 100
+                  offset: 100,
                 },
                 quantity: 0,
                 sale_amount: {
                   value: 0,
-                  offset: 100
-                }
-              }
-            ]
+                  offset: 100,
+                },
+              },
+            ],
           },
           payment_settings: [
             {
-              type: "pix_static_code",
+              type: 'pix_static_code',
               pix_static_code: {
                 merchant_name: button.name,
                 key: button.key,
-                key_type: this.mapKeyType.get(button.keyType)
-              }
-            }
+                key_type: this.mapKeyType.get(button.keyType),
+              },
+            },
           ],
-          share_payment_status: false
+          share_payment_status: false,
         }),
     };
 
@@ -3018,11 +3014,11 @@ export class BaileysStartupService extends ChannelStartupService {
       throw new BadRequestException('At least one button is required');
     }
 
-    const hasReplyButtons = data.buttons.some(btn => btn.type === 'reply');
-    
-    const hasPixButton = data.buttons.some(btn => btn.type === 'pix');
-    
-    const hasOtherButtons = data.buttons.some(btn => btn.type !== 'reply' && btn.type !== 'pix');
+    const hasReplyButtons = data.buttons.some((btn) => btn.type === 'reply');
+
+    const hasPixButton = data.buttons.some((btn) => btn.type === 'pix');
+
+    const hasOtherButtons = data.buttons.some((btn) => btn.type !== 'reply' && btn.type !== 'pix');
 
     if (hasReplyButtons) {
       if (data.buttons.length > 3) {
@@ -3046,10 +3042,12 @@ export class BaileysStartupService extends ChannelStartupService {
           message: {
             interactiveMessage: {
               nativeFlowMessage: {
-                buttons: [{
-                  name: this.mapType.get('pix'),
-                  buttonParamsJson: this.toJSONString(data.buttons[0]),
-                }],
+                buttons: [
+                  {
+                    name: this.mapType.get('pix'),
+                    buttonParamsJson: this.toJSONString(data.buttons[0]),
+                  },
+                ],
                 messageParamsJson: JSON.stringify({
                   from: 'api',
                   templateId: v4(),
