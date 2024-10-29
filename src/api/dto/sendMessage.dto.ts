@@ -94,15 +94,21 @@ export class SendAudioDto extends Metadata {
   audio: string;
 }
 
-export type TypeButton = 'reply' | 'copy' | 'url' | 'call';
+export type TypeButton = 'reply' | 'copy' | 'url' | 'call' | 'pix';
+
+export type KeyType = 'phone' | 'email' | 'cpf' | 'cnpj' | 'random';
 
 export class Button {
   type: TypeButton;
-  displayText: string;
+  displayText?: string;
   id?: string;
   url?: string;
   copyCode?: string;
   phoneNumber?: string;
+  currency?: string;
+  name?: string;
+  keyType?: KeyType;
+  key?: string;
 }
 
 export class SendButtonsDto extends Metadata {
