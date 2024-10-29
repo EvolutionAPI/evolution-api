@@ -1762,7 +1762,8 @@ export class BaileysStartupService extends ChannelStartupService {
           website: business?.website?.shift(),
         };
       } else {
-        const info: Instance = await waMonitor.instanceInfo([instanceName]);
+        const instanceNames = instanceName ? [instanceName] : null;
+        const info: Instance = await waMonitor.instanceInfo(instanceNames);
         const business = await this.fetchBusinessProfile(jid);
 
         return {
