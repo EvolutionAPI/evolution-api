@@ -245,11 +245,11 @@ export class TypebotService {
 
             const menuContent = formattedText.match(/\[menu\]([\s\S]*?)\[\/menu\]/)?.[1];
             if (menuContent) {
-              const sections = menuContent.match(/\[section\]([\s\S]*?)(?=\[section\]|\[\/section\])/g);
+              const sections = menuContent.match(/\[section\]([\s\S]*?)(?=\[section\]|\[\/section\]|\[\/menu\])/g);
               if (sections) {
                 sections.forEach((section) => {
                   const sectionTitle = section.match(/title: (.*?)(?:\n|$)/)?.[1]?.trim();
-                  const rows = section.match(/\[row\]([\s\S]*?)(?=\[row\]|\[\/section\]|\[\/menu\])/g);
+                  const rows = section.match(/\[row\]([\s\S]*?)(?=\[row\]|\[\/row\]|\[\/section\]|\[\/menu\])/g);
 
                   const sectionData = {
                     title: sectionTitle,
@@ -437,11 +437,11 @@ export class TypebotService {
 
             const menuContent = formattedText.match(/\[menu\]([\s\S]*?)\[\/menu\]/)?.[1];
             if (menuContent) {
-              const sections = menuContent.match(/\[section\]([\s\S]*?)(?=\[section\]|\[\/section\])/g);
+              const sections = menuContent.match(/\[section\]([\s\S]*?)(?=\[section\]|\[\/section\]|\[\/menu\])/g);
               if (sections) {
                 sections.forEach((section) => {
                   const sectionTitle = section.match(/title: (.*?)(?:\n|$)/)?.[1]?.trim();
-                  const rows = section.match(/\[row\]([\s\S]*?)(?=\[row\]|\[\/section\]|\[\/menu\])/g);
+                  const rows = section.match(/\[row\]([\s\S]*?)(?=\[row\]|\[\/row\]|\[\/section\]|\[\/menu\])/g);
 
                   const sectionData = {
                     title: sectionTitle,
