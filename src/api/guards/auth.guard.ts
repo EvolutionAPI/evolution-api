@@ -13,16 +13,31 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
   const db = configService.get<Database>('DATABASE');
 
   if (!key) {
-    throw new UnauthorizedException();
+    throw new UnauthorizedException('API key is missing');
   }
 
   if (env.KEY === key) {
     return next();
   }
 
-  if ((req.originalUrl.includes('/instance/create') || req.originalUrl.includes('/instance/fetchInstances')) && !key) {
-    throw new ForbiddenException('Missing global api key', 'The global api key must be set');
+  const isInstanceCreation = req.originalUrl.includes('/instance/create');
+  const isFetchInstances = req.originalUrl.includes('/instance/fetchInstances');
+
+  if (isInstanceCreation || isFetchInstances) {
+    if (db.SAVE_DATA.INSTANCE) {
+      const instanceByKey = await prismaRepository.instance.findFirst({
+        where: { token: key },
+      });
+      if (instanceByKey) {
+        return next();
+      }
+    }
+    
+    if (isInstanceCreation) {
+      throw new ForbiddenException('Invalid API key for instance creation', 'The provided API key is not authorized to create instances');
+    }
   }
+
   const param = req.params as unknown as InstanceDto;
 
   try {
@@ -30,24 +45,15 @@ async function apikey(req: Request, _: Response, next: NextFunction) {
       const instance = await prismaRepository.instance.findUnique({
         where: { name: param.instanceName },
       });
-      if (instance.token === key) {
+      if (instance && instance.token === key) {
         return next();
-      }
-    } else {
-      if (req.originalUrl.includes('/instance/fetchInstances') && db.SAVE_DATA.INSTANCE) {
-        const instanceByKey = await prismaRepository.instance.findFirst({
-          where: { token: key },
-        });
-        if (instanceByKey) {
-          return next();
-        }
       }
     }
   } catch (error) {
     logger.error(error);
   }
 
-  throw new UnauthorizedException();
+  throw new UnauthorizedException('Invalid API key');
 }
 
 export const authGuard = { apikey };
