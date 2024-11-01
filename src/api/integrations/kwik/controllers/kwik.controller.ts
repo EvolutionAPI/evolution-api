@@ -230,15 +230,28 @@ export class KwikController {
         newVal: 0,
       };
     } else {
-      const userMessages = await messages
-        .find({ owner: instanceName, messageTimestamp: { $gte: messageTimestamp } })
-        .toArray();
-
+      let ended = false;
+      const batchSize = 10000;
       let totalSize = 0;
+      let offset = 0;
 
-      userMessages.forEach(function (doc) {
-        totalSize += calculateObjectSize(doc);
-      });
+      while (!ended) {
+        const userMessages = await messages
+          .find({ owner: instanceName, messageTimestamp: { $gte: messageTimestamp } })
+          .skip(offset)
+          .limit(batchSize)
+          .toArray();
+
+        userMessages.forEach(function (doc) {
+          totalSize += calculateObjectSize(doc);
+        });
+
+        if (userMessages.length < batchSize) {
+          ended = true;
+        } else {
+          offset += batchSize;
+        }
+      }
 
       return {
         chatCount: chatCount[0].rowCount,
