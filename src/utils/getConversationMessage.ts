@@ -17,7 +17,7 @@ const getTypeMessage = (msg: any) => {
       msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
     listResponseMessage: msg?.message?.listResponseMessage?.title,
     responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
-    templateButtonReplyMessage: msg?.message?.templateButtonReplyMessage?.selectedId,
+    templateButtonReplyMessage: msg?.message?.templateButtonReplyMessage?.selectedId || msg?.message?.buttonsResponseMessage?.selectedButtonId,
     // Medias
     audioMessage: msg?.message?.speechToText
       ? msg?.message?.speechToText
