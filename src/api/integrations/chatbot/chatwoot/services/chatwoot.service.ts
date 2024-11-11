@@ -1970,11 +1970,16 @@ export class ChatwootService {
 
           if (body.key.remoteJid.includes('@g.us')) {
             const participantName = body.pushName;
+            const rawPhoneNumber = body.key.remoteJid.split('@')[0];
+            const formattedPhoneNumber = `+${rawPhoneNumber.slice(0, 2)} (${rawPhoneNumber.slice(
+              2,
+              4,
+            )}) ${rawPhoneNumber.slice(4, 8)}-${rawPhoneNumber.slice(8)}`;
 
             let content: string;
 
             if (!body.key.fromMe) {
-              content = `**${participantName}:**\n\n${bodyMessage}`;
+              content = `**${formattedPhoneNumber} - ${participantName}:**\n\n${bodyMessage}`;
             } else {
               content = `${bodyMessage}`;
             }
@@ -2099,11 +2104,16 @@ export class ChatwootService {
 
         if (body.key.remoteJid.includes('@g.us')) {
           const participantName = body.pushName;
+          const rawPhoneNumber = body.key.remoteJid.split('@')[0];
+          const formattedPhoneNumber = `+${rawPhoneNumber.slice(0, 2)} (${rawPhoneNumber.slice(
+            2,
+            4,
+          )}) ${rawPhoneNumber.slice(4, 8)}-${rawPhoneNumber.slice(8)}`;
 
           let content: string;
 
           if (!body.key.fromMe) {
-            content = `**${participantName}**\n\n${bodyMessage}`;
+            content = `**${formattedPhoneNumber} - ${participantName}:**\n\n${bodyMessage}`;
           } else {
             content = `${bodyMessage}`;
           }
