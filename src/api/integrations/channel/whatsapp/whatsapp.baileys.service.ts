@@ -4259,6 +4259,19 @@ export class BaileysStartupService extends ChannelStartupService {
       delete messageRaw.message.documentWithCaptionMessage;
     }
 
+    const quotedMessage = messageRaw?.contextInfo?.quotedMessage;
+    if (quotedMessage) {
+      if (quotedMessage.extendedTextMessage) {
+        quotedMessage.conversation = quotedMessage.extendedTextMessage.text;
+        delete quotedMessage.extendedTextMessage;
+      }
+
+      if (quotedMessage.documentWithCaptionMessage) {
+        quotedMessage.documentMessage = quotedMessage.documentWithCaptionMessage.message.documentMessage;
+        delete quotedMessage.documentWithCaptionMessage;
+      }
+    }
+
     return messageRaw;
   }
 
