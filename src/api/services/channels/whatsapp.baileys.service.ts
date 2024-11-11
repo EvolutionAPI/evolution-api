@@ -143,7 +143,7 @@ export class BaileysStartupService extends ChannelStartupService {
     public readonly cache: CacheService,
     public readonly chatwootCache: CacheService,
     public readonly baileysCache: CacheService,
-    private readonly providerFiles: ProviderFiles,
+    private readonly providerFiles: ProviderFiles
   ) {
     super(configService, eventEmitter, repository, chatwootCache);
     this.logger.verbose('BaileysStartupService initialized');
@@ -1100,7 +1100,9 @@ export class BaileysStartupService extends ChannelStartupService {
             received.messageTimestamp = received.messageTimestamp?.toNumber();
           }
 
-          if (settings?.groups_ignore && received.key.remoteJid.includes('@g.us')) {
+          const isGroup = received.key.remoteJid.includes('@g.us')
+
+          if (settings?.groups_ignore && isGroup) {
             this.logger.verbose('group ignored');
             return;
           }
@@ -1225,11 +1227,23 @@ export class BaileysStartupService extends ChannelStartupService {
             where: { owner: this.instance.name, id: received.key.remoteJid },
           });
 
+          const sender = received.pushName
+
+          if (isGroup){
+            const group = await waMonitor.waInstances[this.instance.name].findGroup({ groupJid: received.key.remoteJid }, 'inner')
+            received.pushName = group ? group.subject : null
+          } 
+
+          const lastMessage = {...messageRaw, sender: sender}
+          if ('base64' in lastMessage.message)
+            delete lastMessage.message.base64
+        
           const contactRaw: ContactRaw = {
             id: received.key.remoteJid,
             pushName: received.pushName,
             profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
             owner: this.instance.name,
+            lastMessage: lastMessage
           };
 
           if (contactRaw.id === 'status@broadcast') {
@@ -1241,13 +1255,14 @@ export class BaileysStartupService extends ChannelStartupService {
             this.logger.verbose('Contact found in database');
             const contactRaw: ContactRaw = {
               id: received.key.remoteJid,
-              pushName: contact[0].pushName || received.pushName,
+              pushName: isGroup ? received.pushName : contact[0].pushName || received.pushName,
               profilePictureUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
               owner: this.instance.name,
+              lastMessage: lastMessage
             };
 
-            if (received?.key?.fromMe === true){
-              contactRaw.pushName = null
+            if (received?.key?.fromMe === true && !isGroup){
+              contactRaw.pushName = contact[0].pushName
             }
 
             this.logger.verbose('Sending data to webhook in event CONTACTS_UPDATE');
@@ -1263,7 +1278,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             this.logger.verbose('Updating contact in database');
             
-            if(contactRaw.pushName)
+            //if(contactRaw.pushName)
               await this.repository.contact.update([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
             return;
           }
@@ -1275,7 +1290,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.logger.verbose('Inserting contact in database');
 
-          if (received?.key?.fromMe === true)
+          if (received?.key?.fromMe === true && !isGroup)
             contactRaw.pushName = null;
 
             this.repository.contact.insert([contactRaw], this.instance.name, database.SAVE_DATA.CONTACTS);
