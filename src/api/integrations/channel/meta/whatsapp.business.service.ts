@@ -352,7 +352,7 @@ export class BusinessStartupService extends ChannelStartupService {
 
               const size = result.headers['content-length'] || buffer.data.byteLength;
 
-              const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
+              const fullName = join(`${this.instance.id}`, key.remoteJid, mediaType, fileName);
 
               await s3Service.uploadFile(fullName, buffer.data, size, {
                 'Content-Type': mimetype,
