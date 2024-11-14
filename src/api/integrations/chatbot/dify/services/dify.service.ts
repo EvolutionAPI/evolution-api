@@ -428,8 +428,8 @@ export class DifyService {
               },
               false,
             );
-            textBuffer = '';
           }
+          textBuffer = '';
         }
 
         if (mediaType === 'audio') {

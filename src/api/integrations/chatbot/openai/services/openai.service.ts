@@ -234,8 +234,8 @@ export class OpenaiService {
               },
               false,
             );
-            textBuffer = '';
           }
+          textBuffer = '';
         }
 
         if (mediaType === 'audio') {
@@ -318,8 +318,8 @@ export class OpenaiService {
           },
           false,
         );
-        textBuffer = '';
       }
+      textBuffer = '';
     }
 
     sendTelemetry('/message/sendText');
