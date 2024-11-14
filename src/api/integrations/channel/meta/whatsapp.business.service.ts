@@ -358,9 +358,13 @@ export class BusinessStartupService extends ChannelStartupService {
                 'Content-Type': mimetype,
               });
 
+              const createdMessage = await this.prismaRepository.message.create({
+                data: messageRaw,
+              });
+
               await this.prismaRepository.media.create({
                 data: {
-                  messageId: received.messages[0].id,
+                  messageId: createdMessage.id,
                   instanceId: this.instanceId,
                   type: mediaType,
                   fileName: fullName,
