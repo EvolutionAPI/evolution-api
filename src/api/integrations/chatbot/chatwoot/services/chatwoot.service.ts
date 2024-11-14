@@ -1970,11 +1970,16 @@ export class ChatwootService {
 
           if (body.key.remoteJid.includes('@g.us')) {
             const participantName = body.pushName;
-            const rawPhoneNumber = body.key.remoteJid.split('@')[0];
-            const formattedPhoneNumber = `+${rawPhoneNumber.slice(0, 2)} (${rawPhoneNumber.slice(
-              2,
-              4,
-            )}) ${rawPhoneNumber.slice(4, 8)}-${rawPhoneNumber.slice(8)}`;
+            const rawPhoneNumber = body.key.participant.split('@')[0];
+            const phoneMatch = rawPhoneNumber.match(/^(\d{2})(\d{2})(\d{4})(\d{4})$/);
+
+            let formattedPhoneNumber: string;
+
+            if (phoneMatch) {
+              formattedPhoneNumber = `+${phoneMatch[1]} (${phoneMatch[2]}) ${phoneMatch[3]}-${phoneMatch[4]}`;
+            } else {
+              formattedPhoneNumber = `+${rawPhoneNumber}`;
+            }
 
             let content: string;
 
@@ -2104,11 +2109,16 @@ export class ChatwootService {
 
         if (body.key.remoteJid.includes('@g.us')) {
           const participantName = body.pushName;
-          const rawPhoneNumber = body.key.remoteJid.split('@')[0];
-          const formattedPhoneNumber = `+${rawPhoneNumber.slice(0, 2)} (${rawPhoneNumber.slice(
-            2,
-            4,
-          )}) ${rawPhoneNumber.slice(4, 8)}-${rawPhoneNumber.slice(8)}`;
+          const rawPhoneNumber = body.key.participant.split('@')[0];
+          const phoneMatch = rawPhoneNumber.match(/^(\d{2})(\d{2})(\d{4})(\d{4})$/);
+
+          let formattedPhoneNumber: string;
+
+          if (phoneMatch) {
+            formattedPhoneNumber = `+${phoneMatch[1]} (${phoneMatch[2]}) ${phoneMatch[3]}-${phoneMatch[4]}`;
+          } else {
+            formattedPhoneNumber = `+${rawPhoneNumber}`;
+          }
 
           let content: string;
 
