@@ -504,9 +504,11 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        await this.prismaRepository.message.create({
-          data: messageRaw,
-        });
+        if (!this.isMediaMessage(received?.messages[0])) {
+          await this.prismaRepository.message.create({
+            data: messageRaw,
+          });
+        }
 
         const contact = await this.prismaRepository.contact.findFirst({
           where: { instanceId: this.instanceId, remoteJid: key.remoteJid },
