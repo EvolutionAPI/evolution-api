@@ -339,7 +339,7 @@ export class BusinessStartupService extends ChannelStartupService {
                 ? 'audio'
                 : 'video';
 
-              const mimetype = result.headers['content-type'];
+              const mimetype = result.data?.mime_type || result.headers['content-type'];
 
               const contentDisposition = result.headers['content-disposition'];
               let fileName = `${message.messages[0].id}.${mimetype.split('/')[1]}`;
