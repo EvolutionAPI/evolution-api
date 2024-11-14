@@ -70,6 +70,13 @@ export class BusinessStartupService extends ChannelStartupService {
     await this.closeClient();
   }
 
+  private isMediaMessage(message: any) {
+    return message.document ||
+      message.image ||
+      message.audio ||
+      message.video
+  }
+
   private async post(message: any, params: string) {
     try {
       let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
@@ -301,12 +308,7 @@ export class BusinessStartupService extends ChannelStartupService {
           remoteJid: this.phoneNumber,
           fromMe: received.messages[0].from === received.metadata.phone_number_id,
         };
-        if (
-          received?.messages[0].document ||
-          received?.messages[0].image ||
-          received?.messages[0].audio ||
-          received?.messages[0].video
-        ) {
+        if (this.isMediaMessage(received?.messages[0])) {
           messageRaw = {
             key,
             pushName,
