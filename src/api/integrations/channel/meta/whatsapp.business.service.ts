@@ -465,16 +465,23 @@ export class BusinessStartupService extends ChannelStartupService {
             },
           });
 
+          const audioMessage = received?.messages[0]?.audio;
+
           if (
             openAiDefaultSettings &&
             openAiDefaultSettings.openaiCredsId &&
             openAiDefaultSettings.speechToText &&
-            received?.message?.audioMessage
+            audioMessage
           ) {
             messageRaw.message.speechToText = await this.openaiService.speechToText(
               openAiDefaultSettings.OpenaiCreds,
-              received,
-              this.client.updateMediaMessage,
+              {
+                message: {
+                  mediaUrl: messageRaw.message.mediaUrl,
+                  ...messageRaw,
+                }
+              },
+              () => {},
             );
           }
         }
