@@ -1147,7 +1147,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
             this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
-              await this.prismaRepository.chat.create({
+              await this.prismaRepository.chat.update({
+                where: {
+                  id: existingChat.id,
+                },
                 data: chatToInsert,
               });
             }
@@ -1483,7 +1486,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
             this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
-              await this.prismaRepository.chat.create({
+              await this.prismaRepository.chat.update({
+                where: {
+                  id: existingChat.id,
+                },
                 data: chatToInsert,
               });
             }
