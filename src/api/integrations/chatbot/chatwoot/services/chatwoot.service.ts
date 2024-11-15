@@ -704,7 +704,7 @@ export class ChatwootService {
           conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
           this.logger.verbose(`Found conversation in reopenConversation mode: ${JSON.stringify(conversation)}`);
 
-          if (this.provider.conversationPending) {
+          if (this.provider.conversationPending && conversation.status !== 'open') {
             if (conversation) {
               await client.conversations.toggleStatus({
                 accountId: this.provider.accountId,
