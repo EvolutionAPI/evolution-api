@@ -1529,6 +1529,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly labelHandle = {
     [Events.LABELS_EDIT]: async (label: Label) => {
+      this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
+
       const labelsRepository = await this.prismaRepository.label.findMany({
         where: { instanceId: this.instanceId },
       });
@@ -1563,7 +1565,6 @@ export class BaileysStartupService extends ChannelStartupService {
             create: labelData,
           });
         }
-        this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
       }
     },
 
@@ -1571,26 +1572,44 @@ export class BaileysStartupService extends ChannelStartupService {
       data: { association: LabelAssociation; type: 'remove' | 'add' },
       database: Database,
     ) => {
+      this.logger.info(
+        `labels as  sociation - ${data?.association?.chatId} (${data.type}): ${data?.association?.labelId}`,
+      );
       if (database.SAVE_DATA.CHATS) {
-        const chats = await this.prismaRepository.chat.findMany({
-          where: { instanceId: this.instanceId },
-        });
-        const chat = chats.find((c) => c.remoteJid === data.association.chatId);
-        if (chat) {
-          const labelsArray = Array.isArray(chat.labels) ? chat.labels.map((event) => String(event)) : [];
-          let labels = [...labelsArray];
+        const instanceId = this.instanceId;
+        const chatId = data.association.chatId;
+        const labelId = data.association.labelId;
 
-          if (data.type === 'remove') {
-            labels = labels.filter((label) => label !== data.association.labelId);
-          } else if (data.type === 'add') {
-            labels = [...labels, data.association.labelId];
-          }
-          await this.prismaRepository.chat.update({
-            where: { id: chat.id },
-            data: {
-              labels,
-            },
-          });
+        if (data.type === 'add') {
+          // Adicionar o label ao array JSONB
+          await this.prismaRepository.$executeRawUnsafe(
+            `UPDATE "Chat"
+             SET "labels" = (SELECT to_jsonb(array_agg(DISTINCT elem))
+                             FROM (SELECT jsonb_array_elements_text("labels") AS elem
+                                   UNION
+                                   SELECT $1::text AS elem) sub)
+             WHERE "instanceId" = $2
+               AND "remoteJid" = $3`,
+            labelId,
+            instanceId,
+            chatId,
+          );
+        } else if (data.type === 'remove') {
+          // Usar consulta SQL bruta para remover o label
+          await this.prismaRepository.$executeRawUnsafe(
+            `UPDATE "Chat"
+             SET "labels" = COALESCE(
+                     (SELECT jsonb_agg(elem)
+                      FROM jsonb_array_elements_text("labels") AS elem
+                      WHERE elem <> $1),
+                     '[]' ::jsonb
+                            )
+             WHERE "instanceId" = $2
+               AND "remoteJid" = $3;`,
+            labelId,
+            instanceId,
+            chatId,
+          );
         }
       }
 
@@ -4229,6 +4248,7 @@ export class BaileysStartupService extends ChannelStartupService {
       throw new BadRequestException('Unable to leave the group', error.toString());
     }
   }
+
   public async templateMessage() {
     throw new Error('Method not available in the Baileys service');
   }
