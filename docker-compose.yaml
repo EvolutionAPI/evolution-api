@@ -5,7 +5,7 @@ services:
     restart: always
     depends_on:
       - redis
-      - postgres
+      # - postgres
     ports:
       - 8080:8080
     volumes:
@@ -32,39 +32,39 @@ services:
       - 6379:6379
 
 
-  postgres:
-    container_name: postgres
-    image: postgres:15
-    networks:
-      - evolution-net
-    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
-    restart: always
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-      - POSTGRES_DB=evolution
-      - POSTGRES_HOST_AUTH_METHOD=trust
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    expose:
-      - 5432
+  # postgres:
+  #   container_name: postgres
+  #   image: postgres:15
+  #   networks:
+  #     - evolution-net
+  #   command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+  #   restart: always
+  #   ports:
+  #     - 5432:5432
+  #   environment:
+  #     - POSTGRES_USER=user
+  #     - POSTGRES_PASSWORD=pass
+  #     - POSTGRES_DB=evolution
+  #     - POSTGRES_HOST_AUTH_METHOD=trust
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   expose:
+  #     - 5432
   
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin-container
-    environment:
-      PGADMIN_DEFAULT_EMAIL: user@example.com
-      PGADMIN_DEFAULT_PASSWORD: adm
-    volumes:
-      - ./pgadmin:/var/lib/pgadmin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    networks:
-      - evolution-net
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: pgadmin-container
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: user@example.com
+  #     PGADMIN_DEFAULT_PASSWORD: adm
+  #   volumes:
+  #     - ./pgadmin:/var/lib/pgadmin
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - evolution-net
 
 
 volumes:

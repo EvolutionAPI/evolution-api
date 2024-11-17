@@ -1,0 +1,86 @@
+name: Deploying API to Cloud Run
+
+on:
+  pull_request:
+    branches: ["main", "dev", "qa"]
+    paths:
+      - "**"
+
+env:
+  PROJECT_ID: skysales-ai
+  GAR_LOCATION: us-central1
+  CR_SERVICE: wpp-provider-api
+  SERVICE: klaus-cloudrun-service
+  REGION: us-central1
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Docker Auth
+        uses: "docker/login-action@v1"
+        with:
+          username: _json_key
+          password: "${{ secrets.GCP_SA_KEY }}"
+          registry: "${{ env.GAR_LOCATION }}-docker.pkg.dev"
+
+      - name: Build and Push Container
+        run: |-
+          docker build \
+            --build-arg SERVER_TYPE=http \
+            --build-arg SERVER_PORT=8080 \
+            --build-arg SERVER_URL=http://localhost:8080 \
+            --build-arg CORS_ORIGIN=* \
+            --build-arg CORS_METHODS=GET,POST,PUT,DELETE \
+            --build-arg CORS_CREDENTIALS=true \
+            --build-arg LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS,WEBSOCKET \
+            --build-arg LOG_COLOR=true \
+            --build-arg LOG_BAILEYS=error \
+            --build-arg EVENT_EMITTER_MAX_LISTENERS=50 \
+            --build-arg DEL_INSTANCE=false \
+            --build-arg DATABASE_PROVIDER=postgresql \
+            --build-arg DATABASE_CONNECTION_CLIENT_NAME=evolution_exchange \
+            --build-arg DATABASE_SAVE_DATA_INSTANCE=true \
+            --build-arg DATABASE_SAVE_DATA_NEW_MESSAGE=true \
+            --build-arg DATABASE_SAVE_MESSAGE_UPDATE=true \
+            --build-arg DATABASE_SAVE_DATA_CONTACTS=true \
+            --build-arg DATABASE_SAVE_DATA_CHATS=true \
+            --build-arg DATABASE_SAVE_DATA_LABELS=true \
+            --build-arg DATABASE_SAVE_DATA_HISTORIC=true \
+            --build-arg DATABASE_SAVE_IS_ON_WHATSAPP=true \
+            --build-arg DATABASE_SAVE_IS_ON_WHATSAPP_DAYS=7 \
+            --build-arg DATABASE_DELETE_MESSAGE=true \
+            --build-arg AUTHENTICATION_API_KEY=2325CBB2-A2BB-4F98-8D88-D0B513435C7F \
+            --build-arg AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true \
+            --build-arg LANGUAGE=en \
+            -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/wpp-provider-api:${{ github.sha }}" \
+            --file ./prod.Dockerfile \
+            ./
+          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/wpp-provider-api:${{ github.sha }}"
+
+      - name: Authenticate gcloud
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          service_account: "github-actions@skysales-ai.iam.gserviceaccount.com"
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2.3.0
+        with:
+          service: ${{ env.CR_SERVICE }}
+          region: ${{ env.REGION }}
+          image: "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/wpp-provider-api:${{ github.sha }}"
+          secrets: |
+            DATABASE_CONNECTION_URI=WPP_API_PG_STRING:latest
+      - name: Show Output
+        run: echo ${{ steps.deploy.outputs.url }}

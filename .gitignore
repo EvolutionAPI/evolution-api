@@ -49,3 +49,5 @@ lerna-debug.log*
 /prisma/migrations/*
 
 pgadmin/*
+.DS_Store
+
