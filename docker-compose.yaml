@@ -1,7 +1,7 @@
 services:
   api:
     container_name: evolution_api
-    image: atendai/evolution-api:homolog
+    image: atendai/evolution-api:latest
     restart: always
     depends_on:
       - redis
@@ -16,9 +16,11 @@ services:
       - .env
     expose:
       - 8080
+    environment:
+      - DATABASE_PROVIDER=postgresql
 
   redis:
-    image: redis:latest
+    image: redis:alpine
     networks:
       - evolution-net
     container_name: redis
@@ -29,21 +31,41 @@ services:
     ports:
       - 6379:6379
 
+
   postgres:
     container_name: postgres
     image: postgres:15
     networks:
       - evolution-net
-    command: ["postgres", "-c", "max_connections=1000"]
+    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
     restart: always
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_PASSWORD=PASSWORD
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=evolution
+      - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
     expose:
       - 5432
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-container
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@example.com
+      PGADMIN_DEFAULT_PASSWORD: adm
+    volumes:
+      - ./pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - evolution-net
+
 
 volumes:
   evolution_instances:

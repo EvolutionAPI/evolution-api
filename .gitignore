@@ -47,3 +47,5 @@ lerna-debug.log*
 .tool-versions
 
 /prisma/migrations/*
+
+pgadmin/*
