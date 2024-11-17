@@ -426,16 +426,20 @@ export class ChatwootService {
     let contact: any;
 
     if (isGroup) {
+      this.logger.verbose(`Searching for group contact with query: ${query}`);
       contact = await client.contacts.search({
         accountId: this.provider.accountId,
         q: query,
       });
     } else {
+      const payload = this.getFilterPayload(query);
+      this.logger.verbose(`Payload for contact filter: ${JSON.stringify(payload, null, 2)}`);
+
       contact = await chatwootRequest(this.getClientCwConfig(), {
         method: 'POST',
         url: `/api/v1/accounts/${this.provider.accountId}/contacts/filter`,
         body: {
-          payload: this.getFilterPayload(query),
+          payload: payload,
         },
       });
     }
@@ -445,12 +449,15 @@ export class ChatwootService {
       return null;
     }
 
+    this.logger.verbose(`Response from contact search: ${JSON.stringify(contact, null, 2)}`);
+
     if (!isGroup) {
       return contact.payload.length > 1 ? this.findContactInContactList(contact.payload, query) : contact.payload[0];
     } else {
       return contact.payload.find((contact) => contact.identifier === query);
     }
   }
+
 
   private async mergeBrazilianContacts(contacts: any[]) {
     try {
@@ -547,6 +554,7 @@ export class ChatwootService {
     try {
       this.logger.verbose('--- Start createConversation ---');
       this.logger.verbose(`Instance: ${JSON.stringify(instance)}`);
+      this.logger.verbose(`Body: ${JSON.stringify(body)}`);
 
       const client = await this.clientCw(instance);
 
@@ -554,6 +562,7 @@ export class ChatwootService {
         this.logger.warn(`Client not found for instance: ${JSON.stringify(instance)}`);
         return null;
       }
+      this.logger.verbose(`Client obtained: ${JSON.stringify(client)}`);
 
       const cacheKey = `${instance.instanceName}:createConversation-${body.key.remoteJid}`;
       this.logger.verbose(`Cache key: ${cacheKey}`);
@@ -570,7 +579,7 @@ export class ChatwootService {
           });
           this.logger.verbose(`Conversation exists: ${JSON.stringify(conversationExists)}`);
         } catch (error) {
-          this.logger.error(`Error getting conversation: ${error}`);
+          this.logger.error(`Error getting conversation: ${JSON.stringify(error)}`);
           conversationExists = false;
         }
         if (!conversationExists) {
@@ -594,6 +603,7 @@ export class ChatwootService {
       this.logger.verbose(`Name contact: ${nameContact}`);
 
       const filterInbox = await this.getInbox(instance);
+      this.logger.verbose(`Filter inbox: ${JSON.stringify(filterInbox)}`);
 
       if (!filterInbox) {
         this.logger.warn(`Inbox not found for instance: ${JSON.stringify(instance)}`);
@@ -607,25 +617,26 @@ export class ChatwootService {
 
         nameContact = `${group.subject} (GROUP)`;
 
-        const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(
-          body.key.participant.split('@')[0],
-        );
+        const participantId = body.key.participant.split('@')[0];
+        const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(participantId);
         this.logger.verbose(`Participant profile picture URL: ${JSON.stringify(picture_url)}`);
 
-        const findParticipant = await this.findContact(instance, body.key.participant.split('@')[0]);
+        const findParticipant = await this.findContact(instance, participantId);
         this.logger.verbose(`Found participant: ${JSON.stringify(findParticipant)}`);
 
         if (findParticipant) {
           if (!findParticipant.name || findParticipant.name === chatId) {
+            this.logger.verbose(`Updating participant contact with ID: ${findParticipant.id}`);
             await this.updateContact(instance, findParticipant.id, {
               name: body.pushName,
               avatar_url: picture_url.profilePictureUrl || null,
             });
           }
         } else {
+          this.logger.verbose('Creating participant contact');
           await this.createContact(
             instance,
-            body.key.participant.split('@')[0],
+            participantId,
             filterInbox.id,
             false,
             body.pushName,
@@ -660,15 +671,18 @@ export class ChatwootService {
           this.logger.verbose(`Name needs update: ${nameNeedsUpdate}`);
 
           if (pictureNeedsUpdate || nameNeedsUpdate) {
+            this.logger.verbose(`Updating contact with ID: ${contact.id}`);
             contact = await this.updateContact(instance, contact.id, {
               ...(nameNeedsUpdate && { name: nameContact }),
               ...(waProfilePictureFile === '' && { avatar: null }),
               ...(pictureNeedsUpdate && { avatar_url: picture_url?.profilePictureUrl }),
             });
+            this.logger.verbose(`Contact after update: ${JSON.stringify(contact)}`);
           }
         }
       } else {
         const jid = body.key.remoteJid;
+        this.logger.verbose('Creating new contact');
         contact = await this.createContact(
           instance,
           chatId,
@@ -678,6 +692,7 @@ export class ChatwootService {
           picture_url.profilePictureUrl || null,
           jid,
         );
+        this.logger.verbose(`Contact created: ${JSON.stringify(contact)}`);
       }
 
       if (!contact) {
@@ -707,6 +722,7 @@ export class ChatwootService {
 
           if (this.provider.conversationPending) {
             if (conversation) {
+              this.logger.verbose(`Setting conversation status to pending for conversation ID: ${conversation.id}`);
               await client.conversations.toggleStatus({
                 accountId: this.provider.accountId,
                 conversationId: conversation.id,
@@ -739,10 +755,14 @@ export class ChatwootService {
         data['status'] = 'pending';
       }
 
+      this.logger.verbose(`Creating conversation with data: ${JSON.stringify(data)}`);
+
       const conversation = await client.conversations.create({
         accountId: this.provider.accountId,
         data,
       });
+
+      this.logger.verbose(`Conversation created: ${JSON.stringify(conversation)}`);
 
       if (!conversation) {
         this.logger.warn('Conversation not created or found');
@@ -753,9 +773,10 @@ export class ChatwootService {
       this.cache.set(cacheKey, conversation.id);
       return conversation.id;
     } catch (error) {
-      this.logger.error(`Error in createConversation: ${error}`);
+      this.logger.error(`Error in createConversation: ${JSON.stringify(error)}`);
     }
   }
+
 
   public async getInbox(instance: InstanceDto): Promise<inbox | null> {
     const cacheKey = `${instance.instanceName}:getInbox`;
