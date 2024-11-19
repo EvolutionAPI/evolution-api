@@ -3861,7 +3861,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }));
   }
 
-  public async handleLabel(data: HandleLabelDto, instanceId: string) {
+  public async handleLabel(data: HandleLabelDto) {
     const whatsappContact = await this.whatsappNumber({ numbers: [data.number] });
     if (whatsappContact.length === 0) {
       throw new NotFoundException('Number not found');
@@ -3874,13 +3874,13 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       if (data.action === 'add') {
         await this.client.addChatLabel(contact.jid, data.labelId);
-        await this.addLabel(data.labelId, instanceId, contact.jid);
+        await this.addLabel(data.labelId, this.instanceId, contact.jid);
 
         return { numberJid: contact.jid, labelId: data.labelId, add: true };
       }
       if (data.action === 'remove') {
         await this.client.removeChatLabel(contact.jid, data.labelId);
-        await this.removeLabel(data.labelId, instanceId, contact.jid);
+        await this.removeLabel(data.labelId, this.instanceId, contact.jid);
 
         return { numberJid: contact.jid, labelId: data.labelId, remove: true };
       }
