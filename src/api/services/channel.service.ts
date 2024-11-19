@@ -655,8 +655,8 @@ export class ChannelStartupService {
             (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
             (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
           FROM "Chat"
-          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
-          LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
+          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"  AND "Chat"."instanceId" = "Message"."instanceId"
+          LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid" AND "Chat"."instanceId" = "Contact"."instanceId"
           WHERE 
             "Chat"."instanceId" = ${this.instanceId}
           GROUP BY
@@ -690,8 +690,8 @@ export class ChannelStartupService {
             (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
             (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
           FROM "Chat"
-          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
-          LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
+          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid" AND "Chat"."instanceId" = "Message"."instanceId"
+          LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid" AND "Chat"."instanceId" = "Contact"."instanceId"
           WHERE 
             "Chat"."instanceId" = ${this.instanceId} AND "Chat"."remoteJid" = ${remoteJid} and "Message"."messageType" != 'reactionMessage'
           GROUP BY
