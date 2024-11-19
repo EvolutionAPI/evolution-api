@@ -125,6 +125,7 @@ import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { spawn } from 'child_process';
 import { isArray, isBase64, isURL } from 'class-validator';
 import { randomBytes } from 'crypto';
+import cuid from 'cuid';
 import EventEmitter2 from 'eventemitter2';
 import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
@@ -1573,7 +1574,7 @@ export class BaileysStartupService extends ChannelStartupService {
       database: Database,
     ) => {
       this.logger.info(
-        `labels as  sociation - ${data?.association?.chatId} (${data.type}): ${data?.association?.labelId}`,
+        `labels association - ${data?.association?.chatId} (${data.type}-${data?.association?.type}): ${data?.association?.labelId}`,
       );
       if (database.SAVE_DATA.CHATS) {
         const instanceId = this.instanceId;
@@ -1581,35 +1582,9 @@ export class BaileysStartupService extends ChannelStartupService {
         const labelId = data.association.labelId;
 
         if (data.type === 'add') {
-          // Adicionar o label ao array JSONB
-          await this.prismaRepository.$executeRawUnsafe(
-            `UPDATE "Chat"
-             SET "labels" = (SELECT to_jsonb(array_agg(DISTINCT elem))
-                             FROM (SELECT jsonb_array_elements_text("labels") AS elem
-                                   UNION
-                                   SELECT $1::text AS elem) sub)
-             WHERE "instanceId" = $2
-               AND "remoteJid" = $3`,
-            labelId,
-            instanceId,
-            chatId,
-          );
+          await this.addLabel(labelId, instanceId, chatId);
         } else if (data.type === 'remove') {
-          // Usar consulta SQL bruta para remover o label
-          await this.prismaRepository.$executeRawUnsafe(
-            `UPDATE "Chat"
-             SET "labels" = COALESCE(
-                     (SELECT jsonb_agg(elem)
-                      FROM jsonb_array_elements_text("labels") AS elem
-                      WHERE elem <> $1),
-                     '[]' ::jsonb
-                            )
-             WHERE "instanceId" = $2
-               AND "remoteJid" = $3;`,
-            labelId,
-            instanceId,
-            chatId,
-          );
+          await this.removeLabel(labelId, instanceId, chatId);
         }
       }
 
@@ -3886,7 +3861,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }));
   }
 
-  public async handleLabel(data: HandleLabelDto) {
+  public async handleLabel(data: HandleLabelDto, instanceId: string) {
     const whatsappContact = await this.whatsappNumber({ numbers: [data.number] });
     if (whatsappContact.length === 0) {
       throw new NotFoundException('Number not found');
@@ -3899,11 +3874,13 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       if (data.action === 'add') {
         await this.client.addChatLabel(contact.jid, data.labelId);
+        await this.addLabel(data.labelId, instanceId, contact.jid);
 
         return { numberJid: contact.jid, labelId: data.labelId, add: true };
       }
       if (data.action === 'remove') {
         await this.client.removeChatLabel(contact.jid, data.labelId);
+        await this.removeLabel(data.labelId, instanceId, contact.jid);
 
         return { numberJid: contact.jid, labelId: data.labelId, remove: true };
       }
@@ -4351,5 +4328,53 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     return unreadMessages;
+  }
+
+  private async addLabel(labelId: string, instanceId: string, chatId: string) {
+    const id = cuid();
+
+    await this.prismaRepository.$executeRawUnsafe(
+      `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
+       VALUES ($4, $2, $3, to_jsonb(ARRAY[$1]::text[]), NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
+     DO
+      UPDATE
+          SET "labels" = (
+          SELECT to_jsonb(array_agg(DISTINCT elem))
+          FROM (
+          SELECT jsonb_array_elements_text("Chat"."labels") AS elem
+          UNION
+          SELECT $1::text AS elem
+          ) sub
+          ),
+          "updatedAt" = NOW();`,
+      labelId,
+      instanceId,
+      chatId,
+      id,
+    );
+  }
+
+  private async removeLabel(labelId: string, instanceId: string, chatId: string) {
+    const id = cuid();
+
+    await this.prismaRepository.$executeRawUnsafe(
+      `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
+       VALUES ($4, $2, $3, '[]'::jsonb, NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
+     DO
+      UPDATE
+          SET "labels" = COALESCE (
+          (
+          SELECT jsonb_agg(elem)
+          FROM jsonb_array_elements_text("Chat"."labels") AS elem
+          WHERE elem <> $1
+          ),
+          '[]'::jsonb
+          ),
+          "updatedAt" = NOW();`,
+      labelId,
+      instanceId,
+      chatId,
+      id,
+    );
   }
 }
