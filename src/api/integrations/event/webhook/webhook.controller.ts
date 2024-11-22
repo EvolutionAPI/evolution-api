@@ -66,7 +66,6 @@ export class WebhookController extends EventController implements EventControlle
     local,
   }: EmitData): Promise<void> {
     const instance = (await this.get(instanceName)) as wa.LocalWebHook;
-    console.log(instanceName)
     
 
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
