@@ -1148,12 +1148,17 @@ export class BaileysStartupService extends ChannelStartupService {
 
             this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
-              await this.prismaRepository.chat.update({
+                try {
+                  await this.prismaRepository.chat.update({
                 where: {
                   id: existingChat.id,
                 },
-                data: chatToInsert,
-              });
+                    data: chatToInsert,
+                  });
+                }
+                catch(error){
+                  console.log(`Chat insert record ignored: ${chatToInsert.remoteJid} - ${chatToInsert.instanceId}`);
+                }
             }
           }
 
@@ -1487,12 +1492,17 @@ export class BaileysStartupService extends ChannelStartupService {
 
             this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
-              await this.prismaRepository.chat.update({
+              try {
+                await this.prismaRepository.chat.update({
                 where: {
                   id: existingChat.id,
                 },
-                data: chatToInsert,
-              });
+                  data: chatToInsert,
+                });
+              }
+              catch(error){
+                console.log(`Chat insert record ignored: ${chatToInsert.remoteJid} - ${chatToInsert.instanceId}`);
+              }
             }
           }
         }
@@ -4260,6 +4270,19 @@ export class BaileysStartupService extends ChannelStartupService {
       messageRaw.messageType = 'documentMessage';
       messageRaw.message.documentMessage = messageRaw.message.documentWithCaptionMessage.message.documentMessage;
       delete messageRaw.message.documentWithCaptionMessage;
+    }
+
+    const quotedMessage = messageRaw?.contextInfo?.quotedMessage;
+    if (quotedMessage) {
+      if (quotedMessage.extendedTextMessage) {
+        quotedMessage.conversation = quotedMessage.extendedTextMessage.text;
+        delete quotedMessage.extendedTextMessage;
+      }
+
+      if (quotedMessage.documentWithCaptionMessage) {
+        quotedMessage.documentMessage = quotedMessage.documentWithCaptionMessage.message.documentMessage;
+        delete quotedMessage.documentWithCaptionMessage;
+      }
     }
 
     return messageRaw;

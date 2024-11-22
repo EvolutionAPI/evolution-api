@@ -70,6 +70,13 @@ export class BusinessStartupService extends ChannelStartupService {
     await this.closeClient();
   }
 
+  private isMediaMessage(message: any) {
+    return message.document ||
+      message.image ||
+      message.audio ||
+      message.video
+  }
+
   private async post(message: any, params: string) {
     try {
       let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
@@ -301,12 +308,7 @@ export class BusinessStartupService extends ChannelStartupService {
           remoteJid: this.phoneNumber,
           fromMe: received.messages[0].from === received.metadata.phone_number_id,
         };
-        if (
-          received?.messages[0].document ||
-          received?.messages[0].image ||
-          received?.messages[0].audio ||
-          received?.messages[0].video
-        ) {
+        if (this.isMediaMessage(received?.messages[0])) {
           messageRaw = {
             key,
             pushName,
@@ -339,7 +341,7 @@ export class BusinessStartupService extends ChannelStartupService {
                 ? 'audio'
                 : 'video';
 
-              const mimetype = result.headers['content-type'];
+              const mimetype = result.data?.mime_type || result.headers['content-type'];
 
               const contentDisposition = result.headers['content-disposition'];
               let fileName = `${message.messages[0].id}.${mimetype.split('/')[1]}`;
@@ -352,15 +354,19 @@ export class BusinessStartupService extends ChannelStartupService {
 
               const size = result.headers['content-length'] || buffer.data.byteLength;
 
-              const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
+              const fullName = join(`${this.instance.id}`, key.remoteJid, mediaType, fileName);
 
               await s3Service.uploadFile(fullName, buffer.data, size, {
                 'Content-Type': mimetype,
               });
 
+              const createdMessage = await this.prismaRepository.message.create({
+                data: messageRaw,
+              });
+
               await this.prismaRepository.media.create({
                 data: {
-                  messageId: received.messages[0].id,
+                  messageId: createdMessage.id,
                   instanceId: this.instanceId,
                   type: mediaType,
                   fileName: fullName,
@@ -371,6 +377,7 @@ export class BusinessStartupService extends ChannelStartupService {
               const mediaUrl = await s3Service.getObjectUrl(fullName);
 
               messageRaw.message.mediaUrl = mediaUrl;
+              messageRaw.message.base64 = buffer.data.toString('base64');
             } catch (error) {
               this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
             }
@@ -458,16 +465,23 @@ export class BusinessStartupService extends ChannelStartupService {
             },
           });
 
+          const audioMessage = received?.messages[0]?.audio;
+
           if (
             openAiDefaultSettings &&
             openAiDefaultSettings.openaiCredsId &&
             openAiDefaultSettings.speechToText &&
-            received?.message?.audioMessage
+            audioMessage
           ) {
             messageRaw.message.speechToText = await this.openaiService.speechToText(
               openAiDefaultSettings.OpenaiCreds,
-              received,
-              this.client.updateMediaMessage,
+              {
+                message: {
+                  mediaUrl: messageRaw.message.mediaUrl,
+                  ...messageRaw,
+                }
+              },
+              () => {},
             );
           }
         }
@@ -497,9 +511,11 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        await this.prismaRepository.message.create({
-          data: messageRaw,
-        });
+        if (!this.isMediaMessage(received?.messages[0])) {
+          await this.prismaRepository.message.create({
+            data: messageRaw,
+          });
+        }
 
         const contact = await this.prismaRepository.contact.findFirst({
           where: { instanceId: this.instanceId, remoteJid: key.remoteJid },

@@ -704,7 +704,7 @@ export class ChatwootService {
           conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
           this.logger.verbose(`Found conversation in reopenConversation mode: ${JSON.stringify(conversation)}`);
 
-          if (this.provider.conversationPending) {
+          if (this.provider.conversationPending && conversation.status !== 'open') {
             if (conversation) {
               await client.conversations.toggleStatus({
                 accountId: this.provider.accountId,
@@ -1970,11 +1970,21 @@ export class ChatwootService {
 
           if (body.key.remoteJid.includes('@g.us')) {
             const participantName = body.pushName;
+            const rawPhoneNumber = body.key.participant.split('@')[0];
+            const phoneMatch = rawPhoneNumber.match(/^(\d{2})(\d{2})(\d{4})(\d{4})$/);
+
+            let formattedPhoneNumber: string;
+
+            if (phoneMatch) {
+              formattedPhoneNumber = `+${phoneMatch[1]} (${phoneMatch[2]}) ${phoneMatch[3]}-${phoneMatch[4]}`;
+            } else {
+              formattedPhoneNumber = `+${rawPhoneNumber}`;
+            }
 
             let content: string;
 
             if (!body.key.fromMe) {
-              content = `**${participantName}:**\n\n${bodyMessage}`;
+              content = `**${formattedPhoneNumber} - ${participantName}:**\n\n${bodyMessage}`;
             } else {
               content = `${bodyMessage}`;
             }
@@ -2099,11 +2109,21 @@ export class ChatwootService {
 
         if (body.key.remoteJid.includes('@g.us')) {
           const participantName = body.pushName;
+          const rawPhoneNumber = body.key.participant.split('@')[0];
+          const phoneMatch = rawPhoneNumber.match(/^(\d{2})(\d{2})(\d{4})(\d{4})$/);
+
+          let formattedPhoneNumber: string;
+
+          if (phoneMatch) {
+            formattedPhoneNumber = `+${phoneMatch[1]} (${phoneMatch[2]}) ${phoneMatch[3]}-${phoneMatch[4]}`;
+          } else {
+            formattedPhoneNumber = `+${rawPhoneNumber}`;
+          }
 
           let content: string;
 
           if (!body.key.fromMe) {
-            content = `**${participantName}**\n\n${bodyMessage}`;
+            content = `**${formattedPhoneNumber} - ${participantName}:**\n\n${bodyMessage}`;
           } else {
             content = `${bodyMessage}`;
           }
