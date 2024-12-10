@@ -1,3 +1,7 @@
+// Import this first from sentry instrument!
+import '@utils/instrumentSentry';
+
+// Now import other modules
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { HttpStatus, router } from '@api/routes/index.router';
@@ -21,19 +25,6 @@ function initWA() {
 async function bootstrap() {
   const logger = new Logger('SERVER');
   const app = express();
-  const dsn = process.env.SENTRY_DSN;
-
-  if (dsn) {
-    logger.info('Sentry - ON');
-    Sentry.init({
-      dsn: dsn,
-      environment: process.env.NODE_ENV || 'development',
-      tracesSampleRate: 1.0,
-      profilesSampleRate: 1.0,
-    });
-
-    Sentry.setupExpressErrorHandler(app);
-  }
 
   let providerFiles: ProviderFiles = null;
   if (configService.get<ProviderSession>('PROVIDER').ENABLED) {
@@ -140,6 +131,14 @@ async function bootstrap() {
   const server = ServerUP[httpServer.TYPE];
 
   eventManager.init(server);
+
+  if (process.env.SENTRY_DSN) {
+    logger.info('Sentry - ON');
+
+    // Add this after all routes,
+    // but before any and other error-handling middlewares are defined
+    Sentry.setupExpressErrorHandler(app);
+  }
 
   server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
