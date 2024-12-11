@@ -104,6 +104,7 @@ export type Rabbitmq = {
   ENABLED: boolean;
   URI: string;
   EXCHANGE_NAME: string;
+  PREFIX_KEY?: string;
   GLOBAL_ENABLED: boolean;
   EVENTS: EventsRabbitmq;
 };
@@ -323,6 +324,7 @@ export class ConfigService {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
         GLOBAL_ENABLED: process.env?.RABBITMQ_GLOBAL_ENABLED === 'true',
         EXCHANGE_NAME: process.env?.RABBITMQ_EXCHANGE_NAME || 'evolution_exchange',
+        PREFIX_KEY: process.env?.RABBITMQ_PREFIX_KEY || '',
         URI: process.env.RABBITMQ_URI || '',
         EVENTS: {
           APPLICATION_STARTUP: process.env?.RABBITMQ_EVENTS_APPLICATION_STARTUP === 'true',

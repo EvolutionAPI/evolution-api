@@ -778,6 +778,7 @@ export class ChannelStartupService {
 
       if (rabbitmqGlobal && rabbitmqEvents[we] && amqp) {
         const exchangeName = 'evolution_exchange';
+        const prefixKey = this.configService.get<Rabbitmq>('RABBITMQ').PREFIX_KEY;
 
         let retry = 0;
 
@@ -788,7 +789,10 @@ export class ChannelStartupService {
               autoDelete: false,
             });
 
-            const queueName = event;
+            const queueName =
+              prefixKey !== ''
+                ? `${prefixKey}.${event.replace(/_/g, '.').toLowerCase()}`
+                : `${event.replace(/_/g, '.').toLowerCase()}`;
 
             await amqp.assertQueue(queueName, {
               durable: true,

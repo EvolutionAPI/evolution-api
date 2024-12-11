@@ -45,6 +45,7 @@ export const getAMQP = (): amqp.Channel | null => {
 export const initGlobalQueues = () => {
   logger.info('Initializing global queues');
   const events = configService.get<Rabbitmq>('RABBITMQ').EVENTS;
+  const prefixKey = configService.get<Rabbitmq>('RABBITMQ').PREFIX_KEY;
 
   if (!events) {
     logger.warn('No events to initialize on AMQP');
@@ -56,7 +57,11 @@ export const initGlobalQueues = () => {
   eventKeys.forEach((event) => {
     if (events[event] === false) return;
 
-    const queueName = `${event.replace(/_/g, '.').toLowerCase()}`;
+    const queueName =
+      prefixKey !== ''
+        ? `${prefixKey}.${event.replace(/_/g, '.').toLowerCase()}`
+        : `${event.replace(/_/g, '.').toLowerCase()}`;
+
     const amqp = getAMQP();
     const exchangeName = 'evolution_exchange';
 

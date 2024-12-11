@@ -89,6 +89,7 @@ RABBITMQ:
   ENABLED: false
   URI: "amqp://guest:guest@localhost:5672"
   EXCHANGE_NAME: evolution_exchange
+  PREFIX_KEY: evolution
   GLOBAL_ENABLED: true
   EVENTS:
     APPLICATION_STARTUP: false
