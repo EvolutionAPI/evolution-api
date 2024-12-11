@@ -99,22 +99,28 @@ export class InstanceRouter extends RouterBroker {
         return res.status(HttpStatus.OK).json(response);
       })
       .get(this.routerPath('fetchInstances', false), ...guards, async (req, res) => {
-        logger.verbose('request received in fetchInstances');
-        logger.verbose('request body: ');
-        logger.verbose(req.body);
+        try {
+          logger.verbose('request received in fetchInstances');
+          logger.verbose('request body: ');
+          logger.verbose(req.body);
 
-        const key = req.get('apikey');
+          const key = req.get('apikey');
 
-        logger.verbose('request query: ');
-        logger.verbose(req.query);
-        const response = await this.dataValidate<InstanceDto>({
-          request: req,
-          schema: null,
-          ClassRef: InstanceDto,
-          execute: (instance) => instanceController.fetchInstances(instance, key),
-        });
+          logger.verbose('request query: ');
+          logger.verbose(req.query);
+          const response = await this.dataValidate<InstanceDto>({
+            request: req,
+            schema: null,
+            ClassRef: InstanceDto,
+            execute: (instance) => instanceController.fetchInstances(instance, key),
+          });
 
-        return res.status(HttpStatus.OK).json(response);
+          return res.status(HttpStatus.OK).json(response);
+        } catch (error) {
+          logger.error('fetchInstances');
+          logger.error(error);
+          return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: true, message: error.message });
+        }
       })
       .post(this.routerPath('setPresence'), ...guards, async (req, res) => {
         logger.verbose('request received in setPresence');

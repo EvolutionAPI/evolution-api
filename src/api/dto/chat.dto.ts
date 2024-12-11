@@ -84,7 +84,7 @@ class PrivacySetting {
   status: WAPrivacyValue;
   online: WAPrivacyOnlineValue;
   last: WAPrivacyValue;
-  groupadd: WAPrivacyValue;
+  groupadd: any;
 }
 
 export class PrivacySettingDto {
