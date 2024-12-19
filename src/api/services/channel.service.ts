@@ -789,10 +789,9 @@ export class ChannelStartupService {
               autoDelete: false,
             });
 
-            const queueName =
-              prefixKey !== ''
-                ? `${prefixKey}.${event.replace(/_/g, '.').toLowerCase()}`
-                : `${event.replace(/_/g, '.').toLowerCase()}`;
+            const queueName = prefixKey
+              ? `${prefixKey}.${event.replace(/_/g, '.').toLowerCase()}`
+              : event.replace(/_/g, '.').toLowerCase();
 
             await amqp.assertQueue(queueName, {
               durable: true,
@@ -802,7 +801,7 @@ export class ChannelStartupService {
               },
             });
 
-            await amqp.bindQueue(queueName, exchangeName, event);
+            await amqp.bindQueue(queueName, exchangeName, queueName);
 
             const message = {
               event,
@@ -816,7 +815,8 @@ export class ChannelStartupService {
             if (expose && instanceApikey) {
               message['apikey'] = instanceApikey;
             }
-            await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+
+            await amqp.publish(exchangeName, queueName, Buffer.from(JSON.stringify(message)));
 
             if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
               const logData = {

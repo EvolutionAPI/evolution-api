@@ -26,7 +26,6 @@ import makeWASocket, {
   MessageUpsertType,
   MiscMessageGenerationOptions,
   ParticipantAction,
-  PHONENUMBER_MCC,
   prepareWAMessageMedia,
   proto,
   useMultiFileAuthState,
@@ -45,7 +44,6 @@ import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 // import ffmpeg from 'fluent-ffmpeg';
 import fs, { existsSync, readFileSync } from 'fs';
-import { parsePhoneNumber } from 'libphonenumber-js';
 import Long from 'long';
 import NodeCache from 'node-cache';
 import { getMIMEType } from 'node-mime-types';
@@ -676,61 +674,51 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async sendMobileCode() {
-    const { registration } = this.client.authState.creds || null;
-
-    let phoneNumber = registration.phoneNumber || this.phoneNumber;
-
-    if (!phoneNumber.startsWith('+')) {
-      phoneNumber = '+' + phoneNumber;
-    }
-
-    if (!phoneNumber) {
-      this.logger.error('Phone number not found');
-      return;
-    }
-
-    const parsedPhoneNumber = parsePhoneNumber(phoneNumber);
-
-    if (!parsedPhoneNumber?.isValid()) {
-      this.logger.error('Phone number invalid');
-      return;
-    }
-
-    registration.phoneNumber = parsedPhoneNumber.format('E.164');
-    registration.phoneNumberCountryCode = parsedPhoneNumber.countryCallingCode;
-    registration.phoneNumberNationalNumber = parsedPhoneNumber.nationalNumber;
-
-    const mcc = await PHONENUMBER_MCC[parsedPhoneNumber.countryCallingCode];
-    if (!mcc) {
-      this.logger.error('MCC not found');
-      return;
-    }
-
-    registration.phoneNumberMobileCountryCode = mcc;
-    registration.method = 'sms';
-
-    try {
-      const response = await this.client.requestRegistrationCode(registration);
-
-      if (['ok', 'sent'].includes(response?.status)) {
-        this.logger.verbose('Registration code sent successfully');
-
-        return response;
-      }
-    } catch (error) {
-      this.logger.error(error);
-    }
+    // const { registration } = this.client.authState.creds || null;
+    // let phoneNumber = registration.phoneNumber || this.phoneNumber;
+    // if (!phoneNumber.startsWith('+')) {
+    //   phoneNumber = '+' + phoneNumber;
+    // }
+    // if (!phoneNumber) {
+    //   this.logger.error('Phone number not found');
+    //   return;
+    // }
+    // const parsedPhoneNumber = parsePhoneNumber(phoneNumber);
+    // if (!parsedPhoneNumber?.isValid()) {
+    //   this.logger.error('Phone number invalid');
+    //   return;
+    // }
+    // registration.phoneNumber = parsedPhoneNumber.format('E.164');
+    // registration.phoneNumberCountryCode = parsedPhoneNumber.countryCallingCode;
+    // registration.phoneNumberNationalNumber = parsedPhoneNumber.nationalNumber;
+    // const mcc = await PHONENUMBER_MCC[parsedPhoneNumber.countryCallingCode];
+    // if (!mcc) {
+    //   this.logger.error('MCC not found');
+    //   return;
+    // }
+    // registration.phoneNumberMobileCountryCode = mcc;
+    // registration.method = 'sms';
+    // try {
+    //   const response = await this.client.requestRegistrationCode(registration);
+    //   if (['ok', 'sent'].includes(response?.status)) {
+    //     this.logger.verbose('Registration code sent successfully');
+    //     return response;
+    //   }
+    // } catch (error) {
+    //   this.logger.error(error);
+    // }
   }
 
   public async receiveMobileCode(code: string) {
-    await this.client
-      .register(code.replace(/["']/g, '').trim().toLowerCase())
-      .then(async () => {
-        this.logger.verbose('Registration code received successfully');
-      })
-      .catch((error) => {
-        this.logger.error(error);
-      });
+    console.log(code);
+    // await this.client
+    //   .register(code.replace(/["']/g, '').trim().toLowerCase())
+    //   .then(async () => {
+    //     this.logger.verbose('Registration code received successfully');
+    //   })
+    //   .catch((error) => {
+    //     this.logger.error(error);
+    //   });
   }
 
   public async reloadConnection(): Promise<WASocket> {
@@ -897,7 +885,7 @@ export class BaileysStartupService extends ChannelStartupService {
         chats: Chat[];
         contacts: Contact[];
         messages: proto.IWebMessageInfo[];
-        isLatest: boolean;
+        isLatest?: boolean;
       },
       database: Database,
     ) => {
