@@ -1100,7 +1100,11 @@ export class BusinessStartupService extends ChannelStartupService {
 
     if (file?.buffer) {
       mediaData.audio = file.buffer.toString('base64');
-    } else {
+    } 
+    else if(isURL(mediaData.audio)){
+      mediaData.audio = mediaData.audio
+    }
+    else {
       console.error('El archivo no tiene buffer o file es undefined');
       throw new Error('File or buffer is undefined');
     }
