@@ -14,7 +14,9 @@
     "db:generate": "node runWithProvider.js \"npx prisma generate --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
     "db:deploy": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate deploy --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
     "db:studio": "node runWithProvider.js \"npx prisma studio --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
-    "db:migrate:dev": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate dev --schema ./prisma/DATABASE_PROVIDER-schema.prisma && cp -r ./prisma/migrations/* ./prisma/DATABASE_PROVIDER-migrations\""
+    "db:migrate:dev": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate dev --schema ./prisma/DATABASE_PROVIDER-schema.prisma && cp -r ./prisma/migrations/* ./prisma/DATABASE_PROVIDER-migrations\"",
+    "docker:build": "docker build -t joaovictorsouza/evolution-api:latest .",
+    "docker:push": "docker push joaovictorsouza/evolution-api:latest"
   },
   "repository": {
     "type": "git",
@@ -51,7 +53,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@figuro/chatwoot-sdk": "^1.1.16",
     "@hapi/boom": "^10.0.1",
-    "@prisma/client": "^5.15.0",
+    "@prisma/client": "^6.1.0",
     "@sentry/node": "^8.28.0",
     "amqplib": "^0.10.3",
     "axios": "^1.6.5",
@@ -82,7 +84,7 @@
     "openai": "^4.52.7",
     "pg": "^8.11.3",
     "pino": "^8.11.0",
-    "prisma": "^5.15.0",
+    "prisma": "^6.1.0",
     "pusher": "^5.2.0",
     "qrcode": "^1.5.1",
     "qrcode-terminal": "^0.12.0",
