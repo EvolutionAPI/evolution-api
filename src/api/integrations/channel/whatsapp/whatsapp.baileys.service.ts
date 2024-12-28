@@ -76,6 +76,7 @@ import {
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@exceptions';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
+import { createId as cuid } from '@paralleldrive/cuid2';
 import { Instance } from '@prisma/client';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
