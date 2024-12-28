@@ -71,10 +71,7 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   private isMediaMessage(message: any) {
-    return message.document ||
-      message.image ||
-      message.audio ||
-      message.video
+    return message.document || message.image || message.audio || message.video;
   }
 
   private async post(message: any, params: string) {
@@ -479,7 +476,7 @@ export class BusinessStartupService extends ChannelStartupService {
                 message: {
                   mediaUrl: messageRaw.message.mediaUrl,
                   ...messageRaw,
-                }
+                },
               },
               () => {},
             );

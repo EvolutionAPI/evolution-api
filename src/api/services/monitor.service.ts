@@ -72,14 +72,15 @@ export class WAMonitoringService {
 
     const clientName = this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
 
-    const where = instanceNames && instanceNames.length > 0
-      ? {
-        name: {
-          in: instanceNames,
-        },
-        clientName,
-      }
-      : { clientName };
+    const where =
+      instanceNames && instanceNames.length > 0
+        ? {
+            name: {
+              in: instanceNames,
+            },
+            clientName,
+          }
+        : { clientName };
 
     const instances = await this.prismaRepository.instance.findMany({
       where,
