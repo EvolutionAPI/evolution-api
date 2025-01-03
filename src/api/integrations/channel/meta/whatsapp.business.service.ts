@@ -809,7 +809,7 @@ export class BusinessStartupService extends ChannelStartupService {
             [message['mediaType']]: {
               [message['type']]: message['id'],
               preview_url: linkPreview,
-              ...(message['fileName'] && !isImage && { filename: message['fileName'] }), // Adiciona filename apenas se não for imagem
+              ...(message['fileName'] && !isImage && { filename: message['fileName'] }),
               caption: message['caption'],
             },
           };
