@@ -799,6 +799,8 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['media']) {
+          const isImage = message['mimetype']?.startsWith('image/');
+          
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -807,13 +809,13 @@ export class BusinessStartupService extends ChannelStartupService {
             [message['mediaType']]: {
               [message['type']]: message['id'],
               preview_url: linkPreview,
-              filename: message['fileName'],
+              ...(message['fileName'] && !isImage && { filename: message['fileName'] }), // Adiciona filename apenas se não for imagem
               caption: message['caption'],
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
           return await this.post(content, 'messages');
-        }
+        }          
         if (message['audio']) {
           content = {
             messaging_product: 'whatsapp',
