@@ -2131,7 +2131,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (options?.mentionsEveryOne) {
           mentions = group.participants.map((participant) => participant.id);
-        } else if (options.mentioned?.length) {
+        } else if (options?.mentioned?.length) {
           mentions = options.mentioned.map((mention) => {
             const jid = this.createJid(mention);
             if (isJidGroup(jid)) {
