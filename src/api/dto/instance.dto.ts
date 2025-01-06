@@ -24,6 +24,21 @@ export class InstanceDto extends IntegrationDto {
   proxyProtocol?: string;
   proxyUsername?: string;
   proxyPassword?: string;
+  webhook?: { enabled?: boolean; events?: string[]; headers?: JsonValue; url?: string; byEvents?: boolean; base64?: boolean; };
+  chatwootAccountId?: string;
+  chatwootConversationPending?: boolean;
+  chatwootAutoCreate?: boolean;
+  chatwootDaysLimitImportMessages?: number;
+  chatwootImportContacts?: boolean;
+  chatwootImportMessages?: boolean;
+  chatwootLogo?: string;
+  chatwootMergeBrazilContacts?: boolean;
+  chatwootNameInbox?: string;
+  chatwootOrganization?: string;
+  chatwootReopenConversation?: boolean;
+  chatwootSignMsg?: boolean;
+  chatwootToken?: string;
+  chatwootUrl?: string;
 }
 
 export class SetPresenceDto {
