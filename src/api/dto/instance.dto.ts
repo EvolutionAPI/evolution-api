@@ -1,4 +1,5 @@
 import { IntegrationDto } from '@api/integrations/integration.dto';
+import { JsonValue } from '@prisma/client/runtime/library';
 import { WAPresence } from 'baileys';
 
 export class InstanceDto extends IntegrationDto {
@@ -27,7 +28,7 @@ export class InstanceDto extends IntegrationDto {
   webhook?: {
     enabled?: boolean;
     events?: string[];
-    headers?: { [key: string]: string };
+    headers?: JsonValue;
     url?: string;
     byEvents?: boolean;
     base64?: boolean;
