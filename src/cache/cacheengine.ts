@@ -10,7 +10,10 @@ const logger = new Logger('CacheEngine');
 export class CacheEngine {
   private engine: ICache;
 
-  constructor(private readonly configService: ConfigService, module: string) {
+  constructor(
+    private readonly configService: ConfigService,
+    module: string,
+  ) {
     const cacheConf = configService.get<CacheConf>('CACHE');
 
     if (cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') {

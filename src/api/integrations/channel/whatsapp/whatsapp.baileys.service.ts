@@ -76,6 +76,7 @@ import {
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@exceptions';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
+import { createId as cuid } from '@paralleldrive/cuid2';
 import { Instance } from '@prisma/client';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
@@ -125,7 +126,6 @@ import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { spawn } from 'child_process';
 import { isArray, isBase64, isURL } from 'class-validator';
 import { randomBytes } from 'crypto';
-import cuid from 'cuid';
 import EventEmitter2 from 'eventemitter2';
 import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
@@ -1136,29 +1136,25 @@ export class BaileysStartupService extends ChannelStartupService {
           }
           const existingChat = await this.prismaRepository.chat.findFirst({
             where: { instanceId: this.instanceId, remoteJid: received.key.remoteJid },
+            select: { id: true, name: true },
           });
 
-          if (existingChat) {
-            const chatToInsert = {
-              remoteJid: received.key.remoteJid,
-              instanceId: this.instanceId,
-              name: received.pushName || '',
-              unreadMessages: 0,
-            };
-
-            this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
+          if (
+            existingChat &&
+            received.pushName &&
+            existingChat.name !== received.pushName &&
+            received.pushName.trim().length > 0
+          ) {
+            this.sendDataWebhook(Events.CHATS_UPSERT, [{ ...existingChat, name: received.pushName }]);
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
-                try {
-                  await this.prismaRepository.chat.update({
-                where: {
-                  id: existingChat.id,
-                },
-                    data: chatToInsert,
-                  });
-                }
-                catch(error){
-                  console.log(`Chat insert record ignored: ${chatToInsert.remoteJid} - ${chatToInsert.instanceId}`);
-                }
+              try {
+                await this.prismaRepository.chat.update({
+                  where: { id: existingChat.id },
+                  data: { name: received.pushName },
+                });
+              } catch (error) {
+                console.log(`Chat insert record ignored: ${received.key.remoteJid} - ${this.instanceId}`);
+              }
             }
           }
 
@@ -1494,13 +1490,12 @@ export class BaileysStartupService extends ChannelStartupService {
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
               try {
                 await this.prismaRepository.chat.update({
-                where: {
-                  id: existingChat.id,
-                },
+                  where: {
+                    id: existingChat.id,
+                  },
                   data: chatToInsert,
                 });
-              }
-              catch(error){
+              } catch (error) {
                 console.log(`Chat insert record ignored: ${chatToInsert.remoteJid} - ${chatToInsert.instanceId}`);
               }
             }

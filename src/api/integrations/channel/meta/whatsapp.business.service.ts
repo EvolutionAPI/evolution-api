@@ -71,10 +71,7 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   private isMediaMessage(message: any) {
-    return message.document ||
-      message.image ||
-      message.audio ||
-      message.video
+    return message.document || message.image || message.audio || message.video;
   }
 
   private async post(message: any, params: string) {
@@ -333,13 +330,17 @@ export class BusinessStartupService extends ChannelStartupService {
 
               const buffer = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
 
-              const mediaType = message.messages[0].document
-                ? 'document'
-                : message.messages[0].image
-                ? 'image'
-                : message.messages[0].audio
-                ? 'audio'
-                : 'video';
+              let mediaType;
+
+              if (message.messages[0].document) {
+                mediaType = 'document';
+              } else if (message.messages[0].image) {
+                mediaType = 'image';
+              } else if (message.messages[0].audio) {
+                mediaType = 'audio';
+              } else {
+                mediaType = 'video';
+              }
 
               const mimetype = result.data?.mime_type || result.headers['content-type'];
 
@@ -479,7 +480,7 @@ export class BusinessStartupService extends ChannelStartupService {
                 message: {
                   mediaUrl: messageRaw.message.mediaUrl,
                   ...messageRaw,
-                }
+                },
               },
               () => {},
             );
@@ -800,7 +801,7 @@ export class BusinessStartupService extends ChannelStartupService {
         }
         if (message['media']) {
           const isImage = message['mimetype']?.startsWith('image/');
-          
+
           content = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -815,7 +816,7 @@ export class BusinessStartupService extends ChannelStartupService {
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
           return await this.post(content, 'messages');
-        }          
+        }
         if (message['audio']) {
           content = {
             messaging_product: 'whatsapp',
@@ -1103,11 +1104,10 @@ export class BusinessStartupService extends ChannelStartupService {
 
     if (file?.buffer) {
       mediaData.audio = file.buffer.toString('base64');
-    } 
-    else if(isURL(mediaData.audio)){
-      mediaData.audio = mediaData.audio
-    }
-    else {
+    } else if (isURL(mediaData.audio)) {
+      // DO NOTHING
+      // mediaData.audio = mediaData.audio;
+    } else {
       console.error('El archivo no tiene buffer o file es undefined');
       throw new Error('File or buffer is undefined');
     }
