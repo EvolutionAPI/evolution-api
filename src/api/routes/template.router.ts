@@ -9,7 +9,10 @@ import { RequestHandler, Router } from 'express';
 import { HttpStatus } from './index.router';
 
 export class TemplateRouter extends RouterBroker {
-  constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
+  constructor(
+    readonly configService: ConfigService,
+    ...guards: RequestHandler[]
+  ) {
     super();
     this.router
       .post(this.routerPath('create'), ...guards, async (req, res) => {

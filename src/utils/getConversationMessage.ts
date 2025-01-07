@@ -23,8 +23,8 @@ const getTypeMessage = (msg: any) => {
     audioMessage: msg?.message?.speechToText
       ? msg?.message?.speechToText
       : msg?.message?.audioMessage
-      ? `audioMessage|${mediaId}`
-      : undefined,
+        ? `audioMessage|${mediaId}`
+        : undefined,
     imageMessage: msg?.message?.imageMessage
       ? `imageMessage|${mediaId}${msg?.message?.imageMessage?.caption ? `|${msg?.message?.imageMessage?.caption}` : ''}`
       : undefined,

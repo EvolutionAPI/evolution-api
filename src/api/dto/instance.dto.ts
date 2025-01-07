@@ -24,7 +24,14 @@ export class InstanceDto extends IntegrationDto {
   proxyProtocol?: string;
   proxyUsername?: string;
   proxyPassword?: string;
-  webhook?: { enabled?: boolean; events?: string[]; headers?: JsonValue; url?: string; byEvents?: boolean; base64?: boolean; };
+  webhook?: {
+    enabled?: boolean;
+    events?: string[];
+    headers?: { [key: string]: string };
+    url?: string;
+    byEvents?: boolean;
+    base64?: boolean;
+  };
   chatwootAccountId?: string;
   chatwootConversationPending?: boolean;
   chatwootAutoCreate?: boolean;

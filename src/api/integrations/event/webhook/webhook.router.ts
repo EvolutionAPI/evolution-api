@@ -8,7 +8,10 @@ import { instanceSchema, webhookSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
 export class WebhookRouter extends RouterBroker {
-  constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
+  constructor(
+    readonly configService: ConfigService,
+    ...guards: RequestHandler[]
+  ) {
     super();
     this.router
       .post(this.routerPath('set'), ...guards, async (req, res) => {

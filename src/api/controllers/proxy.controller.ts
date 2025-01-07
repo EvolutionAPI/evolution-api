@@ -10,7 +10,10 @@ import axios from 'axios';
 const logger = new Logger('ProxyController');
 
 export class ProxyController {
-  constructor(private readonly proxyService: ProxyService, private readonly waMonitor: WAMonitoringService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly waMonitor: WAMonitoringService,
+  ) {}
 
   public async createProxy(instance: InstanceDto, data: ProxyDto) {
     if (!this.waMonitor.waInstances[instance.instanceName]) {
