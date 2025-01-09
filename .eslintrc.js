@@ -3,7 +3,7 @@ module.exports = {
   parserOptions: {
     project: 'tsconfig.json',
     tsconfigRootDir: __dirname,
-    sourceType: 'commonjs',
+    sourceType: 'module',
     warnOnUnsupportedTypeScriptVersion: false,
     EXPERIMENTAL_useSourceOfProjectReferenceRedirect: true,
   },

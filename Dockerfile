@@ -11,7 +11,7 @@ WORKDIR /evolution
 
 COPY ./package.json ./tsconfig.json ./
 
-RUN npm install -f
+RUN npm install
 
 COPY ./src ./src
 COPY ./public ./public

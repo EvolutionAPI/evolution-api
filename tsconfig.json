@@ -4,7 +4,7 @@
     "emitDecoratorMetadata": true,
     "declaration": true,
     "target": "es2020",
-    "module": "NodeNext",
+    "module": "CommonJS",
     "rootDir": "./",
     "resolveJsonModule": true,
     "removeComments": true,
@@ -27,7 +27,7 @@
       "@utils/*": ["./src/utils/*"],
       "@validate/*": ["./src/validate/*"]
     },
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "Node"
   },
   "exclude": ["node_modules", "./test", "./dist", "./prisma"],
   "include": [
