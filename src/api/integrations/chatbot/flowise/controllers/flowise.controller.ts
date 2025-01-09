@@ -728,13 +728,7 @@ export class FlowiseController extends ChatbotController implements ChatbotContr
 
       const content = getConversationMessage(msg);
 
-      let findBot = (await this.findBotTrigger(
-        this.botRepository,
-        this.settingsRepository,
-        content,
-        instance,
-        session,
-      )) as Flowise;
+      let findBot = (await this.findBotTrigger(this.botRepository, content, instance, session)) as Flowise;
 
       if (!findBot) {
         const fallback = await this.settingsRepository.findFirst({
