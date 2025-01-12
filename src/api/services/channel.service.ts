@@ -1,3 +1,4 @@
+import { Logger } from '@config/logger.config';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { ProxyDto } from '@api/dto/proxy.dto';
 import { SettingsDto } from '@api/dto/settings.dto';
@@ -10,7 +11,6 @@ import { PrismaRepository, Query } from '@api/repository/repository.service';
 import { eventManager, waMonitor } from '@api/server.module';
 import { Events, wa } from '@api/types/wa.types';
 import { Auth, Chatwoot, ConfigService, HttpServer } from '@config/env.config';
-import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import { Contact, Message } from '@prisma/client';
 import { WASocket } from 'baileys';
@@ -51,6 +51,7 @@ export class ChannelStartupService {
   public difyService = new DifyService(waMonitor, this.configService, this.prismaRepository);
 
   public setInstance(instance: InstanceDto) {
+    this.logger.debug(`[setInstance] Definindo dados da instância: ${JSON.stringify(instance)}`);
     this.logger.setInstance(instance.instanceName);
 
     this.instance.name = instance.instanceName;
@@ -61,6 +62,7 @@ export class ChannelStartupService {
     this.instance.businessId = instance.businessId;
 
     if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
+      this.logger.debug('[setInstance] Enviando evento de STATUS_INSTANCE para Chatwoot');
       this.chatwootService.eventWhatsapp(
         Events.STATUS_INSTANCE,
         { instanceName: this.instance.name },
@@ -73,6 +75,7 @@ export class ChannelStartupService {
   }
 
   public set instanceName(name: string) {
+    this.logger.debug(`[setter instanceName] Atribuindo: ${name}`);
     this.logger.setInstance(name);
 
     if (!name) {
@@ -87,6 +90,7 @@ export class ChannelStartupService {
   }
 
   public set instanceId(id: string) {
+    this.logger.debug(`[setter instanceId] Atribuindo: ${id}`);
     if (!id) {
       this.instance.id = v4();
       return;
@@ -99,6 +103,7 @@ export class ChannelStartupService {
   }
 
   public set integration(integration: string) {
+    this.logger.debug(`[setter integration] Atribuindo: ${integration}`);
     this.instance.integration = integration;
   }
 
@@ -107,6 +112,7 @@ export class ChannelStartupService {
   }
 
   public set number(number: string) {
+    this.logger.debug(`[setter number] Atribuindo número: ${number}`);
     this.instance.number = number;
   }
 
@@ -115,6 +121,7 @@ export class ChannelStartupService {
   }
 
   public set token(token: string) {
+    this.logger.debug(`[setter token] Atribuindo token.`);
     this.instance.token = token;
   }
 
@@ -127,6 +134,7 @@ export class ChannelStartupService {
   }
 
   public async loadWebhook() {
+    this.logger.debug(`[loadWebhook] Carregando webhook para instanceId: ${this.instanceId}`);
     const data = await this.prismaRepository.webhook.findUnique({
       where: {
         instanceId: this.instanceId,
@@ -135,9 +143,12 @@ export class ChannelStartupService {
 
     this.localWebhook.enabled = data?.enabled;
     this.localWebhook.webhookBase64 = data?.webhookBase64;
+
+    this.logger.debug('[loadWebhook] Webhook carregado com sucesso.');
   }
 
   public async loadSettings() {
+    this.logger.debug(`[loadSettings] Carregando configurações para instanceId: ${this.instanceId}`);
     const data = await this.prismaRepository.setting.findUnique({
       where: {
         instanceId: this.instanceId,
@@ -151,9 +162,12 @@ export class ChannelStartupService {
     this.localSettings.readMessages = data?.readMessages;
     this.localSettings.readStatus = data?.readStatus;
     this.localSettings.syncFullHistory = data?.syncFullHistory;
+
+    this.logger.debug('[loadSettings] Configurações carregadas com sucesso.');
   }
 
   public async setSettings(data: SettingsDto) {
+    this.logger.debug(`[setSettings] Atualizando configurações: ${JSON.stringify(data)}`);
     await this.prismaRepository.setting.upsert({
       where: {
         instanceId: this.instanceId,
@@ -186,9 +200,12 @@ export class ChannelStartupService {
     this.localSettings.readMessages = data?.readMessages;
     this.localSettings.readStatus = data?.readStatus;
     this.localSettings.syncFullHistory = data?.syncFullHistory;
+
+    this.logger.debug('[setSettings] Configurações atualizadas com sucesso.');
   }
 
   public async findSettings() {
+    this.logger.debug(`[findSettings] Buscando configurações para instanceId: ${this.instanceId}`);
     const data = await this.prismaRepository.setting.findUnique({
       where: {
         instanceId: this.instanceId,
@@ -196,9 +213,11 @@ export class ChannelStartupService {
     });
 
     if (!data) {
+      this.logger.debug('[findSettings] Nenhuma configuração encontrada.');
       return null;
     }
 
+    this.logger.debug('[findSettings] Configurações encontradas.');
     return {
       rejectCall: data.rejectCall,
       msgCall: data.msgCall,
@@ -211,7 +230,9 @@ export class ChannelStartupService {
   }
 
   public async loadChatwoot() {
+    this.logger.debug('[loadChatwoot] Carregando dados do Chatwoot...');
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      this.logger.debug('[loadChatwoot] Chatwoot não está habilitado nas configurações.');
       return;
     }
 
@@ -235,10 +256,14 @@ export class ChannelStartupService {
     this.localChatwoot.importContacts = data?.importContacts;
     this.localChatwoot.importMessages = data?.importMessages;
     this.localChatwoot.daysLimitImportMessages = data?.daysLimitImportMessages;
+
+    this.logger.debug('[loadChatwoot] Dados do Chatwoot carregados com sucesso.');
   }
 
   public async setChatwoot(data: ChatwootDto) {
+    this.logger.debug(`[setChatwoot] Atualizando dados do Chatwoot: ${JSON.stringify(data)}`);
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      this.logger.debug('[setChatwoot] Chatwoot não está habilitado nas configurações.');
       return;
     }
 
@@ -275,8 +300,8 @@ export class ChannelStartupService {
       });
 
       Object.assign(this.localChatwoot, { ...data, signDelimiter: data.signMsg ? data.signDelimiter : null });
-
       this.clearCacheChatwoot();
+      this.logger.debug('[setChatwoot] Dados do Chatwoot atualizados com sucesso.');
       return;
     }
 
@@ -303,12 +328,14 @@ export class ChannelStartupService {
     });
 
     Object.assign(this.localChatwoot, { ...data, signDelimiter: data.signMsg ? data.signDelimiter : null });
-
     this.clearCacheChatwoot();
+    this.logger.debug('[setChatwoot] Dados do Chatwoot criados com sucesso.');
   }
 
   public async findChatwoot(): Promise<ChatwootDto | null> {
+    this.logger.debug(`[findChatwoot] Buscando dados do Chatwoot para instanceId: ${this.instanceId}`);
     if (!this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+      this.logger.debug('[findChatwoot] Chatwoot não está habilitado nas configurações.');
       return null;
     }
 
@@ -319,11 +346,12 @@ export class ChannelStartupService {
     });
 
     if (!data) {
+      this.logger.debug('[findChatwoot] Nenhum dado de Chatwoot encontrado.');
       return null;
     }
 
     const ignoreJidsArray = Array.isArray(data.ignoreJids) ? data.ignoreJids.map((event) => String(event)) : [];
-
+    this.logger.debug('[findChatwoot] Dados de Chatwoot encontrados com sucesso.');
     return {
       enabled: data?.enabled,
       accountId: data.accountId,
@@ -345,12 +373,15 @@ export class ChannelStartupService {
   }
 
   public clearCacheChatwoot() {
+    this.logger.debug('[clearCacheChatwoot] Limpando cache do Chatwoot...');
     if (this.localChatwoot?.enabled) {
       this.chatwootService.getCache()?.deleteAll(this.instanceName);
+      this.logger.debug('[clearCacheChatwoot] Cache do Chatwoot limpo com sucesso.');
     }
   }
 
   public async loadProxy() {
+    this.logger.debug(`[loadProxy] Carregando dados de proxy para instanceId: ${this.instanceId}`);
     this.localProxy.enabled = false;
 
     if (process.env.PROXY_HOST) {
@@ -376,9 +407,12 @@ export class ChannelStartupService {
       this.localProxy.username = data?.username;
       this.localProxy.password = data?.password;
     }
+
+    this.logger.debug('[loadProxy] Dados de proxy carregados com sucesso.');
   }
 
   public async setProxy(data: ProxyDto) {
+    this.logger.debug(`[setProxy] Definindo dados de proxy: ${JSON.stringify(data)}`);
     await this.prismaRepository.proxy.upsert({
       where: {
         instanceId: this.instanceId,
@@ -403,9 +437,11 @@ export class ChannelStartupService {
     });
 
     Object.assign(this.localProxy, data);
+    this.logger.debug('[setProxy] Dados de proxy atualizados com sucesso.');
   }
 
   public async findProxy() {
+    this.logger.debug(`[findProxy] Buscando dados de proxy para instanceId: ${this.instanceId}`);
     const data = await this.prismaRepository.proxy.findUnique({
       where: {
         instanceId: this.instanceId,
@@ -413,20 +449,22 @@ export class ChannelStartupService {
     });
 
     if (!data) {
+      this.logger.debug('[findProxy] Proxy não encontrado.');
       throw new NotFoundException('Proxy not found');
     }
 
+    this.logger.debug('[findProxy] Dados de proxy encontrados com sucesso.');
     return data;
   }
 
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
+    this.logger.debug(`[sendDataWebhook] Enviando dados de webhook. Evento: ${event}, local: ${local}`);
     const serverUrl = this.configService.get<HttpServer>('SERVER').URL;
     const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
     const localISOTime = new Date(Date.now() - tzoffset).toISOString();
     const now = localISOTime;
 
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
-
     const instanceApikey = this.token || 'Apikey not found';
 
     await eventManager.emit({
@@ -440,10 +478,12 @@ export class ChannelStartupService {
       apiKey: expose && instanceApikey ? instanceApikey : null,
       local,
     });
+    this.logger.debug('[sendDataWebhook] Evento de webhook enviado com sucesso.');
   }
 
   // Check if the number is MX or AR
   public formatMXOrARNumber(jid: string): string {
+    this.logger.debug(`[formatMXOrARNumber] Formatando número MX ou AR: ${jid}`);
     const countryCode = jid.substring(0, 2);
 
     if (Number(countryCode) === 52 || Number(countryCode) === 54) {
@@ -451,7 +491,6 @@ export class ChannelStartupService {
         const number = countryCode + jid.substring(3);
         return number;
       }
-
       return jid;
     }
     return jid;
@@ -459,6 +498,7 @@ export class ChannelStartupService {
 
   // Check if the number is br
   public formatBRNumber(jid: string) {
+    this.logger.debug(`[formatBRNumber] Formatando número brasileiro: ${jid}`);
     const regexp = new RegExp(/^(\d{2})(\d{2})\d{1}(\d{8})$/);
     if (regexp.test(jid)) {
       const match = regexp.exec(jid);
@@ -477,11 +517,14 @@ export class ChannelStartupService {
   }
 
   public createJid(number: string): string {
+    this.logger.debug(`[createJid] Criando JID para o número: ${number}`);
     if (number.includes('@g.us') || number.includes('@s.whatsapp.net') || number.includes('@lid')) {
+      this.logger.debug('[createJid] Retornando número pois já possui sufixo de grupo ou WhatsApp.');
       return number;
     }
 
     if (number.includes('@broadcast')) {
+      this.logger.debug('[createJid] Retornando número pois já é um broadcast.');
       return number;
     }
 
@@ -495,6 +538,7 @@ export class ChannelStartupService {
 
     if (number.includes('-') && number.length >= 24) {
       number = number.replace(/[^\d-]/g, '');
+      this.logger.debug('[createJid] Número identificado como grupo, adicionando @g.us.');
       return `${number}@g.us`;
     }
 
@@ -502,17 +546,19 @@ export class ChannelStartupService {
 
     if (number.length >= 18) {
       number = number.replace(/[^\d-]/g, '');
+      this.logger.debug('[createJid] Número extenso, provavelmente grupo, adicionando @g.us.');
       return `${number}@g.us`;
     }
 
     number = this.formatMXOrARNumber(number);
-
     number = this.formatBRNumber(number);
 
+    this.logger.debug('[createJid] Adicionando sufixo @s.whatsapp.net para número individual.');
     return `${number}@s.whatsapp.net`;
   }
 
   public async fetchContacts(query: Query<Contact>) {
+    this.logger.debug(`[fetchContacts] Buscando contatos. Query: ${JSON.stringify(query)}`);
     const remoteJid = query?.where?.remoteJid
       ? query?.where?.remoteJid.includes('@')
         ? query.where?.remoteJid
@@ -527,12 +573,15 @@ export class ChannelStartupService {
       where['remoteJid'] = remoteJid;
     }
 
-    return await this.prismaRepository.contact.findMany({
+    const contacts = await this.prismaRepository.contact.findMany({
       where,
     });
+    this.logger.debug(`[fetchContacts] Retornando ${contacts.length} contato(s).`);
+    return contacts;
   }
 
   public async fetchMessages(query: Query<Message>) {
+    this.logger.debug(`[fetchMessages] Buscando mensagens. Query: ${JSON.stringify(query)}`);
     const keyFilters = query?.where?.key as {
       id?: string;
       fromMe?: boolean;
@@ -599,6 +648,7 @@ export class ChannelStartupService {
       },
     });
 
+    this.logger.debug(`[fetchMessages] Total de mensagens encontradas: ${count}.`);
     return {
       messages: {
         total: count,
@@ -610,7 +660,8 @@ export class ChannelStartupService {
   }
 
   public async fetchStatusMessage(query: any) {
-    return await this.prismaRepository.messageUpdate.findMany({
+    this.logger.debug(`[fetchStatusMessage] Buscando status de mensagens. Query: ${JSON.stringify(query)}`);
+    const results = await this.prismaRepository.messageUpdate.findMany({
       where: {
         instanceId: this.instanceId,
         remoteJid: query.where?.remoteJid,
@@ -619,9 +670,12 @@ export class ChannelStartupService {
       skip: query.offset * (query?.page === 1 ? 0 : (query?.page as number) - 1),
       take: query.offset,
     });
+    this.logger.debug(`[fetchStatusMessage] Retornando ${results.length} atualização(ões) de status.`);
+    return results;
   }
 
   public async fetchChats(query: any) {
+    this.logger.debug(`[fetchChats] Buscando chats. Query: ${JSON.stringify(query)}`);
     const remoteJid = query?.where?.remoteJid
       ? query?.where?.remoteJid.includes('@')
         ? query.where?.remoteJid
@@ -632,77 +686,78 @@ export class ChannelStartupService {
 
     if (!remoteJid) {
       results = await this.prismaRepository.$queryRaw`
-          SELECT
-            "Chat"."id",
-            "Chat"."remoteJid",
-            "Chat"."name",
-            "Chat"."labels",
-            "Chat"."createdAt",
-            "Chat"."updatedAt",
-            "Contact"."pushName",
-            "Contact"."profilePicUrl",
-            "Chat"."unreadMessages",
-            (ARRAY_AGG("Message"."id" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_id,
-            (ARRAY_AGG("Message"."key" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_key,
-            (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_push_name,
-            (ARRAY_AGG("Message"."participant" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_participant,
-            (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_type,
-            (ARRAY_AGG("Message"."message" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message,
-            (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_context_info,
-            (ARRAY_AGG("Message"."source" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_source,
-            (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_timestamp,
-            (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instance_id,
-            (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
-            (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
-          FROM "Chat"
-          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
-          LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
-          WHERE 
-            "Chat"."instanceId" = ${this.instanceId}
-          GROUP BY
-            "Chat"."id",
-            "Chat"."remoteJid",
-            "Contact"."id"
-          ORDER BY last_message_message_timestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
-          `;
+        SELECT
+          "Chat"."id",
+          "Chat"."remoteJid",
+          "Chat"."name",
+          "Chat"."labels",
+          "Chat"."createdAt",
+          "Chat"."updatedAt",
+          "Contact"."pushName",
+          "Contact"."profilePicUrl",
+          "Chat"."unreadMessages",
+          (ARRAY_AGG("Message"."id" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_id,
+          (ARRAY_AGG("Message"."key" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_key,
+          (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_push_name,
+          (ARRAY_AGG("Message"."participant" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_participant,
+          (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_type,
+          (ARRAY_AGG("Message"."message" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message,
+          (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_context_info,
+          (ARRAY_AGG("Message"."source" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_source,
+          (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_timestamp,
+          (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instance_id,
+          (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
+          (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
+        FROM "Chat"
+        LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
+        LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
+        WHERE 
+          "Chat"."instanceId" = ${this.instanceId}
+        GROUP BY
+          "Chat"."id",
+          "Chat"."remoteJid",
+          "Contact"."id"
+        ORDER BY last_message_message_timestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
+      `;
     } else {
       results = await this.prismaRepository.$queryRaw`
-          SELECT
-            "Chat"."id",
-            "Chat"."remoteJid",
-            "Chat"."name",
-            "Chat"."labels",
-            "Chat"."createdAt",
-            "Chat"."updatedAt",
-            "Contact"."pushName",
-            "Contact"."profilePicUrl",
-            "Chat"."unreadMessages",
-            (ARRAY_AGG("Message"."id" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_id,
-            (ARRAY_AGG("Message"."key" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_key,
-            (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_push_name,
-            (ARRAY_AGG("Message"."participant" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_participant,
-            (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_type,
-            (ARRAY_AGG("Message"."message" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message,
-            (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_context_info,
-            (ARRAY_AGG("Message"."source" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_source,
-            (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_timestamp,
-            (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instance_id,
-            (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
-            (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
-          FROM "Chat"
-          LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
-          LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
-          WHERE 
-            "Chat"."instanceId" = ${this.instanceId} AND "Chat"."remoteJid" = ${remoteJid} and "Message"."messageType" != 'reactionMessage'
-          GROUP BY
-            "Chat"."id",
-            "Chat"."remoteJid",
-            "Contact"."id"
-          ORDER BY last_message_message_timestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
-          `;
+        SELECT
+          "Chat"."id",
+          "Chat"."remoteJid",
+          "Chat"."name",
+          "Chat"."labels",
+          "Chat"."createdAt",
+          "Chat"."updatedAt",
+          "Contact"."pushName",
+          "Contact"."profilePicUrl",
+          "Chat"."unreadMessages",
+          (ARRAY_AGG("Message"."id" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_id,
+          (ARRAY_AGG("Message"."key" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_key,
+          (ARRAY_AGG("Message"."pushName" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_push_name,
+          (ARRAY_AGG("Message"."participant" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_participant,
+          (ARRAY_AGG("Message"."messageType" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_type,
+          (ARRAY_AGG("Message"."message" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message,
+          (ARRAY_AGG("Message"."contextInfo" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_context_info,
+          (ARRAY_AGG("Message"."source" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_source,
+          (ARRAY_AGG("Message"."messageTimestamp" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_message_timestamp,
+          (ARRAY_AGG("Message"."instanceId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_instance_id,
+          (ARRAY_AGG("Message"."sessionId" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_session_id,
+          (ARRAY_AGG("Message"."status" ORDER BY "Message"."messageTimestamp" DESC))[1] AS last_message_status
+        FROM "Chat"
+        LEFT JOIN "Message" ON "Message"."messageType" != 'reactionMessage' and "Message"."key"->>'remoteJid' = "Chat"."remoteJid"
+        LEFT JOIN "Contact" ON "Chat"."remoteJid" = "Contact"."remoteJid"
+        WHERE 
+          "Chat"."instanceId" = ${this.instanceId} AND "Chat"."remoteJid" = ${remoteJid} and "Message"."messageType" != 'reactionMessage'
+        GROUP BY
+          "Chat"."id",
+          "Chat"."remoteJid",
+          "Contact"."id"
+        ORDER BY last_message_message_timestamp DESC NULLS LAST, "Chat"."updatedAt" DESC;
+      `;
     }
 
     if (results && isArray(results) && results.length > 0) {
+      this.logger.debug(`[fetchChats] Retornando ${results.length} chat(s).`);
       return results.map((chat) => {
         return {
           id: chat.id,
@@ -734,6 +789,7 @@ export class ChannelStartupService {
       });
     }
 
+    this.logger.debug('[fetchChats] Nenhum chat encontrado.');
     return [];
   }
 }

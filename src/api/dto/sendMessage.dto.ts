@@ -47,8 +47,17 @@ export class Metadata {
 }
 
 export class SendTextDto extends Metadata {
-  text: string;
+  text: string;          // Conteúdo do texto
+  number: string;        // WhatsApp ou 'webwidget:...' 
+  channel?: string;      // ex: 'Channel::WebWidget' ou outro
+  inbox_id?: number;     // se quiser mandar explicitamente ID=3
+  delay?: number;
+  quoted?: any;
+  linkPreview?: boolean;
+  mentionsEveryOne?: boolean;
+  mentioned?: string[];
 }
+
 export class SendPresence extends Metadata {
   text: string;
 }
