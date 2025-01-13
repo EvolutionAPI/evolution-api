@@ -1365,6 +1365,9 @@ public async createConversation(instance: InstanceDto, body: any) {
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const client = await this.clientCw(instance);
+      const chatId =
+        body.conversation?.meta?.sender?.identifier ||
+        body.conversation?.meta?.sender?.phone_number?.replace('+', '');
 
       if (!client) {
         this.logger.warn('[receiveWebhook] Client não encontrado');
@@ -1381,6 +1384,82 @@ public async createConversation(instance: InstanceDto, body: any) {
         const keyToDelete = `${instance.instanceName}:createConversation-${body.meta.sender.identifier}`;
         this.cache.delete(keyToDelete);
       }
+    
+    // debugar intancia
+    this.logger.debug(`[receiveWebhook] Instance recebido: ${JSON.stringify(instance)}`);
+
+    // Salva a mensagem do usuário no banco de dados
+    if (body.message_type === 'incoming' && body.event === 'message_created') {
+      this.logger.debug('[receiveWebhook] Salvando Mensagem do usuário');
+
+      // Id da conversa no Chatwoot
+      const conversationId = body.conversation?.id;
+      // Conteúdo textual da mensagem enviada pelo usuário (ex.: "fsddsfsdf")
+      const content = body.content;
+
+      if (!conversationId || !content) {
+        this.logger.error('[receiveWebhook] Dados insuficientes para salvar a mensagem.');
+        return;
+      }
+
+      try {
+        // Monta os dados para inserir no Prisma
+        const dataToSave = {
+          key: {
+            // Você pode gerar um ID único como quiser, por exemplo:
+            id: String(body.id) || 'algum-id-unico',
+            remoteJid: `webwidget:${conversationId}`,
+            fromMe: false,
+          },
+          message: {
+            // A parte textual da conversa
+            conversation: content,
+          },
+          messageType: 'conversation',
+          source: 'unknown', // se for enum, ajuste conforme seu modelo
+          messageTimestamp: Math.floor(Date.now() / 1000),
+
+          // Informações específicas do Chatwoot que podem ser úteis
+          chatwootMessageId: body.id,                       // ID da mensagem no Chatwoot
+          chatwootConversationId: conversationId,           // ID da conversa no Chatwoot
+          chatwootInboxId: body.inbox?.id ?? null,          // ID da inbox que recebeu a mensagem
+          chatwootContactInboxSourceId: body.conversation?.contact_inbox?.source_id ?? null,
+          chatwootIsRead: false, // ou true, dependendo da sua lógica
+
+          //instace
+          Instance: {
+            connect: { name: instance.instanceName }
+          },
+
+          // Relacionamento com sua instância
+          instanceId: instance.instanceId,
+
+          // Caso queira salvar o nome do usuário (pushName)
+          pushName: body.sender?.name ?? null,
+
+          // Se quiser salvar o “participant”, pode usar “identifier” ou “phone_number”
+          participant:
+            body.sender?.identifier ??
+            body.sender?.phone_number ??
+            null,
+
+          // Se você tiver algum status a aplicar
+          status: 'pending', // ou qualquer outro valor que faça sentido
+        };
+
+        this.logger.debug(`[receiveWebhook] Dados para salvar: ${JSON.stringify(dataToSave)}`);
+
+        const savedMsg = await this.prismaRepository.message.create({
+          data: dataToSave,
+        });
+
+        this.logger.debug(`[receiveWebhook] Mensagem do usuário salva: ${JSON.stringify(savedMsg)}`);
+      } catch (error) {
+        this.logger.error(`[receiveWebhook] Erro ao salvar a mensagem: ${error.message}`);
+        // Lógica adicional de erro, se necessário
+      }
+    }
+
 
       if (
         !body?.conversation ||
@@ -1436,9 +1515,6 @@ public async createConversation(instance: InstanceDto, body: any) {
         return { message: 'webwidget_incoming_ok' };
       }
 
-      const chatId =
-        body.conversation?.meta?.sender?.identifier ||
-        body.conversation?.meta?.sender?.phone_number?.replace('+', '');
       const messageReceived = body.content
         ? body.content
             .replaceAll(/(?<!\*)\*((?!\s)([^\n*]+?)(?<!\s))\*(?!\*)/g, '_$1_')
@@ -1629,6 +1705,7 @@ public async createConversation(instance: InstanceDto, body: any) {
 
             let messageSent: any;
             try {
+              this.logger.debug('[receiveWebhook] Mensagem Pura - Enviando mensagem de texto para WhatsApp1');
               messageSent = await waInstance?.textMessage(data, true);
               if (!messageSent) {
                 throw new Error('Message not sent');
@@ -1724,6 +1801,7 @@ public async createConversation(instance: InstanceDto, body: any) {
 
         sendTelemetry('/message/sendText');
 
+        this.logger.debug('[receiveWebhook] Tempalte Enviando mensagem de texto para WhatsApp');
         await waInstance?.textMessage(data2);
         const result = await this.chatwootService.receiveWebhook(instance, dataToSend);
       }

@@ -347,7 +347,7 @@ export class EvolutionStartupService extends ChannelStartupService {
   }
 
   protected async sendMessageWithTyping(
-    number: string,
+    number: string, // remoteJid
     message: any,
     options?: Options,
     isIntegration = false,
@@ -393,18 +393,34 @@ export class EvolutionStartupService extends ChannelStartupService {
       );
 
       // debug message
+      this.logger.debug(`[sendMessageWithTyping] Mensagem a ser enviada de numero: ${number}`);
       this.logger.debug(
         `[sendMessageWithTyping] Mensagem a ser enviada: ${JSON.stringify(message)}`,
       );
       let messageRaw: any = {
-        key: { fromMe: true, id: messageId, remoteJid: number, channel: message.channel, inbox_id: message.inbox_id },
+        key: { 
+          fromMe: true, 
+          id: messageId, 
+          remoteJid: number, 
+        },
         messageTimestamp: Math.round(new Date().getTime() / 1000),
         webhookUrl,
         source: 'unknown',
         instanceId: this.instanceId,
         status: status[1],
       };
+
+      // Salvando chatwootConversationId para mensagens webwidget
+      if (number && number.startsWith('webwidget:')) {
+        this.logger.debug('[sendMessageWithTyping] Detectado número webwidget...');
+        const conversationIdStr = number.split(':')[1] || '0';
+        const conversation_id = parseInt(conversationIdStr, 10);
+        messageRaw.source = 'web';
+        messageRaw.chatwootConversationId = conversation_id;
+      }
+
       // debug messageRaw
+      this.logger.debug(`[sendMessageWithTyping] messageRaw a ser enviada: ${number}`);
       this.logger.debug(`[sendMessageWithTyping] messageRaw a ser enviada: ${JSON.stringify(messageRaw)}`);
 
       // Verifica o tipo de mídia para compor a mensagem
@@ -498,7 +514,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         });
       }
 
-      this.logger.debug('[sendMessageWithTyping] Salvando mensagem no Prisma...');
+      this.logger.debug(`[sendMessageWithTyping] Salvando mensagem no Prisma: ${JSON.stringify(messageRaw)}`);
       await this.prismaRepository.message.create({
         data: messageRaw,
       });
@@ -517,11 +533,9 @@ export class EvolutionStartupService extends ChannelStartupService {
     this.logger.debug(`[textMessage] Dados recebidos: ${JSON.stringify(data2)}`);
 
     const res = await this.sendMessageWithTyping(
-      data2.number, 
+      data2.number,
       {
         conversation: data2.text,
-        channel: data2.channel,     // passa channel aqui
-        inbox_id: data2.inbox_id,   // e inbox_id aqui
       },
       {
         delay: data2?.delay,
