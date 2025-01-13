@@ -1,25 +1,57 @@
 services:
-  api:
-    container_name: evolution_api
-    image: evolution/api:local
-    build: .
-    restart: always
-    ports:
-      - 8080:8080
+  evolution-api-dev:
+    container_name: evolution-api-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - evolution-redis
+      - evolution-postgres
     volumes:
-      - evolution_instances:/evolution/instances
+      - type: bind
+        source: .
+        target: /evolution
+      - type: volume
+        target: /evolution/node_modules
+    ports:
+      - '8080:8080'
+    environment:
+      - NODE_ENV=development
     networks:
-      - evolution-net
+      - chatwoot-evolution-network
     env_file:
-      - .env
-    expose:
-      - 8080
+      - ./.env
+
+  evolution-redis:
+    image: redis:latest
+    container_name: evolution-redis
+    command: >
+      redis-server --port 6380 --appendonly yes
+    volumes:
+      - evolution-redis:/data
+    networks:
+      - chatwoot-evolution-network
+
+  evolution-postgres:
+    container_name: evolution-postgres
+    image: postgres:15
+    command: [ "postgres", "-c", "max_connections=1000" ]
+    restart: always
+    volumes:
+      - evolution-postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - chatwoot-evolution-network
 
 volumes:
-  evolution_instances:
+  evolution-instances:
+  evolution-redis:
+  evolution-postgres:
 
 
 networks:
-  evolution-net:
-    name: evolution-net
-    driver: bridge
+  chatwoot-evolution-network:
+    external: true

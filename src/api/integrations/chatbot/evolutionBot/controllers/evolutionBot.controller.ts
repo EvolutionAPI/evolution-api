@@ -726,7 +726,7 @@ export class EvolutionBotController extends ChatbotController implements Chatbot
 
       const session = await this.getSession(remoteJid, instance);
 
-      const content = getConversationMessage(msg);
+      const content = getConversationMessage(msg);      
 
       let findBot = (await this.findBotTrigger(
         this.botRepository,
