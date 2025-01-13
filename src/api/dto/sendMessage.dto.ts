@@ -47,8 +47,15 @@ export class Metadata {
 }
 
 export class SendTextDto extends Metadata {
-  text: string;
+  text: string;         
+  // number: string;        // WhatsApp ou 'webwidget:...' 
+  // delay?: number;
+  // quoted?: any;
+  // linkPreview?: boolean;
+  // mentionsEveryOne?: boolean;
+  // mentioned?: string[];
 }
+
 export class SendPresence extends Metadata {
   text: string;
 }

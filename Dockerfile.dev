@@ -1,0 +1,16 @@
+FROM node:20-slim
+
+WORKDIR /evolution
+
+RUN apt-get update && apt-get install -y python3 make g++ libvips-dev git pkg-config
+RUN npm install --platform=linux --arch=x64 sharp
+COPY package*.json /evolution/
+RUN npm install
+
+COPY . /evolution
+
+# Generate your Prisma Client
+# RUN npm run db:deploy
+# RUN npx prisma generate --schema=/evolution/prisma/postgresql-schema.prisma
+
+CMD ["npm", "run", "dev:server"]

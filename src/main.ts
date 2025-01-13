@@ -20,18 +20,25 @@ function initWA() {
 
 async function bootstrap() {
   const logger = new Logger('SERVER');
-  const app = express();
   const dsn = process.env.SENTRY_DSN;
 
+  // 1) Inicializa o Sentry aqui
   if (dsn) {
     logger.info('Sentry - ON');
     Sentry.init({
-      dsn: dsn,
+      dsn,
       environment: process.env.NODE_ENV || 'development',
       tracesSampleRate: 1.0,
       profilesSampleRate: 1.0,
     });
+  }
 
+  // 2) Depois disso, crie o app
+  const app = express();
+
+  // Se quiser instrumentar o Express, chame aqui
+  // (garantindo que app já foi declarado)
+  if (dsn) {
     Sentry.setupExpressErrorHandler(app);
   }
 

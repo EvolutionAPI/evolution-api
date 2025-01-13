@@ -1,7 +1,6 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
-RUN apk update && \
-    apk add git ffmpeg wget curl bash
+RUN apt-get update && apt-get install -y python3 make g++ libvips-dev git pkg-config dos2unix
 
 LABEL version="2.2.0" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
@@ -29,10 +28,9 @@ RUN ./Docker/scripts/generate_database.sh
 
 RUN npm run build
 
-FROM node:20-alpine AS final
+FROM node:20-slim AS final
 
-RUN apk update && \
-    apk add tzdata ffmpeg bash
+RUN apt-get update && apt-get install -y python3 make g++ libvips-dev git pkg-config dos2unix
 
 ENV TZ=America/Sao_Paulo
 

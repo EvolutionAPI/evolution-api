@@ -136,7 +136,7 @@ export class Logger {
     this.console(value, Type.WARN);
   }
 
-  public error(value: any) {
+  public error(value: any, p0?: { message: any; stack: any; }) {
     this.console(value, Type.ERROR);
   }
 
@@ -144,7 +144,7 @@ export class Logger {
     this.console(value, Type.VERBOSE);
   }
 
-  public debug(value: any) {
+  public debug(value: any, p0?: { config: any; }) {
     this.console(value, Type.DEBUG);
   }
 
