@@ -29,8 +29,8 @@ services:
       redis-server --port 6379 --appendonly yes
     volumes:
       - evolution-redis:/data
-    ports:
-      - 6379:6379
+    # ports:
+    #   - 6379:6379
 
   evolution-postgres:
     container_name: evolution-postgres
@@ -39,16 +39,16 @@ services:
       - chatwoot-evolution-network
     command: [ "postgres", "-c", "max_connections=1000" ]
     restart: always
-    ports:
-      - 5432:5432
+    # ports:
+    #   - 5432:5432
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - evolution-postgres:/var/lib/postgresql/data
-    expose:
-      - 5432
+    # expose:
+    #   - 5432
 
 volumes:
   evolution-instances:
