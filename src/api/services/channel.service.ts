@@ -551,12 +551,23 @@ export class ChannelStartupService {
       participants?: string;
     };
 
+    const timestampFilter = {};
+    if (query?.where?.messageTimestamp) {
+      if (query.where.messageTimestamp['gte'] && query.where.messageTimestamp['lte']) {
+        timestampFilter['messageTimestamp'] = {
+          gte: Math.floor(new Date(query.where.messageTimestamp['gte']).getTime() / 1000),
+          lte: Math.floor(new Date(query.where.messageTimestamp['lte']).getTime() / 1000),
+        };
+      }
+    }
+
     const count = await this.prismaRepository.message.count({
       where: {
         instanceId: this.instanceId,
         id: query?.where?.id,
         source: query?.where?.source,
         messageType: query?.where?.messageType,
+        ...timestampFilter,
         AND: [
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
@@ -580,6 +591,7 @@ export class ChannelStartupService {
         id: query?.where?.id,
         source: query?.where?.source,
         messageType: query?.where?.messageType,
+        ...timestampFilter,
         AND: [
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
