@@ -119,6 +119,7 @@ export class InstanceController {
         readMessages: instanceData.readMessages === true,
         readStatus: instanceData.readStatus === true,
         syncFullHistory: instanceData.syncFullHistory === true,
+        wavoipToken: instanceData.wavoipToken || '',
       };
 
       await this.settingsService.create(instance, settings);

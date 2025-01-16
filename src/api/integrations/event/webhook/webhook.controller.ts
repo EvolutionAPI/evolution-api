@@ -64,7 +64,12 @@ export class WebhookController extends EventController implements EventControlle
     sender,
     apiKey,
     local,
+    integration,
   }: EmitData): Promise<void> {
+    if (integration && !integration.includes('webhook')) {
+      return;
+    }
+
     const instance = (await this.get(instanceName)) as wa.LocalWebHook;
 
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
@@ -85,7 +90,7 @@ export class WebhookController extends EventController implements EventControlle
       apikey: apiKey,
     };
 
-    if ((local && !instance) || !instance?.enabled) {
+    if (local && instance?.enabled) {
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;
 

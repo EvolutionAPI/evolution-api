@@ -264,6 +264,7 @@ model Setting {
   readMessages    Boolean   @default(false)
   readStatus      Boolean   @default(false)
   syncFullHistory Boolean   @default(false)
+  wavoipToken     String?   @db.VarChar(100)
   createdAt       DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)

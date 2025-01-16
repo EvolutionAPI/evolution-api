@@ -19,6 +19,7 @@ export class InstanceDto extends IntegrationDto {
   readMessages?: boolean;
   readStatus?: boolean;
   syncFullHistory?: boolean;
+  wavoipToken?: string;
   // proxy
   proxyHost?: string;
   proxyPort?: string;

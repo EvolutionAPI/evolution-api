@@ -28,7 +28,7 @@ import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
 import { createReadStream } from 'fs';
-import mime from 'mime';
+import mimeTypes from 'mime-types';
 import { join } from 'path';
 
 export class BusinessStartupService extends ChannelStartupService {
@@ -1017,7 +1017,7 @@ export class BusinessStartupService extends ChannelStartupService {
         mediaMessage.fileName = 'video.mp4';
       }
 
-      let mimetype: string;
+      let mimetype: string | false;
 
       const prepareMedia: any = {
         caption: mediaMessage?.caption,
@@ -1028,11 +1028,11 @@ export class BusinessStartupService extends ChannelStartupService {
       };
 
       if (isURL(mediaMessage.media)) {
-        mimetype = mime.getType(mediaMessage.media);
+        mimetype = mimeTypes.lookup(mediaMessage.media);
         prepareMedia.id = mediaMessage.media;
         prepareMedia.type = 'link';
       } else {
-        mimetype = mime.getType(mediaMessage.fileName);
+        mimetype = mimeTypes.lookup(mediaMessage.fileName);
         const id = await this.getIdMedia(prepareMedia);
         prepareMedia.id = id;
         prepareMedia.type = 'id';
@@ -1075,7 +1075,7 @@ export class BusinessStartupService extends ChannelStartupService {
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
 
-    let mimetype: string;
+    let mimetype: string | false;
 
     const prepareMedia: any = {
       fileName: `${hash}.mp3`,
@@ -1084,11 +1084,11 @@ export class BusinessStartupService extends ChannelStartupService {
     };
 
     if (isURL(audio)) {
-      mimetype = mime.getType(audio);
+      mimetype = mimeTypes.lookup(audio);
       prepareMedia.id = audio;
       prepareMedia.type = 'link';
     } else {
-      mimetype = mime.getType(prepareMedia.fileName);
+      mimetype = mimeTypes.lookup(prepareMedia.fileName);
       const id = await this.getIdMedia(prepareMedia);
       prepareMedia.id = id;
       prepareMedia.type = 'id';

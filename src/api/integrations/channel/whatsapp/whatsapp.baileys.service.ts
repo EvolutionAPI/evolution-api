@@ -131,7 +131,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
 import { readFileSync } from 'fs';
 import Long from 'long';
-import mime from 'mime';
+import mimeTypes from 'mime-types';
 import NodeCache from 'node-cache';
 import cron from 'node-cron';
 import { release } from 'os';
@@ -142,6 +142,8 @@ import qrcodeTerminal from 'qrcode-terminal';
 import sharp from 'sharp';
 import { PassThrough, Readable } from 'stream';
 import { v4 } from 'uuid';
+
+import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
@@ -673,7 +675,29 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.client = makeWASocket(socketConfig);
 
+    if (this.localSettings.wavoipToken && this.localSettings.wavoipToken.length > 0) {
+      useVoiceCallsBaileys(this.localSettings.wavoipToken, this.client, this.connectionStatus.state as any, true);
+    }
+
     this.eventHandler();
+
+    this.client.ws.on('CB:call', (packet) => {
+      console.log('CB:call', packet);
+      const payload = {
+        event: 'CB:call',
+        packet: packet,
+      };
+      this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
+    });
+
+    this.client.ws.on('CB:ack,class:call', (packet) => {
+      console.log('CB:ack,class:call', packet);
+      const payload = {
+        event: 'CB:ack,class:call',
+        packet: packet,
+      };
+      this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
+    });
 
     this.phoneNumber = number;
 
@@ -1248,7 +1272,7 @@ export class BaileysStartupService extends ChannelStartupService {
                   );
 
                   const { buffer, mediaType, fileName, size } = media;
-                  const mimetype = mime.getType(fileName).toString();
+                  const mimetype = mimeTypes.lookup(fileName).toString();
                   const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
                   await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
                     'Content-Type': mimetype,
@@ -2210,7 +2234,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             const { buffer, mediaType, fileName, size } = media;
 
-            const mimetype = mime.getType(fileName).toString();
+            const mimetype = mimeTypes.lookup(fileName).toString();
 
             const fullName = join(
               `${this.instance.id}`,
@@ -2532,12 +2556,12 @@ export class BaileysStartupService extends ChannelStartupService {
         mediaMessage.fileName = 'video.mp4';
       }
 
-      let mimetype: string;
+      let mimetype: string | false;
 
       if (mediaMessage.mimetype) {
         mimetype = mediaMessage.mimetype;
       } else {
-        mimetype = mime.getType(mediaMessage.fileName);
+        mimetype = mimeTypes.lookup(mediaMessage.fileName);
 
         if (!mimetype && isURL(mediaMessage.media)) {
           let config: any = {
@@ -3590,7 +3614,7 @@ export class BaileysStartupService extends ChannelStartupService {
       );
       const typeMessage = getContentType(msg.message);
 
-      const ext = mime.getExtension(mediaMessage?.['mimetype']);
+      const ext = mimeTypes.extension(mediaMessage?.['mimetype']);
       const fileName = mediaMessage?.['fileName'] || `${msg.key.id}.${ext}` || `${v4()}.${ext}`;
 
       if (convertToMp4 && typeMessage === 'audioMessage') {
@@ -4394,5 +4418,86 @@ export class BaileysStartupService extends ChannelStartupService {
       chatId,
       id,
     );
+  }
+
+  public async baileysOnWhatsapp(jid: string) {
+    const response = await this.client.onWhatsApp(jid);
+
+    return response;
+  }
+
+  public async baileysProfilePictureUrl(jid: string, type: 'image' | 'preview', timeoutMs: number) {
+    const response = await this.client.profilePictureUrl(jid, type, timeoutMs);
+
+    return response;
+  }
+
+  public async baileysAssertSessions(jids: string[], force: boolean) {
+    const response = await this.client.assertSessions(jids, force);
+
+    return response;
+  }
+
+  public async baileysCreateParticipantNodes(jids: string[], message: proto.IMessage, extraAttrs: any) {
+    const response = await this.client.createParticipantNodes(jids, message, extraAttrs);
+
+    const convertedResponse = {
+      ...response,
+      nodes: response.nodes.map((node: any) => ({
+        ...node,
+        content: node.content?.map((c: any) => ({
+          ...c,
+          content: c.content instanceof Uint8Array ? Buffer.from(c.content).toString('base64') : c.content,
+        })),
+      })),
+    };
+
+    return convertedResponse;
+  }
+
+  public async baileysSendNode(stanza: any) {
+    console.log('stanza', JSON.stringify(stanza));
+    const response = await this.client.sendNode(stanza);
+
+    return response;
+  }
+
+  public async baileysGetUSyncDevices(jids: string[], useCache: boolean, ignoreZeroDevices: boolean) {
+    const response = await this.client.getUSyncDevices(jids, useCache, ignoreZeroDevices);
+
+    return response;
+  }
+
+  public async baileysGenerateMessageTag() {
+    const response = await this.client.generateMessageTag();
+
+    return response;
+  }
+
+  public async baileysSignalRepositoryDecryptMessage(jid: string, type: 'pkmsg' | 'msg', ciphertext: string) {
+    try {
+      const ciphertextBuffer = Buffer.from(ciphertext, 'base64');
+
+      const response = await this.client.signalRepository.decryptMessage({
+        jid,
+        type,
+        ciphertext: ciphertextBuffer,
+      });
+
+      return response instanceof Uint8Array ? Buffer.from(response).toString('base64') : response;
+    } catch (error) {
+      this.logger.error('Error decrypting message:');
+      this.logger.error(error);
+      throw error;
+    }
+  }
+
+  public async baileysGetAuthState() {
+    const response = {
+      me: this.client.authState.creds.me,
+      account: this.client.authState.creds.account,
+    };
+
+    return response;
   }
 }

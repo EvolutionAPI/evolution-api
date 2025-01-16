@@ -10,7 +10,7 @@ import { BadRequestException, InternalServerErrorException } from '@exceptions';
 import { status } from '@utils/renderStatus';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
-import mime from 'mime';
+import mimeTypes from 'mime-types';
 import { v4 } from 'uuid';
 
 export class EvolutionStartupService extends ChannelStartupService {
@@ -396,7 +396,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         mediaMessage.fileName = 'video.mp4';
       }
 
-      let mimetype: string;
+      let mimetype: string | false;
 
       const prepareMedia: any = {
         caption: mediaMessage?.caption,
@@ -407,9 +407,9 @@ export class EvolutionStartupService extends ChannelStartupService {
       };
 
       if (isURL(mediaMessage.media)) {
-        mimetype = mime.getType(mediaMessage.media);
+        mimetype = mimeTypes.lookup(mediaMessage.media);
       } else {
-        mimetype = mime.getType(mediaMessage.fileName);
+        mimetype = mimeTypes.lookup(mediaMessage.fileName);
       }
 
       prepareMedia.mimetype = mimetype;
@@ -449,7 +449,7 @@ export class EvolutionStartupService extends ChannelStartupService {
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
 
-    let mimetype: string;
+    let mimetype: string | false;
 
     const prepareMedia: any = {
       fileName: `${hash}.mp4`,
@@ -458,9 +458,9 @@ export class EvolutionStartupService extends ChannelStartupService {
     };
 
     if (isURL(audio)) {
-      mimetype = mime.getType(audio);
+      mimetype = mimeTypes.lookup(audio);
     } else {
-      mimetype = mime.getType(prepareMedia.fileName);
+      mimetype = mimeTypes.lookup(prepareMedia.fileName);
     }
 
     prepareMedia.mimetype = mimetype;
