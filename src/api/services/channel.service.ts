@@ -686,6 +686,39 @@ export class ChannelStartupService {
     });
   };
 
+  private async retryWebhookRequest(
+    httpService: any,
+    postData: any,
+    baseURL: string,
+    isGlobal = false,
+    maxRetries = 10,
+    delaySeconds = 30,
+  ) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await httpService.post('', postData);
+        if (attempt > 1) {
+          this.logger.verbose(`Webhook ${isGlobal ? 'global' : 'local'} enviado com sucesso na tentativa ${attempt}`);
+        }
+        return;
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error; // Propaga o erro após todas as tentativas
+        }
+
+        this.logger.warn({
+          local: `${ChannelStartupService.name}.retryWebhookRequest-${isGlobal ? 'global' : 'local'}`,
+          message: `Tentativa ${attempt}/${maxRetries} falhou. Próxima tentativa em ${delaySeconds} segundos`,
+          error: error?.message,
+          url: baseURL,
+        });
+
+        // Aguarda o delay antes da próxima tentativa
+        await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+      }
+    }
+  }
+
   public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
@@ -766,7 +799,7 @@ export class ChannelStartupService {
                   logData['apikey'] = instanceApikey;
                 }
 
-                // this.logger.log(logData);
+                this.logger.log(logData);
               }
               break;
             } catch (error) {
@@ -834,7 +867,7 @@ export class ChannelStartupService {
                 logData['apikey'] = instanceApikey;
               }
 
-              // this.logger.log(logData);
+              this.logger.log(logData);
             }
 
             break;
@@ -907,7 +940,7 @@ export class ChannelStartupService {
                   logData['apikey'] = instanceApikey;
                 }
 
-                // this.logger.log(logData);
+                this.logger.log(logData);
               }
             }
           });
@@ -951,7 +984,7 @@ export class ChannelStartupService {
             logData['apikey'] = instanceApikey;
           }
 
-          // this.logger.log(logData);
+          this.logger.log(logData);
         }
       }
 
@@ -981,7 +1014,7 @@ export class ChannelStartupService {
             logData['apikey'] = instanceApikey;
           }
 
-          // this.logger.log(logData);
+          this.logger.log(logData);
         }
       }
     }
@@ -1017,7 +1050,7 @@ export class ChannelStartupService {
             logData['apikey'] = instanceApikey;
           }
 
-          // this.logger.log(logData);
+          this.logger.log(logData);
         }
 
         try {
@@ -1037,12 +1070,13 @@ export class ChannelStartupService {
               postData['apikey'] = instanceApikey;
             }
 
-            await httpService.post('', postData);
+            await this.retryWebhookRequest(httpService, postData, baseURL);
           }
         } catch (error) {
           this.logger.error({
             local: ChannelStartupService.name + '.sendDataWebhook-local',
-            message: error?.message,
+            message: 'Todas as tentativas de envio do webhook local falharam',
+            lastError: error?.message,
             hostName: error?.hostname,
             syscall: error?.syscall,
             code: error?.code,
@@ -1088,7 +1122,7 @@ export class ChannelStartupService {
             logData['apikey'] = globalApiKey;
           }
 
-          // this.logger.log(logData);
+          this.logger.log(logData);
         }
 
         try {
@@ -1108,12 +1142,13 @@ export class ChannelStartupService {
               postData['apikey'] = globalApiKey;
             }
 
-            await httpService.post('', postData);
+            await this.retryWebhookRequest(httpService, postData, globalURL, true);
           }
         } catch (error) {
           this.logger.error({
             local: ChannelStartupService.name + '.sendDataWebhook-global',
-            message: error?.message,
+            message: 'Todas as tentativas de envio do webhook global falharam',
+            lastError: error?.message,
             hostName: error?.hostname,
             syscall: error?.syscall,
             code: error?.code,
