@@ -737,16 +737,11 @@ export class InstanceController {
     this.logger.verbose('requested deleteInstance from ' + instanceName + ' instance');
     const { instance } = await this.connectionState({ instanceName });
 
-    if (instance.state === 'open') {
-      throw new BadRequestException('The "' + instanceName + '" instance needs to be disconnected');
-    }
     try {
       this.waMonitor.waInstances[instanceName]?.removeRabbitmqQueues();
       this.waMonitor.waInstances[instanceName]?.clearCacheChatwoot();
 
-      if (instance.state === 'connecting') {
-        this.logger.verbose('logging out instance: ' + instanceName);
-
+      if (instance.state === 'connecting' || instance.state === 'open') {
         await this.logout({ instanceName });
       }
 

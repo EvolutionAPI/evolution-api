@@ -766,7 +766,7 @@ export class ChannelStartupService {
                   logData['apikey'] = instanceApikey;
                 }
 
-                this.logger.log(logData);
+                // this.logger.log(logData);
               }
               break;
             } catch (error) {
@@ -834,7 +834,7 @@ export class ChannelStartupService {
                 logData['apikey'] = instanceApikey;
               }
 
-              this.logger.log(logData);
+              // this.logger.log(logData);
             }
 
             break;
@@ -907,7 +907,7 @@ export class ChannelStartupService {
                   logData['apikey'] = instanceApikey;
                 }
 
-                this.logger.log(logData);
+                // this.logger.log(logData);
               }
             }
           });
@@ -951,7 +951,7 @@ export class ChannelStartupService {
             logData['apikey'] = instanceApikey;
           }
 
-          this.logger.log(logData);
+          // this.logger.log(logData);
         }
       }
 
@@ -981,7 +981,7 @@ export class ChannelStartupService {
             logData['apikey'] = instanceApikey;
           }
 
-          this.logger.log(logData);
+          // this.logger.log(logData);
         }
       }
     }
@@ -1017,7 +1017,7 @@ export class ChannelStartupService {
             logData['apikey'] = instanceApikey;
           }
 
-          this.logger.log(logData);
+          // this.logger.log(logData);
         }
 
         try {
@@ -1088,7 +1088,7 @@ export class ChannelStartupService {
             logData['apikey'] = globalApiKey;
           }
 
-          this.logger.log(logData);
+          // this.logger.log(logData);
         }
 
         try {

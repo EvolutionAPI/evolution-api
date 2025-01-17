@@ -379,12 +379,6 @@ export class BaileysStartupService extends ChannelStartupService {
         state: connection,
         statusReason: (lastDisconnect?.error as Boom)?.output?.statusCode ?? 200,
       };
-
-      this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
-      this.sendDataWebhook(Events.CONNECTION_UPDATE, {
-        instance: this.instance.name,
-        ...this.stateConnection,
-      });
     }
 
     if (connection === 'close') {
@@ -417,6 +411,15 @@ export class BaileysStartupService extends ChannelStartupService {
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
         this.logger.verbose('Connection closed');
+
+        this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
+        this.sendDataWebhook(Events.CONNECTION_UPDATE, {
+          instance: this.instance.name,
+          wuid: this.instance.wuid,
+          profileName: await this.getProfileName(),
+          profilePictureUrl: this.instance.profilePictureUrl,
+          ...this.stateConnection,
+        });
       }
     }
 
@@ -446,13 +449,34 @@ export class BaileysStartupService extends ChannelStartupService {
           {
             instance: this.instance.name,
             status: 'open',
+            wuid: this.instance.wuid,
+            profileName: await this.getProfileName(),
+            profilePictureUrl: this.instance.profilePictureUrl,
           },
         );
       }
+
+      this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
+      this.sendDataWebhook(Events.CONNECTION_UPDATE, {
+        instance: this.instance.name,
+        wuid: this.instance.wuid,
+        profileName: await this.getProfileName(),
+        profilePictureUrl: this.instance.profilePictureUrl,
+        ...this.stateConnection,
+      });
     }
 
     if (connection === 'connecting') {
       if (this.mobile) this.sendMobileCode();
+
+      this.logger.verbose('Sending data to webhook in event CONNECTION_UPDATE');
+      this.sendDataWebhook(Events.CONNECTION_UPDATE, {
+        instance: this.instance.name,
+        wuid: this.instance.wuid,
+        profileName: await this.getProfileName(),
+        profilePictureUrl: this.instance.profilePictureUrl,
+        ...this.stateConnection,
+      });
     }
   }
 
