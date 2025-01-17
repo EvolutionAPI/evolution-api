@@ -312,6 +312,9 @@ export class BaileysStartupService extends ChannelStartupService {
           instance: this.instance.name,
           state: 'refused',
           statusReason: DisconnectReason.connectionClosed,
+          wuid: this.instance.wuid,
+          profileName: await this.getProfileName(),
+          profilePictureUrl: this.instance.profilePictureUrl,
         });
 
         this.endSession = true;
@@ -391,11 +394,6 @@ export class BaileysStartupService extends ChannelStartupService {
         state: connection,
         statusReason: (lastDisconnect?.error as Boom)?.output?.statusCode ?? 200,
       };
-
-      this.sendDataWebhook(Events.CONNECTION_UPDATE, {
-        instance: this.instance.name,
-        ...this.stateConnection,
-      });
     }
 
     if (connection === 'close') {
@@ -437,6 +435,11 @@ export class BaileysStartupService extends ChannelStartupService {
         this.eventEmitter.emit('logout.instance', this.instance.name, 'inner');
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
+
+        this.sendDataWebhook(Events.CONNECTION_UPDATE, {
+          instance: this.instance.name,
+          ...this.stateConnection,
+        });
       }
     }
 
@@ -484,6 +487,21 @@ export class BaileysStartupService extends ChannelStartupService {
         );
         this.syncChatwootLostMessages();
       }
+
+      this.sendDataWebhook(Events.CONNECTION_UPDATE, {
+        instance: this.instance.name,
+        wuid: this.instance.wuid,
+        profileName: await this.getProfileName(),
+        profilePictureUrl: this.instance.profilePictureUrl,
+        ...this.stateConnection,
+      });
+    }
+
+    if (connection === 'connecting') {
+      this.sendDataWebhook(Events.CONNECTION_UPDATE, {
+        instance: this.instance.name,
+        ...this.stateConnection,
+      });
     }
   }
 
