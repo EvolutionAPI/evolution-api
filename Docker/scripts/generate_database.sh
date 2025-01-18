@@ -7,7 +7,6 @@ if [ "$DOCKER_ENV" != "true" ]; then
 fi
 
 if [[ "$DATABASE_PROVIDER" == "postgresql" || "$DATABASE_PROVIDER" == "mysql" ]]; then
-    export DATABASE_URL
     echo "Generating database for $DATABASE_PROVIDER"
     echo "Database URL: $DATABASE_URL"
     npm run db:generate

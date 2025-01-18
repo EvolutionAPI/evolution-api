@@ -13,12 +13,35 @@ import compression from 'compression';
 import cors from 'cors';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
+import { Client } from 'pg';
 
 function initWA() {
   waMonitor.loadInstance();
 }
 
 async function bootstrap() {
+  const client = new Client({
+    connectionString: process.env.CHATWOOT_IMPORT_DATABASE_CONNECTION_URI,
+  });
+
+  console.log(`Connecting to the database ${process.env.CHATWOOT_IMPORT_DATABASE_CONNECTION_URI}...`);
+
+  await client
+    .connect()
+    .then(() => {
+      console.log('Connected to the database successfully');
+      return client.query('SELECT 1'); // Simple query to check the connection
+    })
+    .then(() => {
+      console.log('Ping successful');
+    })
+    .catch((err) => {
+      console.error('Error connecting to the database:', err.stack);
+    })
+    .finally(() => {
+      client.end(); // Close the connection
+    });
+
   const logger = new Logger('SERVER');
   const app = express();
   const dsn = process.env.SENTRY_DSN;

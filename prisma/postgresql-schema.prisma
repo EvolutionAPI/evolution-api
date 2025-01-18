@@ -125,6 +125,7 @@ model Chat {
   Instance       Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId     String
   unreadMessages Int       @default(0)
+
   @@index([instanceId])
   @@index([remoteJid])
 }
@@ -168,6 +169,7 @@ model Message {
 
   sessionId String?
   session   IntegrationSession? @relation(fields: [sessionId], references: [id])
+
   @@index([instanceId])
 }
 
@@ -183,6 +185,7 @@ model MessageUpdate {
   messageId   String
   Instance    Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId  String
+
   @@index([instanceId])
   @@index([messageId])
 }
@@ -199,6 +202,7 @@ model Webhook {
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
+
   @@index([instanceId])
 }
 
@@ -268,6 +272,7 @@ model Setting {
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
+
   @@index([instanceId])
 }
 
