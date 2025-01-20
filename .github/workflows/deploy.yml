@@ -1,0 +1,34 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Instance
+        uses: Burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete --exclude=".git" --exclude=".env"
+          path: ./
+          remote_path: evolution
+          remote_host: ${{ secrets.EC2_HOST }}
+          remote_user: ${{ secrets.EC2_USER }}
+          remote_key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Start application with PM2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            chmod +x run_evolution.sh
+            ./run_evolution.sh
