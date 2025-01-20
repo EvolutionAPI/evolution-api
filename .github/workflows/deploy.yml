@@ -19,14 +19,14 @@ jobs:
           switches: -avzr --delete --exclude=".git" --exclude=".env"
           path: ./
           remote_path: evolution
-          remote_host: ${{ secrets.EC2_HOST }}
+          remote_host: ec2-44-192-63-173.compute-1.amazonaws.com
           remote_user: ${{ secrets.EC2_USER }}
           remote_key: ${{ secrets.EC2_SSH_KEY }}
 
       - name: Start application with PM2
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: ec2-44-192-63-173.compute-1.amazonaws.com
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
