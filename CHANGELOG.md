@@ -3,7 +3,8 @@
 ### Features
 
 * Retry system for send webhooks
-* Enhance message filtering to support timestamp range queries
+* Message filtering to support timestamp range queries
+* Chats filtering to support timestamp range queries
 
 ### Fixed
 

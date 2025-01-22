@@ -682,6 +682,13 @@ export class ChannelStartupService {
       where['remoteJid'] = remoteJid;
     }
 
+    const timestampFilter =
+      query?.where?.messageTimestamp?.gte && query?.where?.messageTimestamp?.lte
+        ? Prisma.sql`
+          AND "Message"."messageTimestamp" >= ${Math.floor(new Date(query.where.messageTimestamp.gte).getTime() / 1000)}
+          AND "Message"."messageTimestamp" <= ${Math.floor(new Date(query.where.messageTimestamp.lte).getTime() / 1000)}`
+        : Prisma.sql``;
+
     const results = await this.prismaRepository.$queryRaw`
         WITH rankedMessages AS (
           SELECT DISTINCT ON ("Contact"."remoteJid")
@@ -719,6 +726,7 @@ export class ChannelStartupService {
             "Contact"."instanceId" = ${this.instanceId}
             AND "Message"."instanceId" = ${this.instanceId}
             ${remoteJid ? Prisma.sql`AND "Contact"."remoteJid" = ${remoteJid}` : Prisma.sql``}
+            ${timestampFilter}
           ORDER BY 
             "Contact"."remoteJid",
             "Message"."messageTimestamp" DESC
