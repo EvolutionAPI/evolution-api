@@ -5,8 +5,6 @@ Warnings:
 
 */
 
--- Clear migrations
-DELETE FROM "_prisma_migrations" WHERE "migration_name" LIKE '%_add_wavoip_token_to_settings_table';
 -- AlterTable
 DO $$ 
 BEGIN 
