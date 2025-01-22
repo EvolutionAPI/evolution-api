@@ -221,6 +221,9 @@ export class WAMonitoringService {
         data: {
           id: data.instanceId,
           name: data.instanceName,
+          ownerJid: data.ownerJid,
+          profileName: data.profileName,
+          profilePicUrl: data.profilePicUrl,
           connectionStatus:
             data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : (data.status ?? 'open'),
           number: data.number,
