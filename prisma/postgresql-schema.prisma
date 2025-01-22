@@ -127,7 +127,6 @@ model Chat {
   unreadMessages Int       @default(0)
   @@index([instanceId])
   @@index([remoteJid])
-  @@unique([remoteJid, instanceId])
 }
 
 model Contact {
