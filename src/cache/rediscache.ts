@@ -11,7 +11,10 @@ export class RedisCache implements ICache {
   private client: RedisClientType;
   private conf: CacheConfRedis;
 
-  constructor(private readonly configService: ConfigService, private readonly module: string) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly module: string,
+  ) {
     this.conf = this.configService.get<CacheConf>('CACHE')?.REDIS;
     this.client = redisClient.getConnection();
   }

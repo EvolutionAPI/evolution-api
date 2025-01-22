@@ -42,20 +42,23 @@ export class WAMonitoringService {
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
     if (typeof time === 'number' && time > 0) {
-      setTimeout(async () => {
-        if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
-          if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
-            if ((await this.waInstances[instance].integration) === Integration.WHATSAPP_BAILEYS) {
-              await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
-              this.waInstances[instance]?.client?.ws?.close();
-              this.waInstances[instance]?.client?.end(undefined);
+      setTimeout(
+        async () => {
+          if (this.waInstances[instance]?.connectionStatus?.state !== 'open') {
+            if (this.waInstances[instance]?.connectionStatus?.state === 'connecting') {
+              if ((await this.waInstances[instance].integration) === Integration.WHATSAPP_BAILEYS) {
+                await this.waInstances[instance]?.client?.logout('Log out instance: ' + instance);
+                this.waInstances[instance]?.client?.ws?.close();
+                this.waInstances[instance]?.client?.end(undefined);
+              }
+              this.eventEmitter.emit('remove.instance', instance, 'inner');
+            } else {
+              this.eventEmitter.emit('remove.instance', instance, 'inner');
             }
-            this.eventEmitter.emit('remove.instance', instance, 'inner');
-          } else {
-            this.eventEmitter.emit('remove.instance', instance, 'inner');
           }
-        }
-      }, 1000 * 60 * time);
+        },
+        1000 * 60 * time,
+      );
     }
   }
 
@@ -72,14 +75,15 @@ export class WAMonitoringService {
 
     const clientName = this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
 
-    const where = instanceNames && instanceNames.length > 0
-      ? {
-        name: {
-          in: instanceNames,
-        },
-        clientName,
-      }
-      : { clientName };
+    const where =
+      instanceNames && instanceNames.length > 0
+        ? {
+            name: {
+              in: instanceNames,
+            },
+            clientName,
+          }
+        : { clientName };
 
     const instances = await this.prismaRepository.instance.findMany({
       where,
@@ -217,8 +221,11 @@ export class WAMonitoringService {
         data: {
           id: data.instanceId,
           name: data.instanceName,
+          ownerJid: data.ownerJid,
+          profileName: data.profileName,
+          profilePicUrl: data.profilePicUrl,
           connectionStatus:
-            data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : data.status ?? 'open',
+            data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : (data.status ?? 'open'),
           number: data.number,
           integration: data.integration || Integration.WHATSAPP_BAILEYS,
           token: data.hash,

@@ -8,10 +8,14 @@ import { RequestHandler, Router } from 'express';
 import { HttpStatus } from './index.router';
 
 export class InstanceRouter extends RouterBroker {
-  constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
+  constructor(
+    readonly configService: ConfigService,
+    ...guards: RequestHandler[]
+  ) {
     super();
     this.router
       .post('/create', ...guards, async (req, res) => {
+        console.log('create instance', req.body);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceSchema,

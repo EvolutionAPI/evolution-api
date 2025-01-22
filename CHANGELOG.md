@@ -1,4 +1,19 @@
-# 2.2.0 (develop)
+# 2.2.1 (2025-01-22 14:37)
+
+### Features
+
+* Retry system for send webhooks
+* Message filtering to support timestamp range queries
+* Chats filtering to support timestamp range queries
+
+### Fixed
+
+* Correction of webhook global
+* Fixed send audio with whatsapp cloud api
+* Refactor on fetch chats
+* Refactor on Evolution Channel
+
+# 2.2.0 (2024-10-18 10:00)
 
 ### Features
 

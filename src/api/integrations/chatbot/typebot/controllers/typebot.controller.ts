@@ -943,13 +943,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
 
       const content = getConversationMessage(msg);
 
-      let findBot = (await this.findBotTrigger(
-        this.botRepository,
-        this.settingsRepository,
-        content,
-        instance,
-        session,
-      )) as TypebotModel;
+      let findBot = (await this.findBotTrigger(this.botRepository, content, instance, session)) as TypebotModel;
 
       if (!findBot) {
         const fallback = await this.settingsRepository.findFirst({

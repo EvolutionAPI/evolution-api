@@ -15,6 +15,7 @@ import { TemplateController } from './controllers/template.controller';
 import { ChannelController } from './integrations/channel/channel.controller';
 import { EvolutionController } from './integrations/channel/evolution/evolution.controller';
 import { MetaController } from './integrations/channel/meta/meta.controller';
+import { BaileysController } from './integrations/channel/whatsapp/baileys.controller';
 import { ChatbotController } from './integrations/chatbot/chatbot.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
@@ -107,7 +108,7 @@ export const channelController = new ChannelController(prismaRepository, waMonit
 // channels
 export const evolutionController = new EvolutionController(prismaRepository, waMonitor);
 export const metaController = new MetaController(prismaRepository, waMonitor);
-
+export const baileysController = new BaileysController(waMonitor);
 // chatbots
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
 export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);

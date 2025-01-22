@@ -190,8 +190,8 @@ export class EvolutionBotService {
               },
               false,
             );
-            textBuffer = '';
           }
+          textBuffer = '';
         }
 
         if (mediaType === 'audio') {
@@ -274,8 +274,8 @@ export class EvolutionBotService {
           },
           false,
         );
-        textBuffer = '';
       }
+      textBuffer = '';
     }
 
     sendTelemetry('/message/sendText');

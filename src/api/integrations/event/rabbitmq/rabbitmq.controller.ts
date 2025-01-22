@@ -73,7 +73,12 @@ export class RabbitmqController extends EventController implements EventControll
     dateTime,
     sender,
     apiKey,
+    integration,
   }: EmitData): Promise<void> {
+    if (integration && !integration.includes('rabbitmq')) {
+      return;
+    }
+
     if (!this.status) {
       return;
     }
