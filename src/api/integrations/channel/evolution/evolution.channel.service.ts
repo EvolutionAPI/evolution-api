@@ -7,6 +7,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Openai } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
+import { createJid } from '@utils/createJid';
 import { status } from '@utils/renderStatus';
 import { isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -57,7 +58,7 @@ export class EvolutionStartupService extends ChannelStartupService {
   }
 
   public async profilePicture(number: string) {
-    const jid = this.createJid(number);
+    const jid = createJid(number);
 
     return {
       wuid: jid,

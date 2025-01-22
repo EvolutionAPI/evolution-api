@@ -9,6 +9,7 @@
 
 * Correction of webhook global
 * Fixed send audio with whatsapp cloud api
+* Refactor on fetch chats
 
 # 2.2.0 (2024-10-18 10:00)
 

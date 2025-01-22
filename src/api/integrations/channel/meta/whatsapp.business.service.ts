@@ -22,6 +22,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
 import { Chatwoot, ConfigService, Database, Openai, S3, WaBusiness } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
+import { createJid } from '@utils/createJid';
 import { status } from '@utils/renderStatus';
 import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
@@ -88,7 +89,7 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   public async profilePicture(number: string) {
-    const jid = this.createJid(number);
+    const jid = createJid(number);
 
     return {
       wuid: jid,
@@ -132,9 +133,7 @@ export class BusinessStartupService extends ChannelStartupService {
 
       this.eventHandler(content);
 
-      this.phoneNumber = this.createJid(
-        content.messages ? content.messages[0].from : content.statuses[0]?.recipient_id,
-      );
+      this.phoneNumber = createJid(content.messages ? content.messages[0].from : content.statuses[0]?.recipient_id);
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
@@ -231,7 +230,7 @@ export class BusinessStartupService extends ChannelStartupService {
       }
 
       if (!contact.phones[0]?.wa_id) {
-        contact.phones[0].wa_id = this.createJid(contact.phones[0].phone);
+        contact.phones[0].wa_id = createJid(contact.phones[0].phone);
       }
 
       result +=
@@ -915,7 +914,7 @@ export class BusinessStartupService extends ChannelStartupService {
       }
 
       const messageRaw: any = {
-        key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: this.createJid(number) },
+        key: { fromMe: true, id: messageSent?.messages[0]?.id, remoteJid: createJid(number) },
         message: this.convertMessageToRaw(message, content),
         messageType: this.renderMessageType(content.type),
         messageTimestamp: (messageSent?.messages[0]?.timestamp as number) || Math.round(new Date().getTime() / 1000),
@@ -1274,7 +1273,7 @@ export class BusinessStartupService extends ChannelStartupService {
       }
 
       if (!contact.wuid) {
-        contact.wuid = this.createJid(contact.phoneNumber);
+        contact.wuid = createJid(contact.phoneNumber);
       }
 
       result += `item1.TEL;waid=${contact.wuid}:${contact.phoneNumber}\n` + 'item1.X-ABLabel:Celular\n' + 'END:VCARD';
