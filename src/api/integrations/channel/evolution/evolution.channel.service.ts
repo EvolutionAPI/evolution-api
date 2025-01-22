@@ -20,7 +20,6 @@ import axios from 'axios';
 import { isBase64, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
-import mime from 'mime';
 import mimeTypes from 'mime-types';
 import { join } from 'path';
 import { v4 } from 'uuid';
@@ -672,9 +671,9 @@ export class EvolutionStartupService extends ChannelStartupService {
       };
 
       if (isURL(audio)) {
-        mimetype = mime.getType(audio);
+        mimetype = mimeTypes.lookup(audio).toString();
       } else {
-        mimetype = mime.getType(prepareMedia.fileName);
+        mimetype = mimeTypes.lookup(prepareMedia.fileName).toString();
       }
 
       prepareMedia.mimetype = mimetype;
