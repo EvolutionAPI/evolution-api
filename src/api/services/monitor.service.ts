@@ -414,7 +414,7 @@ export class WAMonitoringService {
     this.logger.verbose('Database enabled');
     await this.repository.dbServer.connect();
     const collections: any[] = await this.dbInstance.collections();
-    await this.deleteTempInstances(collections);
+    // await this.deleteTempInstances(collections);
     if (collections.length > 0) {
       this.logger.verbose('Reading collections and setting instances');
       await Promise.all(collections.map((coll) => this.setInstance(coll.namespace.replace(/^[\w-]+\./, ''))));
