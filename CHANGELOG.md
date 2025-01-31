@@ -1,4 +1,16 @@
-# 1.8.3 (develop)
+# 1.8.5 (develop)
+
+### Fixed
+
+* Update Baileys Version
+
+# 1.8.4 (2025-01-31 10:00)
+
+### Features
+
+* Added prefix key to queue name in RabbitMQ
+
+# 1.8.3 (2024-11-29 10:00)
 
 ### Fixed
 

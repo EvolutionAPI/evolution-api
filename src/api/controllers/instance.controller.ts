@@ -141,7 +141,7 @@ export class InstanceController {
       this.logger.verbose('instance: ' + instance.instanceName + ' created');
 
       this.waMonitor.waInstances[instance.instanceName] = instance;
-      // this.waMonitor.delInstanceTime(instance.instanceName);
+      this.waMonitor.delInstanceTime(instance.instanceName);
 
       this.logger.verbose('generating hash');
       const hash = await this.authService.generateHash(
