@@ -1,8 +1,12 @@
-# 2.2.2 (develop)
+# 2.2.2 (2025-01-31 06:55)
 
 ### Features
 
 * Added prefix key to queue name in RabbitMQ
+
+### Fixed
+
+* Update Baileys Version
 
 # 2.2.1 (2025-01-22 14:37)
 
