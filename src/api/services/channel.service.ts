@@ -732,7 +732,7 @@ export class ChannelStartupService {
             "Message"."messageTimestamp" DESC
         )
         SELECT * FROM rankedMessages
-        ORDER BY updatedAt DESC NULLS LAST;
+        ORDER BY "updatedAt" DESC NULLS LAST;
     `;
 
     if (results && isArray(results) && results.length > 0) {
