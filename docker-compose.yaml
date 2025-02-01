@@ -1,10 +1,9 @@
 services:
   api:
     container_name: evolution_api
-    image: atendai/evolution-api:homolog
+    image: atendai/evolution-api:v2.2.1
     restart: always
     depends_on:
-      - redis
       - postgres
     ports:
       - 8080:8080
@@ -16,18 +15,8 @@ services:
       - .env
     expose:
       - 8080
-
-  redis:
-    image: redis:latest
-    networks:
-      - evolution-net
-    container_name: redis
-    command: >
-      redis-server --port 6379 --appendonly yes
-    volumes:
-      - evolution_redis:/data
-    ports:
-      - 6379:6379
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   postgres:
     container_name: postgres
@@ -50,7 +39,6 @@ services:
 
 volumes:
   evolution_instances:
-  evolution_redis:
   postgres_data:
 
 
