@@ -3552,25 +3552,31 @@ export class BaileysStartupService extends ChannelStartupService {
         const messageId = response.message?.protocolMessage?.key?.id;
         if (messageId) {
           const isLogicalDeleted = configService.get<Database>('DATABASE').DELETE_DATA.LOGICAL_MESSAGE_DELETE;
-          let message = await this.prismaRepository.message.findUnique({
-            where: { id: messageId },
+          let message = await this.prismaRepository.message.findFirst({
+            where: {
+              key: {
+                path: ['id'],
+                equals: messageId,
+              },
+            },
           });
           if (isLogicalDeleted) {
             if (!message) return response;
             const existingKey = typeof message?.key === 'object' && message.key !== null ? message.key : {};
             message = await this.prismaRepository.message.update({
-              where: { id: messageId },
+              where: { id: message.id },
               data: {
                 key: {
                   ...existingKey,
                   deleted: true,
                 },
+                status: 'DELETED',
               },
             });
           } else {
             await this.prismaRepository.message.deleteMany({
               where: {
-                id: messageId,
+                id: message.id,
               },
             });
           }
@@ -3579,7 +3585,7 @@ export class BaileysStartupService extends ChannelStartupService {
             instanceId: message.instanceId,
             key: message.key,
             messageType: message.messageType,
-            status: message.status,
+            status: 'DELETED',
             source: message.source,
             messageTimestamp: message.messageTimestamp,
             pushName: message.pushName,
