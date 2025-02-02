@@ -20,7 +20,8 @@ services:
 
   postgres:
     container_name: postgres
-    image: postgres:15
+    build:
+      context: .postgres/
     networks:
       - evolution-net
     command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
