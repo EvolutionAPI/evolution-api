@@ -30,7 +30,7 @@ services:
       - 5432:5432
     environment:
       - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
+      - POSTGRES_PASSWORD=nGYh5UIg4cg9Xwec1AeJ
       - POSTGRES_DB=evolution
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
