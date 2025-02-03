@@ -5,7 +5,7 @@ RUN apk update && \
 
 LABEL version="2.2.3" description="Api to control whatsapp features through http requests." 
 LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
-LABEL contact="contato@atendai.com"
+LABEL contact="contato@evolution-api.com"
 
 WORKDIR /evolution
 

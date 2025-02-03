@@ -1161,6 +1161,17 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.baileysCache.delete(received.key.id);
           }
 
+          // Cache to avoid duplicate messages
+          const messageKey = `${this.instance.id}_${received.key.id}`;
+          const cached = await this.baileysCache.get(messageKey);
+
+          if (cached) {
+            this.logger.info(`Message duplicated ignored: ${received.key.id}`);
+            continue;
+          }
+
+          await this.baileysCache.set(messageKey, true, 30 * 60);
+
           if (
             (type !== 'notify' && type !== 'append') ||
             received.message?.protocolMessage ||
@@ -1421,6 +1432,17 @@ export class BaileysStartupService extends ChannelStartupService {
         if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
           continue;
         }
+
+        const updateKey = `${this.instance.id}_${key.id}_${update.status}`;
+
+        const cached = await this.baileysCache.get(updateKey);
+
+        if (cached) {
+          this.logger.info(`Message duplicated ignored: ${key.id}`);
+          continue;
+        }
+
+        await this.baileysCache.set(updateKey, true, 30 * 60);
 
         if (status[update.status] === 'READ' && key.fromMe) {
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
