@@ -1,3 +1,10 @@
+# 2.2.3 (2025-02-03 11:52)
+
+### Fixed
+
+* Fix cache in local file system
+* Update Baileys Version
+
 # 2.2.2 (2025-01-31 06:55)
 
 ### Features
