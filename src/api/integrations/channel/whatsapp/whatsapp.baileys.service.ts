@@ -3888,7 +3888,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateMessage(data: UpdateMessageDto) {
-    const jid = createJid(data.number);
+    const jid = this.createJid(data.number);
 
     const options = await this.formatUpdateMessage(data);
 
@@ -3898,13 +3898,72 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     try {
-      return await this.client.sendMessage(jid, {
+      const response = await this.client.sendMessage(jid, {
         ...(options as any),
         edit: data.key,
       });
+      if (response) {
+        const messageId = response.message?.protocolMessage?.key?.id;
+        if (messageId) {
+          let message = await this.prismaRepository.message.findFirst({
+            where: {
+              key: {
+                path: ['id'],
+                equals: messageId,
+              },
+            },
+          });
+          if (!message) throw new NotFoundException('Message not found');
+
+          if (!(message.key.valueOf() as any).fromMe) {
+            new BadRequestException('You cannot edit others messages');
+          }
+          if ((message.key.valueOf() as any)?.deleted) {
+            new BadRequestException('You cannot edit deleted messages');
+          }
+
+          const updateMessage = this.prepareMessage({ ...response });
+          message = await this.prismaRepository.message.update({
+            where: { id: message.id },
+            data: {
+              message: {
+                ...updateMessage?.message?.[updateMessage.messageType]?.editedMessage,
+              },
+              status: 'EDITED',
+            },
+          });
+          const messageUpdate: any = {
+            messageId: message.id,
+            keyId: messageId,
+            remoteJid: response.key.remoteJid,
+            fromMe: response.key.fromMe,
+            participant: response.key?.remoteJid,
+            status: 'EDITED',
+            instanceId: this.instanceId,
+          };
+          await this.prismaRepository.messageUpdate.create({
+            data: messageUpdate,
+          });
+
+          this.sendDataWebhook(Events.MESSAGES_EDITED, {
+            id: message.id,
+            instanceId: message.instanceId,
+            key: message.key,
+            messageType: message.messageType,
+            status: 'EDITED',
+            source: message.source,
+            messageTimestamp: message.messageTimestamp,
+            pushName: message.pushName,
+            participant: message.participant,
+            message: message.message,
+          });
+        }
+      }
+
+      return response;
     } catch (error) {
       this.logger.error(error);
-      throw new BadRequestException(error.toString());
+      throw error;
     }
   }
 
