@@ -3572,6 +3572,18 @@ export class BaileysStartupService extends ChannelStartupService {
                 status: 'DELETED',
               },
             });
+            const messageUpdate: any = {
+              messageId: message.id,
+              keyId: messageId,
+              remoteJid: response.key.remoteJid,
+              fromMe: response.key.fromMe,
+              participant: response.key?.remoteJid,
+              status: 'DELETED',
+              instanceId: this.instanceId,
+            };
+            await this.prismaRepository.messageUpdate.create({
+              data: messageUpdate,
+            });
           } else {
             await this.prismaRepository.message.deleteMany({
               where: {
