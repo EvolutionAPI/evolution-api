@@ -3900,7 +3900,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateMessage(data: UpdateMessageDto) {
-    const jid = this.createJid(data.number);
+    const jid = createJid(data.number);
 
     const options = await this.formatUpdateMessage(data);
 
