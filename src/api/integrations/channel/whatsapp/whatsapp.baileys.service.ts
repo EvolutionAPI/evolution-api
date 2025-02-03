@@ -1128,9 +1128,10 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
+          const editedMessage =
+            received?.message?.protocolMessage || received?.message?.editedMessage?.message?.protocolMessage;
+
           if (received.message?.protocolMessage?.editedMessage || received.message?.editedMessage?.message) {
-            const editedMessage =
-              received.message?.protocolMessage || received.message?.editedMessage?.message?.protocolMessage;
             if (editedMessage) {
               if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
                 this.chatwootService.eventWhatsapp(
@@ -1165,7 +1166,7 @@ export class BaileysStartupService extends ChannelStartupService {
           const messageKey = `${this.instance.id}_${received.key.id}`;
           const cached = await this.baileysCache.get(messageKey);
 
-          if (cached) {
+          if (cached && !editedMessage) {
             this.logger.info(`Message duplicated ignored: ${received.key.id}`);
             continue;
           }
