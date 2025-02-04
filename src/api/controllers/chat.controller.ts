@@ -3,6 +3,8 @@ import {
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  getCatalogDto,
+  getCollectionsDto,
   MarkChatUnreadDto,
   NumberDto,
   PrivacySettingDto,
@@ -108,5 +110,13 @@ export class ChatController {
 
   public async blockUser({ instanceName }: InstanceDto, data: BlockUserDto) {
     return await this.waMonitor.waInstances[instanceName].blockUser(data);
+  }
+
+  public async fetchCatalog({ instanceName }: InstanceDto, data: getCatalogDto) {
+    return await this.waMonitor.waInstances[instanceName].fetchCatalog(instanceName, data);
+  }
+
+  public async fetchCatalogCollections({ instanceName }: InstanceDto, data: getCollectionsDto) {
+    return await this.waMonitor.waInstances[instanceName].fetchCatalogCollections(instanceName, data);
   }
 }

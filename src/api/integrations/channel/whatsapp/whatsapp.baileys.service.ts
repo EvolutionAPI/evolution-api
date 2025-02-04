@@ -4,6 +4,8 @@ import {
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  getCatalogDto,
+  getCollectionsDto,
   LastMessage,
   MarkChatUnreadDto,
   NumberBusiness,
@@ -91,6 +93,7 @@ import makeWASocket, {
   BufferedEventData,
   BufferJSON,
   CacheStore,
+  CatalogCollection,
   Chat,
   ConnectionState,
   Contact,
@@ -100,6 +103,7 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
+  GetCatalogOptions,
   getContentType,
   getDevice,
   GroupMetadata,
@@ -113,6 +117,7 @@ import makeWASocket, {
   MiscMessageGenerationOptions,
   ParticipantAction,
   prepareWAMessageMedia,
+  Product,
   proto,
   UserFacingSocketConfig,
   WABrowserDescription,
@@ -4627,5 +4632,119 @@ export class BaileysStartupService extends ChannelStartupService {
     };
 
     return response;
+  }
+
+  //Catalogs and collections
+  public async fetchCatalog(instanceName: string, data: getCatalogDto) {
+    const jid = data.number ? createJid(data.number) : this.client?.user?.id;
+    const limit = data.limit || 10;
+    const cursor = data.cursor || null;
+
+    const onWhatsapp = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
+
+    if (!onWhatsapp.exists) {
+      throw new BadRequestException(onWhatsapp);
+    }
+
+    try {
+      const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
+      const business = await this.fetchBusinessProfile(info?.jid);
+      const catalog = await this.getCatalog({ jid: info?.jid, limit, cursor });
+
+      return {
+        wuid: info?.jid || jid,
+        name: info?.name,
+        numberExists: info?.exists,
+        isBusiness: business.isBusiness,
+        catalogLength: catalog?.products.length,
+        catalog: catalog?.products,
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        wuid: jid,
+        name: null,
+        isBusiness: false,
+      };
+    }
+  }
+
+  public async getCatalog({
+    jid,
+    limit,
+    cursor,
+  }: GetCatalogOptions): Promise<{ products: Product[]; nextPageCursor: string | undefined }> {
+    try {
+      jid = jid ? createJid(jid) : this.instance.wuid;
+
+      const catalog = await this.client.getCatalog({ jid, limit: limit, cursor: cursor });
+
+      if (!catalog) {
+        return {
+          products: undefined,
+          nextPageCursor: undefined,
+        };
+      }
+
+      return catalog;
+    } catch (error) {
+      throw new InternalServerErrorException('Error getCatalog', error.toString());
+    }
+  }
+
+  public async fetchCatalogCollections(instanceName: string, data: getCollectionsDto) {
+    const jid = data.number ? createJid(data.number) : this.client?.user?.id;
+    const limit = data.limit || 10;
+
+    const onWhatsapp = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
+
+    if (!onWhatsapp.exists) {
+      throw new BadRequestException(onWhatsapp);
+    }
+
+    try {
+      const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
+      const business = await this.fetchBusinessProfile(info?.jid);
+      const catalogCollections = await this.getCollections(info?.jid, limit);
+
+      return {
+        wuid: info?.jid || jid,
+        name: info?.name,
+        numberExists: info?.exists,
+        isBusiness: business.isBusiness,
+        catalogLength: catalogCollections?.length,
+        catalogCollections: catalogCollections,
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        wuid: jid,
+        name: null,
+        isBusiness: false,
+      };
+    }
+  }
+
+  public async getCollections(jid?: string | undefined, limit?: number): Promise<CatalogCollection[]> {
+    try {
+      jid = jid ? createJid(jid) : this.instance.wuid;
+
+      const result = await this.client.getCollections(jid, limit);
+
+      if (!result) {
+        return [
+          {
+            id: undefined,
+            name: undefined,
+            products: [],
+            status: undefined,
+          },
+        ];
+      }
+
+      return result.collections;
+    } catch (error) {
+      throw new InternalServerErrorException('Error getCatalog', error.toString());
+    }
   }
 }
