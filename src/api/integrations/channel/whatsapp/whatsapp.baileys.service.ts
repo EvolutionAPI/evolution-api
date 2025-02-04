@@ -4,6 +4,8 @@ import {
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  getCatalogDto,
+  getCollectionsDto,
   LastMessage,
   MarkChatUnreadDto,
   NumberBusiness,
@@ -13,8 +15,6 @@ import {
   SendPresenceDto,
   UpdateMessageDto,
   WhatsAppNumberDto,
-  getCatalogDto,
-  getCollectionsDto,
 } from '@api/dto/chat.dto';
 import {
   AcceptGroupInvite,
@@ -93,6 +93,7 @@ import makeWASocket, {
   BufferedEventData,
   BufferJSON,
   CacheStore,
+  CatalogCollection,
   Chat,
   ConnectionState,
   Contact,
@@ -102,6 +103,7 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
+  GetCatalogOptions,
   getContentType,
   getDevice,
   GroupMetadata,
@@ -115,6 +117,7 @@ import makeWASocket, {
   MiscMessageGenerationOptions,
   ParticipantAction,
   prepareWAMessageMedia,
+  Product,
   proto,
   UserFacingSocketConfig,
   WABrowserDescription,
@@ -123,9 +126,6 @@ import makeWASocket, {
   WAMessageUpdate,
   WAPresence,
   WASocket,
-  Product,
-  GetCatalogOptions,
-  CatalogCollection,
 } from 'baileys';
 import { Label } from 'baileys/lib/Types/Label';
 import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';

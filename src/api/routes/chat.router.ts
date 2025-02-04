@@ -22,6 +22,8 @@ import { Contact, Message, MessageUpdate } from '@prisma/client';
 import {
   archiveChatSchema,
   blockUserSchema,
+  catalogSchema,
+  collectionsSchema,
   contactValidateSchema,
   deleteMessageSchema,
   markChatUnreadSchema,
@@ -36,8 +38,6 @@ import {
   readMessageSchema,
   updateMessageSchema,
   whatsappNumberSchema,
-  catalogSchema,
-  collectionsSchema,
 } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 

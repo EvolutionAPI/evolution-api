@@ -3,6 +3,8 @@ import {
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  getCatalogDto,
+  getCollectionsDto,
   MarkChatUnreadDto,
   NumberDto,
   PrivacySettingDto,
@@ -13,8 +15,6 @@ import {
   SendPresenceDto,
   UpdateMessageDto,
   WhatsAppNumberDto,
-  getCatalogDto,
-  getCollectionsDto,
 } from '@api/dto/chat.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { Query } from '@api/repository/repository.service';
