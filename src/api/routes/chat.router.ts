@@ -36,6 +36,8 @@ import {
   readMessageSchema,
   updateMessageSchema,
   whatsappNumberSchema,
+  catalogSchema,
+  collectionsSchema,
 } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
 
@@ -267,6 +269,28 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.CREATED).json(response);
+      })
+
+      .post(this.routerPath('fetchCatalog'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<NumberDto>({
+          request: req,
+          schema: catalogSchema,
+          ClassRef: NumberDto,
+          execute: (instance, data) => chatController.fetchCatalog(instance, data),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
+
+      .post(this.routerPath('fetchCollections'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<NumberDto>({
+          request: req,
+          schema: collectionsSchema,
+          ClassRef: NumberDto,
+          execute: (instance, data) => chatController.fetchCatalogCollections(instance, data),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
       });
   }
 
