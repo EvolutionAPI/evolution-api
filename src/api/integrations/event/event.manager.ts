@@ -1,3 +1,4 @@
+import { NatsController } from '@api/integrations/event/nats/nats.controller';
 import { PusherController } from '@api/integrations/event/pusher/pusher.controller';
 import { RabbitmqController } from '@api/integrations/event/rabbitmq/rabbitmq.controller';
 import { SqsController } from '@api/integrations/event/sqs/sqs.controller';
@@ -13,6 +14,7 @@ export class EventManager {
   private websocketController: WebsocketController;
   private webhookController: WebhookController;
   private rabbitmqController: RabbitmqController;
+  private natsController: NatsController;
   private sqsController: SqsController;
   private pusherController: PusherController;
 
@@ -23,6 +25,7 @@ export class EventManager {
     this.websocket = new WebsocketController(prismaRepository, waMonitor);
     this.webhook = new WebhookController(prismaRepository, waMonitor);
     this.rabbitmq = new RabbitmqController(prismaRepository, waMonitor);
+    this.nats = new NatsController(prismaRepository, waMonitor);
     this.sqs = new SqsController(prismaRepository, waMonitor);
     this.pusher = new PusherController(prismaRepository, waMonitor);
   }
@@ -67,6 +70,14 @@ export class EventManager {
     return this.rabbitmqController;
   }
 
+  public set nats(nats: NatsController) {
+    this.natsController = nats;
+  }
+
+  public get nats() {
+    return this.natsController;
+  }
+
   public set sqs(sqs: SqsController) {
     this.sqsController = sqs;
   }
@@ -85,6 +96,7 @@ export class EventManager {
   public init(httpServer: Server): void {
     this.websocket.init(httpServer);
     this.rabbitmq.init();
+    this.nats.init();
     this.sqs.init();
     this.pusher.init();
   }
@@ -103,6 +115,7 @@ export class EventManager {
   }): Promise<void> {
     await this.websocket.emit(eventData);
     await this.rabbitmq.emit(eventData);
+    await this.nats.emit(eventData);
     await this.sqs.emit(eventData);
     await this.webhook.emit(eventData);
     await this.pusher.emit(eventData);
@@ -122,6 +135,14 @@ export class EventManager {
         rabbitmq: {
           enabled: true,
           events: data.rabbitmq?.events,
+        },
+      });
+
+    if (data.nats)
+      await this.nats.set(instanceName, {
+        nats: {
+          enabled: true,
+          events: data.nats?.events,
         },
       });
 
