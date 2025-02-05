@@ -1,5 +1,5 @@
 exports.config = {
-  app_name: ['Staging Evolution API'],
+    app_name: [`${process.env.CHATFLUX_ENV} Evolution API`],
   license_key: process.env.NEW_RELIC_LICENSE_KEY,
   logging: {
     level: 'trace'
