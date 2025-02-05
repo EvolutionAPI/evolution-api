@@ -1,10 +1,22 @@
 services:
   api:
     container_name: evolution_api
-    image: atendai/evolution-api:v2.2.1
+    image: ghcr.io/ai-chat-os/evolution-api:v2.2.1
     restart: always
     depends_on:
       - postgres
+        environment:
+      # 1- Add the Env key values pair to /etc/environment file
+      # 2- Run source /etc/environment
+      # 3- Run env |grep -i relic; to validate it being loaded.
+      # 4- If didn't, CTRL+d to logout
+      # 5- Login to the server
+      # 6- Run env |grep -i relic again;
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_APP_NAME: "Staging Evolution API"
+      NEW_RELIC_NO_CONFIG_FILE: true
+      NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: true
+      NEW_RELIC_LOG: stdout
     ports:
       - 8080:8080
     volumes:
