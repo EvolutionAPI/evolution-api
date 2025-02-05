@@ -51,6 +51,8 @@ COPY --from=builder /evolution/Docker ./Docker
 COPY --from=builder /evolution/runWithProvider.js ./runWithProvider.js
 COPY --from=builder /evolution/tsup.config.ts ./tsup.config.ts
 
+COPY newrelic.js .
+
 ENV DOCKER_ENV=true
 
 EXPOSE 8080
