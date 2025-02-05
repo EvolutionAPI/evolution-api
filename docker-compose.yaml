@@ -12,12 +12,11 @@ services:
       # 4- If didn't, CTRL+d to logout
       # 5- Login to the server
       # 6- Run env |grep -i relic again;
-      NODE_ENV: PROD
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
-      NEW_RELIC_APP_NAME: "Staging Evolution API"
       NEW_RELIC_NO_CONFIG_FILE: true
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: true
       NEW_RELIC_LOG: stdout
+      NODE_ENV: PROD
     ports:
       - 8080:8080
     volumes:
