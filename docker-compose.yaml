@@ -5,7 +5,7 @@ services:
     restart: always
     depends_on:
       - postgres
-        environment:
+    environment:
       # 1- Add the Env key values pair to /etc/environment file
       # 2- Run source /etc/environment
       # 3- Run env |grep -i relic; to validate it being loaded.
