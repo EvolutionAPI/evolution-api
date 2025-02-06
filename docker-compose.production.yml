@@ -1,0 +1,5 @@
+services:
+  api:
+    environment:
+      CHATFLUX_ENV: Production
+      NEW_RELIC_APP_NAME: "Production Evolution API"
