@@ -189,8 +189,8 @@ export class FlowiseService {
               },
               false,
             );
-            textBuffer = '';
           }
+          textBuffer = '';
         }
 
         if (mediaType === 'audio') {
@@ -273,8 +273,8 @@ export class FlowiseService {
           },
           false,
         );
-        textBuffer = '';
       }
+      textBuffer = '';
     }
 
     sendTelemetry('/message/sendText');

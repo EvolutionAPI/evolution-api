@@ -8,7 +8,7 @@ import { StorageRouter } from '@api/integrations/storage/storage.router';
 import { configService } from '@config/env.config';
 import { Router } from 'express';
 import fs from 'fs';
-import mime from 'mime';
+import mimeTypes from 'mime-types';
 import path from 'path';
 
 import { CallRouter } from './call.router';
@@ -49,7 +49,7 @@ router.get('/assets/*', (req, res) => {
   const filePath = path.join(basePath, 'assets/', fileName);
 
   if (fs.existsSync(filePath)) {
-    res.set('Content-Type', mime.getType(filePath) || 'text/css');
+    res.set('Content-Type', mimeTypes.lookup(filePath) || 'text/css');
     res.send(fs.readFileSync(filePath));
   } else {
     res.status(404).send('File not found');
@@ -87,7 +87,7 @@ router
   .use('/settings', new SettingsRouter(...guards).router)
   .use('/proxy', new ProxyRouter(...guards).router)
   .use('/label', new LabelRouter(...guards).router)
-  .use('', new ChannelRouter(configService).router)
+  .use('', new ChannelRouter(configService, ...guards).router)
   .use('', new EventRouter(configService, ...guards).router)
   .use('', new ChatbotRouter(...guards).router)
   .use('', new StorageRouter(...guards).router);

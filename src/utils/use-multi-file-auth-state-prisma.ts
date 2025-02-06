@@ -5,14 +5,14 @@ import { AuthenticationState, BufferJSON, initAuthCreds, WAProto as proto } from
 import fs from 'fs/promises';
 import path from 'path';
 
-// const fixFileName = (file: string): string | undefined => {
-//   if (!file) {
-//     return undefined;
-//   }
-//   const replacedSlash = file.replace(/\//g, '__');
-//   const replacedColon = replacedSlash.replace(/:/g, '-');
-//   return replacedColon;
-// };
+const fixFileName = (file: string): string | undefined => {
+  if (!file) {
+    return undefined;
+  }
+  const replacedSlash = file.replace(/\//g, '__');
+  const replacedColon = replacedSlash.replace(/:/g, '-');
+  return replacedColon;
+};
 
 export async function keyExists(sessionId: string): Promise<any> {
   try {
@@ -63,14 +63,14 @@ async function deleteAuthKey(sessionId: string): Promise<any> {
   }
 }
 
-// async function fileExists(file: string): Promise<any> {
-//   try {
-//     const stat = await fs.stat(file);
-//     if (stat.isFile()) return true;
-//   } catch (error) {
-//     return;
-//   }
-// }
+async function fileExists(file: string): Promise<any> {
+  try {
+    const stat = await fs.stat(file);
+    if (stat.isFile()) return true;
+  } catch (error) {
+    return;
+  }
+}
 
 export default async function useMultiFileAuthStatePrisma(
   sessionId: string,
@@ -80,16 +80,19 @@ export default async function useMultiFileAuthStatePrisma(
   saveCreds: () => Promise<void>;
 }> {
   const localFolder = path.join(INSTANCE_DIR, sessionId);
-  // const localFile = (key: string) => path.join(localFolder, fixFileName(key) + '.json');
+  const localFile = (key: string) => path.join(localFolder, fixFileName(key) + '.json');
   await fs.mkdir(localFolder, { recursive: true });
 
   async function writeData(data: any, key: string): Promise<any> {
     const dataString = JSON.stringify(data, BufferJSON.replacer);
 
     if (key != 'creds') {
-      return await cache.hSet(sessionId, key, data);
-      // await fs.writeFile(localFile(key), dataString);
-      // return;
+      if (process.env.CACHE_REDIS_ENABLED === 'true') {
+        return await cache.hSet(sessionId, key, data);
+      } else {
+        await fs.writeFile(localFile(key), dataString);
+        return;
+      }
     }
     await saveKey(sessionId, dataString);
     return;
@@ -100,9 +103,13 @@ export default async function useMultiFileAuthStatePrisma(
       let rawData;
 
       if (key != 'creds') {
-        return await cache.hGet(sessionId, key);
-        // if (!(await fileExists(localFile(key)))) return null;
-        // rawData = await fs.readFile(localFile(key), { encoding: 'utf-8' });
+        if (process.env.CACHE_REDIS_ENABLED === 'true') {
+          return await cache.hGet(sessionId, key);
+        } else {
+          if (!(await fileExists(localFile(key)))) return null;
+          rawData = await fs.readFile(localFile(key), { encoding: 'utf-8' });
+          return JSON.parse(rawData, BufferJSON.reviver);
+        }
       } else {
         rawData = await getAuthKey(sessionId);
       }
@@ -117,8 +124,11 @@ export default async function useMultiFileAuthStatePrisma(
   async function removeData(key: string): Promise<any> {
     try {
       if (key != 'creds') {
-        return await cache.hDelete(sessionId, key);
-        // await fs.unlink(localFile(key));
+        if (process.env.CACHE_REDIS_ENABLED === 'true') {
+          return await cache.hDelete(sessionId, key);
+        } else {
+          await fs.unlink(localFile(key));
+        }
       } else {
         await deleteAuthKey(sessionId);
       }

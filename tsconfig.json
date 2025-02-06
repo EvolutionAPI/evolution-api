@@ -4,7 +4,7 @@
     "emitDecoratorMetadata": true,
     "declaration": true,
     "target": "es2020",
-    "module": "commonjs",
+    "module": "CommonJS",
     "rootDir": "./",
     "resolveJsonModule": true,
     "removeComments": true,
@@ -26,7 +26,8 @@
       "@libs/*": ["./src/libs/*"],
       "@utils/*": ["./src/utils/*"],
       "@validate/*": ["./src/validate/*"]
-    }
+    },
+    "moduleResolution": "Node"
   },
   "exclude": ["node_modules", "./test", "./dist", "./prisma"],
   "include": [

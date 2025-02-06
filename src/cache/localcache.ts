@@ -9,7 +9,10 @@ export class LocalCache implements ICache {
   private conf: CacheConfLocal;
   static localCache = new NodeCache();
 
-  constructor(private readonly configService: ConfigService, private readonly module: string) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly module: string,
+  ) {
     this.conf = this.configService.get<CacheConf>('CACHE')?.LOCAL;
   }
 
