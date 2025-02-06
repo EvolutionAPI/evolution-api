@@ -315,21 +315,3 @@ export const profileSchema: JSONSchema7 = {
     isBusiness: { type: 'boolean' },
   },
 };
-
-export const catalogSchema: JSONSchema7 = {
-  type: 'object',
-  properties: {
-    number: { type: 'string' },
-    limit: { type: 'number' },
-    cursor: { type: 'string' },
-  },
-};
-
-export const collectionsSchema: JSONSchema7 = {
-  type: 'object',
-  properties: {
-    number: { type: 'string' },
-    limit: { type: 'number' },
-    cursor: { type: 'string' },
-  },
-};

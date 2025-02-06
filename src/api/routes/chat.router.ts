@@ -22,8 +22,6 @@ import { Contact, Message, MessageUpdate } from '@prisma/client';
 import {
   archiveChatSchema,
   blockUserSchema,
-  catalogSchema,
-  collectionsSchema,
   contactValidateSchema,
   deleteMessageSchema,
   markChatUnreadSchema,
@@ -209,7 +207,6 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-
       .post(this.routerPath('updateProfileName'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfileNameDto>({
           request: req,
@@ -269,28 +266,6 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.CREATED).json(response);
-      })
-
-      .post(this.routerPath('fetchCatalog'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<NumberDto>({
-          request: req,
-          schema: catalogSchema,
-          ClassRef: NumberDto,
-          execute: (instance, data) => chatController.fetchCatalog(instance, data),
-        });
-
-        return res.status(HttpStatus.OK).json(response);
-      })
-
-      .post(this.routerPath('fetchCollections'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<NumberDto>({
-          request: req,
-          schema: collectionsSchema,
-          ClassRef: NumberDto,
-          execute: (instance, data) => chatController.fetchCatalogCollections(instance, data),
-        });
-
-        return res.status(HttpStatus.OK).json(response);
       });
   }
 
