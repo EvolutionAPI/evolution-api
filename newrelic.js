@@ -2,7 +2,7 @@ exports.config = {
     app_name: [`${process.env.CHATFLUX_ENV} Evolution API`],
   license_key: process.env.NEW_RELIC_LICENSE_KEY,
   logging: {
-    level: 'trace'
+    level: process.env.LOG_LEVEL
   },
   allow_all_headers: true,
   attributes: {
