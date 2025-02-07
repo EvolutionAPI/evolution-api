@@ -1,6 +1,11 @@
 services:
   api:
     environment:
+      NODE_ENV: PROD
       CHATFLUX_ENV: Production
       NEW_RELIC_APP_NAME: "Production Evolution API"
       LOG_LEVEL: "DEBUG"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_LOCAL_ENABLED: "false"
+      WEBHOOK_EVENTS_ERRORS: "true"
+      WEBHOOK_EVENTS_ERRORS_WEBHOOK: ${WEBHOOK_EVENTS_ERRORS_WEBHOOK}
