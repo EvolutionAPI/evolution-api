@@ -204,7 +204,7 @@ DATABASE_CONNECTION_URL=postgresql://postgres.YOUR_USER:YOUR_PASSWORD@aws-0-us-w
 ```
 
 💡 **Nota:** Únicamente reemplaza estas variables en el archivo `.env`.
-> ⚠️ IMPORTANTE: `DATABASE_CONNECTION_URI` siempre apuntara al puerto *6543* y `DATABASE_CONNECTION_URL` al puerto *5432*.
+> ⚠️ IMPORTANTE: `DATABASE_CONNECTION_URI` siempre apuntara al puerto **6543** y `DATABASE_CONNECTION_URL` al puerto **5432**.
 
 #### 4️⃣ Desplegar la Aplicación
 Render permite desplegar aplicaciones de forma gratuita utilizando imágenes de Docker. Sigue estos pasos:
