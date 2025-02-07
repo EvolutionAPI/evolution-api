@@ -122,7 +122,6 @@ Antes de comenzar, crea una copia del archivo `.env.example.railway` que se encu
 Railway proporciona una base de datos PostgreSQL que puedes configurar en tus variables de entorno dentro del Docker. Sigue estos pasos:
 1. Accede a Railway y crea una nueva base de datos PostgreSQL.
 2. Copia la URL de conexión y agrégala en la copia del archivo `.env` que generaste:
-
 ```bash
 DATABASE_CONNECTION_URI=postgresql://postgres:YOUR_PASSWORD@autorack.proxy.rlwy.net:YOUR_PORT/railway
 DATABASE_CONNECTION_URL=postgresql://postgres:YOUR_PASSWORD@autorack.proxy.rlwy.net:YOUR_PORT/railway
@@ -134,23 +133,22 @@ DATABASE_CONNECTION_URL=postgresql://postgres:YOUR_PASSWORD@autorack.proxy.rlwy.
 Si tu aplicación requiere almacenamiento en caché, puedes configurar Redis en Railway y agregarlo en el `.env` de Docker:
 1. Crea una base de datos Redis en Railway.
 2. Copia la URL de conexión y agrégala en la copia del archivo `.env` que generaste:
-
 ```bash
 CACHE_REDIS_URI=redis://default:YOUR_PASSWORD@junction.proxy.rlwy.net:11556
 ```
 
 💡 **Nota:** Únicamente reemplaza esta variable en el archivo `.env`.
 
-#### 4️⃣ Desplegar un Contenedor Docker
-Si tu aplicación utiliza Docker, Railway detectará automáticamente el `Dockerfile` en tu repositorio y lo usará para el despliegue. También puedes optar por un repositorio público o una imagen pública:
-1. Asegúrate de que tu repositorio contenga un `Dockerfile` bien configurado.
-2. Railway iniciará el proceso de construcción automáticamente.
-3. Agrega todas tus variables de entorno en **Settings → Variables**.
+#### 4️⃣ Desplegar Servicio
+Railway permite desplegar aplicaciones utilizando repositorios de Github o imágenes de Docker.
 
 #### 📌 Ejemplo de Despliegue con un Repositorio Público
 Si deseas desplegar tu aplicación desde un repositorio público en GitHub, sigue estos pasos:
 1. Conéctate a Railway y selecciona "Deploy from GitHub".
 2. Escoge tu repositorio público.
+```bash
+https://github.com/erixcel/evolution-api/tree/version_2.2.3
+```
 3. Railway detectará automáticamente el `Dockerfile` y comenzará el proceso de despliegue.
 4. Agrega las variables de entorno necesarias en **Settings → Variables**.
 
@@ -158,15 +156,13 @@ Si deseas desplegar tu aplicación desde un repositorio público en GitHub, sigu
 Si en lugar de un repositorio deseas utilizar una imagen pública de Docker Hub, haz lo siguiente:
 1. Crea un nuevo servicio en Railway.
 2. Selecciona la opción **Deploy from an Image**.
-3. Introduce el nombre de la imagen pública de Docker Hub (Ejemplo: `nginx:latest`).
+3. Introduce el nombre de la imagen pública de Docker Hub.
+```bash
+docker.io/erixcel/evolution-api:version_2.2.3
+```
 4. Configura las variables de entorno necesarias y despliega el contenedor.
 
-#### 5️⃣ Desplegar la Aplicación
-1. Una vez configurado, Railway iniciará el despliegue automático.
-2. Espera unos minutos mientras Railway construye y lanza el contenedor.
-3. Cuando el estado sea **"Live"**, tu aplicación estará en línea y lista para usarse. 🎉🚀
-
-#### 6️⃣ Obtener la URL Pública
+#### 5️⃣ Obtener la URL Pública
 - Dirígete a la pestaña **Deployments**.
 - Copia la URL asignada por Railway.
 - Accede a tu aplicación desde cualquier navegador. ✅
@@ -206,13 +202,16 @@ DATABASE_CONNECTION_URL=postgresql://postgres.YOUR_USER:YOUR_PASSWORD@aws-0-us-w
 💡 **Nota:** Únicamente reemplaza estas variables en el archivo `.env`.
 > ⚠️ IMPORTANTE: `DATABASE_CONNECTION_URI` siempre apuntara al puerto **6543** y `DATABASE_CONNECTION_URL` al puerto **5432**.
 
-#### 4️⃣ Desplegar la Aplicación
-Render permite desplegar aplicaciones de forma gratuita utilizando imágenes de Docker. Sigue estos pasos:
+#### 4️⃣ Desplegar Servicio
+Render permite desplegar aplicaciones de forma gratuita utilizando repositorios de Github o imágenes de Docker.
 
 #### 📌 Desplegar desde un Repositorio Público
 1. Conéctate a Render y selecciona "New Web Service".
 2. Escoge la opción "Deploy from a Git Repository".
 3. Selecciona tu repositorio público en GitHub.
+```bash
+https://github.com/erixcel/evolution-api/tree/version_2.2.3
+```
 4. Render detectará el `Dockerfile` y comenzará el despliegue.
 5. Agrega las variables de entorno en **Settings → Environment Variables**.
 
