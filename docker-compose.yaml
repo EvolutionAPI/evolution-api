@@ -12,6 +12,7 @@ services:
       # 4- If didn't, CTRL+d to logout
       # 5- Login to the server
       # 6- Run env |grep -i relic again;
+      CACHE_REDIS_URI: redis://redis:6379/6
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
       NEW_RELIC_NO_CONFIG_FILE: true
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: true
