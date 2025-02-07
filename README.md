@@ -1,118 +1,242 @@
-<h1 align="center">Evolution Api</h1>
+# 🌱 Evolution API
 
-<div align="center">
+Evolution API es un proveedor de API no oficial para WhatsApp que ofrece **webhooks** en tiempo real para recibir y enviar mensajes desde un número conectado. 
 
-[![Whatsapp Group](https://img.shields.io/badge/Group-WhatsApp-%2322BC18)](https://evolution-api.com/whatsapp)
-[![Discord Community](https://img.shields.io/badge/Discord-Community-blue)](https://evolution-api.com/discord)
-[![Postman Collection](https://img.shields.io/badge/Postman-Collection-orange)](https://evolution-api.com/postman) 
-[![Documentation](https://img.shields.io/badge/Documentation-Official-green)](https://doc.evolution-api.com)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
-[![Support](https://img.shields.io/badge/Donation-picpay-green)](https://app.picpay.com/user/davidsongomes1998)
-[![Sponsors](https://img.shields.io/badge/Github-sponsor-orange)](https://github.com/sponsors/EvolutionAPI)
+Este proyecto es un **fork** del repositorio original de **Evolution API**, diseñado para ejecutarse sin necesidad de `docker-compose`. Utiliza solo un **Dockerfile**, lo que lo hace ideal para desplegar en plataformas como **Railway, Render u otros servicios serverless**.
 
-</div>
-  
-<div align="center"><img src="./public/images/cover.png"></div>
+---
 
-## Evolution API
+## 🚀 Características principales
 
-Evolution API began as a WhatsApp controller API based on [CodeChat](https://github.com/code-chat-br/whatsapp-api), which in turn implemented the [Baileys](https://github.com/WhiskeySockets/Baileys) library. While originally focused on WhatsApp, Evolution API has grown into a comprehensive platform supporting multiple messaging services and integrations. We continue to acknowledge CodeChat for laying the groundwork.
+✔️ **Webhooks en tiempo real** para recibir y enviar mensajes.  
+✔️ **Configuración sin** `docker-compose`, utilizando solo un `Dockerfile`.  
+✔️ **Compatible con Railway, Render y entornos serverless**.  
+✔️ **Uso de Redis y PostgreSQL** para una gestión eficiente.  
 
-Today, Evolution API is not limited to WhatsApp. It integrates with various platforms such as Typebot, Chatwoot, Dify, and OpenAI, offering a broad array of functionalities beyond messaging. Evolution API supports both the Baileys-based WhatsApp API and the official WhatsApp Business API, with upcoming support for Instagram and Messenger.
+---
 
-## Looking for a Lightweight Version?
-For those who need a more streamlined and performance-optimized version, check out [Evolution API Lite](https://github.com/EvolutionAPI/evolution-api-lite). It's designed specifically for microservices, focusing solely on connectivity without integrations or audio conversion features. Ideal for environments that prioritize simplicity and efficiency.
+## 🛠 Instalación en Local
 
-## Types of Connections
+### 📌 Requisitos previos
 
-Evolution API supports multiple types of connections to WhatsApp, enabling flexible and powerful integration options:
+🔹 Tener **Git** instalado 👉 [Descargar aquí](https://git-scm.com/downloads).  
+🔹 Tener **Redis** instalado 👉 [Descargar aquí](https://github.com/tporadowski/redis/releases).  
+🔹 Tener **PostgreSQL** instalado 👉 [Descargar aquí](https://www.postgresql.org/download/) y crear una base de datos llamada `evolution`.  
+🔹 Tener **Node.js** y **npm** instalados 👉 [Descargar aquí](https://nodejs.org/).  
 
-- *WhatsApp API - Baileys*:
-  - A free API based on WhatsApp Web, leveraging the [Baileys library](https://github.com/WhiskeySockets/Baileys).
-  - This connection type allows control over WhatsApp Web functionalities through a RESTful API, suitable for multi-service chats, service bots, and other WhatsApp-integrated systems.
-  - Note: This method relies on the web version of WhatsApp and may have limitations compared to official APIs.
+### 📥 Pasos de instalación
 
-- *WhatsApp Cloud API*:
-  - The official API provided by Meta (formerly Facebook).
-  - This connection type offers a robust and reliable solution designed for businesses needing higher volumes of messaging and better integration support.
-  - The Cloud API supports features such as end-to-end encryption, advanced analytics, and more comprehensive customer service tools.
-  - To use this API, you must comply with Meta's policies and potentially pay for usage based on message volume and other factors.
+#### 1️⃣ **Clonar el repositorio**:
 
-## Integrations
+```bash
+git clone --branch version_2.2.3 --single-branch https://github.com/erixcel/evolution-api.git
+```
+```bash
+cd evolution-api
+```
 
-Evolution API supports various integrations to enhance its functionality. Below is a list of available integrations and their uses:
+#### 2️⃣ **Instalar dependencias**:
 
-- [Typebot](https://typebot.io/):
-  - Build conversational bots using Typebot, integrated directly into Evolution with trigger management.
+```bash
+npm install
+```
 
-- [Chatwoot](https://www.chatwoot.com/):
-  - Direct integration with Chatwoot for handling customer service for your business.
+#### 3️⃣ **Generar la base de datos**:
 
-- [RabbitMQ](https://www.rabbitmq.com/):
-  - Receive events from the Evolution API via RabbitMQ.
+```bash
+npm run db:generate
+```
 
-- [Amazon SQS](https://aws.amazon.com/pt/sqs/):
-  - Receive events from the Evolution API via Amazon SQS.
+#### 4️⃣ **Aplicar migraciones**:
 
-- [Socket.io](https://socket.io/):
-  - Receive events from the Evolution API via WebSocket.
+```bash
+npm run db:migrate:dev
+```
+> ⚠️ En Windows, ejecuta este comando desde **Git Bash**.
 
-- [Dify](https://dify.ai/):
-  - Integrate your Evolution API directly with Dify AI for seamless trigger management and multiple agents.
+#### 5️⃣ **Construir el proyecto**:
 
-- [OpenAI](https://openai.com/):
-  - Integrate your Evolution API with OpenAI for AI capabilities, including audio-to-text conversion, available across all Evolution integrations.
+```bash
+npm run build
+```
 
-- Amazon S3 / Minio:
-  - Store media files received in [Amazon S3](https://aws.amazon.com/pt/s3/) or [Minio](https://min.io/).
+#### 6️⃣ **Iniciar el servidor**:
 
-## Telemetry Notice
+```bash
+npm run dev:server
+```
 
-To continuously improve our services, we have implemented telemetry that collects data on the routes used, the most accessed routes, and the version of the API in use. We would like to assure you that no sensitive or personal data is collected during this process. The telemetry helps us identify improvements and provide a better experience for users.
+---
 
-## Evolution Support Premium
+## 🐳 Instalación en Local con Docker
 
-Join our Evolution Pro community for expert support and a weekly call to answer questions. Visit the link below to learn more and subscribe:
+### 📌 Requisitos previos
 
-[Click here to learn more](https://evolution-api.com/suporte-pro)
+🔹 Tener **Git** instalado 👉 [Descargar aquí](https://git-scm.com/downloads).  
+🔹 Tener **Redis** instalado 👉 [Descargar aquí](https://github.com/tporadowski/redis/releases).  
+🔹 Tener **PostgreSQL** instalado 👉 [Descargar aquí](https://www.postgresql.org/download/) y crear una base de datos llamada `evolution`.  
+🔹 Tener **Docker Desktop** instalado y en ejecución 👉 [Descargar aquí](https://www.docker.com/products/docker-desktop).  
 
-# Donate to the project.
+### 📥 Pasos de instalación
 
-#### Github Sponsors
+#### 1️⃣ **Clonar el repositorio**:
 
-https://github.com/sponsors/EvolutionAPI
+```bash
+git clone --branch version_2.2.3 --single-branch https://github.com/erixcel/evolution-api.git
+```
+```bash
+cd evolution-api
+```
 
-# Content Creator Partners
+#### 2️⃣ **Construir la imagen Docker**:
 
-We are proud to collaborate with the following content creators who have contributed valuable insights and tutorials about Evolution API:
+```bash
+docker build -t evolution-api .
+```
 
-- [Promovaweb](https://www.youtube.com/@promovaweb)
-- [Comunidade ZDG](https://www.youtube.com/@ComunidadeZDG)
-- [Francis MNO](https://www.youtube.com/@FrancisMNO)
-- [Pablo Cabral](https://youtube.com/@pablocabral)
-- [XPop Digital](https://www.youtube.com/@xpopdigital)
-- [Costar Wagner Dev](https://www.youtube.com/@costarwagnerdev)
-- [Dante Testa](https://youtube.com/@dantetesta_)
-- [Rubén Salazar](https://youtube.com/channel/UCnYGZIE2riiLqaN9sI6riig)
-- [OrionDesign](youtube.com/OrionDesign_Oficial)
-- [IMPA 365](youtube.com/@impa365_ofc)
-- [Comunidade Hub Connect](https://youtube.com/@comunidadehubconnect)
-- [dSantana Automações](https://www.youtube.com/channel/UCG7DjUmAxtYyURlOGAIryNQ?view_as=subscriber)
-- [Edison Martins](https://www.youtube.com/@edisonmartinsmkt)
-- [Astra Online](https://www.youtube.com/@astraonlineweb)
-- [MKT Seven Automações](https://www.youtube.com/@sevenautomacoes)
-- [Vamos automatizar](https://www.youtube.com/vamosautomatizar)
+#### 3️⃣ **Configurar .env**:
 
-## License
+```bash
+DATABASE_CONNECTION_URI=postgresql://postgres:YOUR_PASSWORD@host.docker.internal:5432/evolution?schema=public
+DATABASE_CONNECTION_URL=postgresql://postgres:YOUR_PASSWORD@host.docker.internal:5432/evolution?schema=public
+CACHE_REDIS_URI=redis://host.docker.internal:6379/6
+```
+> ⚠️ En este caso en particular remplazamos `localhost` por `host.docker.internal`.
 
-Evolution API is licensed under the Apache License 2.0, with the following additional conditions:
+#### 4️⃣ **Ejecutar el contenedor Docker**:
 
-1. **LOGO and copyright information**: In the process of using Evolution API's frontend components, you may not remove or modify the LOGO or copyright information in the Evolution API console or applications. This restriction is inapplicable to uses of Evolution API that do not involve its frontend components.
+```bash
+docker run --env-file .env -p 8080:8080 evolution-api
+```
 
-2. **Usage Notification Requirement**: If Evolution API is used as part of any project, including closed-source systems (e.g., proprietary software), the user is required to display a clear notification within the system that Evolution API is being utilized. This notification should be visible to system administrators and accessible from the system's documentation or settings page. Failure to comply with this requirement may result in the necessity for a commercial license, as determined by the producer.
+---
 
-Please contact contato@atendai.com to inquire about licensing matters.
+## 🌐 Instalación en Railway
 
-Apart from the specific conditions mentioned above, all other rights and restrictions follow the Apache License 2.0. Detailed information about the Apache License 2.0 can be found at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
+### 📌 Pasos de Instalación
 
-© 2024 Evolution API
+#### 1️⃣ Preparar el Entorno
+Antes de comenzar, crea una copia del archivo `.env.example.railway` que se encuentra en el repositorio.
+
+#### 2️⃣ Crear una Base de Datos PostgreSQL
+Railway proporciona una base de datos PostgreSQL que puedes configurar en tus variables de entorno dentro del Docker. Sigue estos pasos:
+1. Accede a Railway y crea una nueva base de datos PostgreSQL.
+2. Copia la URL de conexión y agrégala en la copia del archivo `.env` que generaste:
+
+```bash
+DATABASE_CONNECTION_URI=postgresql://postgres:YOUR_PASSWORD@autorack.proxy.rlwy.net:YOUR_PORT/railway
+DATABASE_CONNECTION_URL=postgresql://postgres:YOUR_PASSWORD@autorack.proxy.rlwy.net:YOUR_PORT/railway
+```
+
+💡 **Nota:** Únicamente reemplaza estas variables en el archivo `.env`.
+
+#### 3️⃣ Configurar una Base de Datos Redis
+Si tu aplicación requiere almacenamiento en caché, puedes configurar Redis en Railway y agregarlo en el `.env` de Docker:
+1. Crea una base de datos Redis en Railway.
+2. Copia la URL de conexión y agrégala en la copia del archivo `.env` que generaste:
+
+```bash
+CACHE_REDIS_URI=redis://default:YOUR_PASSWORD@junction.proxy.rlwy.net:11556
+```
+
+💡 **Nota:** Únicamente reemplaza esta variable en el archivo `.env`.
+
+#### 4️⃣ Desplegar un Contenedor Docker
+Si tu aplicación utiliza Docker, Railway detectará automáticamente el `Dockerfile` en tu repositorio y lo usará para el despliegue. También puedes optar por un repositorio público o una imagen pública:
+1. Asegúrate de que tu repositorio contenga un `Dockerfile` bien configurado.
+2. Railway iniciará el proceso de construcción automáticamente.
+3. Agrega todas tus variables de entorno en **Settings → Variables**.
+
+#### 📌 Ejemplo de Despliegue con un Repositorio Público
+Si deseas desplegar tu aplicación desde un repositorio público en GitHub, sigue estos pasos:
+1. Conéctate a Railway y selecciona "Deploy from GitHub".
+2. Escoge tu repositorio público.
+3. Railway detectará automáticamente el `Dockerfile` y comenzará el proceso de despliegue.
+4. Agrega las variables de entorno necesarias en **Settings → Variables**.
+
+#### 📌 Ejemplo de Despliegue con una Imagen Pública
+Si en lugar de un repositorio deseas utilizar una imagen pública de Docker Hub, haz lo siguiente:
+1. Crea un nuevo servicio en Railway.
+2. Selecciona la opción **Deploy from an Image**.
+3. Introduce el nombre de la imagen pública de Docker Hub (Ejemplo: `nginx:latest`).
+4. Configura las variables de entorno necesarias y despliega el contenedor.
+
+#### 5️⃣ Desplegar la Aplicación
+1. Una vez configurado, Railway iniciará el despliegue automático.
+2. Espera unos minutos mientras Railway construye y lanza el contenedor.
+3. Cuando el estado sea **"Live"**, tu aplicación estará en línea y lista para usarse. 🎉🚀
+
+#### 6️⃣ Obtener la URL Pública
+- Dirígete a la pestaña **Deployments**.
+- Copia la URL asignada por Railway.
+- Accede a tu aplicación desde cualquier navegador. ✅
+
+---
+
+✨ Con estos pasos, tu aplicación estará en funcionamiento en Railway de manera rápida y eficiente. 🚀
+
+---
+
+## 🤑 Instalación en Render (100% Gratis)
+
+### 📌 Pasos de instalación
+
+#### 1️⃣ Preparar el Entorno
+Antes de comenzar, crea una copia del archivo `.env.example.render` que se encuentra en el repositorio y renómbralo `.env`.
+
+#### 2️⃣ Crear una Base de Datos Redis
+Render no ofrece Redis en su plan gratuito, pero puedes usar **[Upstash](https://upstash.com/)** para obtener un servicio de Redis sin costo:
+
+```bash
+CACHE_REDIS_URI=rediss://default:YOUR_PASSWORD@just-stallion-44283.upstash.io:6379
+```
+
+💡 **Nota:** Únicamente reemplaza esta variable en el archivo `.env`.
+
+#### 3️⃣ Crear una Base de Datos PostgreSQL
+Render no ofrece PostgreSQL en su plan gratuito, pero puedes usar **[Supabase](https://supabase.com/)**:
+1. Crea un proyecto en Supabase.
+2. Copia la URL de conexión y agrégala en la copia del archivo `.env` que generaste:
+
+```bash
+DATABASE_CONNECTION_URI=postgresql://postgres.YOUR_USER:YOUR_PASSWORD@aws-0-us-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+DATABASE_CONNECTION_URL=postgresql://postgres.YOUR_USER:YOUR_PASSWORD@aws-0-us-west-1.pooler.supabase.com:5432/postgres?pgbouncer=true&connection_limit=1
+```
+
+💡 **Nota:** Únicamente reemplaza estas variables en el archivo `.env`.
+> ⚠️ IMPORTANTE: `DATABASE_CONNECTION_URI` siempre apuntara al puerto *6543* y `DATABASE_CONNECTION_URL` al puerto *5432*.
+
+#### 4️⃣ Desplegar la Aplicación
+Render permite desplegar aplicaciones de forma gratuita utilizando imágenes de Docker. Sigue estos pasos:
+
+#### 📌 Desplegar desde un Repositorio Público
+1. Conéctate a Render y selecciona "New Web Service".
+2. Escoge la opción "Deploy from a Git Repository".
+3. Selecciona tu repositorio público en GitHub.
+4. Render detectará el `Dockerfile` y comenzará el despliegue.
+5. Agrega las variables de entorno en **Settings → Environment Variables**.
+
+#### 📌 Desplegar desde una Imagen Pública
+Si prefieres usar una imagen de Docker Hub en lugar de un repositorio:
+1. Crea un nuevo servicio en Render.
+2. Selecciona "Deploy from Docker Image".
+3. Introduce la imagen pública de Docker Hub:
+```bash
+docker.io/erixcel/evolution-api:version_2.2.3
+```
+4. Agrega las variables de entorno en **Settings → Environment Variables**.
+5. Render iniciará la construcción y despliegue de tu aplicación.
+
+#### 5️⃣ Obtener la URL Pública
+- Una vez que el despliegue esté completo, Render generará una URL pública.
+- Copia la URL y accede a tu aplicación desde cualquier navegador. ✅
+
+---
+
+✨ Con estos pasos, tu aplicación estará en funcionamiento en Render sin costos adicionales. 🚀
+
+
+## 🏆 Créditos
+
+© 2025 **Evolution API** - Creado para facilitar la integración de WhatsApp con soluciones en tiempo real 📩    
+© 2025 **erixcel** - Desarrollador a cargo de esta solucion 👨‍💻  
