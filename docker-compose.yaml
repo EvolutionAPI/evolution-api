@@ -30,6 +30,18 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  redis:
+    image: redis:7.4.2-alpine
+    networks:
+      - evolution-net
+    container_name: redis
+    command: >
+      redis-server --port 6379 --appendonly yes
+    volumes:
+      - evolution_redis:/data
+    ports:
+      - 6379:6379
+
   postgres:
     container_name: postgres
     build:
@@ -52,6 +64,7 @@ services:
 
 volumes:
   evolution_instances:
+  evolution_redis:
   postgres_data:
 
 
