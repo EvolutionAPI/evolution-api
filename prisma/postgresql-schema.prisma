@@ -99,7 +99,7 @@ model Instance {
   Template                Template[]
   Dify                    Dify[]
   DifySetting             DifySetting?
-  IntegrationSessions     IntegrationSession[]
+  IntegrationSession      IntegrationSession[]
   EvolutionBot            EvolutionBot[]
   EvolutionBotSetting     EvolutionBotSetting?
   Flowise                 Flowise[]
