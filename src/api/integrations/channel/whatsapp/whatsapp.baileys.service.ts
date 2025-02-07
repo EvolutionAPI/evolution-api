@@ -2744,7 +2744,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (file) mediaData.sticker = file.buffer.toString('base64');
 
-    const convert = await this.convertToWebP(data.sticker);
+    const convert = data?.notConvertSticker
+      ? Buffer.from(data.sticker, 'base64')
+      : await this.convertToWebP(data.sticker);
     const gifPlayback = data.sticker.includes('.gif');
     const result = await this.sendMessageWithTyping(
       data.number,
