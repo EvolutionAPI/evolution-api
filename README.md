@@ -150,7 +150,7 @@ Si deseas desplegar tu aplicación desde un repositorio público en GitHub, sigu
 https://github.com/erixcel/evolution-api/tree/version_2.2.3
 ```
 3. Railway detectará automáticamente el `Dockerfile` y comenzará el proceso de despliegue.
-4. Agrega las variables de entorno necesarias en **Settings → Variables**.
+4. Agrega las variables de entorno en **Settings → Environment Variables**.
 
 #### 📌 Ejemplo de Despliegue con una Imagen Pública
 Si en lugar de un repositorio deseas utilizar una imagen pública de Docker Hub, haz lo siguiente:
@@ -160,7 +160,7 @@ Si en lugar de un repositorio deseas utilizar una imagen pública de Docker Hub,
 ```bash
 docker.io/erixcel/evolution-api:version_2.2.3
 ```
-4. Configura las variables de entorno necesarias y despliega el contenedor.
+4. Agrega las variables de entorno en **Settings → Environment Variables**.
 
 #### 5️⃣ Obtener la URL Pública
 - Dirígete a la pestaña **Deployments**.
