@@ -1,7 +1,7 @@
 services:
   api:
     container_name: evolution_api
-    image: ghcr.io/ai-chat-os/evolution-api:v2.2.1
+    image: ghcr.io/ai-chat-os/evolution-api:v2.2.1-redis-on
     restart: always
     depends_on:
       - postgres
@@ -39,8 +39,6 @@ services:
       redis-server --port 6379 --appendonly yes
     volumes:
       - evolution_redis:/data
-    ports:
-      - 6379:6379
 
   postgres:
     container_name: postgres
