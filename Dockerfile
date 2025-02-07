@@ -1,58 +1,43 @@
-FROM node:20-alpine AS builder
+# Usa una imagen oficial de Node.js como base
+FROM node:20 AS build
 
-RUN apk update && \
-    apk add git ffmpeg wget curl bash openssl
+# Define el directorio de trabajo en el contenedor
+WORKDIR /usr/src/app
 
-LABEL version="2.2.3" description="Api to control whatsapp features through http requests." 
-LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
-LABEL contact="contato@atendai.com"
+# Copia package.json y package-lock.json
+COPY package*.json ./
 
-WORKDIR /evolution
-
-COPY ./package.json ./tsconfig.json ./
-
+# Instala las dependencias
 RUN npm install
 
-COPY ./src ./src
-COPY ./public ./public
-COPY ./prisma ./prisma
-COPY ./manager ./manager
-COPY ./.env.example ./.env
-COPY ./runWithProvider.js ./
-COPY ./tsup.config.ts ./
+# Copia el resto de tu código, incluyendo la carpeta prisma y scripts
+COPY . .
 
-COPY ./Docker ./Docker
+# Genera el cliente de Prisma usando tu script personalizado
+RUN npm run db:generate
 
-RUN chmod +x ./Docker/scripts/* && dos2unix ./Docker/scripts/*
-
-RUN ./Docker/scripts/generate_database.sh
-
+# Compila el proyecto TypeScript
 RUN npm run build
 
-FROM node:20-alpine AS final
+# Usa una imagen base más ligera para la etapa de producción
+FROM node:20-slim
 
-RUN apk update && \
-    apk add tzdata ffmpeg bash openssl
+# Instala OpenSSL en la imagen de producción
+RUN apt-get update && apt-get install -y openssl
 
-ENV TZ=America/Sao_Paulo
+# Define el directorio de trabajo
+WORKDIR /usr/src/app
 
-WORKDIR /evolution
+# Copia los artefactos compilados y dependencias desde la etapa de construcción
+COPY --from=build /usr/src/app/dist ./dist
+COPY --from=build /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/manager ./manager
+COPY --from=build /usr/src/app/prisma ./prisma
+COPY --from=build /usr/src/app/package.json ./
+COPY --from=build /usr/src/app/runWithProvider.js ./
 
-COPY --from=builder /evolution/package.json ./package.json
-COPY --from=builder /evolution/package-lock.json ./package-lock.json
-
-COPY --from=builder /evolution/node_modules ./node_modules
-COPY --from=builder /evolution/dist ./dist
-COPY --from=builder /evolution/prisma ./prisma
-COPY --from=builder /evolution/manager ./manager
-COPY --from=builder /evolution/public ./public
-COPY --from=builder /evolution/.env ./.env
-COPY --from=builder /evolution/Docker ./Docker
-COPY --from=builder /evolution/runWithProvider.js ./runWithProvider.js
-COPY --from=builder /evolution/tsup.config.ts ./tsup.config.ts
-
-ENV DOCKER_ENV=true
-
+# Expone el puerto de la aplicación
 EXPOSE 8080
 
-ENTRYPOINT ["/bin/bash", "-c", ". ./Docker/scripts/deploy_database.sh && npm run start:prod" ]
+# Comando para iniciar la aplicación
+CMD ["sh", "-c", "npm run db:generate && npm run db:migrate:dev && node dist/main"]

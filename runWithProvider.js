@@ -4,7 +4,7 @@ const { existsSync } = require('fs');
 
 dotenv.config();
 
-const { DATABASE_PROVIDER } = process.env;
+const { DATABASE_PROVIDER, PRISMA_MIGRATIONS } = process.env;
 const databaseProviderDefault = DATABASE_PROVIDER ?? 'postgresql';
 
 if (!DATABASE_PROVIDER) {
@@ -15,6 +15,13 @@ let command = process.argv
   .slice(2)
   .join(' ')
   .replace(/DATABASE_PROVIDER/g, databaseProviderDefault);
+
+if (command.includes('migrate')) {
+  if (PRISMA_MIGRATIONS !== "true") {
+    console.log("Prisma migrations han sido omitidas.");
+    process.exit(0);
+  }
+}
 
 if (command.includes('rmdir') && existsSync('prisma\\migrations')) {
   try {
