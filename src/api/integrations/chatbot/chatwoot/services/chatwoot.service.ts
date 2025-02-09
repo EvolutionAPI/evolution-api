@@ -1106,7 +1106,7 @@ export class ChatwootService {
 
         sendTelemetry('/message/sendWhatsAppAudio');
 
-        const messageSent = await waInstance?.audioWhatsapp(data, true);
+        const messageSent = await waInstance?.audioWhatsapp(data, null, true);
 
         return messageSent;
       }
