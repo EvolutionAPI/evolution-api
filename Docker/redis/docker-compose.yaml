@@ -11,7 +11,7 @@ services:
     volumes:
       - evolution_redis:/data
     ports:
-      - 6379:6379
+      - "6379:6379"
 
 volumes:
   evolution_redis:

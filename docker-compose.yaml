@@ -20,7 +20,7 @@ services:
       NEW_RELIC_LOG: stdout
       NODE_ENV: PROD
     ports:
-      - 8080:8080
+      - "8080:8080"
     volumes:
       - evolution_instances:/evolution/instances
     networks:
