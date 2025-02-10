@@ -1,11 +1,10 @@
+import { getCollectionsDto } from '@api/dto/business.dto';
 import { OfferCallDto } from '@api/dto/call.dto';
 import {
   ArchiveChatDto,
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
-  getCatalogDto,
-  getCollectionsDto,
   LastMessage,
   MarkChatUnreadDto,
   NumberBusiness,
@@ -2745,7 +2744,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (file) mediaData.sticker = file.buffer.toString('base64');
 
-    const convert = await this.convertToWebP(data.sticker);
+    const convert = data?.notConvertSticker
+      ? Buffer.from(data.sticker, 'base64')
+      : await this.convertToWebP(data.sticker);
     const gifPlayback = data.sticker.includes('.gif');
     const result = await this.sendMessageWithTyping(
       data.number,
@@ -4634,11 +4635,11 @@ export class BaileysStartupService extends ChannelStartupService {
     return response;
   }
 
-  //Catalogs and collections
-  public async fetchCatalog(instanceName: string, data: getCatalogDto) {
+  //Business Controller
+  public async fetchCatalog(instanceName: string, data: getCollectionsDto) {
     const jid = data.number ? createJid(data.number) : this.client?.user?.id;
     const limit = data.limit || 10;
-    const cursor = data.cursor || null;
+    const cursor = null;
 
     const onWhatsapp = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
 
@@ -4649,15 +4650,35 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
       const business = await this.fetchBusinessProfile(info?.jid);
-      const catalog = await this.getCatalog({ jid: info?.jid, limit, cursor });
+
+      let catalog = await this.getCatalog({ jid: info?.jid, limit, cursor });
+      let nextPageCursor = catalog.nextPageCursor;
+      let nextPageCursorJson = nextPageCursor ? JSON.parse(atob(nextPageCursor)) : null;
+      let pagination = nextPageCursorJson?.pagination_cursor
+        ? JSON.parse(atob(nextPageCursorJson.pagination_cursor))
+        : null;
+      let fetcherHasMore = pagination?.fetcher_has_more === true ? true : false;
+
+      let productsCatalog = catalog.products || [];
+      let countLoops = 0;
+      while (fetcherHasMore && countLoops < 4) {
+        catalog = await this.getCatalog({ jid: info?.jid, limit, cursor: nextPageCursor });
+        nextPageCursor = catalog.nextPageCursor;
+        nextPageCursorJson = nextPageCursor ? JSON.parse(atob(nextPageCursor)) : null;
+        pagination = nextPageCursorJson?.pagination_cursor
+          ? JSON.parse(atob(nextPageCursorJson.pagination_cursor))
+          : null;
+        fetcherHasMore = pagination?.fetcher_has_more === true ? true : false;
+        productsCatalog = [...productsCatalog, ...catalog.products];
+        countLoops++;
+      }
 
       return {
         wuid: info?.jid || jid,
-        name: info?.name,
         numberExists: info?.exists,
         isBusiness: business.isBusiness,
-        catalogLength: catalog?.products.length,
-        catalog: catalog?.products,
+        catalogLength: productsCatalog.length,
+        catalog: productsCatalog,
       };
     } catch (error) {
       console.log(error);
@@ -4692,9 +4713,9 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  public async fetchCatalogCollections(instanceName: string, data: getCollectionsDto) {
+  public async fetchCollections(instanceName: string, data: getCollectionsDto) {
     const jid = data.number ? createJid(data.number) : this.client?.user?.id;
-    const limit = data.limit || 10;
+    const limit = data.limit <= 20 ? data.limit : 20; //(tem esse limite, não sei porque)
 
     const onWhatsapp = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
 
@@ -4705,18 +4726,17 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const info = (await this.whatsappNumber({ numbers: [jid] }))?.shift();
       const business = await this.fetchBusinessProfile(info?.jid);
-      const catalogCollections = await this.getCollections(info?.jid, limit);
+      const collections = await this.getCollections(info?.jid, limit);
 
       return {
         wuid: info?.jid || jid,
         name: info?.name,
         numberExists: info?.exists,
         isBusiness: business.isBusiness,
-        catalogLength: catalogCollections?.length,
-        catalogCollections: catalogCollections,
+        collectionsLength: collections?.length,
+        collections: collections,
       };
     } catch (error) {
-      console.log(error);
       return {
         wuid: jid,
         name: null,
