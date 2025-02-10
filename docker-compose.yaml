@@ -1,7 +1,7 @@
 services:
   api:
     container_name: evolution_api
-    image: atendai/evolution-api:v2.2.3
+    image: ghcr.io/ai-chat-os/evolution-api:v2.2.1-redis-on
     restart: always
     depends_on:
       - postgres
@@ -12,23 +12,30 @@ services:
       # 4- If didn't, CTRL+d to logout
       # 5- Login to the server
       # 6- Run env |grep -i relic again;
+      CACHE_REDIS_URI: redis://redis:6379/6
       NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
       NEW_RELIC_NO_CONFIG_FILE: true
       NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: true
       NEW_RELIC_LOG: stdout
       NODE_ENV: PROD
-    ports:
-      - 8080:8080
     volumes:
       - evolution_instances:/evolution/instances
     networks:
       - evolution-net
     env_file:
       - .env
-    expose:
-      - 8080
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  redis:
+    image: redis:7.4.2-alpine
+    networks:
+      - evolution-net
+    container_name: redis
+    command: >
+      redis-server --port 6379 --appendonly yes
+    volumes:
+      - evolution_redis:/data
 
   postgres:
     container_name: postgres
@@ -45,16 +52,6 @@ services:
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7.4.2-alpine
-    networks:
-      - evolution-net
-    container_name: redis
-    command: >
-      redis-server --port 6379 --appendonly yes
-    volumes:
-      - evolution_redis:/data
 
 volumes:
   evolution_instances:
