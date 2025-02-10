@@ -82,6 +82,7 @@
     "mime-types": "^2.1.35",
     "minio": "^8.0.3",
     "multer": "^1.4.5-lts.1",
+    "newrelic": "^12.11.3",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "openai": "^4.77.3",

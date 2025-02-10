@@ -1,24 +1,35 @@
 services:
   api:
     container_name: evolution_api
-    image: atendai/evolution-api:homolog
+    image: ghcr.io/ai-chat-os/evolution-api:v2.2.1-redis-on
     restart: always
     depends_on:
       - redis
       - postgres
-    ports:
-      - 8080:8080
+    environment:
+      # 1- Add the Env key values pair to /etc/environment file
+      # 2- Run source /etc/environment
+      # 3- Run env |grep -i relic; to validate it being loaded.
+      # 4- If didn't, CTRL+d to logout
+      # 5- Login to the server
+      # 6- Run env |grep -i relic again;
+      CACHE_REDIS_URI: redis://redis:6379/6
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_NO_CONFIG_FILE: true
+      NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: true
+      NEW_RELIC_LOG: stdout
+      NODE_ENV: PROD
     volumes:
       - evolution_instances:/evolution/instances
     networks:
       - evolution-net
     env_file:
       - .env
-    expose:
-      - 8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   redis:
-    image: redis:latest
+    image: redis:7.4.2-alpine
     networks:
       - evolution-net
     container_name: redis
@@ -26,33 +37,27 @@ services:
       redis-server --port 6379 --appendonly yes
     volumes:
       - evolution_redis:/data
-    ports:
-      - 6379:6379
 
   postgres:
     container_name: postgres
-    image: postgres:15
+    build:
+      context: .postgres/
     networks:
       - evolution-net
     command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
     restart: always
-    ports:
-      - 5432:5432
     environment:
       - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
+      - POSTGRES_PASSWORD=nGYh5UIg4cg9Xwec1AeJ
       - POSTGRES_DB=evolution
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    expose:
-      - 5432
 
 volumes:
   evolution_instances:
-  evolution_redis:
   postgres_data:
-
+  evolution_redis:
 
 networks:
   evolution-net:

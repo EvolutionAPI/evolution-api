@@ -1,0 +1,87 @@
+#!/bin/bash
+
+if [ "$#" -lt 3 ]; then
+    echo "Usage: $0 <environment> <action> <service_name>"
+    echo "Environment: staging|production"
+    echo "Action: start|stop"
+    echo "Service: service_name|all"
+    exit 1
+fi
+
+ENVIRONMENT=$1
+ACTION=$2
+SERVICE_NAME=$3
+BASE_COMPOSE=""
+ENV_COMPOSE=""
+DOCKER_COMPOSE_CMD="docker compose"
+
+# Check for both yml and yaml extensions for base compose
+if [ -f "docker-compose.yml" ]; then
+    BASE_COMPOSE="docker-compose.yml"
+elif [ -f "docker-compose.yaml" ]; then
+    BASE_COMPOSE="docker-compose.yaml"
+else
+    echo "Error: Base docker-compose file not found (tried .yml and .yaml)"
+    exit 1
+fi
+
+# Check for both yml and yaml extensions for environment compose
+if [ -f "docker-compose.${ENVIRONMENT}.yml" ]; then
+    ENV_COMPOSE="docker-compose.${ENVIRONMENT}.yml"
+elif [ -f "docker-compose.${ENVIRONMENT}.yaml" ]; then
+    ENV_COMPOSE="docker-compose.${ENVIRONMENT}.yaml"
+else
+    echo "Error: Environment docker-compose file not found (tried .yml and .yaml)"
+    exit 1
+fi
+
+# Validate environment
+if [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "production" ]; then
+    echo "Error: Environment must be either 'staging' or 'production'"
+    exit 1
+fi
+
+# Validate action
+if [ "$ACTION" != "start" ] && [ "$ACTION" != "stop" ]; then
+    echo "Error: Action must be either 'start' or 'stop'"
+    exit 1
+fi
+
+# Function to check if service exists in compose files
+check_service() {
+    local service=$1
+    if [ "$service" != "all" ]; then
+        if ! $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE config --services | grep -q "^$service$"; then
+            echo "Error: Service '$service' not found in docker-compose files"
+            exit 1
+        fi
+    fi
+}
+
+# Validate service exists
+check_service $SERVICE_NAME
+
+if [ "$ACTION" == "stop" ]; then
+    echo "Stopping service(s): $SERVICE_NAME"
+    if [ "$SERVICE_NAME" == "all" ]; then
+        $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE down
+    else
+        $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE stop $SERVICE_NAME
+        $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE rm -f $SERVICE_NAME
+    fi
+else
+    echo "Starting service(s): $SERVICE_NAME"
+    if [ "$SERVICE_NAME" == "all" ]; then
+        $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE up -d
+    else
+        $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE up -d $SERVICE_NAME
+    fi
+fi
+
+# Check service status
+echo "Service status:"
+if [ "$SERVICE_NAME" == "all" ]; then
+    $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE ps
+else
+    $DOCKER_COMPOSE_CMD -f $BASE_COMPOSE -f $ENV_COMPOSE ps $SERVICE_NAME
+fi
