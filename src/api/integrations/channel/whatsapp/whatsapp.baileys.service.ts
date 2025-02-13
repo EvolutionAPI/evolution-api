@@ -1145,6 +1145,27 @@ export class BaileysStartupService extends ChannelStartupService {
                 );
 
               await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
+              const oldMessage = await this.getMessage(editedMessage.key, true);
+              if ((oldMessage as any)?.id) {
+                await this.prismaRepository.message.update({
+                  where: { id: (oldMessage as any).id },
+                  data: {
+                    message: editedMessage.editedMessage as any,
+                    messageTimestamp: (editedMessage.timestampMs as Long.Long).toNumber(),
+                    status: 'EDITED',
+                  },
+                });
+                await this.prismaRepository.messageUpdate.create({
+                  data: {
+                    fromMe: editedMessage.key.fromMe,
+                    keyId: editedMessage.key.id,
+                    remoteJid: editedMessage.key.remoteJid,
+                    status: 'EDITED',
+                    instanceId: this.instanceId,
+                    messageId: (oldMessage as any).id,
+                  },
+                });
+              }
             }
           }
 
@@ -3940,6 +3961,16 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     try {
+      const oldMessage: any = await this.getMessage(data.key, true);
+      if (!oldMessage) throw new NotFoundException('Message not found');
+      if (oldMessage?.key?.remoteJid !== jid) {
+        throw new BadRequestException('RemoteJid does not match');
+      }
+      if (oldMessage?.messageTimestamp > Date.now() + 900000) {
+        // 15 minutes in milliseconds
+        throw new BadRequestException('Message is older than 15 minutes');
+      }
+
       const response = await this.client.sendMessage(jid, {
         ...(options as any),
         edit: data.key,
@@ -3963,15 +3994,17 @@ export class BaileysStartupService extends ChannelStartupService {
           if ((message.key.valueOf() as any)?.deleted) {
             new BadRequestException('You cannot edit deleted messages');
           }
-
-          const updateMessage = this.prepareMessage({ ...response });
+          if (oldMessage.messageType === 'conversation' || oldMessage.messageType === 'extendedTextMessage') {
+            oldMessage.message.conversation = data.text;
+          } else {
+            oldMessage.message[oldMessage.messageType].caption = data.text;
+          }
           message = await this.prismaRepository.message.update({
             where: { id: message.id },
             data: {
-              message: {
-                ...updateMessage?.message?.[updateMessage.messageType]?.editedMessage,
-              },
+              message: oldMessage.message,
               status: 'EDITED',
+              messageTimestamp: Math.floor(Date.now() / 1000), // Convert to int32 by dividing by 1000 to get seconds
             },
           });
           const messageUpdate: any = {
