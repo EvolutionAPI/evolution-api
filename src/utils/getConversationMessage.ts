@@ -3,7 +3,7 @@ import { configService, S3 } from '@config/env.config';
 const getTypeMessage = (msg: any) => {
   let mediaId: string;
 
-  if (configService.get<S3>('S3').ENABLE) mediaId = msg.message.mediaUrl;
+  if (configService.get<S3>('S3').ENABLE) mediaId = msg.message?.mediaUrl;
   else mediaId = msg.key?.id;
 
   const types = {
