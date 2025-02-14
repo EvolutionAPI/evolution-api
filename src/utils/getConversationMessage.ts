@@ -3,8 +3,8 @@ import { configService, S3 } from '@config/env.config';
 const getTypeMessage = (msg: any) => {
   let mediaId: string;
 
-  if (configService.get<S3>('S3').ENABLE) mediaId = msg.message.mediaUrl;
-  else mediaId = msg.key.id;
+  if (configService.get<S3>('S3').ENABLE) mediaId = msg.message?.mediaUrl;
+  else mediaId = msg.key?.id;
 
   const types = {
     conversation: msg?.message?.conversation,
@@ -15,7 +15,7 @@ const getTypeMessage = (msg: any) => {
       msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
       msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
       msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
-    listResponseMessage: msg?.message?.listResponseMessage?.title,
+    listResponseMessage: msg?.message?.listResponseMessage?.title || msg?.listResponseMessage?.title,
     responseRowId: msg?.message?.listResponseMessage?.singleSelectReply?.selectedRowId,
     templateButtonReplyMessage:
       msg?.message?.templateButtonReplyMessage?.selectedId || msg?.message?.buttonsResponseMessage?.selectedButtonId,
