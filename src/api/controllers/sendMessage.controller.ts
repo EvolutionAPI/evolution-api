@@ -18,6 +18,13 @@ import { WAMonitoringService } from '@api/services/monitor.service';
 import { BadRequestException } from '@exceptions';
 import { isBase64, isURL } from 'class-validator';
 
+function isEmoji(str: string) {
+  if (str === '') return true;
+  
+  const emojiRegex = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}]$/u;
+  return emojiRegex.test(str);
+}
+
 export class SendMessageController {
   constructor(private readonly waMonitor: WAMonitoringService) {}
 
@@ -81,8 +88,8 @@ export class SendMessageController {
   }
 
   public async sendReaction({ instanceName }: InstanceDto, data: SendReactionDto) {
-    if (!data.reaction.match(/[^()\w\sà-ú"-+]+/)) {
-      throw new BadRequestException('"reaction" must be an emoji');
+    if (!isEmoji(data.reaction)) {
+      throw new BadRequestException('Reaction must be a single emoji or empty string');
     }
     return await this.waMonitor.waInstances[instanceName].reactionMessage(data);
   }
