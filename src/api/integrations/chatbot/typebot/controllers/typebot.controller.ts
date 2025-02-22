@@ -1016,7 +1016,7 @@ export class TypebotController extends ChatbotController implements ChatbotContr
 
       if (!listeningFromMe && key.fromMe) {
         return;
-      }      
+      }
 
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
