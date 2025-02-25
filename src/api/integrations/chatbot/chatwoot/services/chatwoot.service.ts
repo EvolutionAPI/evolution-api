@@ -1898,7 +1898,7 @@ export class ChatwootService {
               .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~')
           : originalMessage;
 
-        if (bodyMessage && bodyMessage.includes('Por favor, classifique esta conversa, http')) {
+        if (bodyMessage && bodyMessage.includes('/survey/responses/') && bodyMessage.includes('http')) {
           return;
         }
 
