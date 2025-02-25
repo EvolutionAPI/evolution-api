@@ -1148,23 +1148,23 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
-            this.logger.info(`Recovering message lost messageId: ${received.key.id}`);
+          // if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
+          //   this.logger.info(`Recovering message lost messageId: ${received.key.id}`);
 
-            await this.baileysCache.set(received.key.id, {
-              message: received,
-              retry: 0,
-            });
+          //   await this.baileysCache.set(received.key.id, {
+          //     message: received,
+          //     retry: 0,
+          //   });
 
-            continue;
-          }
+          //   continue;
+          // }
 
-          const retryCache = (await this.baileysCache.get(received.key.id)) || null;
+          // const retryCache = (await this.baileysCache.get(received.key.id)) || null;
 
-          if (retryCache) {
-            this.logger.info('Recovered message lost');
-            await this.baileysCache.delete(received.key.id);
-          }
+          // if (retryCache) {
+          //   this.logger.info('Recovered message lost');
+          //   await this.baileysCache.delete(received.key.id);
+          // }
 
           // Cache to avoid duplicate messages
           const messageKey = `${this.instance.id}_${received.key.id}`;
