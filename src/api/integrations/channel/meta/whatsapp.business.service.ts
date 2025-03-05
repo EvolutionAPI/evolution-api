@@ -979,6 +979,7 @@ export class BusinessStartupService extends ChannelStartupService {
   private async getIdMedia(mediaMessage: any) {
     const formData = new FormData();
     const media = mediaMessage.media || mediaMessage.audio;
+    if (!media) throw new Error("Media or audio not found");
 
     const fileStream = createReadStream(media);
 
