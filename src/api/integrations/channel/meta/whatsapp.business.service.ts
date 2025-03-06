@@ -828,6 +828,7 @@ export class BusinessStartupService extends ChannelStartupService {
         }
         if (message['media']) {
           const isImage = message['mimetype']?.startsWith('image/');
+          const isVideo = message['mimetype']?.startsWith('video/');
 
           content = {
             messaging_product: 'whatsapp',
@@ -837,7 +838,7 @@ export class BusinessStartupService extends ChannelStartupService {
             [message['mediaType']]: {
               [message['type']]: message['id'],
               preview_url: linkPreview,
-              ...(message['fileName'] && !isImage && { filename: message['fileName'] }),
+              ...(message['fileName'] && !isImage && !isVideo && { filename: message['fileName'] }),
               caption: message['caption'],
             },
           };
@@ -1005,8 +1006,10 @@ export class BusinessStartupService extends ChannelStartupService {
 
   private async getIdMedia(mediaMessage: any) {
     const formData = new FormData();
+    const media = mediaMessage.media || mediaMessage.audio;
+    if (!media) throw new Error('Media or audio not found');
 
-    const fileStream = createReadStream(mediaMessage.media);
+    const fileStream = createReadStream(media);
 
     formData.append('file', fileStream, { filename: 'media', contentType: mediaMessage.mimetype });
     formData.append('typeFile', mediaMessage.mimetype);
@@ -1107,7 +1110,7 @@ export class BusinessStartupService extends ChannelStartupService {
     const prepareMedia: any = {
       fileName: `${hash}.mp3`,
       mediaType: 'audio',
-      media: audio,
+      audio,
     };
 
     if (isURL(audio)) {
@@ -1129,15 +1132,7 @@ export class BusinessStartupService extends ChannelStartupService {
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
     const mediaData: SendAudioDto = { ...data };
 
-    if (file?.buffer) {
-      mediaData.audio = file.buffer.toString('base64');
-    } else if (isURL(mediaData.audio)) {
-      // DO NOTHING
-      // mediaData.audio = mediaData.audio;
-    } else {
-      console.error('El archivo no tiene buffer o file es undefined');
-      throw new Error('File or buffer is undefined');
-    }
+    if (file) mediaData.audio = file.buffer.toString('base64');
 
     const message = await this.processAudio(mediaData.audio, data.number);
 
