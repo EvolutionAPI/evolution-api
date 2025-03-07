@@ -3095,21 +3095,19 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       const message: proto.IMessage = {
-        viewOnceMessage: {
-          message: {
-            interactiveMessage: {
-              nativeFlowMessage: {
-                buttons: [
-                  {
-                    name: this.mapType.get('pix'),
-                    buttonParamsJson: this.toJSONString(data.buttons[0]),
-                  },
-                ],
-                messageParamsJson: JSON.stringify({
-                  from: 'api',
-                  templateId: v4(),
-                }),
-              },
+        message: {
+          interactiveMessage: {
+            nativeFlowMessage: {
+              buttons: [
+                {
+                  name: this.mapType.get('pix'),
+                  buttonParamsJson: this.toJSONString(data.buttons[0]),
+                },
+              ],
+              messageParamsJson: JSON.stringify({
+                from: 'api',
+                templateId: v4(),
+              }),
             },
           },
         },
@@ -3141,38 +3139,36 @@ export class BaileysStartupService extends ChannelStartupService {
     });
 
     const message: proto.IMessage = {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: {
-              text: (() => {
-                let t = '*' + data.title + '*';
-                if (data?.description) {
-                  t += '\n\n';
-                  t += data.description;
-                  t += '\n';
-                }
-                return t;
-              })(),
-            },
-            footer: {
-              text: data?.footer,
-            },
-            header: (() => {
-              if (generate?.message?.imageMessage) {
-                return {
-                  hasMediaAttachment: !!generate.message.imageMessage,
-                  imageMessage: generate.message.imageMessage,
-                };
+      message: {
+        interactiveMessage: {
+          body: {
+            text: (() => {
+              let t = '*' + data.title + '*';
+              if (data?.description) {
+                t += '\n\n';
+                t += data.description;
+                t += '\n';
               }
+              return t;
             })(),
-            nativeFlowMessage: {
-              buttons: buttons,
-              messageParamsJson: JSON.stringify({
-                from: 'api',
-                templateId: v4(),
-              }),
-            },
+          },
+          footer: {
+            text: data?.footer,
+          },
+          header: (() => {
+            if (generate?.message?.imageMessage) {
+              return {
+                hasMediaAttachment: !!generate.message.imageMessage,
+                imageMessage: generate.message.imageMessage,
+              };
+            }
+          })(),
+          nativeFlowMessage: {
+            buttons: buttons,
+            messageParamsJson: JSON.stringify({
+              from: 'api',
+              templateId: v4(),
+            }),
           },
         },
       },
