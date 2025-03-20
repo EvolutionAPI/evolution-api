@@ -1,17 +1,20 @@
-import { BufferJSON } from '@whiskeysockets/baileys';
+import { ICache } from '@api/abstract/abstract.cache';
+import { CacheConf, CacheConfRedis, ConfigService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
+import { BufferJSON } from 'baileys';
 import { RedisClientType } from 'redis';
 
-import { ICache } from '../api/abstract/abstract.cache';
-import { CacheConf, CacheConfRedis, ConfigService } from '../config/env.config';
-import { Logger } from '../config/logger.config';
 import { redisClient } from './rediscache.client';
 
 export class RedisCache implements ICache {
-  private readonly logger = new Logger(RedisCache.name);
+  private readonly logger = new Logger('RedisCache');
   private client: RedisClientType;
   private conf: CacheConfRedis;
 
-  constructor(private readonly configService: ConfigService, private readonly module: string) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly module: string,
+  ) {
     this.conf = this.configService.get<CacheConf>('CACHE')?.REDIS;
     this.client = redisClient.getConnection();
   }

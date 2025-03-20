@@ -1,9 +1,8 @@
+import { configService, SslConf } from '@config/env.config';
 import { Express } from 'express';
 import { readFileSync } from 'fs';
 import * as http from 'http';
 import * as https from 'https';
-
-import { configService, SslConf } from '../config/env.config';
 
 export class ServerUP {
   static #app: Express;

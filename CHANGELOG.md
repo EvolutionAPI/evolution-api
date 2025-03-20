@@ -1,3 +1,364 @@
+# 2.2.3 (2025-02-03 11:52)
+
+### Fixed
+
+* Fix cache in local file system
+* Update Baileys Version
+
+# 2.2.2 (2025-01-31 06:55)
+
+### Features
+
+* Added prefix key to queue name in RabbitMQ
+
+### Fixed
+
+* Update Baileys Version
+
+# 2.2.1 (2025-01-22 14:37)
+
+### Features
+
+* Retry system for send webhooks
+* Message filtering to support timestamp range queries
+* Chats filtering to support timestamp range queries
+
+### Fixed
+
+* Correction of webhook global
+* Fixed send audio with whatsapp cloud api
+* Refactor on fetch chats
+* Refactor on Evolution Channel
+
+# 2.2.0 (2024-10-18 10:00)
+
+### Features
+
+* Fake Call function
+* Send List with Baileys
+* Send Buttons with Baileys
+* Added unreadMessages to chats
+* Pusher event integration
+* Add support for splitMessages and timePerChar in Integrations
+* Audio Converter via API
+* Send PTV messages with Baileys
+
+### Fixed
+
+* Fixed prefilledVariables in startTypebot
+* Fix duplicate file upload
+* Mark as read from me and groups
+* Fetch chats query
+* Ads messages in chatwoot
+* Add indexes to improve performance in Evolution
+* Add logical or permanent message deletion based on env config
+* Add support for fetching multiple instances by key
+* Update instance.controller.ts to filter by instanceName
+* Receive template button reply message
+
+# 2.1.2 (2024-10-06 10:09)
+
+### Features
+
+* Sync lost messages on chatwoot
+* Set the maximum number of listeners that can be registered for events
+* Now is possible send medias with form-data
+
+### Fixed
+
+* Fetch status message
+* Adjusts in migrations
+* Update pushName in chatwoot
+* Validate message before sending chatwoot
+* Adds the message status to the return of the "prepareMessage" function
+* Fixed openai setting when send a message with chatwoot
+* Fix buildkey function in hSet and hDelete
+* Fix mexico number
+* Update baileys version
+* Update in Baileys version that fixes timeout when updating profile picture
+* Adjusts for fix timeout error on send status message
+* Chatwoot verbose logs
+* Adjusts on prisma connections
+* License terms updated
+* Fixed send message to group without no cache (local or redis)
+* Fixed startTypebot with startSession = true
+* Fixed issue of always creating a new label when saving chatwoot
+* Fixed getBase64FromMediaMessage with convertToMp4
+* Fixed bug when send message when don't have mentionsEveryOne on payload
+* Does not search message without chatwoot Message Id for reply
+* Fixed bot fallback not working on integrations
+
+# 2.1.1 (2024-09-22 10:31)
+
+### Features
+
+* Define a global proxy to be used if the instance does not have one
+* Save is on whatsapp on the database
+* Add headers to the instance's webhook registration
+* Debounce message break is now "\n" instead of white space
+* Single view messages are now supported in chatwoot
+* Chatbots can now send any type of media
+
+### Fixed
+
+* Validate if cache exists before accessing it
+* Missing autoCreate chatwoot in instance create
+* Fixed bugs in the frontend, on the event screens
+* Fixed use chatwoot with evolution channel
+* Fix chatwoot reply quote with Cloud API
+* Use exchange name from .env on RabbitMQ
+* Fixed chatwoot screen
+* It is now possible to send images via the Evolution Channel
+* Removed "version" from docker-compose as it is obsolete (https://dev.to/ajeetraina/do-we-still-use-version-in-compose-3inp)
+* Fixed typebot ignoreJids being used only from default settings
+* Fixed Chatwoot inbox creation on save
+* Changed axios timeout for manager requests for 30s
+* Update in Baileys version that fixes timeout when updating profile picture
+* Fixed issue when sending links in markdown by chatbots like Dify
+* Fixed issue with chatbots not respecting settings
+
+# 2.1.0 (2024-08-26 15:33)
+
+### Features
+
+* Improved layout manager
+* Translation in manager: English, Portuguese, Spanish and French
+* Evolution Bot Integration
+* Option to disable chatwoot bot contact with CHATWOOT_BOT_CONTACT
+* Added flowise integration
+* Added evolution channel on instance create
+* Change in license to Apache-2.0
+* Mark All in events
+
+### Fixed
+
+* Refactor integrations structure for modular system
+* Fixed dify agent integration
+* Update Baileys Version
+* Fixed proxy config in manager
+* Fixed send messages in groups
+* S3 saving media sent from me
+* Fixed duplication bot when use startTypebot
+
+### Break Changes
+
+* Payloads for events changed (create Instance and set events). Check postman to understand
+
+# 2.0.10 (2024-08-16 16:23)
+
+### Features
+
+* OpenAI send images when markdown
+* Dify send images when markdown
+* Sentry implemented
+
+### Fixed
+
+* Fix on get profilePicture
+* Added S3_REGION on minio settings
+
+# 2.0.9 (2024-08-15 12:31)
+
+### Features
+
+* Added ignoreJids in chatwoot settings
+* Dify now identifies images
+* Openai now identifies images
+
+### Fixed
+
+* Path mapping & deps fix & bundler changed to tsup
+* Improve database scripts to retrieve the provider from env file
+* Update contacts database with unique index
+* Save chat name
+* Correction of media as attachments in chatwoot when using a Meta API Instance and not Baileys
+* Update Baileys version 6.7.6
+* Deprecate buttons and list in new Baileys version
+* Changed labels to be unique on the same instance
+* Remove instance from redis even if using database
+* Unified integration session system so they don't overlap
+* Temporary fix for pictureUrl bug in groups
+* Fix on migrations
+
+# 2.0.9-rc (2024-08-09 18:00)
+
+### Features
+
+* Added general session button in typebot, dify and openai in manager
+* Added compatibility with mysql through prisma
+
+### Fixed
+
+* Import contacts with image in chatwoot
+* Fix conversationId when is dify agent
+* Fixed loading of selects in the manager
+* Add restart button to sessions screen
+* Adjustments to docker files
+* StopBotFromMe working with chatwoot
+
+# 2.0.8-rc (2024-08-08 20:23)
+
+### Features
+
+* Variables passed to the input in dify
+* OwnerJid passed to typebot
+* Function for openai assistant added
+
+### Fixed
+
+* Adjusts in telemetry
+
+# 2.0.7-rc (2024-08-03 14:04)
+
+### Fixed
+
+* BusinessId added on create instances in manager
+* Adjusts in restart instance
+* Resolve issue with connecting to instance
+* Session is now individual per instance and remoteJid
+* Credentials verify on manager login
+* Added description column on typebot, dify and openai
+* Fixed dify agent integration
+
+# 2.0.6-rc (2024-08-02 19:23)
+
+### Features
+
+* Get models for OpenAI
+
+### Fixed
+
+* fetchInstances with clientName parameter
+* fixed update typebot, openai and dify
+
+# 2.0.5-rc (2024-08-01 18:01)
+
+### Features
+
+* Speech to Text with Openai
+
+### Fixed
+
+* ClientName on infos
+* Instance screen scroll bar in manager
+
+# 2.0.4-rc (2024-07-30 14:13)
+
+### Features
+
+* New manager v2.0
+* Dify integration
+
+### Fixed
+
+* Update Baileys Version
+* Adjusts for new manager
+* Corrected openai trigger validation
+* Corrected typebot trigger validation
+
+# 2.0.3-beta (2024-07-29 09:03)
+
+### Features
+
+* Webhook url by submitted template to send status updates
+* Sending template approval status webhook
+
+### Fixed
+
+* Equations and adjustments for the new manager
+* Adjust TriggerType for OpenAI and Typebot integrations
+* Fixed Typebot start call with active session
+
+# 2.0.2-beta (2024-07-18 21:33)
+
+### Feature
+
+* Open AI implemented
+
+### Fixed
+
+* Fixed the function of saving or not saving data in the database
+* Resolve not find name
+* Removed DEL_TEMP_INSTANCES as it is not being used
+* Fixed global exchange name
+* Add apiKey and serverUrl to prefilledVariables in typebot service
+* Correction in start typebot, if it doesn't exist, create it
+
+# 2.0.1-beta (2024-07-17 17:01)
+
+### Fixed
+
+* Resolved issue with Chatwoot not receiving messages sent by Typebot
+
+# 2.0.0-beta (2024-07-14 17:00)
+
+### Feature
+
+* Added prisma orm, connection to postgres and mysql
+* Added chatwoot integration activation
+* Added typebot integration activation
+* Now you can register several typebots with triggers
+* Media sent to typebot now goes as a template string, example: imageMessage|MESSAGE_ID
+* Organization configuration and logo in chatwoot bot contact
+* Added debounce time for typebot messages
+* Tagging in chatwoot contact by instance
+* Add support for managing WhatsApp templates via official API
+* Fixes and implementation of regex and fallback in typebot
+* Ignore jids configuration added to typebot (will be used for both groups and contacts)
+* Minio and S3 integration
+* When S3 integration enabled, the media sent to typebot now goes as a template string, example: imageMessage|MEDIA_URL
+
+### Fixed
+
+* Removed excessive verbose logs
+* Optimization in instance registration
+* Now in typebot we wait until the terminal block to accept the user's message, if it arrives before the block is sent, it is ignored
+* Correction of audio sending, now we can speed it up and have the audio wireframe
+* Reply with media message on Chatwoot
+* improvements in sending status and groups
+* Correction in response returns from buttons, lists and templates
+* EvolutionAPI/Baileys implemented
+
+### Break changes
+
+* jwt authentication removed
+* Connection to mongodb removed
+* Standardized all request bodies to use camelCase
+* Change in webhook information from owner to instanceId
+* Changed the .env file configuration, removed the yml version and added .env to the repository root
+* Removed the mobile type connection with Baileys
+* Simplified payloads and endpoints
+* Improved Typebot
+  - Now you can register several typebots
+  - Start configuration by trigger or for all
+  - Session search by typebot or remoteJid
+  - KeepOpen configuration (keeps the session even when the bot ends, to run once per contact)
+  - StopBotFromMe configuration, allows me to stop the bot if I send a chat message.
+* Changed the way the goal webhook is configured
+
+# 1.8.2 (2024-07-03 13:50)
+
+### Fixed
+
+* Corretion in globall rabbitmq queue name
+* Improvement in the use of mongodb database for credentials
+* Fixed base64 in webhook for documentWithCaption
+* Fixed Generate pairing code
+
+# 1.8.1 (2024-06-08 21:32)
+
+### Feature
+
+* New method of saving sessions to a file using worker, made in partnership with [codechat](https://github.com/code-chat-br/whatsapp-api)
+
+### Fixed
+
+* Correction of variables breaking lines in typebot
+
+### Fixed
+
+* Correction of variables breaking lines in typebot
+
 # 1.8.0 (2024-05-27 16:10)
 
 ### Feature
@@ -7,12 +368,14 @@
 * Build in docker for linux/amd64, linux/arm64 platforms
 
 ### Fixed
+
 * Correction in message formatting when generated by AI as markdown in typebot
 * Security fix in fetch instance with client key when not connected to mongodb
 
 # 1.7.5 (2024-05-21 08:50)
 
 ### Fixed
+
 * Add merge_brazil_contacts function to solve nine digit in brazilian numbers
 * Optimize ChatwootService method for updating contact
 * Fix swagger auth
@@ -24,6 +387,7 @@
 # 1.7.4 (2024-04-28 09:46)
 
 ### Fixed
+
 * Adjusts in proxy on fetchAgent
 * Recovering messages lost with redis cache
 * Log when init redis cache service
@@ -34,6 +398,7 @@
 # 1.7.3 (2024-04-18 12:07)
 
 ### Fixed
+
 * Revert fix audio encoding
 * Recovering messages lost with redis cache
 * Adjusts in redis for save instances

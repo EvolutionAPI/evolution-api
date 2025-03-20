@@ -1,9 +1,10 @@
 export class SettingsDto {
-  reject_call?: boolean;
-  msg_call?: string;
-  groups_ignore?: boolean;
-  always_online?: boolean;
-  read_messages?: boolean;
-  read_status?: boolean;
-  sync_full_history?: boolean;
+  rejectCall?: boolean;
+  msgCall?: string;
+  groupsIgnore?: boolean;
+  alwaysOnline?: boolean;
+  readMessages?: boolean;
+  readStatus?: boolean;
+  syncFullHistory?: boolean;
+  wavoipToken?: string;
 }

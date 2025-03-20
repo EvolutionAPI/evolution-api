@@ -1,0 +1,25 @@
+services:
+  api:
+    container_name: evolution_api
+    image: evolution/api:local
+    build: .
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution-net
+    env_file:
+      - .env
+    expose:
+      - 8080
+
+volumes:
+  evolution_instances:
+
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge

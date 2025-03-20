@@ -2,7 +2,6 @@
   "qrgeneratedsuccesfully": "QRCode successfully generated!",
   "scanqr": "Scan this QR code within the next 40 seconds.",
   "qrlimitreached": "QRCode generation limit reached, to generate a new QRCode, send the 'init' message again.",
-  "numbernotinwhatsapp": "The message was not sent as the contact is not a valid Whatsapp number.",
   "cw.inbox.connected": "🚀 Connection successfully established!",
   "cw.inbox.disconnect": "🚨 Disconnecting WhatsApp from inbox *{{inboxName}}*.",
   "cw.inbox.alreadyConnected": "🚨 {{inboxName}} instance is connected.",
@@ -23,5 +22,6 @@
   "cw.contactMessage.name": "Name",
   "cw.contactMessage.number": "Number",
   "cw.message.notsent": "🚨 The message could not be sent. Please check your connection. {{error}}",
+  "cw.message.numbernotinwhatsapp": "🚨 The message was not sent as the contact is not a valid Whatsapp number.",
   "cw.message.edited": "Edited Message"
 }

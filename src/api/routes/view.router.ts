@@ -1,34 +1,21 @@
-import { Router } from 'express';
-import fs from 'fs';
-import mime from 'mime-types';
-
-import { RouterBroker } from '../abstract/abstract.router';
+import { RouterBroker } from '@api/abstract/abstract.router';
+import express, { Router } from 'express';
+import path from 'path';
 
 export class ViewsRouter extends RouterBroker {
+  public readonly router: Router;
+
   constructor() {
     super();
+    this.router = Router();
 
-    const basePath = 'evolution-manager/dist';
+    const basePath = path.join(process.cwd(), 'manager', 'dist');
+    const indexPath = path.join(basePath, 'index.html');
 
-    const indexPath = require.resolve(`${basePath}/index.html`);
+    this.router.use(express.static(basePath));
 
-    this.router.get('/*', (req, res) => {
-      try {
-        const pathname = req.url.split('?')[0];
-
-        // verify if url is a file in dist folder
-        if (pathname === '/') throw {};
-        const filePath = require.resolve(`${basePath}${pathname}`);
-
-        const contentType = mime.lookup(filePath) || 'text/plain';
-        res.set('Content-Type', contentType);
-        res.end(fs.readFileSync(filePath));
-      } catch {
-        res.set('Content-Type', 'text/html');
-        res.send(fs.readFileSync(indexPath));
-      }
+    this.router.get('*', (req, res) => {
+      res.sendFile(indexPath);
     });
   }
-
-  public readonly router = Router();
 }

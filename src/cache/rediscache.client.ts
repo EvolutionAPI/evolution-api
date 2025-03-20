@@ -1,10 +1,9 @@
+import { CacheConf, CacheConfRedis, configService } from '@config/env.config';
+import { Logger } from '@config/logger.config';
 import { createClient, RedisClientType } from 'redis';
 
-import { CacheConf, CacheConfRedis, configService } from '../config/env.config';
-import { Logger } from '../config/logger.config';
-
 class Redis {
-  private logger = new Logger(Redis.name);
+  private logger = new Logger('Redis');
   private client: RedisClientType = null;
   private conf: CacheConfRedis;
   private connected = false;
@@ -41,10 +40,8 @@ class Redis {
       });
 
       try {
-        this.logger.verbose('connecting new redis client');
         this.client.connect();
         this.connected = true;
-        this.logger.verbose('connected to new redis client');
       } catch (e) {
         this.connected = false;
         this.logger.error('redis connect exception caught: ' + e);

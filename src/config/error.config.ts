@@ -15,7 +15,7 @@ export function onUnexpectedError() {
     logger.error({
       origin,
       stderr: process.stderr.fd,
-      error,
     });
+    logger.error(error);
   });
 }

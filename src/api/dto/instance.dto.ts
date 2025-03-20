@@ -1,51 +1,56 @@
-import { WAPresence } from '@whiskeysockets/baileys';
+import { IntegrationDto } from '@api/integrations/integration.dto';
+import { JsonValue } from '@prisma/client/runtime/library';
+import { WAPresence } from 'baileys';
 
-import { ProxyDto } from './proxy.dto';
-
-export class InstanceDto {
+export class InstanceDto extends IntegrationDto {
   instanceName: string;
   instanceId?: string;
   qrcode?: boolean;
+  businessId?: string;
   number?: string;
-  mobile?: boolean;
   integration?: string;
   token?: string;
-  webhook?: string;
-  webhook_by_events?: boolean;
-  webhook_base64?: boolean;
-  events?: string[];
-  reject_call?: boolean;
-  msg_call?: string;
-  groups_ignore?: boolean;
-  always_online?: boolean;
-  read_messages?: boolean;
-  read_status?: boolean;
-  sync_full_history?: boolean;
-  chatwoot_account_id?: string;
-  chatwoot_token?: string;
-  chatwoot_url?: string;
-  chatwoot_sign_msg?: boolean;
-  chatwoot_reopen_conversation?: boolean;
-  chatwoot_conversation_pending?: boolean;
-  chatwoot_merge_brazil_contacts?: boolean;
-  chatwoot_import_contacts?: boolean;
-  chatwoot_import_messages?: boolean;
-  chatwoot_days_limit_import_messages?: number;
-  chatwoot_name_inbox?: string;
-  websocket_enabled?: boolean;
-  websocket_events?: string[];
-  rabbitmq_enabled?: boolean;
-  rabbitmq_events?: string[];
-  sqs_enabled?: boolean;
-  sqs_events?: string[];
-  typebot_url?: string;
-  typebot?: string;
-  typebot_expire?: number;
-  typebot_keyword_finish?: string;
-  typebot_delay_message?: number;
-  typebot_unknown_message?: string;
-  typebot_listening_from_me?: boolean;
-  proxy?: ProxyDto['proxy'];
+  status?: string;
+  ownerJid?: string;
+  profileName?: string;
+  profilePicUrl?: string;
+  // settings
+  rejectCall?: boolean;
+  msgCall?: string;
+  groupsIgnore?: boolean;
+  alwaysOnline?: boolean;
+  readMessages?: boolean;
+  readStatus?: boolean;
+  syncFullHistory?: boolean;
+  wavoipToken?: string;
+  // proxy
+  proxyHost?: string;
+  proxyPort?: string;
+  proxyProtocol?: string;
+  proxyUsername?: string;
+  proxyPassword?: string;
+  webhook?: {
+    enabled?: boolean;
+    events?: string[];
+    headers?: JsonValue;
+    url?: string;
+    byEvents?: boolean;
+    base64?: boolean;
+  };
+  chatwootAccountId?: string;
+  chatwootConversationPending?: boolean;
+  chatwootAutoCreate?: boolean;
+  chatwootDaysLimitImportMessages?: number;
+  chatwootImportContacts?: boolean;
+  chatwootImportMessages?: boolean;
+  chatwootLogo?: string;
+  chatwootMergeBrazilContacts?: boolean;
+  chatwootNameInbox?: string;
+  chatwootOrganization?: string;
+  chatwootReopenConversation?: boolean;
+  chatwootSignMsg?: boolean;
+  chatwootToken?: string;
+  chatwootUrl?: string;
 }
 
 export class SetPresenceDto {

@@ -1,0 +1,31 @@
+version: '3.3'
+
+services:
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio
+    networks:
+      - evolution-net
+    command: server /data --console-address ":9001"
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - MINIO_ROOT_USER=USER
+      - MINIO_ROOT_PASSWORD=PASSWORD
+      - MINIO_BROWSER_REDIRECT_URL=http:/localhost:9001
+      - MINIO_SERVER_URL=http://localhost:9000
+    volumes:
+      - minio_data:/data
+    expose:
+      - 9000
+      - 9001
+
+volumes:
+  minio_data:
+
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge
