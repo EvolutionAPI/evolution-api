@@ -2725,9 +2725,11 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private isAnimated(image: string, buffer: Buffer): boolean {
-    if (image.includes('.gif')) return true;
+    const lowerCaseImage = image.toLowerCase();
     
-    if (image.includes('.webp')) return this.isAnimatedWebp(buffer);
+    if (lowerCaseImage.includes('.gif')) return true;
+    
+    if (lowerCaseImage.includes('.webp')) return this.isAnimatedWebp(buffer);
     
     return false;
   }
