@@ -220,8 +220,8 @@ export type CacheConfLocal = {
   TTL: number;
 };
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
-export type Webhook = { 
-  GLOBAL?: GlobalWebhook; 
+export type Webhook = {
+  GLOBAL?: GlobalWebhook;
   EVENTS: EventsWebhook;
   REQUEST?: {
     TIMEOUT_MS?: number;
@@ -520,7 +520,9 @@ export class ConfigService {
           USE_EXPONENTIAL_BACKOFF: process.env?.WEBHOOK_RETRY_USE_EXPONENTIAL_BACKOFF !== 'false',
           MAX_DELAY_SECONDS: Number.parseInt(process.env?.WEBHOOK_RETRY_MAX_DELAY_SECONDS) || 300,
           JITTER_FACTOR: Number.parseFloat(process.env?.WEBHOOK_RETRY_JITTER_FACTOR) || 0.2,
-          NON_RETRYABLE_STATUS_CODES: process.env?.WEBHOOK_RETRY_NON_RETRYABLE_STATUS_CODES?.split(',').map(Number) || [400, 401, 403, 404, 422],
+          NON_RETRYABLE_STATUS_CODES: process.env?.WEBHOOK_RETRY_NON_RETRYABLE_STATUS_CODES?.split(',').map(Number) || [
+            400, 401, 403, 404, 422,
+          ],
         },
       },
       CONFIG_SESSION_PHONE: {

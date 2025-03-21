@@ -157,7 +157,7 @@ export class WebhookController extends EventController implements EventControlle
 
         try {
           if (isURL(globalURL)) {
-            const httpService = axios.create({ 
+            const httpService = axios.create({
               baseURL: globalURL,
               timeout: webhookConfig.REQUEST?.TIMEOUT_MS ?? 30000,
             });
@@ -221,10 +221,10 @@ export class WebhookController extends EventController implements EventControlle
         return;
       } catch (error) {
         attempts++;
-        
+
         // Verificar se é um erro de timeout
         const isTimeout = error.code === 'ECONNABORTED';
-        
+
         // Verificar se o erro não deve gerar retry com base no status code
         if (error?.response?.status && nonRetryableStatusCodes.includes(error.response.status)) {
           this.logger.error({
@@ -261,7 +261,7 @@ export class WebhookController extends EventController implements EventControlle
         if (useExponentialBackoff) {
           // Fórmula: initialDelay * (2^attempts) com limite máximo
           nextDelay = Math.min(initialDelay * Math.pow(2, attempts - 1), maxDelay);
-          
+
           // Adicionar jitter para evitar "thundering herd"
           const jitter = nextDelay * jitterFactor * (Math.random() * 2 - 1);
           nextDelay = Math.max(initialDelay, nextDelay + jitter);
