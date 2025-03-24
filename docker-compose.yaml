@@ -23,12 +23,19 @@ services:
       - "8080:8080"
     volumes:
       - evolution_instances:/evolution/instances
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.5'
     networks:
       - evolution-net
     env_file:
       - .env
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    expose:
+      - 8080
 
   redis:
     image: redis:7.4.2-alpine
@@ -48,6 +55,11 @@ services:
       - evolution-net
     command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.5'
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=nGYh5UIg4cg9Xwec1AeJ
