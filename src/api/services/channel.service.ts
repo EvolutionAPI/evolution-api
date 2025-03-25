@@ -505,7 +505,15 @@ export class ChannelStartupService {
 
     return await this.prismaRepository.contact.findMany({
       where,
-    });
+    };
+
+    if (query.offset) contactFindManyArgs.take = query.offset;
+    if (query.page) {
+      const validPage = Math.max(query.page as number, 1);
+      contactFindManyArgs.skip = query.offset * (validPage - 1);
+    }
+
+    return await this.prismaRepository.contact.findMany(contactFindManyArgs);
   }
 
   public cleanMessageData(message: any) {
