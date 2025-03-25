@@ -508,7 +508,10 @@ export class ChannelStartupService {
     };
 
     if (query.offset) contactFindManyArgs.take = query.offset;
-    if (query.page) contactFindManyArgs.skip = query.offset * ((query.page as number) - 1);
+    if (query.page) {
+      const validPage = Math.max(query.page as number, 1);
+      contactFindManyArgs.skip = query.offset * (validPage - 1);
+    }
 
     return await this.prismaRepository.contact.findMany(contactFindManyArgs);
   }
