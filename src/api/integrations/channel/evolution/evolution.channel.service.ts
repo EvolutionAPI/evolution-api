@@ -198,15 +198,15 @@ export class EvolutionStartupService extends ChannelStartupService {
           }
         }
 
-        await this.prismaRepository.message.create({
-          data: messageRaw,
-        });
+        // await this.prismaRepository.message.create({
+        //   data: messageRaw,
+        // });
 
-        await this.updateContact({
-          remoteJid: messageRaw.key.remoteJid,
-          pushName: messageRaw.pushName,
-          profilePicUrl: received.profilePicUrl,
-        });
+        // await this.updateContact({
+        //   remoteJid: messageRaw.key.remoteJid,
+        //   pushName: messageRaw.pushName,
+        //   profilePicUrl: received.profilePicUrl,
+        // });
       }
     } catch (error) {
       this.logger.error(error);
@@ -517,10 +517,10 @@ export class EvolutionStartupService extends ChannelStartupService {
           msg: messageRaw,
           pushName: messageRaw.pushName,
         });
-
-      await this.prismaRepository.message.create({
-        data: messageRaw,
-      });
+      //
+      // await this.prismaRepository.message.create({
+      //   data: messageRaw,
+      // });
 
       return messageRaw;
     } catch (error) {

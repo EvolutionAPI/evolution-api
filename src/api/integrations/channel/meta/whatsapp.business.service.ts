@@ -360,19 +360,19 @@ export class BusinessStartupService extends ChannelStartupService {
                 'Content-Type': mimetype,
               });
 
-              const createdMessage = await this.prismaRepository.message.create({
-                data: messageRaw,
-              });
-
-              await this.prismaRepository.media.create({
-                data: {
-                  messageId: createdMessage.id,
-                  instanceId: this.instanceId,
-                  type: mediaType,
-                  fileName: fullName,
-                  mimetype,
-                },
-              });
+              // const createdMessage = await this.prismaRepository.message.create({
+              //   data: messageRaw,
+              // });
+              //
+              // await this.prismaRepository.media.create({
+              //   data: {
+              //     messageId: createdMessage.id,
+              //     instanceId: this.instanceId,
+              //     type: mediaType,
+              //     fileName: fullName,
+              //     mimetype,
+              //   },
+              // });
 
               const mediaUrl = await s3Service.getObjectUrl(fullName);
 
@@ -511,11 +511,11 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        if (!this.isMediaMessage(received?.messages[0])) {
-          await this.prismaRepository.message.create({
-            data: messageRaw,
-          });
-        }
+        // if (!this.isMediaMessage(received?.messages[0])) {
+        //   await this.prismaRepository.message.create({
+        //     data: messageRaw,
+        //   });
+        // }
 
         const contact = await this.prismaRepository.contact.findFirst({
           where: { instanceId: this.instanceId, remoteJid: key.remoteJid },
@@ -944,9 +944,9 @@ export class BusinessStartupService extends ChannelStartupService {
           pushName: messageRaw.pushName,
         });
 
-      await this.prismaRepository.message.create({
-        data: messageRaw,
-      });
+      // await this.prismaRepository.message.create({
+      //   data: messageRaw,
+      // });
 
       return messageRaw;
     } catch (error) {

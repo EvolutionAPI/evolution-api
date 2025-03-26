@@ -437,3 +437,6 @@ export class InstanceController {
     }
   }
 }
+
+curl --location --request POST 'http://localhost:8080/instance/restart/IWA-67e38885218ad5f643d422bd' \
+--header 'apikey: 429683C4C977415CAAFCCE10F7D57E11'
