@@ -2706,7 +2706,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const isAnimated = this.isAnimated(image, imageBuffer);
 
       if (isAnimated) {
-        return await sharp(imageBuffer, { animated: true }).webp({ quality: 80, animated: true }).toBuffer();
+        return await sharp(imageBuffer, { animated: true }).webp({ quality: 80 }).toBuffer();
       } else {
         return await sharp(imageBuffer).webp().toBuffer();
       }
