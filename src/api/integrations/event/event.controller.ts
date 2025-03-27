@@ -132,6 +132,7 @@ export class EventController {
     'MESSAGES_UPDATE',
     'MESSAGES_DELETE',
     'SEND_MESSAGE',
+    'SEND_MESSAGE_UPDATE',
     'CONTACTS_SET',
     'CONTACTS_UPSERT',
     'CONTACTS_UPDATE',

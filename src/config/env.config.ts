@@ -72,6 +72,7 @@ export type EventsRabbitmq = {
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
+  SEND_MESSAGE_UPDATE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -131,6 +132,7 @@ export type EventsWebhook = {
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
+  SEND_MESSAGE_UPDATE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -163,6 +165,7 @@ export type EventsPusher = {
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
+  SEND_MESSAGE_UPDATE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -370,6 +373,7 @@ export class ConfigService {
           MESSAGES_UPDATE: process.env?.RABBITMQ_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.RABBITMQ_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.RABBITMQ_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.RABBITMQ_EVENTS_SEND_MESSAGE_UPDATE === 'true',
           CONTACTS_SET: process.env?.RABBITMQ_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.RABBITMQ_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.RABBITMQ_EVENTS_CONTACTS_UPSERT === 'true',
@@ -421,6 +425,7 @@ export class ConfigService {
           MESSAGES_UPDATE: process.env?.PUSHER_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.PUSHER_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.PUSHER_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.PUSHER_EVENTS_SEND_MESSAGE_UPDATE === 'true',
           CONTACTS_SET: process.env?.PUSHER_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.PUSHER_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.PUSHER_EVENTS_CONTACTS_UPSERT === 'true',
@@ -477,6 +482,7 @@ export class ConfigService {
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.WEBHOOK_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE_UPDATE === 'true',
           CONTACTS_SET: process.env?.WEBHOOK_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.WEBHOOK_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.WEBHOOK_EVENTS_CONTACTS_UPSERT === 'true',
