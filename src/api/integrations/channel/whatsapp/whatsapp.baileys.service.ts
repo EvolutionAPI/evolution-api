@@ -1138,7 +1138,6 @@ export class BaileysStartupService extends ChannelStartupService {
                   { instanceName: this.instance.name, instanceId: this.instance.id },
                   editedMessage,
                 );
-
               await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
             }
           }
@@ -3899,10 +3898,25 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     try {
-      return await this.client.sendMessage(jid, {
+      const messageSent = await this.client.sendMessage(jid, {
         ...(options as any),
         edit: data.key,
       });
+
+      const updatedMessage =
+        messageSent.message?.protocolMessage || messageSent.message?.editedMessage?.message?.protocolMessage;
+
+      if (updatedMessage) {
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
+          this.chatwootService.eventWhatsapp(
+            'send.message.update',
+            { instanceName: this.instance.name, instanceId: this.instance.id },
+            updatedMessage,
+          );
+        await this.sendDataWebhook(Events.SEND_MESSAGE_UPDATE, updatedMessage);
+      }
+
+      return messageSent;
     } catch (error) {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
