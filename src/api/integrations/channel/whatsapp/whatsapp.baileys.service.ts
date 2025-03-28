@@ -382,7 +382,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-          qrcode,
+            qrcode,
         ),
       );
 
@@ -1023,18 +1023,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-          (
-            await this.prismaRepository.message.findMany({
-              select: { key: true },
-              where: { instanceId: this.instanceId },
-            })
-          ).map((message) => {
-            const key = message.key as {
-              id: string;
-            };
+            (
+              await this.prismaRepository.message.findMany({
+                select: { key: true },
+                where: { instanceId: this.instanceId },
+              })
+            ).map((message) => {
+              const key = message.key as {
+                id: string;
+              };
 
-            return key.id;
-          }),
+              return key.id;
+            }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1132,7 +1132,8 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          const editedMessage = received?.message?.protocolMessage || received?.message?.editedMessage?.message?.protocolMessage;
+          const editedMessage =
+            received?.message?.protocolMessage || received?.message?.editedMessage?.message?.protocolMessage;
 
           if (received.message?.protocolMessage?.editedMessage && editedMessage) {
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
@@ -1145,7 +1146,6 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
             const oldMessage = await this.getMessage(editedMessage.key, true);
             if ((oldMessage as any)?.id) {
-
               if (Long.isLong(editedMessage?.timestampMs)) {
                 editedMessage.timestampMs = editedMessage.timestampMs?.toNumber();
               }
@@ -1169,7 +1169,6 @@ export class BaileysStartupService extends ChannelStartupService {
                 },
               });
             }
-
           }
 
           // if (received.messageStubParameters && received.messageStubParameters[0] === 'Message absent from node') {
@@ -3980,7 +3979,8 @@ export class BaileysStartupService extends ChannelStartupService {
         edit: data.key,
       });
       if (messageSent) {
-        const editedMessage = messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
+        const editedMessage =
+          messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
 
         if (editedMessage) {
           this.sendDataWebhook(Events.SEND_MESSAGE_UPDATE, editedMessage);
