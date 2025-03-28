@@ -26,6 +26,11 @@ export class EventDto {
     events?: string[];
   };
 
+  nats?: {
+    enabled?: boolean;
+    events?: string[];
+  };
+
   pusher?: {
     enabled?: boolean;
     appId?: string;
@@ -59,6 +64,11 @@ export function EventInstanceMixin<TBase extends Constructor>(Base: TBase) {
     };
 
     rabbitmq?: {
+      enabled?: boolean;
+      events?: string[];
+    };
+
+    nats?: {
       enabled?: boolean;
       events?: string[];
     };

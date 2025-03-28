@@ -152,5 +152,8 @@ export class EventController {
     'TYPEBOT_CHANGE_STATUS',
     'REMOVE_INSTANCE',
     'LOGOUT_INSTANCE',
+    'INSTANCE_CREATE',
+    'INSTANCE_DELETE',
+    'STATUS_INSTANCE',
   ];
 }

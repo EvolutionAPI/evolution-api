@@ -2,6 +2,8 @@
 /dist
 /node_modules
 
+.cursor*
+
 /Docker/.env
 
 .vscode

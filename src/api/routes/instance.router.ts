@@ -15,7 +15,6 @@ export class InstanceRouter extends RouterBroker {
     super();
     this.router
       .post('/create', ...guards, async (req, res) => {
-        console.log('create instance', req.body);
         const response = await this.dataValidate<InstanceDto>({
           request: req,
           schema: instanceSchema,
