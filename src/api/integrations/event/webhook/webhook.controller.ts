@@ -6,7 +6,6 @@ import { configService, Log, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
 import axios, { AxiosInstance } from 'axios';
-import { isURL } from 'class-validator';
 
 import { EmitData, EventController, EventControllerInterface } from '../event.controller';
 
@@ -18,7 +17,7 @@ export class WebhookController extends EventController implements EventControlle
   }
 
   override async set(instanceName: string, data: EventDto): Promise<wa.LocalWebHook> {
-    if (!isURL(data.webhook.url, { require_tld: false })) {
+    if (!/^(https?:\/\/)/.test(data.webhook.url)) {
       throw new BadRequestException('Invalid "url" property');
     }
 
@@ -78,6 +77,7 @@ export class WebhookController extends EventController implements EventControlle
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const enabledLog = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
+    const regex = /^(https?:\/\/)/;
 
     const webhookData = {
       event,
@@ -111,7 +111,7 @@ export class WebhookController extends EventController implements EventControlle
         }
 
         try {
-          if (instance?.enabled && isURL(instance.url, { require_tld: false })) {
+          if (instance?.enabled && regex.test(instance.url)) {
             const httpService = axios.create({
               baseURL,
               headers: webhookHeaders as Record<string, string> | undefined,
@@ -155,7 +155,7 @@ export class WebhookController extends EventController implements EventControlle
         }
 
         try {
-          if (isURL(globalURL)) {
+          if (regex.test(globalURL)) {
             const httpService = axios.create({ baseURL: globalURL });
 
             await this.retryWebhookRequest(

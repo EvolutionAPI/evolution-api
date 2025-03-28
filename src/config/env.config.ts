@@ -98,7 +98,16 @@ export type Rabbitmq = {
   EXCHANGE_NAME: string;
   GLOBAL_ENABLED: boolean;
   EVENTS: EventsRabbitmq;
-  PREFIX_KEY: string;
+  PREFIX_KEY?: string;
+};
+
+export type Nats = {
+  ENABLED: boolean;
+  URI: string;
+  EXCHANGE_NAME: string;
+  GLOBAL_ENABLED: boolean;
+  EVENTS: EventsRabbitmq;
+  PREFIX_KEY?: string;
 };
 
 export type Sqs = {
@@ -266,6 +275,7 @@ export interface Env {
   PROVIDER: ProviderSession;
   DATABASE: Database;
   RABBITMQ: Rabbitmq;
+  NATS: Nats;
   SQS: Sqs;
   WEBSOCKET: Websocket;
   WA_BUSINESS: WaBusiness;
@@ -359,7 +369,7 @@ export class ConfigService {
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
         GLOBAL_ENABLED: process.env?.RABBITMQ_GLOBAL_ENABLED === 'true',
-        PREFIX_KEY: process.env?.RABBITMQ_PREFIX_KEY || 'evolution',
+        PREFIX_KEY: process.env?.RABBITMQ_PREFIX_KEY,
         EXCHANGE_NAME: process.env?.RABBITMQ_EXCHANGE_NAME || 'evolution_exchange',
         URI: process.env.RABBITMQ_URI || '',
         EVENTS: {
@@ -391,6 +401,43 @@ export class ConfigService {
           CALL: process.env?.RABBITMQ_EVENTS_CALL === 'true',
           TYPEBOT_START: process.env?.RABBITMQ_EVENTS_TYPEBOT_START === 'true',
           TYPEBOT_CHANGE_STATUS: process.env?.RABBITMQ_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
+        },
+      },
+      NATS: {
+        ENABLED: process.env?.NATS_ENABLED === 'true',
+        GLOBAL_ENABLED: process.env?.NATS_GLOBAL_ENABLED === 'true',
+        PREFIX_KEY: process.env?.NATS_PREFIX_KEY,
+        EXCHANGE_NAME: process.env?.NATS_EXCHANGE_NAME || 'evolution_exchange',
+        URI: process.env.NATS_URI || '',
+        EVENTS: {
+          APPLICATION_STARTUP: process.env?.NATS_EVENTS_APPLICATION_STARTUP === 'true',
+          INSTANCE_CREATE: process.env?.NATS_EVENTS_INSTANCE_CREATE === 'true',
+          INSTANCE_DELETE: process.env?.NATS_EVENTS_INSTANCE_DELETE === 'true',
+          QRCODE_UPDATED: process.env?.NATS_EVENTS_QRCODE_UPDATED === 'true',
+          MESSAGES_SET: process.env?.NATS_EVENTS_MESSAGES_SET === 'true',
+          MESSAGES_UPSERT: process.env?.NATS_EVENTS_MESSAGES_UPSERT === 'true',
+          MESSAGES_EDITED: process.env?.NATS_EVENTS_MESSAGES_EDITED === 'true',
+          MESSAGES_UPDATE: process.env?.NATS_EVENTS_MESSAGES_UPDATE === 'true',
+          MESSAGES_DELETE: process.env?.NATS_EVENTS_MESSAGES_DELETE === 'true',
+          SEND_MESSAGE: process.env?.NATS_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.NATS_EVENTS_SEND_MESSAGE_UPDATE === 'true',
+          CONTACTS_SET: process.env?.NATS_EVENTS_CONTACTS_SET === 'true',
+          CONTACTS_UPDATE: process.env?.NATS_EVENTS_CONTACTS_UPDATE === 'true',
+          CONTACTS_UPSERT: process.env?.NATS_EVENTS_CONTACTS_UPSERT === 'true',
+          PRESENCE_UPDATE: process.env?.NATS_EVENTS_PRESENCE_UPDATE === 'true',
+          CHATS_SET: process.env?.NATS_EVENTS_CHATS_SET === 'true',
+          CHATS_UPDATE: process.env?.NATS_EVENTS_CHATS_UPDATE === 'true',
+          CHATS_UPSERT: process.env?.NATS_EVENTS_CHATS_UPSERT === 'true',
+          CHATS_DELETE: process.env?.NATS_EVENTS_CHATS_DELETE === 'true',
+          CONNECTION_UPDATE: process.env?.NATS_EVENTS_CONNECTION_UPDATE === 'true',
+          LABELS_EDIT: process.env?.NATS_EVENTS_LABELS_EDIT === 'true',
+          LABELS_ASSOCIATION: process.env?.NATS_EVENTS_LABELS_ASSOCIATION === 'true',
+          GROUPS_UPSERT: process.env?.NATS_EVENTS_GROUPS_UPSERT === 'true',
+          GROUP_UPDATE: process.env?.NATS_EVENTS_GROUPS_UPDATE === 'true',
+          GROUP_PARTICIPANTS_UPDATE: process.env?.NATS_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          CALL: process.env?.NATS_EVENTS_CALL === 'true',
+          TYPEBOT_START: process.env?.NATS_EVENTS_TYPEBOT_START === 'true',
+          TYPEBOT_CHANGE_STATUS: process.env?.NATS_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
         },
       },
       SQS: {

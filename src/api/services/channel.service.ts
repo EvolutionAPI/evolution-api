@@ -503,9 +503,17 @@ export class ChannelStartupService {
       where['remoteJid'] = remoteJid;
     }
 
-    return await this.prismaRepository.contact.findMany({
+    const contactFindManyArgs: Prisma.ContactFindManyArgs = {
       where,
-    });
+    };
+
+    if (query.offset) contactFindManyArgs.take = query.offset;
+    if (query.page) {
+      const validPage = Math.max(query.page as number, 1);
+      contactFindManyArgs.skip = query.offset * (validPage - 1);
+    }
+
+    return await this.prismaRepository.contact.findMany(contactFindManyArgs);
   }
 
   public cleanMessageData(message: any) {
@@ -674,6 +682,13 @@ export class ChannelStartupService {
         : createJid(query.where?.remoteJid)
       : null;
 
+    const limit =
+      query.offset && !query.page
+        ? Prisma.sql` LIMIT ${query.offset}`
+        : query.offset && query.page
+          ? Prisma.sql`  LIMIT ${query.offset} OFFSET ${((query.page as number) - 1) * query.offset}`
+          : Prisma.sql``;
+
     const where = {
       instanceId: this.instanceId,
     };
@@ -700,6 +715,7 @@ export class ChannelStartupService {
               to_timestamp("Message"."messageTimestamp"::double precision), 
               "Contact"."updatedAt"
             ) as "updatedAt",
+            "Chat"."name" as "chatName",
             "Chat"."createdAt" as "windowStart",
             "Chat"."createdAt" + INTERVAL '24 hours' as "windowExpires",
             CASE 
@@ -730,6 +746,7 @@ export class ChannelStartupService {
           ORDER BY 
             "Contact"."remoteJid",
             "Message"."messageTimestamp" DESC
+            ${limit}
         )
         SELECT * FROM rankedMessages
         ORDER BY "updatedAt" DESC NULLS LAST;
@@ -758,6 +775,7 @@ export class ChannelStartupService {
           id: contact.id,
           remoteJid: contact.remoteJid,
           pushName: contact.pushName,
+          chatName: contact.chatName,
           profilePicUrl: contact.profilePicUrl,
           updatedAt: contact.updatedAt,
           windowStart: contact.windowStart,

@@ -206,6 +206,20 @@ export class BusinessStartupService extends ChannelStartupService {
     return content;
   }
 
+  private messageLocationJson(received: any) {
+    const message = received.messages[0];
+    let content: any = {
+      locationMessage: {
+        degreesLatitude: message.location.latitude,
+        degreesLongitude: message.location.longitude,
+        name: message.location?.name,
+        address: message.location?.address,
+      },
+    };
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+    return content;
+  }
+
   private messageContactsJson(received: any) {
     const message = received.messages[0];
     let content: any = {};
@@ -282,6 +296,9 @@ export class BusinessStartupService extends ChannelStartupService {
         break;
       case 'template':
         messageType = 'conversation';
+        break;
+      case 'location':
+        messageType = 'locationMessage';
         break;
       default:
         messageType = 'conversation';
@@ -434,6 +451,17 @@ export class BusinessStartupService extends ChannelStartupService {
             },
             contextInfo: this.messageContactsJson(received)?.contextInfo,
             messageType: 'contactMessage',
+            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
+          };
+        } else if (received?.messages[0].location) {
+          messageRaw = {
+            key,
+            pushName,
+            message: this.messageLocationJson(received),
+            contextInfo: this.messageLocationJson(received)?.contextInfo,
+            messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
             instanceId: this.instanceId,
@@ -800,6 +828,7 @@ export class BusinessStartupService extends ChannelStartupService {
         }
         if (message['media']) {
           const isImage = message['mimetype']?.startsWith('image/');
+          const isVideo = message['mimetype']?.startsWith('video/');
 
           content = {
             messaging_product: 'whatsapp',
@@ -809,7 +838,7 @@ export class BusinessStartupService extends ChannelStartupService {
             [message['mediaType']]: {
               [message['type']]: message['id'],
               preview_url: linkPreview,
-              ...(message['fileName'] && !isImage && { filename: message['fileName'] }),
+              ...(message['fileName'] && !isImage && !isVideo && { filename: message['fileName'] }),
               caption: message['caption'],
             },
           };
@@ -977,8 +1006,10 @@ export class BusinessStartupService extends ChannelStartupService {
 
   private async getIdMedia(mediaMessage: any) {
     const formData = new FormData();
+    const media = mediaMessage.media || mediaMessage.audio;
+    if (!media) throw new Error('Media or audio not found');
 
-    const fileStream = createReadStream(mediaMessage.media);
+    const fileStream = createReadStream(media);
 
     formData.append('file', fileStream, { filename: 'media', contentType: mediaMessage.mimetype });
     formData.append('typeFile', mediaMessage.mimetype);
@@ -1079,7 +1110,7 @@ export class BusinessStartupService extends ChannelStartupService {
     const prepareMedia: any = {
       fileName: `${hash}.mp3`,
       mediaType: 'audio',
-      media: audio,
+      audio,
     };
 
     if (isURL(audio)) {
@@ -1101,15 +1132,7 @@ export class BusinessStartupService extends ChannelStartupService {
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
     const mediaData: SendAudioDto = { ...data };
 
-    if (file?.buffer) {
-      mediaData.audio = file.buffer.toString('base64');
-    } else if (isURL(mediaData.audio)) {
-      // DO NOTHING
-      // mediaData.audio = mediaData.audio;
-    } else {
-      console.error('El archivo no tiene buffer o file es undefined');
-      throw new Error('File or buffer is undefined');
-    }
+    if (file) mediaData.audio = file.buffer.toString('base64');
 
     const message = await this.processAudio(mediaData.audio, data.number);
 

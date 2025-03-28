@@ -16,6 +16,9 @@ export const eventSchema: JSONSchema7 = {
     rabbitmq: {
       $ref: '#/$defs/event',
     },
+    nats: {
+      $ref: '#/$defs/event',
+    },
     sqs: {
       $ref: '#/$defs/event',
     },

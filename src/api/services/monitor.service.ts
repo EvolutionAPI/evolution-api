@@ -91,6 +91,7 @@ export class WAMonitoringService {
         Chatwoot: true,
         Proxy: true,
         Rabbitmq: true,
+        Nats: true,
         Sqs: true,
         Websocket: true,
         Setting: true,
@@ -190,6 +191,7 @@ export class WAMonitoringService {
     await this.prismaRepository.chatwoot.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.proxy.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.rabbitmq.deleteMany({ where: { instanceId: instance.id } });
+    await this.prismaRepository.nats.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.sqs.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.integrationSession.deleteMany({ where: { instanceId: instance.id } });
     await this.prismaRepository.typebot.deleteMany({ where: { instanceId: instance.id } });
