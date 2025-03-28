@@ -3980,53 +3980,61 @@ export class BaileysStartupService extends ChannelStartupService {
         edit: data.key,
       });
       if (messageSent) {
-        const messageId = messageSent.message?.protocolMessage?.key?.id;
-        if (messageId) {
-          let message = await this.prismaRepository.message.findFirst({
-            where: {
-              key: {
-                path: ['id'],
-                equals: messageId,
-              },
-            },
-          });
-          if (!message) throw new NotFoundException('Message not found');
+        const editedMessage = messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
 
-          if (!(message.key.valueOf() as any).fromMe) {
-            new BadRequestException('You cannot edit others messages');
-          }
-          if ((message.key.valueOf() as any)?.deleted) {
-            new BadRequestException('You cannot edit deleted messages');
-          }
-          if (oldMessage.messageType === 'conversation' || oldMessage.messageType === 'extendedTextMessage') {
-            oldMessage.message.conversation = data.text;
-          } else {
-            oldMessage.message[oldMessage.messageType].caption = data.text;
-          }
-          message = await this.prismaRepository.message.update({
-            where: { id: message.id },
-            data: {
-              message: oldMessage.message,
-              status: 'EDITED',
-              messageTimestamp: Math.floor(Date.now() / 1000), // Convert to int32 by dividing by 1000 to get seconds
-            },
-          });
-          const messageUpdate: any = {
-            messageId: message.id,
-            keyId: messageId,
-            remoteJid: messageSent.key.remoteJid,
-            fromMe: messageSent.key.fromMe,
-            participant: messageSent.key?.remoteJid,
-            status: 'EDITED',
-            instanceId: this.instanceId,
-          };
-          await this.prismaRepository.messageUpdate.create({
-            data: messageUpdate,
-          });
-
-          const editedMessage = messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
-
+        if (editedMessage) {
           this.sendDataWebhook(Events.SEND_MESSAGE_UPDATE, editedMessage);
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
+            this.chatwootService.eventWhatsapp(
+              'send.message.update',
+              { instanceName: this.instance.name, instanceId: this.instance.id },
+              editedMessage,
+            );
+
+          const messageId = messageSent.message?.protocolMessage?.key?.id;
+          if (messageId) {
+            let message = await this.prismaRepository.message.findFirst({
+              where: {
+                key: {
+                  path: ['id'],
+                  equals: messageId,
+                },
+              },
+            });
+            if (!message) throw new NotFoundException('Message not found');
+
+            if (!(message.key.valueOf() as any).fromMe) {
+              new BadRequestException('You cannot edit others messages');
+            }
+            if ((message.key.valueOf() as any)?.deleted) {
+              new BadRequestException('You cannot edit deleted messages');
+            }
+            if (oldMessage.messageType === 'conversation' || oldMessage.messageType === 'extendedTextMessage') {
+              oldMessage.message.conversation = data.text;
+            } else {
+              oldMessage.message[oldMessage.messageType].caption = data.text;
+            }
+            message = await this.prismaRepository.message.update({
+              where: { id: message.id },
+              data: {
+                message: oldMessage.message,
+                status: 'EDITED',
+                messageTimestamp: Math.floor(Date.now() / 1000), // Convert to int32 by dividing by 1000 to get seconds
+              },
+            });
+            const messageUpdate: any = {
+              messageId: message.id,
+              keyId: messageId,
+              remoteJid: messageSent.key.remoteJid,
+              fromMe: messageSent.key.fromMe,
+              participant: messageSent.key?.remoteJid,
+              status: 'EDITED',
+              instanceId: this.instanceId,
+            };
+            await this.prismaRepository.messageUpdate.create({
+              data: messageUpdate,
+            });
+          }
         }
       }
 
