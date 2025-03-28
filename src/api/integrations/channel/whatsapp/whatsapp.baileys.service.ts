@@ -1146,8 +1146,9 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
             const oldMessage = await this.getMessage(editedMessage.key, true);
             if ((oldMessage as any)?.id) {
- 
-              const editedMessageTimestamp = Long.isLong(editedMessage?.timestampMs) ? editedMessage.timestampMs?.toNumber() : editedMessage.timestampMs as number;
+              const editedMessageTimestamp = Long.isLong(editedMessage?.timestampMs)
+                ? editedMessage.timestampMs?.toNumber()
+                : (editedMessage.timestampMs as number);
 
               await this.prismaRepository.message.update({
                 where: { id: (oldMessage as any).id },
