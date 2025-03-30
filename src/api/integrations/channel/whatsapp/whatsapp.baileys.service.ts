@@ -2754,13 +2754,33 @@ export class BaileysStartupService extends ChannelStartupService {
         imageBuffer = Buffer.from(response.data, 'binary');
       }
 
-      const webpBuffer = await sharp(imageBuffer).webp().toBuffer();
+      const isAnimated = this.isAnimated(image, imageBuffer);
 
-      return webpBuffer;
+      if (isAnimated) {
+        return await sharp(imageBuffer, { animated: true }).webp({ quality: 80 }).toBuffer();
+      } else {
+        return await sharp(imageBuffer).webp().toBuffer();
+      }
     } catch (error) {
       console.error('Erro ao converter a imagem para WebP:', error);
       throw error;
     }
+  }
+
+  private isAnimatedWebp(buffer: Buffer): boolean {
+    if (buffer.length < 12) return false;
+
+    return buffer.indexOf(Buffer.from('ANIM')) !== -1;
+  }
+
+  private isAnimated(image: string, buffer: Buffer): boolean {
+    const lowerCaseImage = image.toLowerCase();
+
+    if (lowerCaseImage.includes('.gif')) return true;
+
+    if (lowerCaseImage.includes('.webp')) return this.isAnimatedWebp(buffer);
+
+    return false;
   }
 
   public async mediaSticker(data: SendStickerDto, file?: any) {
