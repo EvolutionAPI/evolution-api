@@ -1,3 +1,9 @@
+# 2.2.4 (hotfix)
+
+### Fixed
+
+* Shell injection vulnerability
+
 # 2.2.3 (2025-02-03 11:52)
 
 ### Fixed
