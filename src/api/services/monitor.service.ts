@@ -168,7 +168,7 @@ export class WAMonitoringService {
 
   public async cleaningStoreData(instanceName: string) {
     if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
-      const instancePath = join(STORE_DIR, 'chatwoot', `${instanceName}*`);
+      const instancePath = join(STORE_DIR, 'chatwoot', instanceName);
       execFileSync('rm', ['-rf', instancePath]);
     }
 
