@@ -10,7 +10,7 @@ const getTypeMessage = (msg: any) => {
     conversation: msg?.message?.conversation,
     extendedTextMessage: msg?.message?.extendedTextMessage?.text,
     contactMessage: msg?.message?.contactMessage?.displayName,
-    locationMessage: msg?.message?.locationMessage?.degreesLatitude,
+    locationMessage: msg?.message?.locationMessage?.degreesLatitude.toString(),
     viewOnceMessageV2:
       msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
       msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
