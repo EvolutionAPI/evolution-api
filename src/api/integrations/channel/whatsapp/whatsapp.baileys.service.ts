@@ -382,7 +382,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-          qrcode,
+            qrcode,
         ),
       );
 
@@ -1023,18 +1023,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-          (
-            await this.prismaRepository.message.findMany({
-              select: { key: true },
-              where: { instanceId: this.instanceId },
-            })
-          ).map((message) => {
-            const key = message.key as {
-              id: string;
-            };
+            (
+              await this.prismaRepository.message.findMany({
+                select: { key: true },
+                where: { instanceId: this.instanceId },
+              })
+            ).map((message) => {
+              const key = message.key as {
+                id: string;
+              };
 
-            return key.id;
-          }),
+              return key.id;
+            }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
