@@ -382,7 +382,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-            qrcode,
+          qrcode,
         ),
       );
 
@@ -1023,18 +1023,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-            (
-              await this.prismaRepository.message.findMany({
-                select: { key: true },
-                where: { instanceId: this.instanceId },
-              })
-            ).map((message) => {
-              const key = message.key as {
-                id: string;
-              };
+          (
+            await this.prismaRepository.message.findMany({
+              select: { key: true },
+              where: { instanceId: this.instanceId },
+            })
+          ).map((message) => {
+            const key = message.key as {
+              id: string;
+            };
 
-              return key.id;
-            }),
+            return key.id;
+          }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1226,6 +1226,7 @@ export class BaileysStartupService extends ChannelStartupService {
             received.pushName &&
             existingChat.name !== received.pushName &&
             received.pushName.trim().length > 0 &&
+            !received.key.fromMe &&
             !received.key.remoteJid.includes('@g.us')
           ) {
             this.sendDataWebhook(Events.CHATS_UPSERT, [{ ...existingChat, name: received.pushName }]);
@@ -1585,7 +1586,6 @@ export class BaileysStartupService extends ChannelStartupService {
             const chatToInsert = {
               remoteJid: message.remoteJid,
               instanceId: this.instanceId,
-              name: message.pushName || '',
               unreadMessages: 0,
             };
 
