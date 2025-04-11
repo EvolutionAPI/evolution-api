@@ -314,7 +314,7 @@ export class ConfigService {
     this.env = this.envProcess();
     this.env.PRODUCTION = process.env?.NODE_ENV === 'PROD';
     if (process.env?.DOCKER_ENV === 'true') {
-      this.env.SERVER.TYPE = process.env.SERVER_TYPE as 'http' | 'http';
+      this.env.SERVER.TYPE = process.env.SERVER_TYPE as 'http' | 'https';
       this.env.SERVER.PORT = Number.parseInt(process.env.SERVER_PORT) || 8080;
     }
   }
