@@ -1,6 +1,6 @@
 services:
   api:
-    container_name: evolution_api
+    container_name: evolution_api_${ENVIROMNENT}
     build: .
     #image: evoapicloud/evolution-api:latest
     restart: always
@@ -22,7 +22,7 @@ services:
     image: redis:latest
     networks:
       - evolution-net
-    container_name: redis
+    container_name: redis_${ENVIROMNENT}
     command: >
       redis-server --port 6379 --appendonly yes
     volumes:
@@ -31,7 +31,7 @@ services:
       - ${REDIS_PORT}:6379
 
   postgres:
-    container_name: postgres
+    container_name: postgres_${ENVIROMNENT}
     image: postgres:15
     networks:
       - evolution-net
