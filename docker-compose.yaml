@@ -1,13 +1,14 @@
 services:
   api:
     container_name: evolution_api
-    image: evoapicloud/evolution-api:latest
+    build: .
+    #image: evoapicloud/evolution-api:latest
     restart: always
     depends_on:
       - redis
       - postgres
     ports:
-      - 8080:8080
+      - ${SERVER_PORT}:8080
     volumes:
       - evolution_instances:/evolution/instances
     networks:
@@ -15,7 +16,7 @@ services:
     env_file:
       - .env
     expose:
-      - 8080
+      - ${SERVER_PORT}
 
   redis:
     image: redis:latest
@@ -27,7 +28,7 @@ services:
     volumes:
       - evolution_redis:/data
     ports:
-      - 6379:6379
+      - ${REDIS_PORT}:6379
 
   postgres:
     container_name: postgres
@@ -37,7 +38,7 @@ services:
     command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
     restart: always
     ports:
-      - 5432:5432
+      - ${DATABASE_PORT}:5432
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=pass
@@ -46,7 +47,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     expose:
-      - 5432
+      - ${DATABASE_PORT}
 
 volumes:
   evolution_instances:
