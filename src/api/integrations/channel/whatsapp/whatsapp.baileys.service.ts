@@ -1226,6 +1226,7 @@ export class BaileysStartupService extends ChannelStartupService {
             received.pushName &&
             existingChat.name !== received.pushName &&
             received.pushName.trim().length > 0 &&
+            !received.key.fromMe &&
             !received.key.remoteJid.includes('@g.us')
           ) {
             this.sendDataWebhook(Events.CHATS_UPSERT, [{ ...existingChat, name: received.pushName }]);
@@ -1585,7 +1586,6 @@ export class BaileysStartupService extends ChannelStartupService {
             const chatToInsert = {
               remoteJid: message.remoteJid,
               instanceId: this.instanceId,
-              name: message.pushName || '',
               unreadMessages: 0,
             };
 
