@@ -2249,6 +2249,8 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted);
       }
 
+      console.dir({messageSent});
+
       if (Long.isLong(messageSent?.messageTimestamp)) {
         messageSent.messageTimestamp = messageSent.messageTimestamp?.toNumber();
       }
@@ -3978,6 +3980,9 @@ export class BaileysStartupService extends ChannelStartupService {
         ...(options as any),
         edit: data.key,
       });
+
+      console.dir({messageUpdate: messageSent}, {depth: null});
+
       if (messageSent) {
         const editedMessage =
           messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
