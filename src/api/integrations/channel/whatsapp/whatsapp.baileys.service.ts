@@ -3985,7 +3985,7 @@ export class BaileysStartupService extends ChannelStartupService {
           messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
 
         if (editedMessage) {
-          editedMessage.key.remoteJid = editedMessage.key.remoteJid.replace("s.whatsapp.net", "g.us");
+          //editedMessage.key.remoteJid = editedMessage.key.remoteJid.replace("s.whatsapp.net", "g.us");
           this.sendDataWebhook(Events.SEND_MESSAGE_UPDATE, editedMessage);
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
             this.chatwootService.eventWhatsapp(
