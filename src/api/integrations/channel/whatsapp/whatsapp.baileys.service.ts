@@ -149,7 +149,6 @@ import { PassThrough, Readable } from 'stream';
 import { v4 } from 'uuid';
 
 import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
-import { Console } from 'console';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
@@ -1132,8 +1131,6 @@ export class BaileysStartupService extends ChannelStartupService {
               console.log('requested on-demand sync, id=', messageId);
             }
           }
-
-          console.dir({received}, {depth: null});
 
           const editedMessage =
             received?.message?.protocolMessage || received?.message?.editedMessage?.message?.protocolMessage;
@@ -3957,9 +3954,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async updateMessage(data: UpdateMessageDto) {
-    console.dir({updateData: data});
-    data.number = createJid(data.number);
-    const jid = data.number;
+    const jid = createJid(data.number);
 
     const options = await this.formatUpdateMessage(data);
 
@@ -3983,14 +3978,11 @@ export class BaileysStartupService extends ChannelStartupService {
         ...(options as any),
         edit: data.key,
       });
-
-      console.dir({messageSent}, {depth: null});
       if (messageSent) {
         const editedMessage =
           messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
 
         if (editedMessage) {
-          //editedMessage.key.remoteJid = editedMessage.key.remoteJid.replace("s.whatsapp.net", "g.us");
           this.sendDataWebhook(Events.SEND_MESSAGE_UPDATE, editedMessage);
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
             this.chatwootService.eventWhatsapp(
