@@ -149,6 +149,7 @@ import { PassThrough, Readable } from 'stream';
 import { v4 } from 'uuid';
 
 import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
+import { Console } from 'console';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
@@ -1131,6 +1132,8 @@ export class BaileysStartupService extends ChannelStartupService {
               console.log('requested on-demand sync, id=', messageId);
             }
           }
+
+          console.dir({received}, {depth: null});
 
           const editedMessage =
             received?.message?.protocolMessage || received?.message?.editedMessage?.message?.protocolMessage;
