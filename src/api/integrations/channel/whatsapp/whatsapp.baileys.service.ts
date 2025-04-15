@@ -3979,7 +3979,7 @@ export class BaileysStartupService extends ChannelStartupService {
         edit: data.key,
       });
 
-      console.dir({messageSent});
+      console.dir({messageSent}, {depth: null});
       if (messageSent) {
         const editedMessage =
           messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
