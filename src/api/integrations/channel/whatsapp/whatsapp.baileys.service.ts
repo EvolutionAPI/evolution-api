@@ -2249,8 +2249,6 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent = await this.sendMessage(sender, message, mentions, linkPreview, quoted);
       }
 
-      console.dir({messageSent});
-
       if (Long.isLong(messageSent?.messageTimestamp)) {
         messageSent.messageTimestamp = messageSent.messageTimestamp?.toNumber();
       }
@@ -3981,13 +3979,12 @@ export class BaileysStartupService extends ChannelStartupService {
         edit: data.key,
       });
 
-      console.dir({messageUpdate: messageSent}, {depth: null});
-
       if (messageSent) {
         const editedMessage =
           messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
 
         if (editedMessage) {
+          editedMessage.key.remoteJid = editedMessage.key.remoteJid.replace("s.whatsapp.net", "g.us");
           this.sendDataWebhook(Events.SEND_MESSAGE_UPDATE, editedMessage);
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
             this.chatwootService.eventWhatsapp(
