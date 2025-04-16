@@ -513,7 +513,7 @@ export class ChannelStartupService {
       contactFindManyArgs.skip = query.offset * (validPage - 1);
     }
 
-    this.logger.log(JSON.stringify({query}));
+    this.logger.log(JSON.stringify({contactFindManyArgs}));
 
     return await this.prismaRepository.contact.findMany(contactFindManyArgs);
   }
