@@ -1865,10 +1865,12 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async profilePicture(number: string) {
+    console.dir(`converting jid:${number}`);
     const jid = createJid(number);
 
     try {
       const profilePictureUrl = await this.client.profilePictureUrl(jid, 'image');
+      console.dir({profilePictureUrl});
 
       return {
         wuid: jid,
