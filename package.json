@@ -1,13 +1,13 @@
 {
   "name": "evolution-api",
-  "version":  "2.2.3.3",
+  "version": "2.2.3.17",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
   "scripts": {
     "build": "tsc --noEmit && tsup",
     "start": "tsnd -r tsconfig-paths/register --files --transpile-only ./src/main.ts",
-    "start:prod": "node dist/main",
+    "start:prod": "node --enable-source-maps -r source-map-support/register dist/main.js",
     "dev:server": "tsnd -r tsconfig-paths/register --files --transpile-only --respawn --ignore-watch node_modules ./src/main.ts",
     "test": "tsnd -r tsconfig-paths/register --files --transpile-only --respawn --ignore-watch node_modules ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src",
@@ -95,6 +95,7 @@
     "sharp": "^0.32.6",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "source-map-support": "^0.5.21",
     "tsup": "^8.3.5"
   },
   "devDependencies": {

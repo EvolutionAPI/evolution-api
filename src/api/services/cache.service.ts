@@ -42,7 +42,10 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
-    this.cache.set(key, value, ttl);
+
+    const effectiveTtl = ttl ?? (2 * 60 * 60);
+
+    this.cache.set(key, value, effectiveTtl);
   }
 
   public async hSet(key: string, field: string, value: any) {
@@ -69,6 +72,20 @@ export class CacheService {
     if (!this.cache) {
       return;
     }
+    // Verifica se a chave é realmente uma string
+    if (typeof key !== 'string') {
+      this.logger.error(
+        `Invalid cache key type: expected string but received ${typeof key}. Key content: ${JSON.stringify(key)}. Stack trace: ${new Error().stack}`
+      );
+    } else {
+      // Opcional: se a chave contiver quebras de linha, pode ser um sinal de que há um vCard em vez de um simples identificador
+      if (key.includes('\n')) {
+        this.logger.error(
+          `Invalid cache key format (contains newline characters): ${key}. Stack trace: ${new Error().stack}`
+        );
+      }
+    }
+    // Chama a implementação real do delete
     return this.cache.delete(key);
   }
 

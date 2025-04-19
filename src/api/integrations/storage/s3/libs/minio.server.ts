@@ -40,21 +40,37 @@ const bucketExists = async () => {
 };
 
 const setBucketPolicy = async () => {
-  if (minioClient) {
-    const policy = {
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Effect: 'Allow',
-          Principal: '*',
-          Action: ['s3:GetObject'],
-          Resource: [`arn:aws:s3:::${bucketName}/*`],
-        },
-      ],
-    };
+  if (!minioClient) return;
+
+  const policy = {
+    Version: '2012-10-17',
+    Statement: [
+      {
+        Effect: 'Allow',
+        Principal: '*',
+        Action: ['s3:GetObject'],
+        Resource: [`arn:aws:s3:::${bucketName}/*`],
+      },
+    ],
+  };
+
+  try {
     await minioClient.setBucketPolicy(bucketName, JSON.stringify(policy));
+    console.log(`[S3 Service] Bucket policy aplicada em ${bucketName}`);
+  } catch (err: any) {
+    // MinIO não implementa esse endpoint
+    if (err.code === 'NotImplemented') {
+      console.warn(
+        `[S3 Service] setBucketPolicy não suportado por este endpoint, ignorando (bucket=${bucketName})`
+      );
+    } else {
+      // qualquer outro erro real, relança
+      console.error('[S3 Service] Erro ao aplicar bucket policy', err);
+      throw err;
+    }
   }
 };
+
 
 const createBucket = async () => {
   if (minioClient) {
