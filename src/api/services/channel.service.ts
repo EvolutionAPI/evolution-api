@@ -740,7 +740,7 @@ export class ChannelStartupService {
       ${offset};
     `;
 
-    if (results && Array.isArray(results) && results.length > 0) {
+    if (results && isArray(results) && results.length > 0) {
       const mappedResults = results.map((item) => {
         const lastMessage = item.lastMessageId
           ? {
