@@ -697,6 +697,9 @@ export class ChannelStartupService {
         AND "Message"."messageTimestamp" <= ${Math.floor(new Date(query.where.messageTimestamp.lte).getTime() / 1000)}`
         : Prisma.sql``;
 
+    const limit = query?.take ? Prisma.sql`LIMIT ${query.take}` : Prisma.sql``;
+    const offset = query?.skip ? Prisma.sql`OFFSET ${query.skip}` : Prisma.sql``;
+
     const results = await this.prismaRepository.$queryRaw`
       WITH rankedMessages AS (
         SELECT DISTINCT ON ("Message"."key"->>'remoteJid') 
@@ -732,7 +735,9 @@ export class ChannelStartupService {
         ORDER BY "Message"."key"->>'remoteJid', "Message"."messageTimestamp" DESC
       )
       SELECT * FROM rankedMessages 
-      ORDER BY "updatedAt" DESC NULLS LAST;
+      ORDER BY "updatedAt" DESC NULLS LAST
+      ${limit}
+      ${offset};
     `;
 
     if (results && Array.isArray(results) && results.length > 0) {
