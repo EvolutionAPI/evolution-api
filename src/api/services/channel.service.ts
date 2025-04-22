@@ -513,7 +513,20 @@ export class ChannelStartupService {
       contactFindManyArgs.skip = query.offset * (validPage - 1);
     }
 
-    return await this.prismaRepository.contact.findMany(contactFindManyArgs);
+    const contacts = await this.prismaRepository.contact.findMany(contactFindManyArgs);
+
+    return contacts.map((contact) => {
+      const remoteJid = contact.remoteJid;
+      const isGroup = remoteJid.endsWith('@g.us');
+      const isSaved = !!contact.pushName || !!contact.profilePicUrl;
+      const type = isGroup ? 'group' : isSaved ? 'contact' : 'group_member';
+      return {
+        ...contact,
+        isGroup,
+        isSaved,
+        type,
+      };
+    });
   }
 
   public cleanMessageData(message: any) {
