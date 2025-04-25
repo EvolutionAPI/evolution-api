@@ -382,7 +382,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-          qrcode,
+            qrcode,
         ),
       );
 
@@ -1023,18 +1023,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-          (
-            await this.prismaRepository.message.findMany({
-              select: { key: true },
-              where: { instanceId: this.instanceId },
-            })
-          ).map((message) => {
-            const key = message.key as {
-              id: string;
-            };
+            (
+              await this.prismaRepository.message.findMany({
+                select: { key: true },
+                where: { instanceId: this.instanceId },
+              })
+            ).map((message) => {
+              const key = message.key as {
+                id: string;
+              };
 
-            return key.id;
-          }),
+              return key.id;
+            }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1115,7 +1115,6 @@ export class BaileysStartupService extends ChannelStartupService {
     ) => {
       try {
         for (const received of messages) {
-          console.dir({ received }, { depth: null });
           if (received.message?.conversation || received.message?.extendedTextMessage?.text) {
             const text = received.message?.conversation || received.message?.extendedTextMessage?.text;
 
@@ -1364,13 +1363,9 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          console.log("1 - DEBUG MESSAGE RAW");
           if (this.localWebhook.enabled) {
-            console.log("2 - DEBUG MESSAGE RAW", {isMedia, webhookBase64: this.localWebhook.webhookBase64});
             if (isMedia && this.localWebhook.webhookBase64) {
-              console.log("3 - DEBUG MESSAGE RAW");
               try {
-                console.dir({ key: received.key, message: received.message }, { depth: null });
                 const buffer = await downloadMediaMessage(
                   { key: received.key, message: received?.message },
                   'buffer',
@@ -1380,9 +1375,8 @@ export class BaileysStartupService extends ChannelStartupService {
                     reuploadRequest: this.client.updateMediaMessage,
                   },
                 );
-                console.dir({ buffer });
+
                 messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
-                console.dir({ base64: messageRaw.message.base64 });
               } catch (error) {
                 this.logger.error(['Error converting media to base64', error?.message]);
               }
@@ -1876,7 +1870,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     try {
       const profilePictureUrl = await this.client.profilePictureUrl(jid, 'image');
-      console.dir({ profilePictureUrl });
+      console.dir({profilePictureUrl});
 
       return {
         wuid: jid,
