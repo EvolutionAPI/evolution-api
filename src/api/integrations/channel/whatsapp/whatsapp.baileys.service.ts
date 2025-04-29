@@ -2654,9 +2654,6 @@ export class BaileysStartupService extends ChannelStartupService {
       prepareMedia[mediaType].fileName = mediaMessage.fileName;
 
       if (mediaMessage.mediatype === 'video') {
-        prepareMedia[mediaType].jpegThumbnail = Uint8Array.from(
-          readFileSync(join(process.cwd(), 'public', 'images', 'video-cover.png')),
-        );
         prepareMedia[mediaType].gifPlayback = false;
       }
 
