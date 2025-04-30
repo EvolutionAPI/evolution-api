@@ -127,8 +127,12 @@ export const getAMQP = (): amqp.Channel | null => {
 
 export const initGlobalQueues = () => {
   logger.info('Initializing global queues');
-  const events = configService.get<Rabbitmq>('RABBITMQ').EVENTS;
-  const prefixKey = configService.get<Rabbitmq>('RABBITMQ').PREFIX_KEY;
+  const rabbitmqConfig = configService.get<Rabbitmq>('RABBITMQ');
+  const events = rabbitmqConfig.EVENTS;
+  const prefixKey = rabbitmqConfig.PREFIX_KEY;
+  const messageTtl = rabbitmqConfig.MESSAGE_TTL;
+  const maxLength = rabbitmqConfig.MAX_LENGTH;
+  const maxLengthBytes = rabbitmqConfig.MAX_LENGTH_BYTES;
 
   if (!events) {
     logger.warn('No events to initialize on AMQP');
@@ -160,6 +164,10 @@ export const initGlobalQueues = () => {
       autoDelete: false,
       arguments: {
         'x-queue-type': 'quorum',
+        'x-message-ttl': messageTtl,
+        'x-max-length': maxLength,
+        'x-max-length-bytes': maxLengthBytes,
+        'x-overflow': 'reject-publish',
       },
     });
 
@@ -171,6 +179,11 @@ export const initQueues = (instanceName: string, events: string[]) => {
   if (!events || !events.length) {
     return;
   }
+
+  const rabbitmqConfig = configService.get<Rabbitmq>('RABBITMQ');
+  const messageTtl = rabbitmqConfig.MESSAGE_TTL;
+  const maxLength = rabbitmqConfig.MAX_LENGTH;
+  const maxLengthBytes = rabbitmqConfig.MAX_LENGTH_BYTES;
 
   const queues = events.map((event) => {
     return `${event.replace(/_/g, '.').toLowerCase()}`;
@@ -192,6 +205,10 @@ export const initQueues = (instanceName: string, events: string[]) => {
       autoDelete: false,
       arguments: {
         'x-queue-type': 'quorum',
+        'x-message-ttl': messageTtl,
+        'x-max-length': maxLength,
+        'x-max-length-bytes': maxLengthBytes,
+        'x-overflow': 'reject-publish',
       },
     });
 

@@ -106,6 +106,9 @@ export type Rabbitmq = {
   EXCHANGE_NAME: string;
   PREFIX_KEY?: string;
   GLOBAL_ENABLED: boolean;
+  MESSAGE_TTL: number;
+  MAX_LENGTH: number;
+  MAX_LENGTH_BYTES: number;
   EVENTS: EventsRabbitmq;
 };
 
@@ -326,6 +329,9 @@ export class ConfigService {
         EXCHANGE_NAME: process.env?.RABBITMQ_EXCHANGE_NAME || 'evolution_exchange',
         PREFIX_KEY: process.env?.RABBITMQ_PREFIX_KEY || '',
         URI: process.env.RABBITMQ_URI || '',
+        MESSAGE_TTL: Number.parseInt(process.env?.RABBITMQ_MESSAGE_TTL) || 604800,
+        MAX_LENGTH: Number.parseInt(process.env?.RABBITMQ_MAX_LENGTH) || 10000,
+        MAX_LENGTH_BYTES: Number.parseInt(process.env?.RABBITMQ_MAX_LENGTH_BYTES) || 8192,
         EVENTS: {
           APPLICATION_STARTUP: process.env?.RABBITMQ_EVENTS_APPLICATION_STARTUP === 'true',
           INSTANCE_CREATE: process.env?.RABBITMQ_EVENTS_INSTANCE_CREATE === 'true',

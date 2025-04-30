@@ -781,7 +781,10 @@ export class ChannelStartupService {
                 message['apikey'] = instanceApikey;
               }
 
-              await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)));
+              await amqp.publish(exchangeName, event, Buffer.from(JSON.stringify(message)), {
+                persistent: false,
+                expiration: this.configService.get<Rabbitmq>('RABBITMQ').MESSAGE_TTL.toString(),
+              });
 
               if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
                 const logData = {
@@ -849,7 +852,10 @@ export class ChannelStartupService {
               message['apikey'] = instanceApikey;
             }
 
-            await amqp.publish(exchangeName, queueName, Buffer.from(JSON.stringify(message)));
+            await amqp.publish(exchangeName, queueName, Buffer.from(JSON.stringify(message)), {
+              persistent: false,
+              expiration: this.configService.get<Rabbitmq>('RABBITMQ').MESSAGE_TTL.toString(),
+            });
 
             if (this.configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
               const logData = {

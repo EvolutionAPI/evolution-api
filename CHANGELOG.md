@@ -1,3 +1,15 @@
+# 1.8.6 (develop)
+
+### Fixed
+
+* Retry and Reconnect system in rabbitmq integration
+
+### Feature
+
+* RabbitMQ optimization with parameterized settings via environment variables (MESSAGE_TTL, MAX_LENGTH and MAX_LENGTH_BYTES)
+* Non-persistent messages to reduce disk usage
+* Automatic cleanup of expired messages in queues
+
 # 1.8.5 (2025-02-03 12:32)
 
 ### Fixed

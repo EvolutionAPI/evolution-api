@@ -91,6 +91,12 @@ RABBITMQ:
   EXCHANGE_NAME: evolution_exchange
   PREFIX_KEY: evolution
   GLOBAL_ENABLED: true
+  # Tempo de vida das mensagens: 1 hora em milissegundos (3600000 = 60 * 60 * 1000)
+  MESSAGE_TTL: 3600000
+  # Limite máximo de mensagens por fila (quando atingido, novas mensagens são rejeitadas)
+  MAX_LENGTH: 1000
+  # Tamanho máximo em bytes permitido para filas: 10MB (10485760 = 10 * 1024 * 1024)
+  MAX_LENGTH_BYTES: 10485760
   EVENTS:
     APPLICATION_STARTUP: false
     INSTANCE_CREATE: false

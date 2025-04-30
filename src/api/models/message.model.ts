@@ -1,3 +1,4 @@
+import Long from 'long';
 import { Schema } from 'mongoose';
 
 import { dbserver } from '../../libs/db.connect';
@@ -25,7 +26,7 @@ export class MessageRaw {
   participant?: string;
   message?: object;
   messageType?: string;
-  messageTimestamp?: number | Long.Long;
+  messageTimestamp?: number | Long;
   owner: string;
   source?: 'android' | 'web' | 'ios' | 'unknown' | 'desktop';
   source_id?: string;
