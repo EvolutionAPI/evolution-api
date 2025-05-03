@@ -694,7 +694,7 @@ export class ChannelStartupService {
           SELECT DISTINCT ON ("Contact"."remoteJid")
             "Contact"."id",
             "Contact"."remoteJid",
-            "Contact"."pushName",
+            "Chat"."name" as "pushName",
             "Contact"."profilePicUrl",
             COALESCE(
               to_timestamp("Message"."messageTimestamp"::double precision), 
