@@ -6,7 +6,6 @@ import { configService, Log, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
 import axios, { AxiosInstance } from 'axios';
-import { isURL } from 'class-validator';
 import * as jwt from 'jsonwebtoken';
 
 import { EmitData, EventController, EventControllerInterface } from '../event.controller';
@@ -75,8 +74,8 @@ export class WebhookController extends EventController implements EventControlle
 
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
     const webhookLocal = instance?.events;
-    const webhookHeaders = { ...(instance?.headers as Record<string, string> || {}) };
-    
+    const webhookHeaders = { ...((instance?.headers as Record<string, string>) || {}) };
+
     if (webhookHeaders && 'jwt_key' in webhookHeaders) {
       const jwtKey = webhookHeaders['jwt_key'];
       const jwtToken = this.generateJwtToken(jwtKey);
@@ -84,7 +83,7 @@ export class WebhookController extends EventController implements EventControlle
 
       delete webhookHeaders['jwt_key'];
     }
-    
+
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const enabledLog = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
@@ -250,7 +249,7 @@ export class WebhookController extends EventController implements EventControlle
         app: 'evolution',
         action: 'webhook',
       };
-      
+
       const token = jwt.sign(payload, authToken, { algorithm: 'HS256' });
       return token;
     } catch (error) {
