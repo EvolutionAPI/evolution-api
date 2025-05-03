@@ -1106,7 +1106,7 @@ export class ChatwootService {
 
         sendTelemetry('/message/sendWhatsAppAudio');
 
-        const messageSent = await waInstance?.audioWhatsapp(data, true);
+        const messageSent = await waInstance?.audioWhatsapp(data, null, true);
 
         return messageSent;
       }
@@ -1898,7 +1898,7 @@ export class ChatwootService {
               .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~')
           : originalMessage;
 
-        if (bodyMessage && bodyMessage.includes('Por favor, classifique esta conversa, http')) {
+        if (bodyMessage && bodyMessage.includes('/survey/responses/') && bodyMessage.includes('http')) {
           return;
         }
 
@@ -2199,7 +2199,7 @@ export class ChatwootService {
         }
       }
 
-      if (event === 'messages.edit') {
+      if (event === 'messages.edit' || event === 'send.message.update') {
         const editedText = `${
           body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
         }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;

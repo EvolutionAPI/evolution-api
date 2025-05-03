@@ -86,6 +86,7 @@ model Instance {
   Proxy                   Proxy?
   Setting                 Setting?
   Rabbitmq                Rabbitmq?
+  Nats                    Nats?
   Sqs                     Sqs?
   Websocket               Websocket?
   Typebot                 Typebot[]
@@ -99,7 +100,7 @@ model Instance {
   Template                Template[]
   Dify                    Dify[]
   DifySetting             DifySetting?
-  integrationSessions     IntegrationSession[]
+  IntegrationSession      IntegrationSession[]
   EvolutionBot            EvolutionBot[]
   EvolutionBotSetting     EvolutionBotSetting?
   Flowise                 Flowise[]
@@ -116,18 +117,19 @@ model Session {
 }
 
 model Chat {
-  id         String    @id @default(cuid())
-  remoteJid  String    @db.VarChar(100)
-  name       String?   @db.VarChar(100)
-  labels     Json?     @db.Json
-  createdAt  DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
-  updatedAt  DateTime? @updatedAt @db.Timestamp
-  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  instanceId String
+  id             String    @id @default(cuid())
+  remoteJid      String    @db.VarChar(100)
+  name           String?   @db.VarChar(100)
+  labels         Json?     @db.Json
+  createdAt      DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt      DateTime? @updatedAt @db.Timestamp
+  Instance       Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId     String
   unreadMessages Int       @default(0)
+
+  @@unique([instanceId, remoteJid])
   @@index([instanceId])
   @@index([remoteJid])
-  @@unique([instanceId, remoteJid])
 }
 
 model Contact {
@@ -170,6 +172,7 @@ model Message {
 
   sessionId String?
   session   IntegrationSession? @relation(fields: [sessionId], references: [id])
+
   @@index([instanceId])
 }
 
@@ -185,6 +188,7 @@ model MessageUpdate {
   messageId   String
   Instance    Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId  String
+
   @@index([instanceId])
   @@index([messageId])
 }
@@ -201,6 +205,7 @@ model Webhook {
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
+
   @@index([instanceId])
 }
 
@@ -269,10 +274,21 @@ model Setting {
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
+
   @@index([instanceId])
 }
 
 model Rabbitmq {
+  id         String    @id @default(cuid())
+  enabled    Boolean   @default(false)
+  events     Json      @db.Json
+  createdAt  DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt  DateTime  @updatedAt @db.Timestamp
+  Instance   Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instanceId String    @unique
+}
+
+model Nats {
   id         String    @id @default(cuid())
   enabled    Boolean   @default(false)
   events     Json      @db.Json
