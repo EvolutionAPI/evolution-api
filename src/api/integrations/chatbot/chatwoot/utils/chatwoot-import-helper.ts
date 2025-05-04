@@ -6,6 +6,7 @@ import { Chatwoot, configService } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { inbox } from '@figuro/chatwoot-sdk';
 import { Chatwoot as ChatwootModel, Contact, Message } from '@prisma/client';
+import axios from 'axios';
 import { proto } from 'baileys';
 
 type ChatwootUser = {
@@ -209,6 +210,7 @@ class ChatwootImport {
         throw new Error('User not found to import messages.');
       }
 
+      const touchedConversations = new Set<string>();
       let totalMessagesImported = 0;
 
       let messagesOrdered = this.historyMessages.get(instance.instanceName) || [];
@@ -284,6 +286,11 @@ class ChatwootImport {
             phoneNumbersWithTimestamp,
             messagesByPhoneNumber,
           );
+
+          for (const { conversation_id } of fksByNumber.values()) {
+            touchedConversations.add(conversation_id);
+          }
+          
           this.logger.info(
             `[importHistoryMessages] Batch ${batchNumber}: FKs recuperados para ${fksByNumber.size} números.`
           );
@@ -336,6 +343,8 @@ class ChatwootImport {
                   ${bindSenderType},${bindSenderId},${bindSourceId}, to_timestamp(${bindmessageTimestamp}), to_timestamp(${bindmessageTimestamp})),`;
             });
           });
+
+
           if (bindInsertMsg.length > 2) {
             if (sqlInsertMsg.slice(-1) === ',') {
               sqlInsertMsg = sqlInsertMsg.slice(0, -1);
@@ -354,9 +363,23 @@ class ChatwootImport {
 
       this.deleteHistoryMessages(instance);
       this.deleteRepositoryMessagesCache(instance);
+
+
+
       this.logger.info(
         `[importHistoryMessages] Histórico e cache de mensagens da instância "${instance.instanceName}" foram limpos.`
       );
+
+
+      for (const convId of touchedConversations) {
+        await this.safeRefreshConversation(
+          provider.url,         
+          provider.accountId,
+          convId,
+          provider.token
+        );
+      }
+
 
       const providerData: ChatwootDto = {
         ...provider,
@@ -719,6 +742,42 @@ class ChatwootImport {
 
     return pgClient.query(sql, [`WAID:${sourceId}`, messageId]);
   }
+
+  private async safeRefreshConversation(
+    providerUrl: string,
+    accountId: string,
+    conversationId: string,
+    apiToken: string
+  ): Promise<void> {
+    try {
+      const pgClient = postgresClient.getChatwootConnection();
+      const res = await pgClient.query(
+        `SELECT display_id
+           FROM conversations
+          WHERE id = $1
+          LIMIT 1`,
+        [parseInt(conversationId, 10)]
+      );
+      const displayId = res.rows[0]?.display_id as string;
+      if (!displayId) {
+        this.logger.warn(`Conversation ${conversationId} sem display_id.`);
+        return;
+      }
+
+      const url = `${providerUrl}/api/v1/accounts/${accountId}/conversations/${displayId}/refresh`;
+      await axios.post(url, null, {
+        params: { api_access_token: apiToken },
+      });
+      this.logger.verbose(`Conversa ${displayId} refreshada com sucesso.`);
+    } catch (err: any) {
+      this.logger.warn(
+        `Não foi possível dar refresh na conversa ${conversationId}: ${err.message}`
+      );
+    }
+  }
+  
+
+  
 }
 
 export const chatwootImport = new ChatwootImport();

@@ -2171,27 +2171,47 @@ export class ChatwootService {
         }
 
         if (body.key.remoteJid.includes('@g.us')) {
-          const participantName = body.pushName;
-          const rawPhoneNumber = body.key.participant.split('@')[0];
-          const phoneMatch = rawPhoneNumber.match(/^(\d{2})(\d{2})(\d{4})(\d{4})$/);
-
-          let formattedPhoneNumber: string;
-
-          if (phoneMatch) {
-            formattedPhoneNumber = `+${phoneMatch[1]} (${phoneMatch[2]}) ${phoneMatch[3]}-${phoneMatch[4]}`;
-          } else {
-            formattedPhoneNumber = `+${rawPhoneNumber}`;
+          // Extrai de forma segura o JID do participante
+          const participantJid = body.key.participant;
+          
+          // Se não veio participant, envia mensagem crua
+          if (!participantJid) {
+            const rawContent = bodyMessage;
+            const sent = await this.createMessage(
+              instance,
+              getConversation,
+              rawContent,
+              messageType,
+              false,
+              [],
+              body,
+              'WAID:' + body.key.id,
+              quotedMsg,
+            );
+            if (!sent) this.logger.warn('message not sent');
+            return sent;
           }
-
-          let content: string;
-
-          if (!body.key.fromMe) {
-            content = `**${formattedPhoneNumber} - ${participantName}:**\n\n${bodyMessage}`;
-          } else {
-            content = `${bodyMessage}`;
-          }
-
-          const send = await this.createMessage(
+        
+          // Formata o telefone
+          const rawPhone = participantJid.split('@')[0];
+          const match = rawPhone.match(/^(\d{2})(\d{2})(\d{4})(\d{4})$/);
+          const formattedPhone = match
+            ? `+${match[1]} (${match[2]}) ${match[3]}-${match[4]}`
+            : `+${rawPhone}`;
+        
+          // Define prefixo com número e nome (ou só número, se pushName vazio)
+          const name = body.pushName?.trim();
+          const prefix = name
+            ? `**${formattedPhone} – ${name}:**\n\n`
+            : `**${formattedPhone}:**\n\n`;
+        
+          // Monta o conteúdo, omitindo prefixo em mensagens enviadas por mim
+          const content = body.key.fromMe
+            ? bodyMessage
+            : `${prefix}${bodyMessage}`;
+        
+          // Envia a mensagem formatada
+          const sent = await this.createMessage(
             instance,
             getConversation,
             content,
@@ -2202,13 +2222,8 @@ export class ChatwootService {
             'WAID:' + body.key.id,
             quotedMsg,
           );
-
-          if (!send) {
-            this.logger.warn('message not sent');
-            return;
-          }
-
-          return send;
+          if (!sent) this.logger.warn('message not sent');
+          return sent;
         } else {
           const send = await this.createMessage(
             instance,

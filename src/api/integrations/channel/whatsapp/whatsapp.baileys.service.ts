@@ -136,7 +136,7 @@ import mimeTypes from 'mime-types';
 import NodeCache from 'node-cache';
 import cron from 'node-cron';
 import { release } from 'os';
-import { join } from 'path';
+import path, { join } from 'path';
 import P from 'pino';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
 import qrcodeTerminal from 'qrcode-terminal';
@@ -1296,13 +1296,25 @@ export class BaileysStartupService extends ChannelStartupService {
                     true,
                   );
 
-                  const { buffer, mediaType, fileName, size } = media;
-                  const mimetype = mimeTypes.lookup(fileName).toString();
-                  const fullName = join(`${this.instance.id}`, received.key.remoteJid, mediaType, fileName);
+                  const { buffer, mediaType, fileName: originalName, size } = media;
+                  const mimetype = mimeTypes.lookup(originalName).toString();
+
+                  // calcula a extensão (usa a do nome original ou, em último caso, a do mimetype)
+                  const ext = path.extname(originalName) || `.${mimeTypes.extension(mimetype)}`;
+
+                  // força usar sempre o id da mensagem como nome de arquivo
+                  const fileName = `${received.key.id}${ext}`;
+
+                  const fullName = join(
+                    this.instance.id,
+                    received.key.remoteJid,
+                    mediaType,
+                    fileName,
+                  );
+
                   await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
                     'Content-Type': mimetype,
                   });
-
                   await this.prismaRepository.media.create({
                     data: {
                       messageId: msg.id,
@@ -1428,6 +1440,11 @@ export class BaileysStartupService extends ChannelStartupService {
           continue;
         }
 
+        if (!key.id) {
+          console.warn(`Mensagem sem key.id, pulando update: ${JSON.stringify(key)}`);
+          continue;
+        }
+
         if (status[update.status] === 'READ' && key.fromMe) {
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
             this.chatwootService.eventWhatsapp(
@@ -1515,7 +1532,7 @@ export class BaileysStartupService extends ChannelStartupService {
             remoteJid: key.remoteJid,
             fromMe: key.fromMe,
             participant: key?.remoteJid,
-            status: status[update.status],
+            status: status[update.status]?? 'UNKNOWN',
             pollUpdates,
             instanceId: this.instanceId,
           };
@@ -4476,29 +4493,41 @@ export class BaileysStartupService extends ChannelStartupService {
     return unreadMessages;
   }
 
-  private async addLabel(labelId: string, instanceId: string, chatId: string) {
-    const id = cuid();
-
-    await this.prismaRepository.$executeRawUnsafe(
-      `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
-       VALUES ($4, $2, $3, to_jsonb(ARRAY[$1]::text[]), NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
-     DO
-      UPDATE
-          SET "labels" = (
-          SELECT to_jsonb(array_agg(DISTINCT elem))
-          FROM (
-          SELECT jsonb_array_elements_text("Chat"."labels") AS elem
-          UNION
-          SELECT $1::text AS elem
-          ) sub
-          ),
-          "updatedAt" = NOW();`,
-      labelId,
-      instanceId,
-      chatId,
-      id,
-    );
+  private async addLabel(
+    labelId: string,
+    instanceId: string,
+    chatId: string
+  ): Promise<void> {
+    try {
+      await this.prismaRepository.$executeRawUnsafe(
+        `UPDATE "Chat"
+           SET "labels" = (
+             SELECT to_jsonb(array_agg(DISTINCT elem))
+             FROM (
+               SELECT jsonb_array_elements_text("Chat".labels) AS elem
+               UNION
+               SELECT $1::text AS elem
+             ) sub
+           ),
+           "updatedAt" = NOW()
+         WHERE "instanceId" = $2
+           AND "remoteJid"  = $3;`,
+        labelId,
+        instanceId,
+        chatId
+      );
+    } catch (err: unknown) {
+      // Não deixa quebrar nada: registra e segue em frente
+      const msg =
+        err instanceof Error ? err.message : JSON.stringify(err);
+      // Use console.warn para evitar conflito de assinatura de método
+      console.warn(
+        `Failed to add label ${labelId} to chat ${chatId}@${instanceId}: ${msg}`
+      );
+    }
   }
+  
+  
 
   private async removeLabel(labelId: string, instanceId: string, chatId: string) {
     const id = cuid();
