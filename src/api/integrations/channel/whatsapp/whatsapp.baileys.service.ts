@@ -382,7 +382,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-            qrcode,
+          qrcode,
         ),
       );
 
@@ -1023,18 +1023,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-            (
-              await this.prismaRepository.message.findMany({
-                select: { key: true },
-                where: { instanceId: this.instanceId },
-              })
-            ).map((message) => {
-              const key = message.key as {
-                id: string;
-              };
+          (
+            await this.prismaRepository.message.findMany({
+              select: { key: true },
+              where: { instanceId: this.instanceId },
+            })
+          ).map((message) => {
+            const key = message.key as {
+              id: string;
+            };
 
-              return key.id;
-            }),
+            return key.id;
+          }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1508,12 +1508,28 @@ export class BaileysStartupService extends ChannelStartupService {
             },
           });
 
+          console.dir({findMessage});
+
           if (!findMessage) {
             continue;
           }
 
           if (update.message === null && update.status === undefined) {
-            this.sendDataWebhook(Events.MESSAGES_DELETE, key);
+
+            const deletedMessage = {
+              id: findMessage.id,
+              instanceId: this.instanceId,
+              key: key,
+              messageType: findMessage.messageType,
+              status: 'DELETED',
+              source: findMessage.source,
+              messageTimestamp: findMessage.messageTimestamp,
+              pushName: findMessage.pushName,
+              participant: findMessage.participant,
+              message: findMessage.message,
+            }
+
+            this.sendDataWebhook(Events.MESSAGES_DELETE, deletedMessage);
 
             const message: any = {
               messageId: findMessage.id,
@@ -1870,7 +1886,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     try {
       const profilePictureUrl = await this.client.profilePictureUrl(jid, 'image');
-      console.dir({profilePictureUrl});
+      console.dir({ profilePictureUrl });
 
       return {
         wuid: jid,
