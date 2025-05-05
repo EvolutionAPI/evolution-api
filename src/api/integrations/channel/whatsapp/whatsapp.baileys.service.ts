@@ -1508,7 +1508,6 @@ export class BaileysStartupService extends ChannelStartupService {
             },
           });
 
-          console.dir({findMessage});
 
           if (!findMessage) {
             continue;
