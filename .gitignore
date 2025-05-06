@@ -8,6 +8,8 @@
 
 .vscode
 
+#k8s
+k8s
 # Logs
 logs/**.json
 *.log
