@@ -1652,7 +1652,7 @@ export class ChatwootService {
       stickerMessage: undefined,
       documentMessage: msg.documentMessage?.caption,
       documentWithCaptionMessage: msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
-      audioMessage: msg.audioMessage?.caption || '',
+      audioMessage: msg.audioMessage ? (msg.audioMessage.caption ?? '') : undefined,
       contactMessage: msg.contactMessage?.vcard,
       contactsArrayMessage: msg.contactsArrayMessage,
       locationMessage: msg.locationMessage,
