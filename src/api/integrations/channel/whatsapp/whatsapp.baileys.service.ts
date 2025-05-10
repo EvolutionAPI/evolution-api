@@ -230,7 +230,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private authStateProvider: AuthStateProvider;
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
-  private readonly userDevicesCache: CacheStore = new NodeCache();
+    private readonly userDevicesCache: CacheStore = new NodeCache({
+        stdTTL: 300000,
+        useClones: false
+    });
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
