@@ -737,20 +737,20 @@ export class ChannelStartupService {
 
     if (results && isArray(results) && results.length > 0) {
       const mappedResults = results.map((contact) => {
-        const lastMessage = contact.lastMessageId
+        const lastMessage = contact.lastmessageid
           ? {
-              id: contact.lastMessageId,
-              key: contact.lastMessageKey,
-              pushName: contact.lastMessagePushName,
-              participant: contact.lastMessageParticipant,
-              messageType: contact.lastMessageMessageType,
-              message: contact.lastMessageMessage,
-              contextInfo: contact.lastMessageContextInfo,
-              source: contact.lastMessageSource,
-              messageTimestamp: contact.lastMessageMessageTimestamp,
-              instanceId: contact.lastMessageInstanceId,
-              sessionId: contact.lastMessageSessionId,
-              status: contact.lastMessageStatus,
+              id: contact.lastmessageid,
+              key: contact.lastmessage_key,
+              pushName: contact.lastmessagepushname,
+              participant: contact.lastmessageparticipant,
+              messageType: contact.lastmessagemessageyype,
+              message: contact.lastmessagemessage,
+              contextInfo: contact.lastmessagecontextinfo,
+              source: contact.lastmessagesource,
+              messageTimestamp: contact.lastmessagemessagetimestamp,
+              instanceId: contact.lastmessageinstanceid,
+              sessionId: contact.lastmessagesessionid,
+              status: contact.lastmessagestatus,
             }
           : undefined;
 
@@ -766,7 +766,6 @@ export class ChannelStartupService {
           lastMessage: lastMessage ? this.cleanMessageData(lastMessage) : undefined,
         };
       });
-
       return mappedResults;
     }
 
