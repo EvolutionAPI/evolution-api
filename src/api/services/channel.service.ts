@@ -503,8 +503,29 @@ export class ChannelStartupService {
       where['remoteJid'] = remoteJid;
     }
 
-    return await this.prismaRepository.contact.findMany({
+    const contactFindManyArgs: Prisma.ContactFindManyArgs = {
       where,
+    };
+
+    if (query.offset) contactFindManyArgs.take = query.offset;
+    if (query.page) {
+      const validPage = Math.max(query.page as number, 1);
+      contactFindManyArgs.skip = query.offset * (validPage - 1);
+    }
+
+    const contacts = await this.prismaRepository.contact.findMany(contactFindManyArgs);
+
+    return contacts.map((contact) => {
+      const remoteJid = contact.remoteJid;
+      const isGroup = remoteJid.endsWith('@g.us');
+      const isSaved = !!contact.pushName || !!contact.profilePicUrl;
+      const type = isGroup ? 'group' : isSaved ? 'contact' : 'group_member';
+      return {
+        ...contact,
+        isGroup,
+        isSaved,
+        type,
+      };
     });
   }
 
@@ -685,54 +706,51 @@ export class ChannelStartupService {
     const timestampFilter =
       query?.where?.messageTimestamp?.gte && query?.where?.messageTimestamp?.lte
         ? Prisma.sql`
-          AND "Message"."messageTimestamp" >= ${Math.floor(new Date(query.where.messageTimestamp.gte).getTime() / 1000)}
-          AND "Message"."messageTimestamp" <= ${Math.floor(new Date(query.where.messageTimestamp.lte).getTime() / 1000)}`
+        AND "Message"."messageTimestamp" >= ${Math.floor(new Date(query.where.messageTimestamp.gte).getTime() / 1000)}
+        AND "Message"."messageTimestamp" <= ${Math.floor(new Date(query.where.messageTimestamp.lte).getTime() / 1000)}`
         : Prisma.sql``;
 
+    const limit = query?.take ? Prisma.sql`LIMIT ${query.take}` : Prisma.sql``;
+    const offset = query?.skip ? Prisma.sql`OFFSET ${query.skip}` : Prisma.sql``;
+
     const results = await this.prismaRepository.$queryRaw`
-        WITH rankedMessages AS (
-          SELECT DISTINCT ON ("Contact"."remoteJid")
-            "Contact"."id",
-            "Contact"."remoteJid",
-            "Contact"."pushName",
-            "Contact"."profilePicUrl",
-            COALESCE(
-              to_timestamp("Message"."messageTimestamp"::double precision), 
-              "Contact"."updatedAt"
-            ) as "updatedAt",
-            "Chat"."createdAt" as "windowStart",
-            "Chat"."createdAt" + INTERVAL '24 hours' as "windowExpires",
-            CASE 
-              WHEN "Chat"."createdAt" + INTERVAL '24 hours' > NOW() THEN true 
-              ELSE false 
-            END as "windowActive",
-            "Message"."id" AS lastMessageId,
-            "Message"."key" AS lastMessage_key,
-            "Message"."pushName" AS lastMessagePushName,
-            "Message"."participant" AS lastMessageParticipant,
-            "Message"."messageType" AS lastMessageMessageType,
-            "Message"."message" AS lastMessageMessage,
-            "Message"."contextInfo" AS lastMessageContextInfo,
-            "Message"."source" AS lastMessageSource,
-            "Message"."messageTimestamp" AS lastMessageMessageTimestamp,
-            "Message"."instanceId" AS lastMessageInstanceId,
-            "Message"."sessionId" AS lastMessageSessionId,
-            "Message"."status" AS lastMessageStatus
-          FROM "Contact"
-          INNER JOIN "Message" ON "Message"."key"->>'remoteJid' = "Contact"."remoteJid"
-          LEFT JOIN "Chat" ON "Chat"."remoteJid" = "Contact"."remoteJid" 
-            AND "Chat"."instanceId" = "Contact"."instanceId"
-          WHERE 
-            "Contact"."instanceId" = ${this.instanceId}
-            AND "Message"."instanceId" = ${this.instanceId}
-            ${remoteJid ? Prisma.sql`AND "Contact"."remoteJid" = ${remoteJid}` : Prisma.sql``}
-            ${timestampFilter}
-          ORDER BY 
-            "Contact"."remoteJid",
-            "Message"."messageTimestamp" DESC
-        )
-        SELECT * FROM rankedMessages
-        ORDER BY "updatedAt" DESC NULLS LAST;
+      WITH rankedMessages AS (
+        SELECT DISTINCT ON ("Message"."key"->>'remoteJid') 
+          "Contact"."id" as "contactId",
+          "Message"."key"->>'remoteJid' as "remoteJid",
+          COALESCE("Contact"."pushName", "Message"."pushName") as "pushName",
+          "Contact"."profilePicUrl",
+          COALESCE(
+            to_timestamp("Message"."messageTimestamp"::double precision), 
+            "Contact"."updatedAt"
+          ) as "updatedAt",
+          "Chat"."createdAt" as "windowStart",
+          "Chat"."createdAt" + INTERVAL '24 hours' as "windowExpires",
+          CASE WHEN "Chat"."createdAt" + INTERVAL '24 hours' > NOW() THEN true ELSE false END as "windowActive",
+          "Message"."id" AS lastMessageId,
+          "Message"."key" AS lastMessage_key,
+          "Message"."pushName" AS lastMessagePushName,
+          "Message"."participant" AS lastMessageParticipant,
+          "Message"."messageType" AS lastMessageMessageType,
+          "Message"."message" AS lastMessageMessage,
+          "Message"."contextInfo" AS lastMessageContextInfo,
+          "Message"."source" AS lastMessageSource,
+          "Message"."messageTimestamp" AS lastMessageMessageTimestamp,
+          "Message"."instanceId" AS lastMessageInstanceId,
+          "Message"."sessionId" AS lastMessageSessionId,
+          "Message"."status" AS lastMessageStatus
+        FROM "Message"
+        LEFT JOIN "Contact" ON "Contact"."remoteJid" = "Message"."key"->>'remoteJid' AND "Contact"."instanceId" = "Message"."instanceId"
+        LEFT JOIN "Chat" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid' AND "Chat"."instanceId" = "Message"."instanceId"
+        WHERE "Message"."instanceId" = ${this.instanceId}
+        ${remoteJid ? Prisma.sql`AND "Message"."key"->>'remoteJid' = ${remoteJid}` : Prisma.sql``}
+        ${timestampFilter}
+        ORDER BY "Message"."key"->>'remoteJid', "Message"."messageTimestamp" DESC
+      )
+      SELECT * FROM rankedMessages 
+      ORDER BY "updatedAt" DESC NULLS LAST
+      ${limit}
+      ${offset};
     `;
 
     if (results && isArray(results) && results.length > 0) {
@@ -755,17 +773,26 @@ export class ChannelStartupService {
           : undefined;
 
         return {
-          id: contact.id,
-          remoteJid: contact.remoteJid,
-          pushName: contact.pushName,
-          profilePicUrl: contact.profilePicUrl,
-          updatedAt: contact.updatedAt,
-          windowStart: contact.windowStart,
-          windowExpires: contact.windowExpires,
-          windowActive: contact.windowActive,
+          id: item.contactId || null,
+          remoteJid: item.remoteJid,
+          pushName: item.pushName,
+          profilePicUrl: item.profilePicUrl,
+          updatedAt: item.updatedAt,
+          windowStart: item.windowStart,
+          windowExpires: item.windowExpires,
+          windowActive: item.windowActive,
           lastMessage: lastMessage ? this.cleanMessageData(lastMessage) : undefined,
+          unreadCount: 0,
+          isSaved: !!item.contactId,
         };
       });
+      
+      if (query?.take && query?.skip) {
+        const skip = query.skip || 0;
+        const take = query.take || 20;
+        return mappedResults.slice(skip, skip + take);
+      }
+
       return mappedResults;
     }
 

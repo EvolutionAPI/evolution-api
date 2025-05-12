@@ -6,7 +6,7 @@ import { configService, Log, Webhook } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
 import axios, { AxiosInstance } from 'axios';
-import { isURL } from 'class-validator';
+import * as jwt from 'jsonwebtoken';
 
 import { EmitData, EventController, EventControllerInterface } from '../event.controller';
 
@@ -18,7 +18,7 @@ export class WebhookController extends EventController implements EventControlle
   }
 
   override async set(instanceName: string, data: EventDto): Promise<wa.LocalWebHook> {
-    if (!isURL(data.webhook.url, { require_tld: false })) {
+    if (!/^(https?:\/\/)/.test(data.webhook.url)) {
       throw new BadRequestException('Invalid "url" property');
     }
 
@@ -74,10 +74,20 @@ export class WebhookController extends EventController implements EventControlle
 
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
     const webhookLocal = instance?.events;
-    const webhookHeaders = instance?.headers;
+    const webhookHeaders = { ...((instance?.headers as Record<string, string>) || {}) };
+
+    if (webhookHeaders && 'jwt_key' in webhookHeaders) {
+      const jwtKey = webhookHeaders['jwt_key'];
+      const jwtToken = this.generateJwtToken(jwtKey);
+      webhookHeaders['Authorization'] = `Bearer ${jwtToken}`;
+
+      delete webhookHeaders['jwt_key'];
+    }
+
     const we = event.replace(/[.-]/gm, '_').toUpperCase();
     const transformedWe = we.replace(/_/gm, '-').toLowerCase();
     const enabledLog = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
+    const regex = /^(https?:\/\/)/;
 
     const webhookData = {
       event,
@@ -111,7 +121,7 @@ export class WebhookController extends EventController implements EventControlle
         }
 
         try {
-          if (instance?.enabled && isURL(instance.url, { require_tld: false })) {
+          if (instance?.enabled && regex.test(instance.url)) {
             const httpService = axios.create({
               baseURL,
               headers: webhookHeaders as Record<string, string> | undefined,
@@ -155,7 +165,7 @@ export class WebhookController extends EventController implements EventControlle
         }
 
         try {
-          if (isURL(globalURL)) {
+          if (regex.test(globalURL)) {
             const httpService = axios.create({ baseURL: globalURL });
 
             await this.retryWebhookRequest(
@@ -228,6 +238,26 @@ export class WebhookController extends EventController implements EventControlle
 
         await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
       }
+    }
+  }
+
+  private generateJwtToken(authToken: string): string {
+    try {
+      const payload = {
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 600, // 10 min expiration
+        app: 'evolution',
+        action: 'webhook',
+      };
+
+      const token = jwt.sign(payload, authToken, { algorithm: 'HS256' });
+      return token;
+    } catch (error) {
+      this.logger.error({
+        local: 'WebhookController.generateJwtToken',
+        message: `JWT generation failed: ${error?.message}`,
+      });
+      throw error;
     }
   }
 }

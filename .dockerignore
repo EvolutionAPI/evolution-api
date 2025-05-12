@@ -1,5 +1,7 @@
 .git
 *Dockerfile*
 *docker-compose*
+package-lock.json
+.env
 node_modules
 dist

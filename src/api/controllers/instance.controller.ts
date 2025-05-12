@@ -170,6 +170,9 @@ export class InstanceController {
           rabbitmq: {
             enabled: instanceData?.rabbitmq?.enabled,
           },
+          nats: {
+            enabled: instanceData?.nats?.enabled,
+          },
           sqs: {
             enabled: instanceData?.sqs?.enabled,
           },
@@ -257,6 +260,9 @@ export class InstanceController {
         },
         rabbitmq: {
           enabled: instanceData?.rabbitmq?.enabled,
+        },
+        nats: {
+          enabled: instanceData?.nats?.enabled,
         },
         sqs: {
           enabled: instanceData?.sqs?.enabled,
