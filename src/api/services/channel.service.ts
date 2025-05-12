@@ -743,7 +743,7 @@ export class ChannelStartupService {
               key: contact.lastmessage_key,
               pushName: contact.lastmessagepushname,
               participant: contact.lastmessageparticipant,
-              messageType: contact.lastmessagemessageyype,
+              messageType: contact.lastmessagemessagetype,
               message: contact.lastmessagemessage,
               contextInfo: contact.lastmessagecontextinfo,
               source: contact.lastmessagesource,
