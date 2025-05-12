@@ -8,13 +8,17 @@ const logger = new Logger('Socket');
 
 let io: SocketIO;
 
-const cors = configService.get<Cors>('CORS').ORIGIN;
+const origin = configService.get<Cors>('CORS').ORIGIN;
+const methods = configService.get<Cors>('CORS').METHODS;
+const credentials = configService.get<Cors>('CORS').CREDENTIALS;
 
 export const initIO = (httpServer: Server) => {
   if (configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
     io = new SocketIO(httpServer, {
       cors: {
-        origin: cors,
+        origin,
+        methods,
+        credentials,
       },
     });
 

@@ -1328,4 +1328,31 @@ export class ChannelStartupService {
     this.logger.verbose('Fetching chats');
     return await this.repository.chat.find({ where: { owner: this.instance.name } });
   }
+
+  public async fetchContactsWithLastMessage() {
+    this.logger.verbose('Searching for contacts with last message');
+    const contacts = await this.repository.contact.find({ where: { owner: this.instance.name } });
+    const result = [];
+
+    for (const contact of contacts) {
+      // Buscar a última mensagem desse contato
+      const messages = await this.repository.message.find({
+        where: {
+          owner: this.instance.name,
+          key: { remoteJid: contact.id },
+        },
+        limit: 1,
+      });
+      if (messages && messages.length > 0) {
+        result.push({
+          id: contact.id,
+          pushName: contact?.pushName ?? null,
+          profilePictureUrl: contact?.profilePictureUrl ?? null,
+          owner: contact.owner,
+          lastMessage: messages[0],
+        });
+      }
+    }
+    return result;
+  }
 }

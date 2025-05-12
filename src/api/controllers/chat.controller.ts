@@ -86,6 +86,11 @@ export class ChatController {
     return await this.waMonitor.waInstances[instanceName].fetchChats();
   }
 
+  public async fetchContactsWithLastMessage({ instanceName }: InstanceDto) {
+    logger.verbose('requested fetchContactsWithLastMessage from ' + instanceName + ' instance');
+    return await this.waMonitor.waInstances[instanceName].fetchContactsWithLastMessage();
+  }
+
   public async sendPresence({ instanceName }: InstanceDto, data: SendPresenceDto) {
     logger.verbose('requested sendPresence from ' + instanceName + ' instance');
     return await this.waMonitor.waInstances[instanceName].sendPresence(data);

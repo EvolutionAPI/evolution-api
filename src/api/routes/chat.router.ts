@@ -253,6 +253,23 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
+      .get(this.routerPath('fetchContactsWithLastMessage'), ...guards, async (req, res) => {
+        logger.verbose('request received in fetchContactsWithLastMessage');
+        logger.verbose('request body: ');
+        logger.verbose(req.body);
+
+        logger.verbose('request query: ');
+        logger.verbose(req.query);
+
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: null,
+          ClassRef: InstanceDto,
+          execute: (instance) => chatController.fetchContactsWithLastMessage(instance),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
       .post(this.routerPath('sendPresence'), ...guards, async (req, res) => {
         logger.verbose('request received in sendPresence');
         logger.verbose('request body: ');
