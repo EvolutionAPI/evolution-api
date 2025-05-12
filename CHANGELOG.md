@@ -1,5 +1,9 @@
 # 1.8.6 (develop)
 
+### Features
+
+* Adds method to fetch contacts with last message
+
 ### Fixed
 
 * Retry and Reconnect system in rabbitmq integration
