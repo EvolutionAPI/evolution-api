@@ -207,7 +207,6 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-
       .post(this.routerPath('updateProfileName'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfileNameDto>({
           request: req,

@@ -1018,10 +1018,6 @@ export class TypebotController extends ChatbotController implements ChatbotContr
         return;
       }
 
-      if (session && !session.awaitUser) {
-        return;
-      }
-
       if (debounceTime && debounceTime > 0) {
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
           await this.typebotService.processTypebot(

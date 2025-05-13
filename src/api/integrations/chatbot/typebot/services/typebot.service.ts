@@ -741,6 +741,10 @@ export class TypebotService {
       }
     }
 
+    if (session && !session.awaitUser) {
+      return;
+    }
+
     if (session && session.status !== 'opened') {
       return;
     }
