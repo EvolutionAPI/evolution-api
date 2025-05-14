@@ -1,4 +1,5 @@
 import { healthController } from '@api/server.module';
+import { Router } from 'express';
 
 import { RouterBroker } from '../abstract/abstract.router';
 import { HttpStatus } from './index.router';

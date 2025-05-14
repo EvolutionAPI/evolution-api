@@ -1,4 +1,5 @@
 import { WAMonitoringService } from '@api/services/monitor.service';
+
 import { PrismaRepository } from '../repository/repository.service';
 
 export class HealthController {
