@@ -4,3 +4,4 @@ export * from '@api/integrations/chatbot/evolutionBot/validate/evolutionBot.sche
 export * from '@api/integrations/chatbot/flowise/validate/flowise.schema';
 export * from '@api/integrations/chatbot/openai/validate/openai.schema';
 export * from '@api/integrations/chatbot/typebot/validate/typebot.schema';
+export * from '@api/integrations/chatbot/n8n/validate/n8n.schema';

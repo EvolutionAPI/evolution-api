@@ -253,6 +253,7 @@ export type Chatwoot = {
 };
 export type Openai = { ENABLED: boolean; API_KEY_GLOBAL?: string };
 export type Dify = { ENABLED: boolean };
+export type N8n = { ENABLED: boolean };
 
 export type S3 = {
   ACCESS_KEY: string;
@@ -292,6 +293,7 @@ export interface Env {
   CHATWOOT: Chatwoot;
   OPENAI: Openai;
   DIFY: Dify;
+  N8N: N8n;
   CACHE: CacheConf;
   S3?: S3;
   AUTHENTICATION: Auth;
@@ -586,6 +588,9 @@ export class ConfigService {
       },
       DIFY: {
         ENABLED: process.env?.DIFY_ENABLED === 'true',
+      },
+      N8N: {
+        ENABLED: process.env?.N8N_ENABLED === 'true',
       },
       CACHE: {
         REDIS: {
