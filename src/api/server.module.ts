@@ -7,6 +7,7 @@ import { BusinessController } from './controllers/business.controller';
 import { CallController } from './controllers/call.controller';
 import { ChatController } from './controllers/chat.controller';
 import { GroupController } from './controllers/group.controller';
+import { HealthController } from './controllers/health.controller';
 import { InstanceController } from './controllers/instance.controller';
 import { LabelController } from './controllers/label.controller';
 import { ProxyController } from './controllers/proxy.controller';
@@ -40,7 +41,6 @@ import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { SettingsService } from './services/settings.service';
 import { TemplateService } from './services/template.service';
-import { HealthController } from './controllers/health.controller';
 
 const logger = new Logger('WA MODULE');
 

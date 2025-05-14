@@ -15,6 +15,7 @@ import { BusinessRouter } from './business.router';
 import { CallRouter } from './call.router';
 import { ChatRouter } from './chat.router';
 import { GroupRouter } from './group.router';
+import { HealthRouter } from './health.router';
 import { InstanceRouter } from './instance.router';
 import { LabelRouter } from './label.router';
 import { ProxyRouter } from './proxy.router';
@@ -22,7 +23,6 @@ import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
 import { TemplateRouter } from './template.router';
 import { ViewsRouter } from './view.router';
-import { HealthRouter} from './health.router';
 
 enum HttpStatus {
   OK = 200,

@@ -553,7 +553,7 @@ export class ChannelStartupService {
       }
 
       // Limpa LottieStickerMessage
-      if(cleanedMessage.message.lottieStickerMessage) {
+      if (cleanedMessage.message.lottieStickerMessage) {
         cleanedMessage.message.lottieStickerMessage = {};
       }
 
