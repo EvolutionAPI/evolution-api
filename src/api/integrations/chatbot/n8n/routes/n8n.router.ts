@@ -1,17 +1,18 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
-import { N8nDto, N8nSettingDto } from '../dto/n8n.dto';
 import { HttpStatus } from '@api/routes/index.router';
 import { n8nController } from '@api/server.module';
 import {
+  instanceSchema,
   n8nIgnoreJidSchema,
   n8nSchema,
   n8nSettingSchema,
   n8nStatusSchema,
-  instanceSchema,
 } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
+
+import { N8nDto, N8nSettingDto } from '../dto/n8n.dto';
 
 export class N8nRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {

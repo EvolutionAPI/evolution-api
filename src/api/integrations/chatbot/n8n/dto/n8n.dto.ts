@@ -1,4 +1,4 @@
-import { TriggerType, TriggerOperator } from '@prisma/client';
+import { TriggerOperator, TriggerType } from '@prisma/client';
 
 export class N8nDto {
   enabled?: boolean;

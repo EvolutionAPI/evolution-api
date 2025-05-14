@@ -1,11 +1,12 @@
+import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
+import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
 import { IntegrationSession, N8n, N8nSetting } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
-import { InstanceDto } from '@api/dto/instance.dto';
+
 import { N8nDto } from '../dto/n8n.dto';
-import { WAMonitoringService } from '@api/services/monitor.service';
 
 export class N8nService {
   private readonly logger = new Logger('N8nService');
@@ -13,7 +14,7 @@ export class N8nService {
 
   constructor(
     waMonitor: WAMonitoringService,
-    private readonly prismaRepository: PrismaRepository
+    private readonly prismaRepository: PrismaRepository,
   ) {
     this.waMonitor = waMonitor;
   }
@@ -164,7 +165,7 @@ export class N8nService {
     content: string,
   ) {
     try {
-      let endpoint: string = n8n.webhookUrl;
+      const endpoint: string = n8n.webhookUrl;
       const payload: any = {
         chatInput: content,
         sessionId: session.sessionId,
@@ -210,7 +211,7 @@ export class N8nService {
       return null;
     };
     while ((match = linkRegex.exec(message)) !== null) {
-      const [fullMatch, exclMark, altText, url] = match;
+      const [altText, url] = match;
       const mediaType = getMediaType(url);
       const beforeText = message.slice(lastIndex, match.index);
       if (beforeText) {
