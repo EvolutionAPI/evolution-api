@@ -139,6 +139,7 @@ export const TypeMediaMessage = [
   'audioMessage',
   'videoMessage',
   'stickerMessage',
+  'lottieStickerMessage',
   'ptvMessage',
 ];
 

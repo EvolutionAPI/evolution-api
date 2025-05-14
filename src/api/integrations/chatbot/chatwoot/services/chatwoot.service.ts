@@ -1597,6 +1597,7 @@ export class ChatwootService {
       'audioMessage',
       'videoMessage',
       'stickerMessage',
+      'lottieStickerMessage',
       'viewOnceMessageV2',
     ];
 
@@ -1651,6 +1652,7 @@ export class ChatwootService {
       extendedTextMessage: msg.extendedTextMessage?.text,
       messageContextInfo: msg.messageContextInfo?.stanzaId,
       stickerMessage: undefined,
+      lottieStickerMessage: undefined,
       documentMessage: msg.documentMessage?.caption,
       documentWithCaptionMessage: msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
       audioMessage: msg.audioMessage?.caption,

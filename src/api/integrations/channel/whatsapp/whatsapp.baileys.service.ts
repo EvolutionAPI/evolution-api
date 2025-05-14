@@ -98,6 +98,7 @@ import makeWASocket, {
   Contact,
   delay,
   DisconnectReason,
+  downloadContentFromMessage,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
   generateWAMessageFromContent,
@@ -1248,6 +1249,7 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.imageMessage ||
             received?.message?.videoMessage ||
             received?.message?.stickerMessage ||
+            received?.message?.lottieStickerMessage ||
             received?.message?.documentMessage ||
             received?.message?.documentWithCaptionMessage ||
             received?.message?.ptvMessage ||
@@ -1362,20 +1364,41 @@ export class BaileysStartupService extends ChannelStartupService {
               }
             }
           }
-
-          if (this.localWebhook.enabled) {
-            if (isMedia && this.localWebhook.webhookBase64) {
+          if (1/* this.localWebhook.enabled */) {
+            if (1/* isMedia && this.localWebhook.webhookBase64 */) {
               try {
-                const buffer = await downloadMediaMessage(
-                  { key: received.key, message: received?.message },
-                  'buffer',
-                  {},
-                  {
-                    logger: P({ level: 'error' }) as any,
-                    reuploadRequest: this.client.updateMediaMessage,
-                  },
-                );
+                let buffer : Buffer = null;
+                console.dir({received}, {depth: null});
+                if ((received.message.stickerMessage && received.message.stickerMessage.url === 'https://web.whatsapp.net') 
+                  || (received.message.lottieStickerMessage && received.message.lottieStickerMessage.message.stickerMessage.url)) { /*Fixing broken URLs from sticker messages*/
+                  const newUrl = `https://mmg.whatsapp.net${received.message.lottieStickerMessage ?  received.message.lottieStickerMessage.message.stickerMessage.directPath : received.message.stickerMessage.directPath }`;
 
+                  const stream = await downloadContentFromMessage(
+                    {
+                      mediaKey: received.message?.stickerMessage?.mediaKey || received.message.lottieStickerMessage?.message?.stickerMessage?.mediaKey,
+                      directPath: received.message?.stickerMessage?.directPath || received.message.lottieStickerMessage?.message?.stickerMessage?.directPath,
+                      url: newUrl
+                    }, 
+                    'sticker',
+                    {},
+                  )
+                  const chunks = [];
+                  for await (const chunk of stream) {
+                    chunks.push(chunk);
+                  }
+                  buffer = Buffer.concat(chunks);
+                  messageRaw.message.url = newUrl;
+                } else {
+                  buffer = await downloadMediaMessage(
+                    { key: received.key, message: received?.message },
+                    'buffer',
+                    {},
+                    {
+                      logger: P({ level: 'error' }) as any,
+                      reuploadRequest: this.client.updateMediaMessage,
+                    },
+                  );
+                }
                 messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
               } catch (error) {
                 this.logger.error(['Error converting media to base64', error?.message]);
@@ -1383,6 +1406,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
+          console.dir({webhookMessage: messageRaw}, {depth: null})
           this.logger.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
@@ -1508,13 +1532,11 @@ export class BaileysStartupService extends ChannelStartupService {
             },
           });
 
-
           if (!findMessage) {
             continue;
           }
 
           if (update.message === null && update.status === undefined) {
-
             const deletedMessage = {
               id: findMessage.id,
               instanceId: this.instanceId,
@@ -1526,7 +1548,7 @@ export class BaileysStartupService extends ChannelStartupService {
               pushName: findMessage.pushName,
               participant: findMessage.participant,
               message: findMessage.message,
-            }
+            };
 
             this.sendDataWebhook(Events.MESSAGES_DELETE, deletedMessage);
 
@@ -1756,7 +1778,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (events['messages.upsert']) {
-          const payload = events['messages.upsert'];
+          const payload = events['messages.upsert']
           this.messageHandle['messages.upsert'](payload, settings);
         }
 
@@ -1880,12 +1902,10 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async profilePicture(number: string) {
-    console.dir(`converting jid:${number}`);
     const jid = createJid(number);
 
     try {
       const profilePictureUrl = await this.client.profilePictureUrl(jid, 'image');
-      console.dir({ profilePictureUrl });
 
       return {
         wuid: jid,
@@ -2280,7 +2300,8 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent?.message?.documentMessage ||
         messageSent?.message?.documentWithCaptionMessage ||
         messageSent?.message?.ptvMessage ||
-        messageSent?.message?.audioMessage;
+        messageSent?.message?.audioMessage || 
+        messageSent?.message?.lottieStickerMessage;
 
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && !isIntegration) {
         this.chatwootService.eventWhatsapp(

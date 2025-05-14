@@ -552,6 +552,11 @@ export class ChannelStartupService {
         cleanedMessage.message.stickerMessage = {};
       }
 
+      // Limpa LottieStickerMessage
+      if(cleanedMessage.message.lottieStickerMessage) {
+        cleanedMessage.message.lottieStickerMessage = {};
+      }
+
       // Limpa documentMessage
       if (cleanedMessage.message.documentMessage) {
         cleanedMessage.message.documentMessage = {

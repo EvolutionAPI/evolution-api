@@ -497,6 +497,7 @@ class ChatwootImport {
       videoMessage: msg.message.videoMessage,
       audioMessage: msg.message.audioMessage,
       stickerMessage: msg.message.stickerMessage,
+      lottieStickerMessage: msg.message.lottieStickerMessage,
       templateMessage: msg.message.templateMessage?.hydratedTemplate?.hydratedContentText,
     };
     const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
@@ -530,6 +531,9 @@ class ChatwootImport {
 
       case 'stickerMessage':
         return '_<Sticker Message>_';
+
+      case 'lottieStickerMessage':
+        return '_<lottieStickerMessage>_';
 
       default:
         return '';

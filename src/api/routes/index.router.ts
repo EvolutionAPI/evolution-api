@@ -22,6 +22,7 @@ import { MessageRouter } from './sendMessage.router';
 import { SettingsRouter } from './settings.router';
 import { TemplateRouter } from './template.router';
 import { ViewsRouter } from './view.router';
+import { HealthRouter} from './health.router';
 
 enum HttpStatus {
   OK = 200,
@@ -57,6 +58,8 @@ router.get('/assets/*', (req, res) => {
   }
 });
 
+console.dir(new HealthRouter().router, { depth: null });
+
 router
   .use((req, res, next) => telemetry.collectTelemetry(req, res, next))
 
@@ -79,6 +82,7 @@ router
       facebookUserToken: process.env.FACEBOOK_USER_TOKEN,
     });
   })
+  .use('', new HealthRouter().router)
   .use('/instance', new InstanceRouter(configService, ...guards).router)
   .use('/message', new MessageRouter(...guards).router)
   .use('/call', new CallRouter(...guards).router)
