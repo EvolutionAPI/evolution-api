@@ -383,7 +383,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-          qrcode,
+            qrcode,
         ),
       );
 
@@ -1024,18 +1024,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-          (
-            await this.prismaRepository.message.findMany({
-              select: { key: true },
-              where: { instanceId: this.instanceId },
-            })
-          ).map((message) => {
-            const key = message.key as {
-              id: string;
-            };
+            (
+              await this.prismaRepository.message.findMany({
+                select: { key: true },
+                where: { instanceId: this.instanceId },
+              })
+            ).map((message) => {
+              const key = message.key as {
+                id: string;
+              };
 
-            return key.id;
-          }),
+              return key.id;
+            }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1364,24 +1364,33 @@ export class BaileysStartupService extends ChannelStartupService {
               }
             }
           }
-          if (1/* this.localWebhook.enabled */) {
-            if (1/* isMedia && this.localWebhook.webhookBase64 */) {
+          if (this.localWebhook.enabled) {
+            if (isMedia && this.localWebhook.webhookBase64) {
               try {
-                let buffer : Buffer = null;
-                console.dir({received}, {depth: null});
-                if ((received.message.stickerMessage && received.message.stickerMessage.url === 'https://web.whatsapp.net') 
-                  || (received.message.lottieStickerMessage && received.message.lottieStickerMessage.message.stickerMessage.url)) { /*Fixing broken URLs from sticker messages*/
-                  const newUrl = `https://mmg.whatsapp.net${received.message.lottieStickerMessage ?  received.message.lottieStickerMessage.message.stickerMessage.directPath : received.message.stickerMessage.directPath }`;
+                let buffer: Buffer = null;
+                console.dir({ received }, { depth: null });
+                if (
+                  (received.message.stickerMessage &&
+                    received.message.stickerMessage.url === 'https://web.whatsapp.net') ||
+                  (received.message.lottieStickerMessage &&
+                    received.message.lottieStickerMessage.message.stickerMessage.url)
+                ) {
+                  /*Fixing broken URLs from sticker messages*/
+                  const newUrl = `https://mmg.whatsapp.net${received.message.lottieStickerMessage ? received.message.lottieStickerMessage.message.stickerMessage.directPath : received.message.stickerMessage.directPath}`;
 
                   const stream = await downloadContentFromMessage(
                     {
-                      mediaKey: received.message?.stickerMessage?.mediaKey || received.message.lottieStickerMessage?.message?.stickerMessage?.mediaKey,
-                      directPath: received.message?.stickerMessage?.directPath || received.message.lottieStickerMessage?.message?.stickerMessage?.directPath,
-                      url: newUrl
-                    }, 
+                      mediaKey:
+                        received.message?.stickerMessage?.mediaKey ||
+                        received.message.lottieStickerMessage?.message?.stickerMessage?.mediaKey,
+                      directPath:
+                        received.message?.stickerMessage?.directPath ||
+                        received.message.lottieStickerMessage?.message?.stickerMessage?.directPath,
+                      url: newUrl,
+                    },
                     'sticker',
                     {},
-                  )
+                  );
                   const chunks = [];
                   for await (const chunk of stream) {
                     chunks.push(chunk);
@@ -1406,7 +1415,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          console.dir({webhookMessage: messageRaw}, {depth: null})
+          console.dir({ webhookMessage: messageRaw }, { depth: null });
           this.logger.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
@@ -1778,7 +1787,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (events['messages.upsert']) {
-          const payload = events['messages.upsert']
+          const payload = events['messages.upsert'];
           this.messageHandle['messages.upsert'](payload, settings);
         }
 
@@ -2300,7 +2309,7 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent?.message?.documentMessage ||
         messageSent?.message?.documentWithCaptionMessage ||
         messageSent?.message?.ptvMessage ||
-        messageSent?.message?.audioMessage || 
+        messageSent?.message?.audioMessage ||
         messageSent?.message?.lottieStickerMessage;
 
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && !isIntegration) {
