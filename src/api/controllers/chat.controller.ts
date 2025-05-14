@@ -43,7 +43,6 @@ export class ChatController {
   }
 
   public async fetchProfilePicture({ instanceName }: InstanceDto, data: NumberDto) {
-    console.dir("Fetching profile picture...");
     return await this.waMonitor.waInstances[instanceName].profilePicture(data.number);
   }
 

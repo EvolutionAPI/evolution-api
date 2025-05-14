@@ -40,6 +40,7 @@ import { WAMonitoringService } from './services/monitor.service';
 import { ProxyService } from './services/proxy.service';
 import { SettingsService } from './services/settings.service';
 import { TemplateService } from './services/template.service';
+import { HealthController } from './controllers/health.controller';
 
 const logger = new Logger('WA MODULE');
 
@@ -106,6 +107,9 @@ export const labelController = new LabelController(waMonitor);
 export const eventManager = new EventManager(prismaRepository, waMonitor);
 export const chatbotController = new ChatbotController(prismaRepository, waMonitor);
 export const channelController = new ChannelController(prismaRepository, waMonitor);
+
+//Health check
+export const healthController = new HealthController(waMonitor, prismaRepository);
 
 // channels
 export const evolutionController = new EvolutionController(prismaRepository, waMonitor);

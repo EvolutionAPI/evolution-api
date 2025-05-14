@@ -2,7 +2,7 @@ services:
   api:
     container_name: evolution_api_${ENVIROMNENT}
     build: .
-    #image: evoapicloud/evolution-api:latest
+    image: adaptweb/evolution-api:1.2.1
     restart: always
     depends_on:
       - redis
@@ -24,11 +24,11 @@ services:
       - evolution-net
     container_name: redis_${ENVIROMNENT}
     command: >
-      redis-server --port 6379 --appendonly yes
+      redis-server --port 11235 --appendonly yes
     volumes:
       - evolution_redis:/data
     ports:
-      - ${REDIS_PORT}:6379
+      - ${REDIS_PORT}:11235
 
   postgres:
     container_name: postgres_${ENVIROMNENT}
@@ -38,7 +38,7 @@ services:
     command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
     restart: always
     ports:
-      - ${DATABASE_PORT}:5432
+      - ${DATABASE_PORT}:11234
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=pass
