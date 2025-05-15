@@ -2,7 +2,7 @@ services:
   api:
     container_name: evolution_api_${ENVIROMNENT}
     build: .
-    image: adaptweb/evolution-api:1.2.1
+    image: adaptweb/evolution-api:1.3.0
     restart: always
     depends_on:
       - redis

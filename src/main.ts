@@ -145,6 +145,19 @@ async function bootstrap() {
   initWA();
 
   onUnexpectedError();
+
+  process.on('SIGTERM', () => {
+    logger.warn('SIGTERM received, shutting down...');
+    server.close(() => {
+      logger.info('Server closed, exiting...');
+      process.exit(0);
+    });
+
+    setTimeout(() => {
+      logger.error('Could not close connections in time, forcefully exiting');
+      process.exit(1);
+    }, 30000);
+  });
 }
 
 bootstrap();
