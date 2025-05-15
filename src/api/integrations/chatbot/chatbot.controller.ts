@@ -2,6 +2,7 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import {
   difyController,
+  evoaiController,
   evolutionBotController,
   flowiseController,
   n8nController,
@@ -99,6 +100,8 @@ export class ChatbotController {
     await difyController.emit(emitData);
 
     await n8nController.emit(emitData);
+
+    await evoaiController.emit(emitData);
 
     await flowiseController.emit(emitData);
   }
