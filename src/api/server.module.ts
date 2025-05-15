@@ -22,6 +22,8 @@ import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
 import { DifyController } from './integrations/chatbot/dify/controllers/dify.controller';
 import { DifyService } from './integrations/chatbot/dify/services/dify.service';
+import { EvoaiController } from './integrations/chatbot/evoai/controllers/evoai.controller';
+import { EvoaiService } from './integrations/chatbot/evoai/services/evoai.service';
 import { EvolutionBotController } from './integrations/chatbot/evolutionBot/controllers/evolutionBot.controller';
 import { EvolutionBotService } from './integrations/chatbot/evolutionBot/services/evolutionBot.service';
 import { FlowiseController } from './integrations/chatbot/flowise/controllers/flowise.controller';
@@ -131,5 +133,8 @@ export const flowiseController = new FlowiseController(flowiseService, prismaRep
 
 const n8nService = new N8nService(waMonitor, prismaRepository);
 export const n8nController = new N8nController(n8nService, prismaRepository, waMonitor);
+
+const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService);
+export const evoaiController = new EvoaiController(evoaiService, prismaRepository, waMonitor);
 
 logger.info('Module - ON');
