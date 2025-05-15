@@ -4,6 +4,7 @@ import {
   difyController,
   evolutionBotController,
   flowiseController,
+  n8nController,
   openaiController,
   typebotController,
 } from '@api/server.module';
@@ -96,6 +97,8 @@ export class ChatbotController {
     await openaiController.emit(emitData);
 
     await difyController.emit(emitData);
+
+    await n8nController.emit(emitData);
 
     await flowiseController.emit(emitData);
   }
