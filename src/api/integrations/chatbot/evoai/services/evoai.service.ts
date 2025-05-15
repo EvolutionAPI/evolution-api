@@ -3,18 +3,20 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
+import { ConfigService, Language } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { Evoai, EvoaiSetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
-import path from 'path';
-import { Readable } from 'stream';
+import { downloadMediaMessage } from 'baileys';
+import FormData from 'form-data';
 import { v4 as uuidv4 } from 'uuid';
 
 export class EvoaiService {
   constructor(
     private readonly waMonitor: WAMonitoringService,
     private readonly prismaRepository: PrismaRepository,
+    private readonly configService: ConfigService,
   ) {}
 
   private readonly logger = new Logger('EvoaiService');
@@ -45,12 +47,34 @@ export class EvoaiService {
     return content.includes('imageMessage');
   }
 
-  private isJSON(str: string): boolean {
+  private isAudioMessage(content: string) {
+    return content.includes('audioMessage');
+  }
+
+  private async speechToText(audioBuffer: Buffer): Promise<string | null> {
     try {
-      JSON.parse(str);
-      return true;
-    } catch (e) {
-      return false;
+      const apiKey = this.configService.get<any>('OPENAI')?.API_KEY;
+      if (!apiKey) {
+        this.logger.error('[EvoAI] No OpenAI API key set for Whisper transcription');
+        return null;
+      }
+      const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
+        ? 'pt'
+        : this.configService.get<Language>('LANGUAGE');
+      const formData = new FormData();
+      formData.append('file', audioBuffer, 'audio.ogg');
+      formData.append('model', 'whisper-1');
+      formData.append('language', lang);
+      const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      return response?.data?.text || null;
+    } catch (err) {
+      this.logger.error(`[EvoAI] Whisper transcription failed: ${err}`);
+      return null;
     }
   }
 
@@ -62,6 +86,7 @@ export class EvoaiService {
     remoteJid: string,
     pushName: string,
     content: string,
+    msg?: any,
   ) {
     try {
       const endpoint: string = evoai.agentUrl;
@@ -76,27 +101,52 @@ export class EvoaiService {
         },
       ];
 
-      // If content indicates an image/file, add as a file part
-      if (this.isImageMessage(content)) {
-        const contentSplit = content.split('|');
-        const fileUrl = contentSplit[1].split('?')[0];
-        const textPart = contentSplit[2] || content;
-        parts[0].text = textPart;
+      // If content indicates an image/file, fetch and encode as base64, then send as a file part
+      if ((this.isImageMessage(content) || this.isAudioMessage(content)) && msg) {
+        const isImage = this.isImageMessage(content);
+        const isAudio = this.isAudioMessage(content);
+        this.logger.debug(`[EvoAI] Media message detected: ${content}`);
 
-        // Try to fetch the file and encode as base64
-        try {
-          const fileResponse = await axios.get(fileUrl, { responseType: 'arraybuffer' });
-          const fileContent = Buffer.from(fileResponse.data).toString('base64');
-          const fileName = path.basename(fileUrl);
-          parts.push({
-            type: 'file',
-            file: {
-              name: fileName,
-              bytes: fileContent,
-            },
-          });
-        } catch (fileErr) {
-          this.logger.error(`Failed to fetch or encode file for EvoAI: ${fileErr}`);
+        let transcribedText = null;
+        if (isAudio) {
+          try {
+            this.logger.debug(`[EvoAI] Downloading audio for Whisper transcription`);
+            const mediaBuffer = await downloadMediaMessage({ key: msg.key, message: msg.message }, 'buffer', {});
+            transcribedText = await this.speechToText(mediaBuffer);
+            if (transcribedText) {
+              parts[0].text = transcribedText;
+            } else {
+              parts[0].text = '[Audio message could not be transcribed]';
+            }
+          } catch (err) {
+            this.logger.error(`[EvoAI] Failed to transcribe audio: ${err}`);
+            parts[0].text = '[Audio message could not be transcribed]';
+          }
+        } else if (isImage) {
+          const contentSplit = content.split('|');
+          parts[0].text = contentSplit[2] || content;
+          let fileContent = null,
+            fileName = null,
+            mimeType = null;
+          try {
+            this.logger.debug(
+              `[EvoAI] Fetching image using downloadMediaMessage with msg.key: ${JSON.stringify(msg.key)}`,
+            );
+            const mediaBuffer = await downloadMediaMessage({ key: msg.key, message: msg.message }, 'buffer', {});
+            fileContent = Buffer.from(mediaBuffer).toString('base64');
+            fileName = contentSplit[2] || `${msg.key.id}.jpg`;
+            mimeType = 'image/jpeg';
+            parts.push({
+              type: 'file',
+              file: {
+                name: fileName,
+                bytes: fileContent,
+                mimeType: mimeType,
+              },
+            });
+          } catch (fileErr) {
+            this.logger.error(`[EvoAI] Failed to fetch or encode image for EvoAI: ${fileErr}`);
+          }
         }
       }
 
@@ -115,7 +165,17 @@ export class EvoaiService {
       };
 
       this.logger.debug(`[EvoAI] Sending request to: ${endpoint}`);
-      this.logger.debug(`[EvoAI] Payload: ${JSON.stringify(payload)}`);
+      // Redact base64 file bytes from payload log
+      const redactedPayload = JSON.parse(JSON.stringify(payload));
+      if (redactedPayload?.params?.message?.parts) {
+        redactedPayload.params.message.parts = redactedPayload.params.message.parts.map((part) => {
+          if (part.type === 'file' && part.file && part.file.bytes) {
+            return { ...part, file: { ...part.file, bytes: '[base64 omitted]' } };
+          }
+          return part;
+        });
+      }
+      this.logger.debug(`[EvoAI] Payload: ${JSON.stringify(redactedPayload)}`);
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
         await instance.client.presenceSubscribe(remoteJid);
@@ -129,7 +189,7 @@ export class EvoaiService {
         },
       });
 
-      this.logger.debug(`[EvoAI] Response: ${JSON.stringify(response.data)}`);
+      this.logger.debug(`[EvoAI] Response: ${JSON.stringify(response.data.status)}`);
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS)
         await instance.client.sendPresenceUpdate('paused', remoteJid);
@@ -341,6 +401,7 @@ export class EvoaiService {
     session: IntegrationSession,
     content: string,
     pushName?: string,
+    msg?: any,
   ) {
     const data = await this.createNewSession(instance, {
       remoteJid,
@@ -352,7 +413,7 @@ export class EvoaiService {
       session = data.session;
     }
 
-    await this.sendMessageToBot(instance, session, settings, evoai, remoteJid, pushName, content);
+    await this.sendMessageToBot(instance, session, settings, evoai, remoteJid, pushName, content, msg);
 
     return;
   }
@@ -365,6 +426,7 @@ export class EvoaiService {
     settings: EvoaiSetting,
     content: string,
     pushName?: string,
+    msg?: any,
   ) {
     if (session && session.status !== 'opened') {
       return;
@@ -398,13 +460,13 @@ export class EvoaiService {
           });
         }
 
-        await this.initNewSession(instance, remoteJid, evoai, settings, session, content, pushName);
+        await this.initNewSession(instance, remoteJid, evoai, settings, session, content, pushName, msg);
         return;
       }
     }
 
     if (!session) {
-      await this.initNewSession(instance, remoteJid, evoai, settings, session, content, pushName);
+      await this.initNewSession(instance, remoteJid, evoai, settings, session, content, pushName, msg);
       return;
     }
 
@@ -455,7 +517,7 @@ export class EvoaiService {
       return;
     }
 
-    await this.sendMessageToBot(instance, session, settings, evoai, remoteJid, pushName, content);
+    await this.sendMessageToBot(instance, session, settings, evoai, remoteJid, pushName, content, msg);
 
     return;
   }

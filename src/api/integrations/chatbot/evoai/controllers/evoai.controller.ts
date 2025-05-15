@@ -848,6 +848,7 @@ export class EvoaiController extends ChatbotController implements ChatbotControl
             },
             debouncedContent,
             msg?.pushName,
+            msg,
           );
         });
       } else {
@@ -872,6 +873,7 @@ export class EvoaiController extends ChatbotController implements ChatbotControl
           },
           content,
           msg?.pushName,
+          msg,
         );
       }
 
