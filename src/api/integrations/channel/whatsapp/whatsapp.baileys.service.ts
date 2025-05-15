@@ -134,7 +134,6 @@ import { randomBytes } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
 import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
-import { readFileSync } from 'fs';
 import Long from 'long';
 import mimeTypes from 'mime-types';
 import NodeCache from 'node-cache';
@@ -230,10 +229,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private authStateProvider: AuthStateProvider;
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
-    private readonly userDevicesCache: CacheStore = new NodeCache({
-        stdTTL: 300000,
-        useClones: false
-    });
+  private readonly userDevicesCache: CacheStore = new NodeCache({
+    stdTTL: 300000,
+    useClones: false,
+  });
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
