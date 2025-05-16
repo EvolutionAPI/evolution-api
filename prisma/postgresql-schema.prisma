@@ -383,7 +383,7 @@ model TypebotSetting {
 
 model Media {
   id         String    @id @default(cuid())
-  fileName   String    @unique @db.VarChar(500)
+  fileName   String    @db.VarChar(500)
   type       String    @db.VarChar(100)
   mimetype   String    @db.VarChar(100)
   createdAt  DateTime? @default(now()) @db.Date
