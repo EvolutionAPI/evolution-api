@@ -718,7 +718,10 @@ export class ChannelStartupService {
         SELECT DISTINCT ON ("Message"."key"->>'remoteJid') 
           "Contact"."id" as "contactId",
           "Message"."key"->>'remoteJid' as "remoteJid",
-          COALESCE("Contact"."pushName", "Message"."pushName") as "pushName",
+          CASE 
+            WHEN "Message"."key"->>'remoteJid' LIKE '%@g.us' THEN COALESCE("Chat"."name", "Contact"."pushName")
+            ELSE COALESCE("Contact"."pushName", "Message"."pushName")
+          END as "pushName",
           "Contact"."profilePicUrl",
           COALESCE(
             to_timestamp("Message"."messageTimestamp"::double precision), 
@@ -730,7 +733,10 @@ export class ChannelStartupService {
           CASE WHEN "Chat"."createdAt" + INTERVAL '24 hours' > NOW() THEN true ELSE false END as "windowActive",
           "Message"."id" AS lastMessageId,
           "Message"."key" AS lastMessage_key,
-          "Message"."pushName" AS lastMessagePushName,
+          CASE
+            WHEN "Message"."key"->>'fromMe' = 'true' THEN 'Você'
+            ELSE "Message"."pushName"
+          END AS lastMessagePushName,
           "Message"."participant" AS lastMessageParticipant,
           "Message"."messageType" AS lastMessageMessageType,
           "Message"."message" AS lastMessageMessage,
