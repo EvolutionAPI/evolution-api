@@ -131,7 +131,7 @@ export const evolutionBotController = new EvolutionBotController(evolutionBotSer
 const flowiseService = new FlowiseService(waMonitor, configService, prismaRepository);
 export const flowiseController = new FlowiseController(flowiseService, prismaRepository, waMonitor);
 
-const n8nService = new N8nService(waMonitor, prismaRepository);
+const n8nService = new N8nService(waMonitor, prismaRepository, configService);
 export const n8nController = new N8nController(n8nService, prismaRepository, waMonitor);
 
 const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService);
