@@ -1173,8 +1173,8 @@ export class BaileysStartupService extends ChannelStartupService {
             const oldMessage = await this.getMessage(editedMessage.key, true);
             if ((oldMessage as any)?.id) {
               const editedMessageTimestamp = Long.isLong(editedMessage?.timestampMs)
-                ? editedMessage.timestampMs?.toNumber()
-                : (editedMessage.timestampMs as number);
+                ? Math.floor(editedMessage.timestampMs.toNumber() / 1000) // Convert to int32 by dividing by 1000 to get seconds
+                : Math.floor((editedMessage.timestampMs as number) / 1000); // Convert to int32 by dividing by 1000 to get seconds
 
               await this.prismaRepository.message.update({
                 where: { id: (oldMessage as any).id },
