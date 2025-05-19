@@ -3749,6 +3749,10 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
+      if ('messageContextInfo' in msg.message && Object.keys(msg.message).length === 1) {
+        throw 'The message is messageContextInfo';
+      }
+
       let mediaMessage: any;
       let mediaType: string;
 
@@ -3824,8 +3828,8 @@ export class BaileysStartupService extends ChannelStartupService {
         buffer: getBuffer ? buffer : null,
       };
     } catch (error) {
-      this.logger.error('Error processing media message:');
-      this.logger.error(error);
+      this.logger.info('Error processing media message:');
+      this.logger.info(error);
       throw new BadRequestException(error.toString());
     }
   }
