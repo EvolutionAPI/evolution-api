@@ -194,7 +194,7 @@ export class N8nService {
   }
 
   private async sendMessageWhatsApp(instance: any, remoteJid: string, message: string, settings: N8nSetting) {
-    const linkRegex = /(!?)\[(.*?)\]\((.*?)\)/g;
+    const linkRegex = /!?\[(.*?)\]\((.*?)\)/g;
     let textBuffer = '';
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -211,7 +211,7 @@ export class N8nService {
       return null;
     };
     while ((match = linkRegex.exec(message)) !== null) {
-      const [altText, url] = match;
+      const [fullMatch, altText, url] = match;
       const mediaType = getMediaType(url);
       const beforeText = message.slice(lastIndex, match.index);
       if (beforeText) {
@@ -282,7 +282,7 @@ export class N8nService {
           );
         }
       } else {
-        textBuffer += `[${altText}](${url})`;
+        textBuffer += fullMatch;
       }
       lastIndex = linkRegex.lastIndex;
     }
