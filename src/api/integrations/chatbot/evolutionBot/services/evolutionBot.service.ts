@@ -103,15 +103,13 @@ export class EvolutionBotService {
 
     let message = response?.data?.message;
     
-    if (message && typeof message === 'string') {
-
-      if (message.startsWith("'") && message.endsWith("'")) {
-        const innerContent = message.slice(1, -1);
-        if (!innerContent.includes("'")) {
-          message = innerContent;
-        }
-      }
+    if (message && typeof message === 'string' && (message.startsWith("'") && message.endsWith("'"))) {
+          const innerContent = message.slice(1, -1);
+          if (!innerContent.includes("'")) {
+            message = innerContent;
+          }
     }
+
 
     return message;
   }
