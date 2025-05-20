@@ -1311,7 +1311,7 @@ export class BaileysStartupService extends ChannelStartupService {
               data: messageRaw,
             });
 
-            const remoteJid = received.key.remoteJid;
+            const {remoteJid} = received.key;
             const timestamp = msg.messageTimestamp;
             const fromMe = received.key.fromMe.toString();
             const messageKey = `${remoteJid}_${timestamp}_${fromMe}`;
@@ -1567,7 +1567,7 @@ export class BaileysStartupService extends ChannelStartupService {
             if (!key.fromMe && key.remoteJid) {
               readChatToUpdate[key.remoteJid] = true;
 
-              const remoteJid = key.remoteJid;
+              const {remoteJid} = key; 
               const timestamp = findMessage.messageTimestamp;
               const fromMe = key.fromMe.toString();
               const messageKey = `${remoteJid}_${timestamp}_${fromMe}`;
@@ -3828,8 +3828,8 @@ export class BaileysStartupService extends ChannelStartupService {
         buffer: getBuffer ? buffer : null,
       };
     } catch (error) {
-      this.logger.info('Error processing media message:');
-      this.logger.info(error);
+      this.logger.error('Error processing media message:');  
+      this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
   }
