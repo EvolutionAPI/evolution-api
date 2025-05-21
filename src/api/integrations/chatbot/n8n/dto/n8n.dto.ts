@@ -1,4 +1,5 @@
 import { TriggerOperator, TriggerType } from '@prisma/client';
+
 import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
 
 export class N8nDto extends BaseChatbotDto {

@@ -13,104 +13,285 @@ import FormData from 'form-data';
 import OpenAI from 'openai';
 import P from 'pino';
 
-export class OpenaiService {
-  constructor(
-    private readonly waMonitor: WAMonitoringService,
-    private readonly configService: ConfigService,
-    private readonly prismaRepository: PrismaRepository,
-  ) {}
+import { BaseChatbotService } from '../../base-chatbot.service';
 
-  private client: OpenAI;
+/**
+ * OpenAI service that extends the common BaseChatbotService
+ * Handles both Assistant API and ChatCompletion API
+ */
+export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> {
+  protected client: OpenAI;
 
-  private readonly logger = new Logger('OpenaiService');
-
-  private async sendMessageToBot(instance: any, openaiBot: OpenaiBot, remoteJid: string, content: string) {
-    const systemMessages: any = openaiBot.systemMessages;
-
-    const messagesSystem: any[] = systemMessages.map((message) => {
-      return {
-        role: 'system',
-        content: message,
-      };
-    });
-
-    const assistantMessages: any = openaiBot.assistantMessages;
-
-    const messagesAssistant: any[] = assistantMessages.map((message) => {
-      return {
-        role: 'assistant',
-        content: message,
-      };
-    });
-
-    const userMessages: any = openaiBot.userMessages;
-
-    const messagesUser: any[] = userMessages.map((message) => {
-      return {
-        role: 'user',
-        content: message,
-      };
-    });
-
-    const messageData: any = {
-      role: 'user',
-      content: [{ type: 'text', text: content }],
-    };
-
-    if (this.isImageMessage(content)) {
-      const contentSplit = content.split('|');
-
-      const url = contentSplit[1].split('?')[0];
-
-      messageData.content = [
-        { type: 'text', text: contentSplit[2] || content },
-        {
-          type: 'image_url',
-          image_url: {
-            url: url,
-          },
-        },
-      ];
-    }
-
-    const messages: any[] = [...messagesSystem, ...messagesAssistant, ...messagesUser, messageData];
-
-    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-      await instance.client.presenceSubscribe(remoteJid);
-      await instance.client.sendPresenceUpdate('composing', remoteJid);
-    }
-
-    const completions = await this.client.chat.completions.create({
-      model: openaiBot.model,
-      messages: messages,
-      max_tokens: openaiBot.maxTokens,
-    });
-
-    if (instance.integration === Integration.WHATSAPP_BAILEYS)
-      await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = completions.choices[0].message.content;
-
-    return message;
+  constructor(waMonitor: WAMonitoringService, prismaRepository: PrismaRepository, configService: ConfigService) {
+    super(waMonitor, prismaRepository, 'OpenaiService', configService);
   }
 
-  private async sendMessageToAssistant(
+  /**
+   * Return the bot type for OpenAI
+   */
+  protected getBotType(): string {
+    return 'openai';
+  }
+
+  /**
+   * Create a new session specific to OpenAI
+   */
+  public async createNewSession(instance: InstanceDto, data: any) {
+    return super.createNewSession(instance, data, 'openai');
+  }
+
+  /**
+   * Initialize the OpenAI client with the provided API key
+   */
+  protected initClient(apiKey: string) {
+    this.client = new OpenAI({ apiKey });
+    return this.client;
+  }
+
+  /**
+   * Process a message based on the bot type (assistant or chat completion)
+   */
+  public async process(
     instance: any,
+    remoteJid: string,
+    openaiBot: OpenaiBot,
+    session: IntegrationSession,
+    settings: OpenaiSetting,
+    content: string,
+    pushName?: string,
+    msg?: any,
+  ): Promise<void> {
+    try {
+      this.logger.log(`Starting process for remoteJid: ${remoteJid}, bot type: ${openaiBot.botType}`);
+
+      // Handle audio message transcription
+      if (content.startsWith('audioMessage|') && msg) {
+        this.logger.log('Detected audio message, attempting to transcribe');
+
+        // Get OpenAI credentials for transcription
+        const creds = await this.prismaRepository.openaiCreds.findUnique({
+          where: { id: openaiBot.openaiCredsId },
+        });
+
+        if (!creds) {
+          this.logger.error(`OpenAI credentials not found. CredsId: ${openaiBot.openaiCredsId}`);
+          return;
+        }
+
+        // Initialize OpenAI client for transcription
+        this.initClient(creds.apiKey);
+
+        // Transcribe the audio
+        const transcription = await this.speechToText(msg);
+
+        if (transcription) {
+          this.logger.log(`Audio transcribed: ${transcription}`);
+          // Replace the audio message identifier with the transcription
+          content = transcription;
+        } else {
+          this.logger.error('Failed to transcribe audio');
+          await this.sendMessageWhatsApp(
+            instance,
+            remoteJid,
+            "Sorry, I couldn't transcribe your audio message. Could you please type your message instead?",
+            settings,
+          );
+          return;
+        }
+      } else {
+        // Get the OpenAI credentials
+        const creds = await this.prismaRepository.openaiCreds.findUnique({
+          where: { id: openaiBot.openaiCredsId },
+        });
+
+        if (!creds) {
+          this.logger.error(`OpenAI credentials not found. CredsId: ${openaiBot.openaiCredsId}`);
+          return;
+        }
+
+        // Initialize OpenAI client
+        this.initClient(creds.apiKey);
+      }
+
+      // Handle keyword finish
+      const keywordFinish = settings?.keywordFinish?.split(',') || [];
+      const normalizedContent = content.toLowerCase().trim();
+      if (
+        keywordFinish.length > 0 &&
+        keywordFinish.some((keyword: string) => normalizedContent === keyword.toLowerCase().trim())
+      ) {
+        if (settings?.keepOpen) {
+          await this.prismaRepository.integrationSession.update({
+            where: {
+              id: session.id,
+            },
+            data: {
+              status: 'closed',
+            },
+          });
+        } else {
+          await this.prismaRepository.integrationSession.delete({
+            where: {
+              id: session.id,
+            },
+          });
+        }
+
+        await sendTelemetry('/openai/session/finish');
+        return;
+      }
+
+      // If session is new or doesn't exist
+      if (!session) {
+        const data = {
+          remoteJid,
+          pushName,
+          botId: openaiBot.id,
+        };
+
+        const createSession = await this.createNewSession(
+          { instanceName: instance.instanceName, instanceId: instance.instanceId },
+          data,
+        );
+
+        await this.initNewSession(
+          instance,
+          remoteJid,
+          openaiBot,
+          settings,
+          createSession.session,
+          content,
+          pushName,
+          msg,
+        );
+
+        await sendTelemetry('/openai/session/start');
+        return;
+      }
+
+      // If session exists but is paused
+      if (session.status === 'paused') {
+        await this.prismaRepository.integrationSession.update({
+          where: {
+            id: session.id,
+          },
+          data: {
+            status: 'opened',
+            awaitUser: true,
+          },
+        });
+
+        return;
+      }
+
+      // Process with the appropriate API based on bot type
+      await this.sendMessageToBot(instance, session, settings, openaiBot, remoteJid, pushName || '', content, msg);
+    } catch (error) {
+      this.logger.error(`Error in process: ${error.message || JSON.stringify(error)}`);
+      return;
+    }
+  }
+
+  /**
+   * Send message to OpenAI - this handles both Assistant API and ChatCompletion API
+   */
+  protected async sendMessageToBot(
+    instance: any,
+    session: IntegrationSession,
+    settings: OpenaiSetting,
+    openaiBot: OpenaiBot,
+    remoteJid: string,
+    pushName: string,
+    content: string,
+    msg?: any,
+  ): Promise<void> {
+    this.logger.log(`Sending message to bot for remoteJid: ${remoteJid}, bot type: ${openaiBot.botType}`);
+
+    if (!this.client) {
+      this.logger.log('Client not initialized, initializing now');
+      const creds = await this.prismaRepository.openaiCreds.findUnique({
+        where: { id: openaiBot.openaiCredsId },
+      });
+
+      if (!creds) {
+        this.logger.error(`OpenAI credentials not found in sendMessageToBot. CredsId: ${openaiBot.openaiCredsId}`);
+        return;
+      }
+
+      this.initClient(creds.apiKey);
+    }
+
+    try {
+      let message: string;
+
+      // Handle different bot types
+      if (openaiBot.botType === 'assistant') {
+        this.logger.log('Processing with Assistant API');
+        message = await this.processAssistantMessage(
+          instance,
+          session,
+          openaiBot,
+          remoteJid,
+          pushName,
+          false, // Not fromMe
+          content,
+          msg,
+        );
+      } else {
+        this.logger.log('Processing with ChatCompletion API');
+        message = await this.processChatCompletionMessage(instance, openaiBot, remoteJid, content, msg);
+      }
+
+      this.logger.log(`Got response from OpenAI: ${message?.substring(0, 50)}${message?.length > 50 ? '...' : ''}`);
+
+      // Send the response
+      if (message) {
+        this.logger.log('Sending message to WhatsApp');
+        await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+      } else {
+        this.logger.error('No message to send to WhatsApp');
+      }
+
+      // Update session status
+      await this.prismaRepository.integrationSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Error in sendMessageToBot: ${error.message || JSON.stringify(error)}`);
+      if (error.response) {
+        this.logger.error(`API Response data: ${JSON.stringify(error.response.data || {})}`);
+      }
+      return;
+    }
+  }
+
+  /**
+   * Process message using the OpenAI Assistant API
+   */
+  private async processAssistantMessage(
+    instance: any,
+    session: IntegrationSession,
     openaiBot: OpenaiBot,
     remoteJid: string,
     pushName: string,
     fromMe: boolean,
     content: string,
-    threadId: string,
-  ) {
+    msg?: any,
+  ): Promise<string> {
     const messageData: any = {
       role: fromMe ? 'assistant' : 'user',
       content: [{ type: 'text', text: content }],
     };
 
+    // Handle image messages
     if (this.isImageMessage(content)) {
       const contentSplit = content.split('|');
-
       const url = contentSplit[1].split('?')[0];
 
       messageData.content = [
@@ -124,13 +305,18 @@ export class OpenaiService {
       ];
     }
 
+    // Get thread ID from session or create new thread
+    const threadId = session.sessionId === remoteJid ? (await this.client.beta.threads.create()).id : session.sessionId;
+
+    // Add message to thread
     await this.client.beta.threads.messages.create(threadId, messageData);
 
     if (fromMe) {
       sendTelemetry('/message/sendText');
-      return;
+      return '';
     }
 
+    // Run the assistant
     const runAssistant = await this.client.beta.threads.runs.create(threadId, {
       assistant_id: openaiBot.assistantId,
     });
@@ -140,716 +326,456 @@ export class OpenaiService {
       await instance.client.sendPresenceUpdate('composing', remoteJid);
     }
 
+    // Wait for the assistant to complete
     const response = await this.getAIResponse(threadId, runAssistant.id, openaiBot.functionUrl, remoteJid, pushName);
 
-    if (instance.integration === Integration.WHATSAPP_BAILEYS)
+    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
       await instance.client.sendPresenceUpdate('paused', remoteJid);
-
-    const message = response?.data[0].content[0].text.value;
-
-    return message;
-  }
-
-  private async sendMessageWhatsapp(
-    instance: any,
-    session: IntegrationSession,
-    remoteJid: string,
-    settings: OpenaiSetting,
-    message: string,
-  ) {
-    const linkRegex = /(!?)\[(.*?)\]\((.*?)\)/g;
-
-    let textBuffer = '';
-    let lastIndex = 0;
-
-    let match: RegExpExecArray | null;
-
-    const getMediaType = (url: string): string | null => {
-      const extension = url.split('.').pop()?.toLowerCase();
-      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-      const audioExtensions = ['mp3', 'wav', 'aac', 'ogg'];
-      const videoExtensions = ['mp4', 'avi', 'mkv', 'mov'];
-      const documentExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'];
-
-      if (imageExtensions.includes(extension || '')) return 'image';
-      if (audioExtensions.includes(extension || '')) return 'audio';
-      if (videoExtensions.includes(extension || '')) return 'video';
-      if (documentExtensions.includes(extension || '')) return 'document';
-      return null;
-    };
-
-    while ((match = linkRegex.exec(message)) !== null) {
-      const [fullMatch, exclMark, altText, url] = match;
-      const mediaType = getMediaType(url);
-
-      const beforeText = message.slice(lastIndex, match.index);
-      if (beforeText) {
-        textBuffer += beforeText;
-      }
-
-      if (mediaType) {
-        const splitMessages = settings.splitMessages ?? false;
-        const timePerChar = settings.timePerChar ?? 0;
-        const minDelay = 1000;
-        const maxDelay = 20000;
-
-        if (textBuffer.trim()) {
-          if (splitMessages) {
-            const multipleMessages = textBuffer.trim().split('\n\n');
-
-            for (let index = 0; index < multipleMessages.length; index++) {
-              const message = multipleMessages[index];
-
-              const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
-
-              if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-                await instance.client.presenceSubscribe(remoteJid);
-                await instance.client.sendPresenceUpdate('composing', remoteJid);
-              }
-
-              await new Promise<void>((resolve) => {
-                setTimeout(async () => {
-                  await instance.textMessage(
-                    {
-                      number: remoteJid.split('@')[0],
-                      delay: settings?.delayMessage || 1000,
-                      text: message,
-                    },
-                    false,
-                  );
-                  resolve();
-                }, delay);
-              });
-
-              if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-                await instance.client.sendPresenceUpdate('paused', remoteJid);
-              }
-            }
-          } else {
-            await instance.textMessage(
-              {
-                number: remoteJid.split('@')[0],
-                delay: settings?.delayMessage || 1000,
-                text: textBuffer.trim(),
-              },
-              false,
-            );
-          }
-          textBuffer = '';
-        }
-
-        if (mediaType === 'audio') {
-          await instance.audioWhatsapp({
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            audio: url,
-            caption: altText,
-          });
-        } else {
-          await instance.mediaMessage(
-            {
-              number: remoteJid.split('@')[0],
-              delay: settings?.delayMessage || 1000,
-              mediatype: mediaType,
-              media: url,
-              caption: altText,
-            },
-            null,
-            false,
-          );
-        }
-      } else {
-        textBuffer += `[${altText}](${url})`;
-      }
-
-      lastIndex = linkRegex.lastIndex;
     }
 
-    if (lastIndex < message.length) {
-      const remainingText = message.slice(lastIndex);
-      if (remainingText.trim()) {
-        textBuffer += remainingText;
-      }
-    }
-
-    const splitMessages = settings.splitMessages ?? false;
-    const timePerChar = settings.timePerChar ?? 0;
-    const minDelay = 1000;
-    const maxDelay = 20000;
-
-    if (textBuffer.trim()) {
-      if (splitMessages) {
-        const multipleMessages = textBuffer.trim().split('\n\n');
-
-        for (let index = 0; index < multipleMessages.length; index++) {
-          const message = multipleMessages[index];
-
-          const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
-
-          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-            await instance.client.presenceSubscribe(remoteJid);
-            await instance.client.sendPresenceUpdate('composing', remoteJid);
-          }
-
-          await new Promise<void>((resolve) => {
-            setTimeout(async () => {
-              await instance.textMessage(
-                {
-                  number: remoteJid.split('@')[0],
-                  delay: settings?.delayMessage || 1000,
-                  text: message,
-                },
-                false,
-              );
-              resolve();
-            }, delay);
-          });
-
-          if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-            await instance.client.sendPresenceUpdate('paused', remoteJid);
-          }
-        }
-      } else {
-        await instance.textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: textBuffer.trim(),
-          },
-          false,
-        );
-      }
-      textBuffer = '';
-    }
-
-    sendTelemetry('/message/sendText');
-
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: true,
-      },
-    });
-  }
-
-  public async createAssistantNewSession(instance: InstanceDto, data: any) {
-    if (data.remoteJid === 'status@broadcast') return;
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: data.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
-
+    // Extract the response text safely with type checking
     try {
-      this.client = new OpenAI({
-        apiKey: creds.apiKey,
+      const messages = response?.data || [];
+      if (messages.length > 0) {
+        const messageContent = messages[0]?.content || [];
+        if (messageContent.length > 0) {
+          const textContent = messageContent[0];
+          if (textContent && 'text' in textContent && textContent.text && 'value' in textContent.text) {
+            return textContent.text.value;
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error extracting response text: ${error}`);
+    }
+
+    // Return fallback message if unable to extract text
+    return "I couldn't generate a proper response. Please try again.";
+  }
+
+  /**
+   * Process message using the OpenAI ChatCompletion API
+   */
+  private async processChatCompletionMessage(
+    instance: any,
+    openaiBot: OpenaiBot,
+    remoteJid: string,
+    content: string,
+    msg?: any,
+  ): Promise<string> {
+    this.logger.log('Starting processChatCompletionMessage');
+
+    // Check if client is initialized
+    if (!this.client) {
+      this.logger.log('Client not initialized in processChatCompletionMessage, initializing now');
+      const creds = await this.prismaRepository.openaiCreds.findUnique({
+        where: { id: openaiBot.openaiCredsId },
       });
 
-      const threadId = (await this.client.beta.threads.create({})).id;
-
-      let session = null;
-      if (threadId) {
-        session = await this.prismaRepository.integrationSession.create({
-          data: {
-            remoteJid: data.remoteJid,
-            pushName: data.pushName,
-            sessionId: threadId,
-            status: 'opened',
-            awaitUser: false,
-            botId: data.botId,
-            instanceId: instance.instanceId,
-            type: 'openai',
-          },
-        });
+      if (!creds) {
+        this.logger.error(`OpenAI credentials not found. CredsId: ${openaiBot.openaiCredsId}`);
+        return 'Error: OpenAI credentials not found';
       }
-      return { session };
-    } catch (error) {
-      this.logger.error(error);
-      return;
-    }
-  }
 
-  private async initAssistantNewSession(
-    instance: any,
-    remoteJid: string,
-    pushName: string,
-    fromMe: boolean,
-    openaiBot: OpenaiBot,
-    settings: OpenaiSetting,
-    session: IntegrationSession,
-    content: string,
-  ) {
-    const data = await this.createAssistantNewSession(instance, {
-      remoteJid,
-      pushName,
-      openaiCredsId: openaiBot.openaiCredsId,
-      botId: openaiBot.id,
+      this.initClient(creds.apiKey);
+    }
+
+    // Check if model is defined
+    if (!openaiBot.model) {
+      this.logger.error('OpenAI model not defined');
+      return 'Error: OpenAI model not configured';
+    }
+
+    this.logger.log(`Using model: ${openaiBot.model}, max tokens: ${openaiBot.maxTokens || 500}`);
+
+    // Get existing conversation history from the session
+    const session = await this.prismaRepository.integrationSession.findFirst({
+      where: {
+        remoteJid,
+        botId: openaiBot.id,
+        status: 'opened',
+      },
     });
 
-    if (data.session) {
-      session = data.session;
+    let conversationHistory = [];
+
+    if (session && session.context) {
+      try {
+        const sessionData =
+          typeof session.context === 'string' ? JSON.parse(session.context as string) : session.context;
+
+        conversationHistory = sessionData.history || [];
+        this.logger.log(`Retrieved conversation history from session, ${conversationHistory.length} messages`);
+      } catch (error) {
+        this.logger.error(`Error parsing session context: ${error.message}`);
+        // Continue with empty history if we can't parse the session data
+        conversationHistory = [];
+      }
     }
 
-    const message = await this.sendMessageToAssistant(
-      instance,
-      openaiBot,
-      remoteJid,
-      pushName,
-      fromMe,
-      content,
-      session.sessionId,
-    );
+    // Log bot data
+    this.logger.log(`Bot data - systemMessages: ${JSON.stringify(openaiBot.systemMessages || [])}`);
+    this.logger.log(`Bot data - assistantMessages: ${JSON.stringify(openaiBot.assistantMessages || [])}`);
+    this.logger.log(`Bot data - userMessages: ${JSON.stringify(openaiBot.userMessages || [])}`);
 
-    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
+    // Prepare system messages
+    const systemMessages: any = openaiBot.systemMessages || [];
+    const messagesSystem: any[] = systemMessages.map((message) => {
+      return {
+        role: 'system',
+        content: message,
+      };
+    });
 
-    return;
-  }
+    // Prepare assistant messages
+    const assistantMessages: any = openaiBot.assistantMessages || [];
+    const messagesAssistant: any[] = assistantMessages.map((message) => {
+      return {
+        role: 'assistant',
+        content: message,
+      };
+    });
 
-  private isJSON(str: string): boolean {
+    // Prepare user messages
+    const userMessages: any = openaiBot.userMessages || [];
+    const messagesUser: any[] = userMessages.map((message) => {
+      return {
+        role: 'user',
+        content: message,
+      };
+    });
+
+    // Prepare current message
+    const messageData: any = {
+      role: 'user',
+      content: [{ type: 'text', text: content }],
+    };
+
+    // Handle image messages
+    if (this.isImageMessage(content)) {
+      this.logger.log('Found image message');
+      const contentSplit = content.split('|');
+      const url = contentSplit[1].split('?')[0];
+
+      messageData.content = [
+        { type: 'text', text: contentSplit[2] || content },
+        {
+          type: 'image_url',
+          image_url: {
+            url: url,
+          },
+        },
+      ];
+    }
+
+    // Combine all messages: system messages, pre-defined messages, conversation history, and current message
+    const messages: any[] = [
+      ...messagesSystem,
+      ...messagesAssistant,
+      ...messagesUser,
+      ...conversationHistory,
+      messageData,
+    ];
+
+    this.logger.log(`Final messages payload: ${JSON.stringify(messages)}`);
+
+    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+      this.logger.log('Setting typing indicator');
+      await instance.client.presenceSubscribe(remoteJid);
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+    }
+
+    // Send the request to OpenAI
     try {
-      JSON.parse(str);
-      return true;
-    } catch (e) {
-      return false;
+      this.logger.log('Sending request to OpenAI API');
+      const completions = await this.client.chat.completions.create({
+        model: openaiBot.model,
+        messages: messages,
+        max_tokens: openaiBot.maxTokens || 500, // Add default if maxTokens is missing
+      });
+
+      if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+        await instance.client.sendPresenceUpdate('paused', remoteJid);
+      }
+
+      const responseContent = completions.choices[0].message.content;
+      this.logger.log(`Received response from OpenAI: ${JSON.stringify(completions.choices[0])}`);
+
+      // Add the current exchange to the conversation history and update the session
+      conversationHistory.push(messageData);
+      conversationHistory.push({
+        role: 'assistant',
+        content: responseContent,
+      });
+
+      // Limit history length to avoid token limits (keep last 10 messages)
+      if (conversationHistory.length > 10) {
+        conversationHistory = conversationHistory.slice(conversationHistory.length - 10);
+      }
+
+      // Save the updated conversation history to the session
+      if (session) {
+        await this.prismaRepository.integrationSession.update({
+          where: { id: session.id },
+          data: {
+            context: JSON.stringify({
+              history: conversationHistory,
+            }),
+          },
+        });
+        this.logger.log(`Updated session with conversation history, now ${conversationHistory.length} messages`);
+      }
+
+      return responseContent;
+    } catch (error) {
+      this.logger.error(`Error calling OpenAI: ${error.message || JSON.stringify(error)}`);
+      if (error.response) {
+        this.logger.error(`API Response status: ${error.response.status}`);
+        this.logger.error(`API Response data: ${JSON.stringify(error.response.data || {})}`);
+      }
+      return `Sorry, there was an error: ${error.message || 'Unknown error'}`;
     }
   }
 
+  /**
+   * Wait for and retrieve the AI response
+   */
   private async getAIResponse(
     threadId: string,
     runId: string,
-    functionUrl: string,
+    functionUrl: string | null,
     remoteJid: string,
     pushName: string,
   ) {
-    const getRun = await this.client.beta.threads.runs.retrieve(threadId, runId);
-    let toolCalls;
-    switch (getRun.status) {
-      case 'requires_action':
-        toolCalls = getRun?.required_action?.submit_tool_outputs?.tool_calls;
+    let status = await this.client.beta.threads.runs.retrieve(threadId, runId);
 
-        if (toolCalls) {
-          for (const toolCall of toolCalls) {
-            const id = toolCall.id;
-            const functionName = toolCall?.function?.name;
-            const functionArgument = this.isJSON(toolCall?.function?.arguments)
-              ? JSON.parse(toolCall?.function?.arguments)
-              : toolCall?.function?.arguments;
+    let maxRetries = 60; // 1 minute with 1s intervals
+    const checkInterval = 1000; // 1 second
 
-            let output = null;
+    while (
+      status.status !== 'completed' &&
+      status.status !== 'failed' &&
+      status.status !== 'cancelled' &&
+      status.status !== 'expired' &&
+      maxRetries > 0
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+      status = await this.client.beta.threads.runs.retrieve(threadId, runId);
 
+      // Handle tool calls
+      if (status.status === 'requires_action' && status.required_action?.type === 'submit_tool_outputs') {
+        const toolCalls = status.required_action.submit_tool_outputs.tool_calls;
+        const toolOutputs = [];
+
+        for (const toolCall of toolCalls) {
+          if (functionUrl) {
             try {
-              const { data } = await axios.post(functionUrl, {
-                name: functionName,
-                arguments: { ...functionArgument, remoteJid, pushName },
+              const payloadData = JSON.parse(toolCall.function.arguments);
+
+              // Add context
+              payloadData.remoteJid = remoteJid;
+              payloadData.pushName = pushName;
+
+              const response = await axios.post(functionUrl, {
+                functionName: toolCall.function.name,
+                functionArguments: payloadData,
               });
 
-              output = JSON.stringify(data)
-                .replace(/\\/g, '\\\\')
-                .replace(/"/g, '\\"')
-                .replace(/\n/g, '\\n')
-                .replace(/\r/g, '\\r')
-                .replace(/\t/g, '\\t');
+              toolOutputs.push({
+                tool_call_id: toolCall.id,
+                output: JSON.stringify(response.data),
+              });
             } catch (error) {
-              output = JSON.stringify(error)
-                .replace(/\\/g, '\\\\')
-                .replace(/"/g, '\\"')
-                .replace(/\n/g, '\\n')
-                .replace(/\r/g, '\\r')
-                .replace(/\t/g, '\\t');
+              this.logger.error(`Error calling function: ${error}`);
+              toolOutputs.push({
+                tool_call_id: toolCall.id,
+                output: JSON.stringify({ error: 'Function call failed' }),
+              });
             }
-
-            await this.client.beta.threads.runs.submitToolOutputs(threadId, runId, {
-              tool_outputs: [
-                {
-                  tool_call_id: id,
-                  output,
-                },
-              ],
+          } else {
+            toolOutputs.push({
+              tool_call_id: toolCall.id,
+              output: JSON.stringify({ error: 'No function URL configured' }),
             });
           }
         }
 
-        return this.getAIResponse(threadId, runId, functionUrl, remoteJid, pushName);
-      case 'queued':
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId, functionUrl, remoteJid, pushName);
-      case 'in_progress':
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return this.getAIResponse(threadId, runId, functionUrl, remoteJid, pushName);
-      case 'completed':
-        return await this.client.beta.threads.messages.list(threadId, {
-          run_id: runId,
-          limit: 1,
+        await this.client.beta.threads.runs.submitToolOutputs(threadId, runId, {
+          tool_outputs: toolOutputs,
         });
+      }
+
+      maxRetries--;
+    }
+
+    if (status.status === 'completed') {
+      const messages = await this.client.beta.threads.messages.list(threadId);
+      return messages;
+    } else {
+      this.logger.error(`Assistant run failed with status: ${status.status}`);
+      return { data: [{ content: [{ text: { value: 'Failed to get a response from the assistant.' } }] }] };
     }
   }
 
-  private isImageMessage(content: string) {
+  protected isImageMessage(content: string): boolean {
     return content.includes('imageMessage');
   }
 
-  public async processOpenaiAssistant(
-    instance: any,
-    remoteJid: string,
-    pushName: string,
-    fromMe: boolean,
-    openaiBot: OpenaiBot,
-    session: IntegrationSession,
-    settings: OpenaiSetting,
-    content: string,
-  ) {
-    if (session && session.status === 'closed') {
-      return;
-    }
+  /**
+   * Implementation of speech-to-text transcription for audio messages
+   * This overrides the base class implementation with extra functionality
+   * Can be called directly with a message object or with an audio buffer
+   */
+  public async speechToText(msgOrBuffer: any, updateMediaMessage?: any): Promise<string | null> {
+    try {
+      this.logger.log('Starting speechToText transcription');
 
-    if (session && settings.expire && settings.expire > 0) {
-      const now = Date.now();
+      // Handle direct calls with message object
+      if (msgOrBuffer && (msgOrBuffer.key || msgOrBuffer.message)) {
+        this.logger.log('Processing message object for audio transcription');
+        const audioBuffer = await this.getAudioBufferFromMsg(msgOrBuffer, updateMediaMessage);
 
-      const sessionUpdatedAt = new Date(session.updatedAt).getTime();
-
-      const diff = now - sessionUpdatedAt;
-
-      const diffInMinutes = Math.floor(diff / 1000 / 60);
-
-      if (diffInMinutes > settings.expire) {
-        if (settings.keepOpen) {
-          await this.prismaRepository.integrationSession.update({
-            where: {
-              id: session.id,
-            },
-            data: {
-              status: 'closed',
-            },
-          });
-        } else {
-          await this.prismaRepository.integrationSession.deleteMany({
-            where: {
-              botId: openaiBot.id,
-              remoteJid: remoteJid,
-            },
-          });
+        if (!audioBuffer) {
+          this.logger.error('Failed to get audio buffer from message');
+          return null;
         }
 
-        await this.initAssistantNewSession(
-          instance,
-          remoteJid,
-          pushName,
-          fromMe,
-          openaiBot,
-          settings,
-          session,
-          content,
-        );
-        return;
+        this.logger.log(`Got audio buffer of size: ${audioBuffer.length} bytes`);
+
+        // Process the audio buffer with the base implementation
+        return this.processAudioTranscription(audioBuffer);
       }
+
+      // Handle calls with a buffer directly (base implementation)
+      this.logger.log('Processing buffer directly for audio transcription');
+      return this.processAudioTranscription(msgOrBuffer);
+    } catch (err) {
+      this.logger.error(`Error in speechToText: ${err}`);
+      return null;
     }
-
-    if (!session) {
-      await this.initAssistantNewSession(instance, remoteJid, pushName, fromMe, openaiBot, settings, session, content);
-      return;
-    }
-
-    if (session.status !== 'paused')
-      await this.prismaRepository.integrationSession.update({
-        where: {
-          id: session.id,
-        },
-        data: {
-          status: 'opened',
-          awaitUser: false,
-        },
-      });
-
-    if (!content) {
-      if (settings.unknownMessage) {
-        this.waMonitor.waInstances[instance.instanceName].textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings.delayMessage || 1000,
-            text: settings.unknownMessage,
-          },
-          false,
-        );
-
-        sendTelemetry('/message/sendText');
-      }
-      return;
-    }
-
-    if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
-      if (settings.keepOpen) {
-        await this.prismaRepository.integrationSession.update({
-          where: {
-            id: session.id,
-          },
-          data: {
-            status: 'closed',
-          },
-        });
-      } else {
-        await this.prismaRepository.integrationSession.deleteMany({
-          where: {
-            botId: openaiBot.id,
-            remoteJid: remoteJid,
-          },
-        });
-      }
-      return;
-    }
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: openaiBot.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
-
-    this.client = new OpenAI({
-      apiKey: creds.apiKey,
-    });
-
-    const threadId = session.sessionId;
-
-    const message = await this.sendMessageToAssistant(
-      instance,
-      openaiBot,
-      remoteJid,
-      pushName,
-      fromMe,
-      content,
-      threadId,
-    );
-
-    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
-
-    return;
   }
 
-  public async createChatCompletionNewSession(instance: InstanceDto, data: any) {
-    if (data.remoteJid === 'status@broadcast') return;
-
-    const id = Math.floor(Math.random() * 10000000000).toString();
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: data.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
+  /**
+   * Helper method to process audio buffer for transcription
+   */
+  private async processAudioTranscription(audioBuffer: Buffer): Promise<string | null> {
+    if (!this.configService) {
+      this.logger.error('ConfigService not available for speech-to-text transcription');
+      return null;
+    }
 
     try {
-      const session = await this.prismaRepository.integrationSession.create({
-        data: {
-          remoteJid: data.remoteJid,
-          pushName: data.pushName,
-          sessionId: id,
-          status: 'opened',
-          awaitUser: false,
-          botId: data.botId,
-          instanceId: instance.instanceId,
-          type: 'openai',
-        },
-      });
+      // Use the initialized client's API key if available
+      let apiKey;
 
-      return { session, creds };
-    } catch (error) {
-      this.logger.error(error);
-      return;
-    }
-  }
-
-  private async initChatCompletionNewSession(
-    instance: any,
-    remoteJid: string,
-    pushName: string,
-    openaiBot: OpenaiBot,
-    settings: OpenaiSetting,
-    session: IntegrationSession,
-    content: string,
-  ) {
-    const data = await this.createChatCompletionNewSession(instance, {
-      remoteJid,
-      pushName,
-      openaiCredsId: openaiBot.openaiCredsId,
-      botId: openaiBot.id,
-    });
-
-    session = data.session;
-
-    const creds = data.creds;
-
-    this.client = new OpenAI({
-      apiKey: creds.apiKey,
-    });
-
-    const message = await this.sendMessageToBot(instance, openaiBot, remoteJid, content);
-
-    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
-
-    return;
-  }
-
-  public async processOpenaiChatCompletion(
-    instance: any,
-    remoteJid: string,
-    pushName: string,
-    openaiBot: OpenaiBot,
-    session: IntegrationSession,
-    settings: OpenaiSetting,
-    content: string,
-  ) {
-    if (session && session.status !== 'opened') {
-      return;
-    }
-
-    if (session && settings.expire && settings.expire > 0) {
-      const now = Date.now();
-
-      const sessionUpdatedAt = new Date(session.updatedAt).getTime();
-
-      const diff = now - sessionUpdatedAt;
-
-      const diffInMinutes = Math.floor(diff / 1000 / 60);
-
-      if (diffInMinutes > settings.expire) {
-        if (settings.keepOpen) {
-          await this.prismaRepository.integrationSession.update({
-            where: {
-              id: session.id,
-            },
-            data: {
-              status: 'closed',
-            },
-          });
-        } else {
-          await this.prismaRepository.integrationSession.deleteMany({
-            where: {
-              botId: openaiBot.id,
-              remoteJid: remoteJid,
-            },
-          });
-        }
-
-        await this.initChatCompletionNewSession(instance, remoteJid, pushName, openaiBot, settings, session, content);
-        return;
-      }
-    }
-
-    if (!session) {
-      await this.initChatCompletionNewSession(instance, remoteJid, pushName, openaiBot, settings, session, content);
-      return;
-    }
-
-    await this.prismaRepository.integrationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        status: 'opened',
-        awaitUser: false,
-      },
-    });
-
-    if (!content) {
-      if (settings.unknownMessage) {
-        this.waMonitor.waInstances[instance.instanceName].textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings.delayMessage || 1000,
-            text: settings.unknownMessage,
-          },
-          false,
-        );
-
-        sendTelemetry('/message/sendText');
-      }
-      return;
-    }
-
-    if (settings.keywordFinish && content.toLowerCase() === settings.keywordFinish.toLowerCase()) {
-      if (settings.keepOpen) {
-        await this.prismaRepository.integrationSession.update({
-          where: {
-            id: session.id,
-          },
-          data: {
-            status: 'closed',
-          },
-        });
+      if (this.client) {
+        // Extract the API key from the initialized client if possible
+        // OpenAI client doesn't expose the API key directly, so we need to use environment or config
+        apiKey = this.configService.get<any>('OPENAI')?.API_KEY || process.env.OPENAI_API_KEY;
       } else {
-        await this.prismaRepository.integrationSession.deleteMany({
-          where: {
-            botId: openaiBot.id,
-            remoteJid: remoteJid,
-          },
-        });
+        this.logger.log('No OpenAI client initialized, using config API key');
+        apiKey = this.configService.get<any>('OPENAI')?.API_KEY || process.env.OPENAI_API_KEY;
       }
-      return;
+
+      if (!apiKey) {
+        this.logger.error('No OpenAI API key set for Whisper transcription');
+        return null;
+      }
+
+      const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
+        ? 'pt'
+        : this.configService.get<Language>('LANGUAGE');
+
+      this.logger.log(`Sending audio for transcription with language: ${lang}`);
+
+      const formData = new FormData();
+      formData.append('file', audioBuffer, 'audio.ogg');
+      formData.append('model', 'whisper-1');
+      formData.append('language', lang);
+
+      this.logger.log('Making API request to OpenAI Whisper transcription');
+
+      const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+
+      this.logger.log(`Transcription completed: ${response?.data?.text || 'No text returned'}`);
+      return response?.data?.text || null;
+    } catch (err) {
+      this.logger.error(`Whisper transcription failed: ${JSON.stringify(err.response?.data || err.message || err)}`);
+      return null;
     }
-
-    const creds = await this.prismaRepository.openaiCreds.findFirst({
-      where: {
-        id: openaiBot.openaiCredsId,
-      },
-    });
-
-    if (!creds) throw new Error('Openai Creds not found');
-
-    this.client = new OpenAI({
-      apiKey: creds.apiKey,
-    });
-
-    const message = await this.sendMessageToBot(instance, openaiBot, remoteJid, content);
-
-    await this.sendMessageWhatsapp(instance, session, remoteJid, settings, message);
-
-    return;
   }
 
-  public async speechToText(creds: OpenaiCreds, msg: any, updateMediaMessage: any) {
-    let audio;
+  /**
+   * Helper method to convert message to audio buffer
+   */
+  private async getAudioBufferFromMsg(msg: any, updateMediaMessage: any): Promise<Buffer | null> {
+    try {
+      this.logger.log('Getting audio buffer from message');
+      this.logger.log(`Message type: ${msg.messageType}, has media URL: ${!!msg?.message?.mediaUrl}`);
 
-    if (msg?.message?.mediaUrl) {
-      audio = await axios.get(msg.message.mediaUrl, { responseType: 'arraybuffer' }).then((response) => {
-        return Buffer.from(response.data, 'binary');
-      });
-    } else {
-      audio = await downloadMediaMessage(
-        { key: msg.key, message: msg?.message },
-        'buffer',
-        {},
-        {
-          logger: P({ level: 'error' }) as any,
-          reuploadRequest: updateMediaMessage,
-        },
-      );
+      let audio;
+
+      if (msg?.message?.mediaUrl) {
+        this.logger.log(`Getting audio from media URL: ${msg.message.mediaUrl}`);
+        audio = await axios.get(msg.message.mediaUrl, { responseType: 'arraybuffer' }).then((response) => {
+          return Buffer.from(response.data, 'binary');
+        });
+      } else if (msg?.message?.audioMessage) {
+        // Handle WhatsApp audio messages
+        this.logger.log('Getting audio from audioMessage');
+        audio = await downloadMediaMessage(
+          { key: msg.key, message: msg?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }) as any,
+            reuploadRequest: updateMediaMessage,
+          },
+        );
+      } else if (msg?.message?.pttMessage) {
+        // Handle PTT voice messages
+        this.logger.log('Getting audio from pttMessage');
+        audio = await downloadMediaMessage(
+          { key: msg.key, message: msg?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }) as any,
+            reuploadRequest: updateMediaMessage,
+          },
+        );
+      } else {
+        this.logger.log('No recognized audio format found');
+        audio = await downloadMediaMessage(
+          { key: msg.key, message: msg?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }) as any,
+            reuploadRequest: updateMediaMessage,
+          },
+        );
+      }
+
+      if (audio) {
+        this.logger.log(`Successfully obtained audio buffer of size: ${audio.length} bytes`);
+      } else {
+        this.logger.error('Failed to obtain audio buffer');
+      }
+
+      return audio;
+    } catch (error) {
+      this.logger.error(`Error getting audio buffer: ${error.message || JSON.stringify(error)}`);
+      if (error.response) {
+        this.logger.error(`API response status: ${error.response.status}`);
+        this.logger.error(`API response data: ${JSON.stringify(error.response.data || {})}`);
+      }
+      return null;
     }
-
-    const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
-      ? 'pt'
-      : this.configService.get<Language>('LANGUAGE');
-
-    const formData = new FormData();
-
-    formData.append('file', audio, 'audio.ogg');
-    formData.append('model', 'whisper-1');
-    formData.append('language', lang);
-
-    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${creds.apiKey}`,
-      },
-    });
-
-    return response?.data?.text;
   }
 }

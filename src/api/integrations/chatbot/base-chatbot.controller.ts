@@ -47,18 +47,21 @@ export interface BaseBotData {
   [key: string]: any;
 }
 
-export abstract class BaseChatbotController<BotType = any, BotData extends BaseChatbotDto = BaseChatbotDto> extends ChatbotController implements ChatbotControllerInterface {
+export abstract class BaseChatbotController<BotType = any, BotData extends BaseChatbotDto = BaseChatbotDto>
+  extends ChatbotController
+  implements ChatbotControllerInterface
+{
   public readonly logger: Logger;
-  
+
   integrationEnabled: boolean;
   botRepository: any;
   settingsRepository: any;
   sessionRepository: any;
   userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
-  
+
   // Name of the integration, to be set by the derived class
   protected abstract readonly integrationName: string;
-  
+
   // Method to process bot-specific logic
   protected abstract processBot(
     waInstance: any,
@@ -70,16 +73,13 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
     pushName?: string,
     msg?: any,
   ): Promise<void>;
-  
+
   // Method to get the fallback bot ID from settings
   protected abstract getFallbackBotId(settings: any): string | undefined;
-  
-  constructor(
-    prismaRepository: PrismaRepository,
-    waMonitor: WAMonitoringService,
-  ) {
+
+  constructor(prismaRepository: PrismaRepository, waMonitor: WAMonitoringService) {
     super(prismaRepository, waMonitor);
-    
+
     this.sessionRepository = this.prismaRepository.integrationSession;
   }
 
@@ -161,7 +161,9 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
     });
 
     if (checkTriggerAll && data.triggerType === 'all') {
-      throw new Error(`You already have a ${this.integrationName} with an "All" trigger, you cannot have more bots while it is active`);
+      throw new Error(
+        `You already have a ${this.integrationName} with an "All" trigger, you cannot have more bots while it is active`,
+      );
     }
 
     // Check for trigger keyword duplicates
@@ -309,7 +311,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
 
       // Get the name of the fallback field for this integration type
       const fallbackFieldName = this.getFallbackFieldName();
-      
+
       const settingsData = {
         expire: data.expire,
         keywordFinish: data.keywordFinish,
@@ -336,20 +338,25 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
         // Map the specific fallback field to a generic 'fallbackId' in the response
         return {
           ...settings,
-          fallbackId: settings[fallbackFieldName]
+          fallbackId: settings[fallbackFieldName],
         };
       } else {
         const settings = await this.settingsRepository.create({
           data: {
             ...settingsData,
             instanceId: instanceId,
+            Instance: {
+              connect: {
+                id: instanceId,
+              },
+            },
           },
         });
 
         // Map the specific fallback field to a generic 'fallbackId' in the response
         return {
           ...settings,
-          fallbackId: settings[fallbackFieldName]
+          fallbackId: settings[fallbackFieldName],
         };
       }
     } catch (error) {
@@ -631,7 +638,9 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
         });
 
         if (checkTriggerAll) {
-          throw new Error(`You already have a ${this.integrationName} with an "All" trigger, you cannot have more bots while it is active`);
+          throw new Error(
+            `You already have a ${this.integrationName} with an "All" trigger, you cannot have more bots while it is active`,
+          );
         }
       }
 
@@ -779,15 +788,15 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
       if (this.checkIgnoreJids(settings?.ignoreJids, remoteJid)) return;
 
       const session = await this.getSession(remoteJid, instance);
-      
+
       const content = getConversationMessage(msg);
-      
+
       // Get integration type
       const integrationType = this.getIntegrationType();
-      
+
       // Find a bot for this message
       let findBot: any = await this.findBotTrigger(this.botRepository, content, instance, session);
-      
+
       // If no bot is found, try to use fallback
       if (!findBot) {
         const fallback = await this.settingsRepository.findFirst({
@@ -798,7 +807,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
 
         // Get the fallback ID for this integration type
         const fallbackId = this.getFallbackBotId(fallback);
-        
+
         if (fallbackId) {
           const findFallback = await this.botRepository.findFirst({
             where: {
@@ -811,7 +820,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
           return;
         }
       }
-      
+
       // If we still don't have a bot, return
       if (!findBot) {
         return;
@@ -918,4 +927,4 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
       this.logger.error(error);
     }
   }
-} 
+}

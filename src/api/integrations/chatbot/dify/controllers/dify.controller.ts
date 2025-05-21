@@ -1,4 +1,3 @@
-
 import { InstanceDto } from '@api/dto/instance.dto';
 import { DifyDto } from '@api/integrations/chatbot/dify/dto/dify.dto';
 import { DifyService } from '@api/integrations/chatbot/dify/services/dify.service';

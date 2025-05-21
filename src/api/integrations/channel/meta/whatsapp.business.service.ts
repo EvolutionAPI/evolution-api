@@ -501,16 +501,12 @@ export class BusinessStartupService extends ChannelStartupService {
             openAiDefaultSettings.speechToText &&
             audioMessage
           ) {
-            messageRaw.message.speechToText = await this.openaiService.speechToText(
-              openAiDefaultSettings.OpenaiCreds,
-              {
-                message: {
-                  mediaUrl: messageRaw.message.mediaUrl,
-                  ...messageRaw,
-                },
+            messageRaw.message.speechToText = await this.openaiService.speechToText({
+              message: {
+                mediaUrl: messageRaw.message.mediaUrl,
+                ...messageRaw,
               },
-              () => {},
-            );
+            });
           }
         }
 

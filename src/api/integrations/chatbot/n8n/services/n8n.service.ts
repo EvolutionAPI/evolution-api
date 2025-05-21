@@ -11,11 +11,7 @@ import { BaseChatbotService } from '../../base-chatbot.service';
 import { N8nDto } from '../dto/n8n.dto';
 
 export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
-  constructor(
-    waMonitor: WAMonitoringService,
-    prismaRepository: PrismaRepository,
-    configService: ConfigService,
-  ) {
+  constructor(waMonitor: WAMonitoringService, prismaRepository: PrismaRepository, configService: ConfigService) {
     super(waMonitor, prismaRepository, 'N8nService', configService);
   }
 
@@ -194,34 +190,34 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
     let textBuffer = '';
     let lastIndex = 0;
     let match: RegExpExecArray | null;
-    
+
     while ((match = linkRegex.exec(message)) !== null) {
       const [fullMatch, exclamation, altText, url] = match;
       const mediaType = this.getMediaType(url);
       const beforeText = message.slice(lastIndex, match.index);
-      
+
       if (beforeText) {
         textBuffer += beforeText;
       }
-      
+
       if (mediaType) {
         const splitMessages = settings.splitMessages ?? false;
         const timePerChar = settings.timePerChar ?? 0;
         const minDelay = 1000;
         const maxDelay = 20000;
-        
+
         if (textBuffer.trim()) {
           if (splitMessages) {
             const multipleMessages = textBuffer.trim().split('\n\n');
             for (let index = 0; index < multipleMessages.length; index++) {
               const message = multipleMessages[index];
               const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
-              
+
               if (instance.integration === 'WHATSAPP_BAILEYS') {
                 await instance.client.presenceSubscribe(remoteJid);
                 await instance.client.sendPresenceUpdate('composing', remoteJid);
               }
-              
+
               await new Promise<void>((resolve) => {
                 setTimeout(async () => {
                   await instance.textMessage(
@@ -235,19 +231,19 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
                   resolve();
                 }, delay);
               });
-              
+
               if (instance.integration === 'WHATSAPP_BAILEYS') {
                 await instance.client.sendPresenceUpdate('paused', remoteJid);
               }
             }
           } else {
             const delay = Math.min(Math.max(textBuffer.length * timePerChar, minDelay), maxDelay);
-            
+
             if (instance.integration === 'WHATSAPP_BAILEYS') {
               await instance.client.presenceSubscribe(remoteJid);
               await instance.client.sendPresenceUpdate('composing', remoteJid);
             }
-            
+
             await new Promise<void>((resolve) => {
               setTimeout(async () => {
                 await instance.textMessage(
@@ -261,15 +257,15 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
                 resolve();
               }, delay);
             });
-            
+
             if (instance.integration === 'WHATSAPP_BAILEYS') {
               await instance.client.sendPresenceUpdate('paused', remoteJid);
             }
           }
         }
-        
+
         textBuffer = '';
-        
+
         if (mediaType === 'image') {
           await instance.mediaMessage({
             number: remoteJid.split('@')[0],
@@ -306,32 +302,32 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
       } else {
         textBuffer += `[${altText}](${url})`;
       }
-      
+
       lastIndex = match.index + fullMatch.length;
     }
-    
+
     const remainingText = message.slice(lastIndex);
     if (remainingText) {
       textBuffer += remainingText;
     }
-    
+
     if (textBuffer.trim()) {
       const splitMessages = settings.splitMessages ?? false;
       const timePerChar = settings.timePerChar ?? 0;
       const minDelay = 1000;
       const maxDelay = 20000;
-      
+
       if (splitMessages) {
         const multipleMessages = textBuffer.trim().split('\n\n');
         for (let index = 0; index < multipleMessages.length; index++) {
           const message = multipleMessages[index];
           const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
-          
+
           if (instance.integration === 'WHATSAPP_BAILEYS') {
             await instance.client.presenceSubscribe(remoteJid);
             await instance.client.sendPresenceUpdate('composing', remoteJid);
           }
-          
+
           await new Promise<void>((resolve) => {
             setTimeout(async () => {
               await instance.textMessage(
@@ -345,19 +341,19 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
               resolve();
             }, delay);
           });
-          
+
           if (instance.integration === 'WHATSAPP_BAILEYS') {
             await instance.client.sendPresenceUpdate('paused', remoteJid);
           }
         }
       } else {
         const delay = Math.min(Math.max(textBuffer.length * timePerChar, minDelay), maxDelay);
-        
+
         if (instance.integration === 'WHATSAPP_BAILEYS') {
           await instance.client.presenceSubscribe(remoteJid);
           await instance.client.sendPresenceUpdate('composing', remoteJid);
         }
-        
+
         await new Promise<void>((resolve) => {
           setTimeout(async () => {
             await instance.textMessage(
@@ -371,7 +367,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
             resolve();
           }, delay);
         });
-        
+
         if (instance.integration === 'WHATSAPP_BAILEYS') {
           await instance.client.sendPresenceUpdate('paused', remoteJid);
         }
@@ -443,16 +439,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
           data,
         );
 
-        await this.initNewSession(
-          instance,
-          remoteJid,
-          n8n,
-          settings,
-          createSession.session,
-          content,
-          pushName,
-          msg,
-        );
+        await this.initNewSession(instance, remoteJid, n8n, settings, createSession.session, content, pushName, msg);
 
         await sendTelemetry('/n8n/session/start');
         return;

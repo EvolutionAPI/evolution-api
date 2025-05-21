@@ -1,4 +1,5 @@
 import { $Enums, TriggerOperator, TriggerType } from '@prisma/client';
+
 import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
 
 export class DifyDto extends BaseChatbotDto {

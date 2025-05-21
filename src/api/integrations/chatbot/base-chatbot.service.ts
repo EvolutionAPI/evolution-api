@@ -1,10 +1,10 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
+import { Integration } from '@api/types/wa.types';
 import { ConfigService, Language } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { IntegrationSession } from '@prisma/client';
-import { Integration } from '@api/types/wa.types';
 import axios from 'axios';
 import FormData from 'form-data';
 
@@ -17,7 +17,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
   protected readonly waMonitor: WAMonitoringService;
   protected readonly prismaRepository: PrismaRepository;
   protected readonly configService?: ConfigService;
-  
+
   constructor(
     waMonitor: WAMonitoringService,
     prismaRepository: PrismaRepository,
@@ -89,23 +89,23 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
         this.logger.error('No OpenAI API key set for Whisper transcription');
         return null;
       }
-      
+
       const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
         ? 'pt'
         : this.configService.get<Language>('LANGUAGE');
-      
+
       const formData = new FormData();
       formData.append('file', audioBuffer, 'audio.ogg');
       formData.append('model', 'whisper-1');
       formData.append('language', lang);
-      
+
       const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
         headers: {
           ...formData.getHeaders(),
           Authorization: `Bearer ${apiKey}`,
         },
       });
-      
+
       return response?.data?.text || null;
     } catch (err) {
       this.logger.error(`Whisper transcription failed: ${err}`);
@@ -119,14 +119,16 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
   public async createNewSession(instance: InstanceDto | any, data: any, type: string) {
     try {
       // Extract pushName safely - if data.pushName is an object with a pushName property, use that
-      const pushNameValue = typeof data.pushName === 'object' && data.pushName?.pushName
-        ? data.pushName.pushName
-        : (typeof data.pushName === 'string' ? data.pushName : null);
-        
+      const pushNameValue =
+        typeof data.pushName === 'object' && data.pushName?.pushName
+          ? data.pushName.pushName
+          : typeof data.pushName === 'string'
+            ? data.pushName
+            : null;
+
       // Extract remoteJid safely
-      const remoteJidValue = typeof data.remoteJid === 'object' && data.remoteJid?.remoteJid
-        ? data.remoteJid.remoteJid
-        : data.remoteJid;
+      const remoteJidValue =
+        typeof data.remoteJid === 'object' && data.remoteJid?.remoteJid ? data.remoteJid.remoteJid : data.remoteJid;
 
       const session = await this.prismaRepository.integrationSession.create({
         data: {
@@ -203,18 +205,18 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
    * This handles common patterns like markdown links and formatting
    */
   protected async sendMessageWhatsApp(
-    instance: any, 
-    remoteJid: string, 
-    message: string, 
-    settings: SettingsType
+    instance: any,
+    remoteJid: string,
+    message: string,
+    settings: SettingsType,
   ): Promise<void> {
     if (!message) return;
-    
+
     const linkRegex = /(!?)\[(.*?)\]\((.*?)\)/g;
     let textBuffer = '';
     let lastIndex = 0;
     let match: RegExpExecArray | null;
-    
+
     const splitMessages = (settings as any)?.splitMessages ?? false;
     const timePerChar = (settings as any)?.timePerChar ?? 0;
     const minDelay = 1000;
@@ -224,18 +226,18 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
       const [fullMatch, exclamation, altText, url] = match;
       const mediaType = this.getMediaType(url);
       const beforeText = message.slice(lastIndex, match.index);
-      
+
       if (beforeText) {
         textBuffer += beforeText;
       }
-      
+
       if (mediaType) {
         // Send accumulated text before sending media
         if (textBuffer.trim()) {
           await this.sendFormattedText(instance, remoteJid, textBuffer.trim(), settings, splitMessages);
           textBuffer = '';
         }
-        
+
         // Handle sending the media
         try {
           switch (mediaType) {
@@ -249,7 +251,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
               break;
             case 'video':
               await instance.mediaMessage({
-                number: remoteJid.split('@')[0], 
+                number: remoteJid.split('@')[0],
                 delay: (settings as any)?.delayMessage || 1000,
                 caption: altText,
                 media: url,
@@ -280,48 +282,48 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
         // It's a regular link, keep it in the text
         textBuffer += `[${altText}](${url})`;
       }
-      
+
       lastIndex = match.index + fullMatch.length;
     }
-    
+
     // Add any remaining text after the last match
     if (lastIndex < message.length) {
       textBuffer += message.slice(lastIndex);
     }
-    
+
     // Send any remaining text
     if (textBuffer.trim()) {
       await this.sendFormattedText(instance, remoteJid, textBuffer.trim(), settings, splitMessages);
     }
   }
-  
+
   /**
    * Helper method to send formatted text with proper typing indicators and delays
    */
   private async sendFormattedText(
-    instance: any, 
-    remoteJid: string, 
-    text: string, 
-    settings: any, 
-    splitMessages: boolean
+    instance: any,
+    remoteJid: string,
+    text: string,
+    settings: any,
+    splitMessages: boolean,
   ): Promise<void> {
     const timePerChar = settings?.timePerChar ?? 0;
     const minDelay = 1000;
     const maxDelay = 20000;
-    
+
     if (splitMessages) {
       const multipleMessages = text.split('\n\n');
       for (let index = 0; index < multipleMessages.length; index++) {
         const message = multipleMessages[index];
         if (!message.trim()) continue;
-        
+
         const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
-        
+
         if (instance.integration === Integration.WHATSAPP_BAILEYS) {
           await instance.client.presenceSubscribe(remoteJid);
           await instance.client.sendPresenceUpdate('composing', remoteJid);
         }
-        
+
         await new Promise<void>((resolve) => {
           setTimeout(async () => {
             await instance.textMessage(
@@ -335,19 +337,19 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
             resolve();
           }, delay);
         });
-        
+
         if (instance.integration === Integration.WHATSAPP_BAILEYS) {
           await instance.client.sendPresenceUpdate('paused', remoteJid);
         }
       }
     } else {
       const delay = Math.min(Math.max(text.length * timePerChar, minDelay), maxDelay);
-      
+
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
         await instance.client.presenceSubscribe(remoteJid);
         await instance.client.sendPresenceUpdate('composing', remoteJid);
       }
-      
+
       await new Promise<void>((resolve) => {
         setTimeout(async () => {
           await instance.textMessage(
@@ -361,7 +363,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
           resolve();
         }, delay);
       });
-      
+
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
         await instance.client.sendPresenceUpdate('paused', remoteJid);
       }
@@ -385,15 +387,18 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     // Create a session if none exists
     if (!session) {
       // Extract pushName properly - if it's an object with pushName property, use that
-      const pushNameValue = typeof pushName === 'object' && pushName?.pushName
-        ? pushName.pushName
-        : (typeof pushName === 'string' ? pushName : null);
-        
+      const pushNameValue =
+        typeof pushName === 'object' && pushName?.pushName
+          ? pushName.pushName
+          : typeof pushName === 'string'
+            ? pushName
+            : null;
+
       session = (
         await this.createNewSession(
-          { 
-            instanceName: instance.instanceName, 
-            instanceId: instance.instanceId 
+          {
+            instanceName: instance.instanceName,
+            instanceId: instance.instanceId,
           },
           {
             remoteJid,
@@ -440,4 +445,4 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     content: string,
     msg?: any,
   ): Promise<void>;
-} 
+}

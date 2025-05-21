@@ -119,7 +119,7 @@ export const baileysController = new BaileysController(waMonitor);
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
 export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);
 
-const openaiService = new OpenaiService(waMonitor, configService, prismaRepository);
+const openaiService = new OpenaiService(waMonitor, prismaRepository, configService);
 export const openaiController = new OpenaiController(openaiService, prismaRepository, waMonitor);
 
 const difyService = new DifyService(waMonitor, configService, prismaRepository);

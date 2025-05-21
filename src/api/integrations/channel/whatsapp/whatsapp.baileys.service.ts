@@ -1298,11 +1298,7 @@ export class BaileysStartupService extends ChannelStartupService {
             });
 
             if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
-              messageRaw.message.speechToText = await this.openaiService.speechToText(
-                openAiDefaultSettings.OpenaiCreds,
-                received,
-                this.client.updateMediaMessage,
-              );
+              messageRaw.message.speechToText = await this.openaiService.speechToText(received);
             }
           }
 
@@ -2297,11 +2293,7 @@ export class BaileysStartupService extends ChannelStartupService {
         });
 
         if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
-          messageRaw.message.speechToText = await this.openaiService.speechToText(
-            openAiDefaultSettings.OpenaiCreds,
-            messageRaw,
-            this.client.updateMediaMessage,
-          );
+          messageRaw.message.speechToText = await this.openaiService.speechToText(messageRaw);
         }
       }
 

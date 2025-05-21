@@ -39,4 +39,4 @@ export class BaseChatbotSettingDto {
   splitMessages?: boolean;
   timePerChar?: number;
   fallbackId?: string; // Unified fallback ID field for all integrations
-} 
+}

@@ -11,11 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { BaseChatbotService } from '../../base-chatbot.service';
 
 export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
-  constructor(
-    waMonitor: WAMonitoringService,
-    prismaRepository: PrismaRepository,
-    configService: ConfigService,
-  ) {
+  constructor(waMonitor: WAMonitoringService, prismaRepository: PrismaRepository, configService: ConfigService) {
     super(waMonitor, prismaRepository, 'EvoaiService', configService);
   }
 
@@ -45,24 +41,24 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
   ): Promise<void> {
     try {
       this.logger.debug(`[EvoAI] Processing message with custom process method`);
-      
+
       // Check if this is an audio message that we should try to transcribe
       if (msg?.messageType === 'audioMessage' && msg?.message?.audioMessage) {
         this.logger.debug(`[EvoAI] Detected audio message, attempting transcription`);
-        
+
         try {
           // Download the audio using the whole msg object
           const mediaBuffer = await downloadMediaMessage(msg, 'buffer', {});
           this.logger.debug(`[EvoAI] Downloaded audio: ${mediaBuffer?.length || 0} bytes`);
-          
+
           // Transcribe with OpenAI's Whisper
           const transcribedText = await this.speechToText(mediaBuffer);
           this.logger.debug(`[EvoAI] Transcription result: ${transcribedText || 'FAILED'}`);
-          
+
           if (transcribedText) {
             // Use the transcribed text instead of the original content
             this.logger.debug(`[EvoAI] Using transcribed text: ${transcribedText}`);
-            
+
             // Call the parent process method with the transcribed text
             return super.process(instance, remoteJid, bot, session, settings, transcribedText, pushName, msg);
           }
@@ -70,7 +66,7 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
           this.logger.error(`[EvoAI] Audio transcription error: ${err}`);
         }
       }
-      
+
       // For non-audio messages or if transcription failed, proceed normally
       return super.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
     } catch (error) {
@@ -91,7 +87,7 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
   ) {
     try {
       this.logger.debug(`[EvoAI] Sending message to bot with content: ${content}`);
-      
+
       const endpoint: string = evoai.agentUrl;
       const callId = `call-${uuidv4()}`;
       const taskId = `task-${uuidv4()}`;
@@ -108,13 +104,13 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
       if (this.isImageMessage(content) && msg) {
         const contentSplit = content.split('|');
         parts[0].text = contentSplit[2] || content;
-        
+
         try {
           // Download the image
           const mediaBuffer = await downloadMediaMessage(msg, 'buffer', {});
           const fileContent = Buffer.from(mediaBuffer).toString('base64');
           const fileName = contentSplit[2] || `${msg.key?.id || 'image'}.jpg`;
-          
+
           parts.push({
             type: 'file',
             file: {

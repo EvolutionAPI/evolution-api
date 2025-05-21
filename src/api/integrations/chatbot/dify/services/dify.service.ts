@@ -2,21 +2,16 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
+import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { Dify, DifySetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { downloadMediaMessage } from 'baileys';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
-import { ConfigService, HttpServer } from '@config/env.config';
-import { Auth } from '@config/env.config';
 
 export class DifyService extends BaseChatbotService<Dify, DifySetting> {
-  constructor(
-    waMonitor: WAMonitoringService,
-    configService: ConfigService,
-    prismaRepository: PrismaRepository,
-  ) {
+  constructor(waMonitor: WAMonitoringService, configService: ConfigService, prismaRepository: PrismaRepository) {
     super(waMonitor, prismaRepository, 'DifyService', configService);
   }
 
@@ -73,7 +68,7 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
           ];
           payload.query = contentSplit[2] || content;
         }
-        
+
         // Handle audio messages
         if (this.isAudioMessage(content) && msg) {
           try {
@@ -151,7 +146,7 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
           ];
           payload.inputs.query = contentSplit[2] || content;
         }
-        
+
         // Handle audio messages
         if (this.isAudioMessage(content) && msg) {
           try {
@@ -229,7 +224,7 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
           ];
           payload.query = contentSplit[2] || content;
         }
-        
+
         // Handle audio messages
         if (this.isAudioMessage(content) && msg) {
           try {
@@ -554,16 +549,7 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
           data,
         );
 
-        await this.initNewSession(
-          instance,
-          remoteJid,
-          dify,
-          settings,
-          createSession.session,
-          content,
-          pushName,
-          msg,
-        );
+        await this.initNewSession(instance, remoteJid, dify, settings, createSession.session, content, pushName, msg);
 
         await sendTelemetry('/dify/session/start');
         return;
