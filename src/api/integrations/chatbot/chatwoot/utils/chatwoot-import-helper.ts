@@ -499,25 +499,29 @@ class ChatwootImport {
       stickerMessage: msg.message.stickerMessage,
       templateMessage: msg.message.templateMessage?.hydratedTemplate?.hydratedContentText,
     };
-    const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
 
+    const typeKey = Object.keys(types).find(
+      (key) => types[key] !== undefined && types[key] !== null
+    );
     switch (typeKey) {
-      case 'documentMessage':
-        return `_<File: ${msg.message.documentMessage.fileName}${
-          msg.message.documentMessage.caption ? ` ${msg.message.documentMessage.caption}` : ''
-        }>_`;
+      case 'documentMessage': {
+        const doc = msg.message.documentMessage;
+        const fileName = doc?.fileName || 'document';
+        const caption = doc?.caption ? ` ${doc.caption}` : '';
+        return `_<File: ${fileName}${caption}>_`;
+      }
 
-      case 'documentWithCaptionMessage':
-        return `_<File: ${msg.message.documentWithCaptionMessage.message.documentMessage.fileName}${
-          msg.message.documentWithCaptionMessage.message.documentMessage.caption
-            ? ` ${msg.message.documentWithCaptionMessage.message.documentMessage.caption}`
-            : ''
-        }>_`;
+      case 'documentWithCaptionMessage': {
+        const doc = msg.message.documentWithCaptionMessage?.message?.documentMessage;
+        const fileName = doc?.fileName || 'document';
+        const caption = doc?.caption ? ` ${doc.caption}` : '';
+        return `_<File: ${fileName}${caption}>_`;
+      }
 
       case 'templateMessage':
-        return msg.message.templateMessage.hydratedTemplate.hydratedTitleText
-          ? `*${msg.message.templateMessage.hydratedTemplate.hydratedTitleText}*\\n`
-          : '' + msg.message.templateMessage.hydratedTemplate.hydratedContentText;
+        const template = msg.message.templateMessage?.hydratedTemplate;
+        return (template?.hydratedTitleText ? `*${template.hydratedTitleText}*\n` : '') +
+              (template?.hydratedContentText || '');
 
       case 'imageMessage':
         return '_<Image Message>_';
