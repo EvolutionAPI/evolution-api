@@ -232,7 +232,21 @@ export type CacheConfLocal = {
   TTL: number;
 };
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
-export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
+export type Webhook = {
+  GLOBAL?: GlobalWebhook;
+  EVENTS: EventsWebhook;
+  REQUEST?: {
+    TIMEOUT_MS?: number;
+  };
+  RETRY?: {
+    MAX_ATTEMPTS?: number;
+    INITIAL_DELAY_SECONDS?: number;
+    USE_EXPONENTIAL_BACKOFF?: boolean;
+    MAX_DELAY_SECONDS?: number;
+    JITTER_FACTOR?: number;
+    NON_RETRYABLE_STATUS_CODES?: number[];
+  };
+};
 export type Pusher = { ENABLED: boolean; GLOBAL?: GlobalPusher; EVENTS: EventsPusher };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string; VERSION: string };
 export type QrCode = { LIMIT: number; COLOR: string };
@@ -554,6 +568,19 @@ export class ConfigService {
           TYPEBOT_CHANGE_STATUS: process.env?.WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
           ERRORS: process.env?.WEBHOOK_EVENTS_ERRORS === 'true',
           ERRORS_WEBHOOK: process.env?.WEBHOOK_EVENTS_ERRORS_WEBHOOK || '',
+        },
+        REQUEST: {
+          TIMEOUT_MS: Number.parseInt(process.env?.WEBHOOK_REQUEST_TIMEOUT_MS) || 30000,
+        },
+        RETRY: {
+          MAX_ATTEMPTS: Number.parseInt(process.env?.WEBHOOK_RETRY_MAX_ATTEMPTS) || 10,
+          INITIAL_DELAY_SECONDS: Number.parseInt(process.env?.WEBHOOK_RETRY_INITIAL_DELAY_SECONDS) || 5,
+          USE_EXPONENTIAL_BACKOFF: process.env?.WEBHOOK_RETRY_USE_EXPONENTIAL_BACKOFF !== 'false',
+          MAX_DELAY_SECONDS: Number.parseInt(process.env?.WEBHOOK_RETRY_MAX_DELAY_SECONDS) || 300,
+          JITTER_FACTOR: Number.parseFloat(process.env?.WEBHOOK_RETRY_JITTER_FACTOR) || 0.2,
+          NON_RETRYABLE_STATUS_CODES: process.env?.WEBHOOK_RETRY_NON_RETRYABLE_STATUS_CODES?.split(',').map(Number) || [
+            400, 401, 403, 404, 422,
+          ],
         },
       },
       CONFIG_SESSION_PHONE: {

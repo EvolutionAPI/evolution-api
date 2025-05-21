@@ -1,4 +1,4 @@
-import { $Enums, TriggerOperator, TriggerType } from '@prisma/client';
+import { $Enums } from '@prisma/client';
 
 import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
 

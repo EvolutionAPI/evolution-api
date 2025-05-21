@@ -192,17 +192,63 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   private messageTextJson(received: any) {
-    let content: any;
+    // Verificar que received y received.messages existen
+    if (!received || !received.messages || received.messages.length === 0) {
+      this.logger.error('Error: received object or messages array is undefined or empty');
+      return null;
+    }
+
     const message = received.messages[0];
+    let content: any;
+
+    // Verificar si es un mensaje de tipo sticker, location u otro tipo que no tiene text
+    if (!message.text) {
+      // Si no hay texto, manejamos diferente según el tipo de mensaje
+      if (message.type === 'sticker') {
+        content = { stickerMessage: {} };
+      } else if (message.type === 'location') {
+        content = {
+          locationMessage: {
+            degreesLatitude: message.location?.latitude,
+            degreesLongitude: message.location?.longitude,
+            name: message.location?.name,
+            address: message.location?.address,
+          },
+        };
+      } else {
+        // Para otros tipos de mensajes sin texto, creamos un contenido genérico
+        this.logger.log(`Mensaje de tipo ${message.type} sin campo text`);
+        content = { [message.type + 'Message']: message[message.type] || {} };
+      }
+
+      // Añadir contexto si existe
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
+
+      return content;
+    }
+
+    // Si el mensaje tiene texto, procesamos normalmente
+    if (!received.metadata || !received.metadata.phone_number_id) {
+      this.logger.error('Error: metadata or phone_number_id is undefined');
+      return null;
+    }
+
     if (message.from === received.metadata.phone_number_id) {
       content = {
         extendedTextMessage: { text: message.text.body },
       };
-      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
     } else {
       content = { conversation: message.text.body };
-      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
     }
+
     return content;
   }
 
@@ -300,6 +346,9 @@ export class BusinessStartupService extends ChannelStartupService {
       case 'location':
         messageType = 'locationMessage';
         break;
+      case 'sticker':
+        messageType = 'stickerMessage';
+        break;
       default:
         messageType = 'conversation';
         break;
@@ -316,12 +365,28 @@ export class BusinessStartupService extends ChannelStartupService {
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
+        const message = received.messages[0]; // Añadir esta línea para definir message
+
         const key = {
-          id: received.messages[0].id,
+          id: message.id,
           remoteJid: this.phoneNumber,
-          fromMe: received.messages[0].from === received.metadata.phone_number_id,
+          fromMe: message.from === received.metadata.phone_number_id,
         };
-        if (this.isMediaMessage(received?.messages[0])) {
+
+        if (message.type === 'sticker') {
+          this.logger.log('Procesando mensaje de tipo sticker');
+          messageRaw = {
+            key,
+            pushName,
+            message: {
+              stickerMessage: message.sticker || {},
+            },
+            messageType: 'stickerMessage',
+            messageTimestamp: parseInt(message.timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
+          };
+        } else if (this.isMediaMessage(message)) {
           messageRaw = {
             key,
             pushName,
@@ -455,17 +520,6 @@ export class BusinessStartupService extends ChannelStartupService {
             source: 'unknown',
             instanceId: this.instanceId,
           };
-        } else if (received?.messages[0].location) {
-          messageRaw = {
-            key,
-            pushName,
-            message: this.messageLocationJson(received),
-            contextInfo: this.messageLocationJson(received)?.contextInfo,
-            messageType: this.renderMessageType(received.messages[0].type),
-            messageTimestamp: parseInt(received.messages[0].timestamp) as number,
-            source: 'unknown',
-            instanceId: this.instanceId,
-          };
         } else {
           messageRaw = {
             key,
@@ -501,7 +555,7 @@ export class BusinessStartupService extends ChannelStartupService {
             openAiDefaultSettings.speechToText &&
             audioMessage
           ) {
-            messageRaw.message.speechToText = await this.openaiService.speechToText({
+            messageRaw.message.speechToText = await this.openaiService.speechToText(openAiDefaultSettings.OpenaiCreds, {
               message: {
                 mediaUrl: messageRaw.message.mediaUrl,
                 ...messageRaw,
@@ -535,7 +589,7 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        if (!this.isMediaMessage(received?.messages[0])) {
+        if (!this.isMediaMessage(message) && message.type !== 'sticker') {
           await this.prismaRepository.message.create({
             data: messageRaw,
           });
@@ -738,10 +792,48 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   protected async eventHandler(content: any) {
-    const database = this.configService.get<Database>('DATABASE');
-    const settings = await this.findSettings();
+    try {
+      // Registro para depuración
+      this.logger.log('Contenido recibido en eventHandler:');
+      this.logger.log(JSON.stringify(content, null, 2));
 
-    this.messageHandle(content, database, settings);
+      const database = this.configService.get<Database>('DATABASE');
+      const settings = await this.findSettings();
+
+      // Si hay mensajes, verificar primero el tipo
+      if (content.messages && content.messages.length > 0) {
+        const message = content.messages[0];
+        this.logger.log(`Tipo de mensaje recibido: ${message.type}`);
+
+        // Verificamos el tipo de mensaje antes de procesarlo
+        if (
+          message.type === 'text' ||
+          message.type === 'image' ||
+          message.type === 'video' ||
+          message.type === 'audio' ||
+          message.type === 'document' ||
+          message.type === 'sticker' ||
+          message.type === 'location' ||
+          message.type === 'contacts' ||
+          message.type === 'interactive' ||
+          message.type === 'button' ||
+          message.type === 'reaction'
+        ) {
+          // Procesar el mensaje normalmente
+          this.messageHandle(content, database, settings);
+        } else {
+          this.logger.warn(`Tipo de mensaje no reconocido: ${message.type}`);
+        }
+      } else if (content.statuses) {
+        // Procesar actualizaciones de estado
+        this.messageHandle(content, database, settings);
+      } else {
+        this.logger.warn('No se encontraron mensajes ni estados en el contenido recibido');
+      }
+    } catch (error) {
+      this.logger.error('Error en eventHandler:');
+      this.logger.error(error);
+    }
   }
 
   protected async sendMessageWithTyping(number: string, message: any, options?: Options, isIntegration = false) {
@@ -823,7 +915,6 @@ export class BusinessStartupService extends ChannelStartupService {
         }
         if (message['media']) {
           const isImage = message['mimetype']?.startsWith('image/');
-          const isVideo = message['mimetype']?.startsWith('video/');
 
           content = {
             messaging_product: 'whatsapp',
@@ -833,7 +924,7 @@ export class BusinessStartupService extends ChannelStartupService {
             [message['mediaType']]: {
               [message['type']]: message['id'],
               preview_url: Boolean(options?.linkPreview),
-              ...(message['fileName'] && !isImage && !isVideo && { filename: message['fileName'] }),
+              ...(message['fileName'] && !isImage && { filename: message['fileName'] }),
               caption: message['caption'],
             },
           };
@@ -1001,10 +1092,7 @@ export class BusinessStartupService extends ChannelStartupService {
 
   private async getIdMedia(mediaMessage: any) {
     const formData = new FormData();
-    const media = mediaMessage.media || mediaMessage.audio;
-    if (!media) throw new Error('Media or audio not found');
-
-    const fileStream = createReadStream(media);
+    const fileStream = createReadStream(mediaMessage.media);
 
     formData.append('file', fileStream, { filename: 'media', contentType: mediaMessage.mimetype });
     formData.append('typeFile', mediaMessage.mimetype);
@@ -1105,7 +1193,7 @@ export class BusinessStartupService extends ChannelStartupService {
     const prepareMedia: any = {
       fileName: `${hash}.mp3`,
       mediaType: 'audio',
-      audio,
+      media: audio,
     };
 
     if (isURL(audio)) {
@@ -1127,7 +1215,15 @@ export class BusinessStartupService extends ChannelStartupService {
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
     const mediaData: SendAudioDto = { ...data };
 
-    if (file) mediaData.audio = file.buffer.toString('base64');
+    if (file?.buffer) {
+      mediaData.audio = file.buffer.toString('base64');
+    } else if (isURL(mediaData.audio)) {
+      // DO NOTHING
+      // mediaData.audio = mediaData.audio;
+    } else {
+      console.error('El archivo no tiene buffer o file es undefined');
+      throw new Error('File or buffer is undefined');
+    }
 
     const message = await this.processAudio(mediaData.audio, data.number);
 

@@ -180,10 +180,10 @@ class ChatwootImport {
       const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`); // Make sure the sourceId is always formatted as WAID:1234567890
       let query: string;
       if (conversationId) {
-       query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+        query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
       }
 
-      if(!conversationId) {
+      if (!conversationId) {
         query = 'SELECT source_id FROM messages WHERE source_id = ANY($1) AND conversation_id = $2';
       }
 
@@ -508,9 +508,7 @@ class ChatwootImport {
       templateMessage: msg.message.templateMessage?.hydratedTemplate?.hydratedContentText,
     };
 
-    const typeKey = Object.keys(types).find(
-      (key) => types[key] !== undefined && types[key] !== null
-    );
+    const typeKey = Object.keys(types).find((key) => types[key] !== undefined && types[key] !== null);
     switch (typeKey) {
       case 'documentMessage': {
         const doc = msg.message.documentMessage;
@@ -526,10 +524,13 @@ class ChatwootImport {
         return `_<File: ${fileName}${caption}>_`;
       }
 
-      case 'templateMessage':
+      case 'templateMessage': {
         const template = msg.message.templateMessage?.hydratedTemplate;
-        return (template?.hydratedTitleText ? `*${template.hydratedTitleText}*\n` : '') +
-              (template?.hydratedContentText || '');
+        return (
+          (template?.hydratedTitleText ? `*${template.hydratedTitleText}*\n` : '') +
+          (template?.hydratedContentText || '')
+        );
+      }
 
       case 'imageMessage':
         return '_<Image Message>_';

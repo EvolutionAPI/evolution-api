@@ -223,7 +223,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
   ): Promise<void> {
     if (!message) return;
 
-    const linkRegex = /(!?)\[(.*?)\]\((.*?)\)/g;
+    const linkRegex = /!?\[(.*?)\]\((.*?)\)/g;
     let textBuffer = '';
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -231,7 +231,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     const splitMessages = (settings as any)?.splitMessages ?? false;
 
     while ((match = linkRegex.exec(message)) !== null) {
-      const [, , altText, url] = match;
+      const [fullMatch, altText, url] = match;
       const mediaType = this.getMediaType(url);
       const beforeText = message.slice(lastIndex, match.index);
 
@@ -276,7 +276,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
         }
       } else {
         // It's a regular link, keep it in the text
-        textBuffer += `[${altText}](${url})`;
+        textBuffer += fullMatch;
       }
 
       lastIndex = linkRegex.lastIndex;

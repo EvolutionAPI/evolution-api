@@ -86,7 +86,14 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         await instance.client.sendPresenceUpdate('paused', remoteJid);
       }
 
-      const message = response?.data?.message;
+      let message = response?.data?.message;
+
+      if (message && typeof message === 'string' && message.startsWith("'") && message.endsWith("'")) {
+        const innerContent = message.slice(1, -1);
+        if (!innerContent.includes("'")) {
+          message = innerContent;
+        }
+      }
 
       if (message) {
         // Use the base class method to send the message to WhatsApp

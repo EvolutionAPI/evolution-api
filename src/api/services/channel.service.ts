@@ -761,36 +761,36 @@ export class ChannelStartupService {
     `;
 
     if (results && isArray(results) && results.length > 0) {
-      const mappedResults = results.map((item) => {
-        const lastMessage = item.lastMessageId
+      const mappedResults = results.map((contact) => {
+        const lastMessage = contact.lastmessageid
           ? {
-              id: item.lastMessageId,
-              key: item.lastMessage_key,
-              pushName: item.lastMessagePushName,
-              participant: item.lastMessageParticipant,
-              messageType: item.lastMessageMessageType,
-              message: item.lastMessageMessage,
-              contextInfo: item.lastMessageContextInfo,
-              source: item.lastMessageSource,
-              messageTimestamp: item.lastMessageMessageTimestamp,
-              instanceId: item.lastMessageInstanceId,
-              sessionId: item.lastMessageSessionId,
-              status: item.lastMessageStatus,
+              id: contact.lastmessageid,
+              key: contact.lastmessage_key,
+              pushName: contact.lastmessagepushname,
+              participant: contact.lastmessageparticipant,
+              messageType: contact.lastmessagemessagetype,
+              message: contact.lastmessagemessage,
+              contextInfo: contact.lastmessagecontextinfo,
+              source: contact.lastmessagesource,
+              messageTimestamp: contact.lastmessagemessagetimestamp,
+              instanceId: contact.lastmessageinstanceid,
+              sessionId: contact.lastmessagesessionid,
+              status: contact.lastmessagestatus,
             }
           : undefined;
 
         return {
-          id: item.contactId || null,
-          remoteJid: item.remoteJid,
-          pushName: item.pushName,
-          profilePicUrl: item.profilePicUrl,
-          updatedAt: item.updatedAt,
-          windowStart: item.windowStart,
-          windowExpires: item.windowExpires,
-          windowActive: item.windowActive,
+          id: contact.contactid || null,
+          remoteJid: contact.remotejid,
+          pushName: contact.pushname,
+          profilePicUrl: contact.profilepicurl,
+          updatedAt: contact.updatedat,
+          windowStart: contact.windowstart,
+          windowExpires: contact.windowexpires,
+          windowActive: contact.windowactive,
           lastMessage: lastMessage ? this.cleanMessageData(lastMessage) : undefined,
           unreadCount: 0,
-          isSaved: !!item.contactId,
+          isSaved: !!contact.contactid,
         };
       });
 
