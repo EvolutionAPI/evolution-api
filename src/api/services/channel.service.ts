@@ -47,7 +47,7 @@ export class ChannelStartupService {
 
   public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository);
 
-  public openaiService = new OpenaiService(waMonitor, this.configService, this.prismaRepository);
+  public openaiService = new OpenaiService(waMonitor, this.prismaRepository, this.configService);
 
   public difyService = new DifyService(waMonitor, this.configService, this.prismaRepository);
 

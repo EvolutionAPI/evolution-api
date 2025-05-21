@@ -119,7 +119,7 @@ export const baileysController = new BaileysController(waMonitor);
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
 export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);
 
-const openaiService = new OpenaiService(waMonitor, configService, prismaRepository);
+const openaiService = new OpenaiService(waMonitor, prismaRepository, configService);
 export const openaiController = new OpenaiController(openaiService, prismaRepository, waMonitor);
 
 const difyService = new DifyService(waMonitor, configService, prismaRepository);
@@ -131,7 +131,7 @@ export const evolutionBotController = new EvolutionBotController(evolutionBotSer
 const flowiseService = new FlowiseService(waMonitor, configService, prismaRepository);
 export const flowiseController = new FlowiseController(flowiseService, prismaRepository, waMonitor);
 
-const n8nService = new N8nService(waMonitor, prismaRepository);
+const n8nService = new N8nService(waMonitor, prismaRepository, configService);
 export const n8nController = new N8nController(n8nService, prismaRepository, waMonitor);
 
 const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService);
