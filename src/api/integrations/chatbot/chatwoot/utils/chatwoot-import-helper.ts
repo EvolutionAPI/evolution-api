@@ -169,7 +169,7 @@ class ChatwootImport {
     }
   }
 
-  public async getExistingSourceIds(sourceIds: string[]): Promise<Set<string>> {
+  public async getExistingSourceIds(sourceIds: string[], conversationId?: number): Promise<Set<string>> {
     try {
       const existingSourceIdsSet = new Set<string>();
 
@@ -178,9 +178,17 @@ class ChatwootImport {
       }
 
       const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`); // Make sure the sourceId is always formatted as WAID:1234567890
-      const query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+      let query: string;
+      if (conversationId) {
+       query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+      }
+
+      if(!conversationId) {
+        query = 'SELECT source_id FROM messages WHERE source_id = ANY($1) AND conversation_id = $2';
+      }
+
       const pgClient = postgresClient.getChatwootConnection();
-      const result = await pgClient.query(query, [formattedSourceIds]);
+      const result = await pgClient.query(query, [formattedSourceIds, conversationId]);
 
       for (const row of result.rows) {
         existingSourceIdsSet.add(row.source_id);
@@ -499,25 +507,29 @@ class ChatwootImport {
       stickerMessage: msg.message.stickerMessage,
       templateMessage: msg.message.templateMessage?.hydratedTemplate?.hydratedContentText,
     };
-    const typeKey = Object.keys(types).find((key) => types[key] !== undefined);
 
+    const typeKey = Object.keys(types).find(
+      (key) => types[key] !== undefined && types[key] !== null
+    );
     switch (typeKey) {
-      case 'documentMessage':
-        return `_<File: ${msg.message.documentMessage.fileName}${
-          msg.message.documentMessage.caption ? ` ${msg.message.documentMessage.caption}` : ''
-        }>_`;
+      case 'documentMessage': {
+        const doc = msg.message.documentMessage;
+        const fileName = doc?.fileName || 'document';
+        const caption = doc?.caption ? ` ${doc.caption}` : '';
+        return `_<File: ${fileName}${caption}>_`;
+      }
 
-      case 'documentWithCaptionMessage':
-        return `_<File: ${msg.message.documentWithCaptionMessage.message.documentMessage.fileName}${
-          msg.message.documentWithCaptionMessage.message.documentMessage.caption
-            ? ` ${msg.message.documentWithCaptionMessage.message.documentMessage.caption}`
-            : ''
-        }>_`;
+      case 'documentWithCaptionMessage': {
+        const doc = msg.message.documentWithCaptionMessage?.message?.documentMessage;
+        const fileName = doc?.fileName || 'document';
+        const caption = doc?.caption ? ` ${doc.caption}` : '';
+        return `_<File: ${fileName}${caption}>_`;
+      }
 
       case 'templateMessage':
-        return msg.message.templateMessage.hydratedTemplate.hydratedTitleText
-          ? `*${msg.message.templateMessage.hydratedTemplate.hydratedTitleText}*\\n`
-          : '' + msg.message.templateMessage.hydratedTemplate.hydratedContentText;
+        const template = msg.message.templateMessage?.hydratedTemplate;
+        return (template?.hydratedTitleText ? `*${template.hydratedTitleText}*\n` : '') +
+              (template?.hydratedContentText || '');
 
       case 'imageMessage':
         return '_<Image Message>_';
