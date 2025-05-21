@@ -1389,7 +1389,24 @@ export class BaileysStartupService extends ChannelStartupService {
                   },
                 );
 
-                messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+                if (buffer) {
+                  messageRaw.message.base64 = buffer.toString('base64');
+                } else {
+                  // retry to download media
+                  const buffer = await downloadMediaMessage(
+                    { key: received.key, message: received?.message },
+                    'buffer',
+                    {},
+                    {
+                      logger: P({ level: 'error' }) as any,
+                      reuploadRequest: this.client.updateMediaMessage,
+                    },
+                  );
+
+                  if (buffer) {
+                    messageRaw.message.base64 = buffer.toString('base64');
+                  }
+                }
               } catch (error) {
                 this.logger.error(['Error converting media to base64', error?.message]);
               }
@@ -2373,7 +2390,24 @@ export class BaileysStartupService extends ChannelStartupService {
               },
             );
 
-            messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+            if (buffer) {
+              messageRaw.message.base64 = buffer.toString('base64');
+            } else {
+              // retry to download media
+              const buffer = await downloadMediaMessage(
+                { key: messageRaw.key, message: messageRaw?.message },
+                'buffer',
+                {},
+                {
+                  logger: P({ level: 'error' }) as any,
+                  reuploadRequest: this.client.updateMediaMessage,
+                },
+              );
+
+              if (buffer) {
+                messageRaw.message.base64 = buffer.toString('base64');
+              }
+            }
           } catch (error) {
             this.logger.error(['Error converting media to base64', error?.message]);
           }
