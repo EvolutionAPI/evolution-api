@@ -1,18 +1,19 @@
 import { TriggerOperator, TriggerType } from '@prisma/client';
 
-export class N8nDto {
-  enabled?: boolean;
-  description?: string;
+import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
+
+export class N8nDto extends BaseChatbotDto {
+  // N8n specific fields
   webhookUrl?: string;
   basicAuthUser?: string;
   basicAuthPass?: string;
 
   // Advanced bot properties (copied from DifyDto style)
-  triggerType?: TriggerType;
+  triggerType: TriggerType;
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   expire?: number;
-  keywordFinish?: string;
+  keywordFinish?: string[];
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;
@@ -24,8 +25,8 @@ export class N8nDto {
   timePerChar?: number;
 }
 
-export class N8nSettingDto {
-  // Add settings fields here if needed for compatibility
+export class N8nSettingDto extends BaseChatbotSettingDto {
+  // N8n specific fields
 }
 
 export class N8nMessageDto {
