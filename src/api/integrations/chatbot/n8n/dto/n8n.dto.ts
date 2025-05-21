@@ -13,7 +13,7 @@ export class N8nDto extends BaseChatbotDto {
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   expire?: number;
-  keywordFinish?: string[];
+  keywordFinish?: string;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;

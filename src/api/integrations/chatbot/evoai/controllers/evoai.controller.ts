@@ -1,4 +1,3 @@
-import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { EvoaiDto } from '@api/integrations/chatbot/evoai/dto/evoai.dto';
 import { EvoaiService } from '@api/integrations/chatbot/evoai/services/evoai.service';
@@ -9,7 +8,7 @@ import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
 import { Evoai as EvoaiModel, IntegrationSession } from '@prisma/client';
 
-import { BaseChatbotController, ChatbotSettings } from '../../base-chatbot.controller';
+import { BaseChatbotController } from '../../base-chatbot.controller';
 
 export class EvoaiController extends BaseChatbotController<EvoaiModel, EvoaiDto> {
   constructor(
@@ -34,7 +33,7 @@ export class EvoaiController extends BaseChatbotController<EvoaiModel, EvoaiDto>
   userMessageDebounce: { [key: string]: { message: string; timeoutId: NodeJS.Timeout } } = {};
 
   protected getFallbackBotId(settings: any): string | undefined {
-    return settings?.fallbackId;
+    return settings?.evoaiIdFallback;
   }
 
   protected getFallbackFieldName(): string {
@@ -168,6 +167,6 @@ export class EvoaiController extends BaseChatbotController<EvoaiModel, EvoaiDto>
     pushName?: string,
     msg?: any,
   ) {
-    this.evoaiService.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
+    await this.evoaiService.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
   }
 }

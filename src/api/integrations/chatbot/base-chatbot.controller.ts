@@ -31,7 +31,7 @@ export interface BaseBotData {
   enabled?: boolean;
   description: string;
   expire?: number;
-  keywordFinish?: string[];
+  keywordFinish?: string;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;
@@ -792,7 +792,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
       const content = getConversationMessage(msg);
 
       // Get integration type
-      const integrationType = this.getIntegrationType();
+      // const integrationType = this.getIntegrationType();
 
       // Find a bot for this message
       let findBot: any = await this.findBotTrigger(this.botRepository, content, instance, session);

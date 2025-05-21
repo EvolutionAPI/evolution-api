@@ -1,7 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
-import { ConfigService } from '@config/env.config';
+import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { IntegrationSession, N8n, N8nSetting } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
@@ -104,26 +104,6 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
     }
   }
 
-  /**
-   * Send a message to the N8n bot webhook.
-   */
-  public async sendMessage(n8nId: string, chatInput: string, sessionId: string): Promise<string> {
-    try {
-      const bot = await this.prismaRepository.n8n.findFirst({ where: { id: n8nId, enabled: true } });
-      if (!bot) throw new Error('N8n bot not found or not enabled');
-      const headers: Record<string, string> = {};
-      if (bot.basicAuthUser && bot.basicAuthPass) {
-        const auth = Buffer.from(`${bot.basicAuthUser}:${bot.basicAuthPass}`).toString('base64');
-        headers['Authorization'] = `Basic ${auth}`;
-      }
-      const response = await axios.post(bot.webhookUrl, { chatInput, sessionId }, { headers });
-      return response.data.output;
-    } catch (error) {
-      this.logger.error(error);
-      throw new Error('Error sending message to n8n bot');
-    }
-  }
-
   public async createNewSession(instance: InstanceDto, data: any) {
     return super.createNewSession(instance, data, 'n8n');
   }
@@ -143,6 +123,12 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
       const payload: any = {
         chatInput: content,
         sessionId: session.sessionId,
+        remoteJid: remoteJid,
+        pushName: pushName,
+        fromMe: msg?.key?.fromMe,
+        instanceName: instance.instanceName,
+        serverUrl: this.configService.get<HttpServer>('SERVER').URL,
+        apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
       };
 
       // Handle audio messages

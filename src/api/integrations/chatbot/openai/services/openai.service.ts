@@ -306,7 +306,24 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
     }
 
     // Get thread ID from session or create new thread
-    const threadId = session.sessionId === remoteJid ? (await this.client.beta.threads.create()).id : session.sessionId;
+    let threadId = session.sessionId;
+
+    // Create a new thread if one doesn't exist or invalid format
+    if (!threadId || threadId === remoteJid) {
+      const newThread = await this.client.beta.threads.create();
+      threadId = newThread.id;
+
+      // Save the new thread ID to the session
+      await this.prismaRepository.integrationSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          sessionId: threadId,
+        },
+      });
+      this.logger.log(`Created new thread ID: ${threadId} for session: ${session.id}`);
+    }
 
     // Add message to thread
     await this.client.beta.threads.messages.create(threadId, messageData);
@@ -334,6 +351,7 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
     }
 
     // Extract the response text safely with type checking
+    let responseText = "I couldn't generate a proper response. Please try again.";
     try {
       const messages = response?.data || [];
       if (messages.length > 0) {
@@ -341,7 +359,7 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
         if (messageContent.length > 0) {
           const textContent = messageContent[0];
           if (textContent && 'text' in textContent && textContent.text && 'value' in textContent.text) {
-            return textContent.text.value;
+            responseText = textContent.text.value;
           }
         }
       }
@@ -349,8 +367,20 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
       this.logger.error(`Error extracting response text: ${error}`);
     }
 
+    // Update session with the thread ID to ensure continuity
+    await this.prismaRepository.integrationSession.update({
+      where: {
+        id: session.id,
+      },
+      data: {
+        status: 'opened',
+        awaitUser: true,
+        sessionId: threadId, // Ensure thread ID is saved consistently
+      },
+    });
+
     // Return fallback message if unable to extract text
-    return "I couldn't generate a proper response. Please try again.";
+    return responseText;
   }
 
   /**

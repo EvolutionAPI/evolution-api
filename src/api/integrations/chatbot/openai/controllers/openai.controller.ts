@@ -1,4 +1,3 @@
-import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { OpenaiCredsDto, OpenaiDto } from '@api/integrations/chatbot/openai/dto/openai.dto';
 import { OpenaiService } from '@api/integrations/chatbot/openai/services/openai.service';

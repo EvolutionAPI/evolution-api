@@ -194,6 +194,17 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
 
       // Forward the message to the chatbot API
       await this.sendMessageToBot(instance, session, settings, bot, remoteJid, pushName || '', content, msg);
+
+      // Update session to indicate we're waiting for user response
+      await this.prismaRepository.integrationSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          status: 'opened',
+          awaitUser: true,
+        },
+      });
     } catch (error) {
       this.logger.error(`Error in process: ${error}`);
       return;
@@ -218,12 +229,9 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     let match: RegExpExecArray | null;
 
     const splitMessages = (settings as any)?.splitMessages ?? false;
-    const timePerChar = (settings as any)?.timePerChar ?? 0;
-    const minDelay = 1000;
-    const maxDelay = 20000;
 
     while ((match = linkRegex.exec(message)) !== null) {
-      const [fullMatch, exclamation, altText, url] = match;
+      const [, , altText, url] = match;
       const mediaType = this.getMediaType(url);
       const beforeText = message.slice(lastIndex, match.index);
 
@@ -240,38 +248,26 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
 
         // Handle sending the media
         try {
-          switch (mediaType) {
-            case 'image':
-              await instance.mediaMessage({
+          if (mediaType === 'audio') {
+            await instance.audioWhatsapp({
+              number: remoteJid.split('@')[0],
+              delay: (settings as any)?.delayMessage || 1000,
+              audio: url,
+              caption: altText,
+            });
+          } else {
+            await instance.mediaMessage(
+              {
                 number: remoteJid.split('@')[0],
                 delay: (settings as any)?.delayMessage || 1000,
+                mediatype: mediaType,
+                media: url,
                 caption: altText,
-                media: url,
-              });
-              break;
-            case 'video':
-              await instance.mediaMessage({
-                number: remoteJid.split('@')[0],
-                delay: (settings as any)?.delayMessage || 1000,
-                caption: altText,
-                media: url,
-              });
-              break;
-            case 'document':
-              await instance.documentMessage({
-                number: remoteJid.split('@')[0],
-                delay: (settings as any)?.delayMessage || 1000,
-                fileName: altText || 'document',
-                media: url,
-              });
-              break;
-            case 'audio':
-              await instance.audioMessage({
-                number: remoteJid.split('@')[0],
-                delay: (settings as any)?.delayMessage || 1000,
-                media: url,
-              });
-              break;
+                fileName: mediaType === 'document' ? altText || 'document' : undefined,
+              },
+              null,
+              false,
+            );
           }
         } catch (error) {
           this.logger.error(`Error sending media: ${error}`);
@@ -283,12 +279,15 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
         textBuffer += `[${altText}](${url})`;
       }
 
-      lastIndex = match.index + fullMatch.length;
+      lastIndex = linkRegex.lastIndex;
     }
 
     // Add any remaining text after the last match
     if (lastIndex < message.length) {
-      textBuffer += message.slice(lastIndex);
+      const remainingText = message.slice(lastIndex);
+      if (remainingText.trim()) {
+        textBuffer += remainingText;
+      }
     }
 
     // Send any remaining text

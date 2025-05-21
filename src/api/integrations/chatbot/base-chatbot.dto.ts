@@ -8,7 +8,7 @@ export class BaseChatbotDto {
   enabled?: boolean;
   description: string;
   expire?: number;
-  keywordFinish?: string[];
+  keywordFinish?: string;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;
@@ -28,7 +28,7 @@ export class BaseChatbotDto {
  */
 export class BaseChatbotSettingDto {
   expire?: number;
-  keywordFinish?: string[];
+  keywordFinish?: string;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;

@@ -1,19 +1,20 @@
 import { TriggerOperator, TriggerType } from '@prisma/client';
 
-export class EvolutionBotDto {
+import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
+
+export class EvolutionBotDto extends BaseChatbotDto {
+  apiUrl: string;
+  apiKey: string;
   enabled?: boolean;
-  description?: string;
-  apiUrl?: string;
-  apiKey?: string;
   expire?: number;
-  keywordFinish?: string;
+  keywordFinish?: string | null;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;
   stopBotFromMe?: boolean;
   keepOpen?: boolean;
   debounceTime?: number;
-  triggerType?: TriggerType;
+  triggerType: TriggerType;
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   ignoreJids?: any;
@@ -21,9 +22,9 @@ export class EvolutionBotDto {
   timePerChar?: number;
 }
 
-export class EvolutionBotSettingDto {
+export class EvolutionBotSettingDto extends BaseChatbotSettingDto {
   expire?: number;
-  keywordFinish?: string;
+  keywordFinish?: string | null;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;

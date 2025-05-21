@@ -1,5 +1,7 @@
 import { TriggerOperator, TriggerType } from '@prisma/client';
 
+import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
+
 export class PrefilledVariables {
   remoteJid?: string;
   pushName?: string;
@@ -7,28 +9,27 @@ export class PrefilledVariables {
   additionalData?: { [key: string]: any };
 }
 
-export class TypebotDto {
-  enabled?: boolean;
-  description?: string;
+export class TypebotDto extends BaseChatbotDto {
   url: string;
-  typebot?: string;
+  typebot: string;
+  description: string;
   expire?: number;
-  keywordFinish?: string;
+  keywordFinish?: string | null;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;
   stopBotFromMe?: boolean;
   keepOpen?: boolean;
   debounceTime?: number;
-  triggerType?: TriggerType;
+  triggerType: TriggerType;
   triggerOperator?: TriggerOperator;
   triggerValue?: string;
   ignoreJids?: any;
 }
 
-export class TypebotSettingDto {
+export class TypebotSettingDto extends BaseChatbotSettingDto {
   expire?: number;
-  keywordFinish?: string;
+  keywordFinish?: string | null;
   delayMessage?: number;
   unknownMessage?: string;
   listeningFromMe?: boolean;
