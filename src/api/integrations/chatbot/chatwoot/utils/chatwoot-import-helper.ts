@@ -169,7 +169,7 @@ class ChatwootImport {
     }
   }
 
-  public async getExistingSourceIds(sourceIds: string[]): Promise<Set<string>> {
+  public async getExistingSourceIds(sourceIds: string[], conversationId?: number): Promise<Set<string>> {
     try {
       const existingSourceIdsSet = new Set<string>();
 
@@ -178,9 +178,17 @@ class ChatwootImport {
       }
 
       const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`); // Make sure the sourceId is always formatted as WAID:1234567890
-      const query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+      let query: string;
+      if (conversationId) {
+       query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+      }
+
+      if(!conversationId) {
+        query = 'SELECT source_id FROM messages WHERE source_id = ANY($1) AND conversation_id = $2';
+      }
+
       const pgClient = postgresClient.getChatwootConnection();
-      const result = await pgClient.query(query, [formattedSourceIds]);
+      const result = await pgClient.query(query, [formattedSourceIds, conversationId]);
 
       for (const row of result.rows) {
         existingSourceIdsSet.add(row.source_id);
