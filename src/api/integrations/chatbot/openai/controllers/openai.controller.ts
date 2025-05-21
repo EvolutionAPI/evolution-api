@@ -964,7 +964,10 @@ export class OpenaiController extends ChatbotController implements ChatbotContro
       let session = await this.getSession(remoteJid, instance);
 
       const content = getConversationMessage(msg);
-
+      
+        if(session?.status === 'paused') {
+          return;
+        }
       let findBot = (await this.findBotTrigger(this.botRepository, content, instance, session)) as OpenaiBot;
 
       if (!findBot) {
