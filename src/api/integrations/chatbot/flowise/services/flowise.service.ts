@@ -52,7 +52,7 @@ export class FlowiseService extends BaseChatbotService<Flowise, FlowiseSetting> 
             pushName: pushName,
             instanceName: instance.instanceName,
             serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-            apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+            apiKey: instance.token,
           },
         },
       };
