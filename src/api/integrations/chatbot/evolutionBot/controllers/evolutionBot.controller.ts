@@ -89,7 +89,8 @@ export class EvolutionBotController extends BaseChatbotController<EvolutionBot, 
     settings: any,
     content: string,
     pushName?: string,
+    msg?: any,
   ) {
-    await this.evolutionBotService.process(instance, remoteJid, bot, session, settings, content, pushName);
+    await this.evolutionBotService.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
   }
 }

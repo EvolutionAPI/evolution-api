@@ -179,7 +179,7 @@ export class ChatbotController {
     if (session) {
       if (session.status !== 'closed' && !session.botId) {
         this.logger.warn('Session is already opened in another integration');
-        return;
+        return null;
       } else if (!session.botId) {
         session = null;
       }
