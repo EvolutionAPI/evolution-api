@@ -1333,9 +1333,14 @@ export class ChannelStartupService {
     this.logger.verbose('Searching for contacts with last message');
     const contacts = await this.repository.contact.find({ where: { owner: this.instance.name } });
     const result = [];
+    const seenIds = new Set();
 
     for (const contact of contacts) {
-      // Buscar a última mensagem desse contato
+      if (seenIds.has(contact.id)) {
+        continue;
+      }
+      seenIds.add(contact.id);
+
       const messages = await this.repository.message.find({
         where: {
           owner: this.instance.name,
