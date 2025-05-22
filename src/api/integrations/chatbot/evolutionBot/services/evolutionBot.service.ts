@@ -52,7 +52,7 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
           fromMe: msg?.key?.fromMe,
           instanceName: instance.instanceName,
           serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-          apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+          apiKey: instance.token,
         },
         query: content,
         conversation_id: session.sessionId === remoteJid ? undefined : session.sessionId,
