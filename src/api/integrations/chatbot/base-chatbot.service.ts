@@ -126,8 +126,13 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
   ): Promise<void> {
     try {
       // For new sessions or sessions awaiting initialization
-      if (!session || session.status === 'paused') {
+      if (!session) {
         await this.initNewSession(instance, remoteJid, bot, settings, session, content, pushName, msg);
+        return;
+      }
+
+      // If session is paused, ignore the message
+      if (session.status === 'paused') {
         return;
       }
 
