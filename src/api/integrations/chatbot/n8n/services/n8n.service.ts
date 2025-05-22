@@ -135,7 +135,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
         fromMe: msg?.key?.fromMe,
         instanceName: instance.instanceName,
         serverUrl: this.configService.get<HttpServer>('SERVER').URL,
-        apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        apiKey: instance.token,
       };
 
       // Handle audio messages
