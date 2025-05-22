@@ -64,6 +64,7 @@ import {
   Log,
   ProviderSession,
   QrCode,
+  Websocket,
 } from '../../../config/env.config';
 import { INSTANCE_DIR } from '../../../config/path.config';
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '../../../exceptions';
@@ -1115,7 +1116,16 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contentMsg = received?.message[getContentType(received.message)] as any;
 
-          if (this.localWebhook.webhook_base64 === true && isMedia) {
+          if (
+            (
+              this.localWebhook.webhook_base64 === true ||
+              (
+                this.configService.get<Websocket>('WEBSOCKET').GLOBAL_EVENTS === true &&
+                this.configService.get<Websocket>('WEBSOCKET').ENABLED === true
+              )
+            ) &&
+            isMedia
+          ) {
             const buffer = await downloadMediaMessage(
               { key: received.key, message: received?.message },
               'buffer',
@@ -1955,6 +1965,36 @@ export class BaileysStartupService extends ChannelStartupService {
         owner: this.instance.name,
         source: getDevice(messageSent.key.id),
       };
+
+      const isMedia =
+        messageRaw.messageType === 'imageMessage' ||
+        messageRaw.messageType === 'videoMessage' ||
+        messageRaw.messageType === 'documentMessage' ||
+        messageRaw.messageType === 'audioMessage';
+
+      console.log('isMedia', isMedia);
+
+      if (
+        (
+          this.localWebhook.webhook_base64 === true ||
+          (
+            this.configService.get<Websocket>('WEBSOCKET').GLOBAL_EVENTS === true &&
+            this.configService.get<Websocket>('WEBSOCKET').ENABLED === true
+          )
+        ) &&
+        isMedia
+      ) {
+        const buffer = await downloadMediaMessage(
+          { key: messageRaw.key, message: messageRaw?.message },
+          'buffer',
+          {},
+          {
+            logger: P({ level: 'error' }) as any,
+            reuploadRequest: this.client.updateMediaMessage,
+          },
+        );
+        messageRaw.message.base64 = buffer ? buffer.toString('base64') : undefined;
+      }
 
       this.logger.log(messageRaw);
 
