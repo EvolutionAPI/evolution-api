@@ -186,7 +186,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
     while ((match = linkRegex.exec(message)) !== null) {
       const [fullMatch, exclamation, altText, url] = match;
       const mediaType = this.getMediaType(url);
-      const beforeText = message.slice(lastIndex, match.index);
+      const beforeText = message.slice(lastIndex, match.index).trim();
 
       if (beforeText) {
         textBuffer += beforeText;
@@ -298,7 +298,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
       lastIndex = match.index + fullMatch.length;
     }
 
-    const remainingText = message.slice(lastIndex);
+    const remainingText = message.slice(lastIndex).trim();
     if (remainingText) {
       textBuffer += remainingText;
     }
