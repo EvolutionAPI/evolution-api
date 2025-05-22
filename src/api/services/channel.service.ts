@@ -45,11 +45,11 @@ export class ChannelStartupService {
     this.chatwootCache,
   );
 
-  public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository);
-
   public openaiService = new OpenaiService(waMonitor, this.prismaRepository, this.configService);
 
-  public difyService = new DifyService(waMonitor, this.configService, this.prismaRepository);
+  public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository, this.openaiService);
+
+  public difyService = new DifyService(waMonitor, this.configService, this.prismaRepository, this.openaiService);
 
   public setInstance(instance: InstanceDto) {
     this.logger.setInstance(instance.instanceName);

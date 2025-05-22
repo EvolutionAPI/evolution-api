@@ -9,10 +9,13 @@ import { downloadMediaMessage } from 'baileys';
 import { v4 as uuidv4 } from 'uuid';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
-
+import { OpenaiService } from '../../openai/services/openai.service';
 export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
+  private openaiService: OpenaiService;
+
   constructor(waMonitor: WAMonitoringService, prismaRepository: PrismaRepository, configService: ConfigService) {
     super(waMonitor, prismaRepository, 'EvoaiService', configService);
+    this.openaiService = new OpenaiService(waMonitor, prismaRepository, configService);
   }
 
   /**
@@ -42,33 +45,26 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
     try {
       this.logger.debug(`[EvoAI] Processing message with custom process method`);
 
+      let contentProcessed = content;
+
       // Check if this is an audio message that we should try to transcribe
-      if (msg?.messageType === 'audioMessage' && msg?.message?.audioMessage) {
-        this.logger.debug(`[EvoAI] Detected audio message, attempting transcription`);
-
+      if (this.isAudioMessage(content) && msg) {
         try {
-          // Download the audio using the whole msg object
-          const mediaBuffer = await downloadMediaMessage(msg, 'buffer', {});
-          this.logger.debug(`[EvoAI] Downloaded audio: ${mediaBuffer?.length || 0} bytes`);
-
-          // Transcribe with OpenAI's Whisper
-          const transcribedText = await this.speechToText(mediaBuffer);
-          this.logger.debug(`[EvoAI] Transcription result: ${transcribedText || 'FAILED'}`);
-
-          if (transcribedText) {
-            // Use the transcribed text instead of the original content
-            this.logger.debug(`[EvoAI] Using transcribed text: ${transcribedText}`);
-
-            // Call the parent process method with the transcribed text
-            return super.process(instance, remoteJid, bot, session, settings, transcribedText, pushName, msg);
+          this.logger.debug(`[Dify] Downloading audio for Whisper transcription`);
+          const transcription = await this.openaiService.speechToText(msg);
+          if (transcription) {
+            contentProcessed = transcription;
+          } else {
+            contentProcessed = '[Audio message could not be transcribed]';
           }
         } catch (err) {
-          this.logger.error(`[EvoAI] Audio transcription error: ${err}`);
+          this.logger.error(`[Dify] Failed to transcribe audio: ${err}`);
+          contentProcessed = '[Audio message could not be transcribed]';
         }
       }
 
       // For non-audio messages or if transcription failed, proceed normally
-      return super.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
+      return super.process(instance, remoteJid, bot, session, settings, contentProcessed, pushName, msg);
     } catch (error) {
       this.logger.error(`[EvoAI] Error in process: ${error}`);
       return;
