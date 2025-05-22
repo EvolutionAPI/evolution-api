@@ -6,13 +6,21 @@ import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { Dify, DifySetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
-import { downloadMediaMessage } from 'baileys';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
+import { OpenaiService } from '../../openai/services/openai.service';
 
 export class DifyService extends BaseChatbotService<Dify, DifySetting> {
-  constructor(waMonitor: WAMonitoringService, configService: ConfigService, prismaRepository: PrismaRepository) {
+  private openaiService: OpenaiService;
+
+  constructor(
+    waMonitor: WAMonitoringService,
+    configService: ConfigService,
+    prismaRepository: PrismaRepository,
+    openaiService: OpenaiService,
+  ) {
     super(waMonitor, prismaRepository, 'DifyService', configService);
+    this.openaiService = openaiService;
   }
 
   /**
@@ -73,10 +81,9 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
         if (this.isAudioMessage(content) && msg) {
           try {
             this.logger.debug(`[Dify] Downloading audio for Whisper transcription`);
-            const mediaBuffer = await downloadMediaMessage({ key: msg.key, message: msg.message }, 'buffer', {});
-            const transcribedText = await this.speechToText(mediaBuffer);
-            if (transcribedText) {
-              payload.query = transcribedText;
+            const transcription = await this.openaiService.speechToText(msg);
+            if (transcription) {
+              payload.query = transcription;
             } else {
               payload.query = '[Audio message could not be transcribed]';
             }
@@ -151,10 +158,9 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
         if (this.isAudioMessage(content) && msg) {
           try {
             this.logger.debug(`[Dify] Downloading audio for Whisper transcription`);
-            const mediaBuffer = await downloadMediaMessage({ key: msg.key, message: msg.message }, 'buffer', {});
-            const transcribedText = await this.speechToText(mediaBuffer);
-            if (transcribedText) {
-              payload.inputs.query = transcribedText;
+            const transcription = await this.openaiService.speechToText(msg);
+            if (transcription) {
+              payload.inputs.query = transcription;
             } else {
               payload.inputs.query = '[Audio message could not be transcribed]';
             }
@@ -229,10 +235,9 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
         if (this.isAudioMessage(content) && msg) {
           try {
             this.logger.debug(`[Dify] Downloading audio for Whisper transcription`);
-            const mediaBuffer = await downloadMediaMessage({ key: msg.key, message: msg.message }, 'buffer', {});
-            const transcribedText = await this.speechToText(mediaBuffer);
-            if (transcribedText) {
-              payload.query = transcribedText;
+            const transcription = await this.openaiService.speechToText(msg);
+            if (transcription) {
+              payload.query = transcription;
             } else {
               payload.query = '[Audio message could not be transcribed]';
             }

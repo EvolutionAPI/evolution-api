@@ -8,10 +8,18 @@ import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
+import { OpenaiService } from '../../openai/services/openai.service';
 
 export class FlowiseService extends BaseChatbotService<Flowise, FlowiseSetting> {
-  constructor(waMonitor: WAMonitoringService, configService: ConfigService, prismaRepository: PrismaRepository) {
+  private openaiService: OpenaiService;
+  constructor(
+    waMonitor: WAMonitoringService,
+    configService: ConfigService,
+    prismaRepository: PrismaRepository,
+    openaiService: OpenaiService,
+  ) {
     super(waMonitor, prismaRepository, 'FlowiseService', configService);
+    this.openaiService = openaiService;
   }
 
   /**
@@ -48,6 +56,21 @@ export class FlowiseService extends BaseChatbotService<Flowise, FlowiseSetting> 
           },
         },
       };
+
+      if (this.isAudioMessage(content) && msg) {
+        try {
+          this.logger.debug(`[EvolutionBot] Downloading audio for Whisper transcription`);
+          const transcription = await this.openaiService.speechToText(msg);
+          if (transcription) {
+            payload.query = transcription;
+          } else {
+            payload.query = '[Audio message could not be transcribed]';
+          }
+        } catch (err) {
+          this.logger.error(`[EvolutionBot] Failed to transcribe audio: ${err}`);
+          payload.query = '[Audio message could not be transcribed]';
+        }
+      }
 
       if (this.isImageMessage(content)) {
         const contentSplit = content.split('|');

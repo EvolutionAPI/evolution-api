@@ -5,14 +5,21 @@ import { Auth, ConfigService, HttpServer } from '@config/env.config';
 import { IntegrationSession, N8n, N8nSetting } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
-import { downloadMediaMessage } from 'baileys';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
+import { OpenaiService } from '../../openai/services/openai.service';
 import { N8nDto } from '../dto/n8n.dto';
-
 export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
-  constructor(waMonitor: WAMonitoringService, prismaRepository: PrismaRepository, configService: ConfigService) {
+  private openaiService: OpenaiService;
+
+  constructor(
+    waMonitor: WAMonitoringService,
+    prismaRepository: PrismaRepository,
+    configService: ConfigService,
+    openaiService: OpenaiService,
+  ) {
     super(waMonitor, prismaRepository, 'N8nService', configService);
+    this.openaiService = openaiService;
   }
 
   /**
@@ -135,10 +142,9 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
       if (this.isAudioMessage(content) && msg) {
         try {
           this.logger.debug(`[N8n] Downloading audio for Whisper transcription`);
-          const mediaBuffer = await downloadMediaMessage({ key: msg.key, message: msg.message }, 'buffer', {});
-          const transcribedText = await this.speechToText(mediaBuffer);
-          if (transcribedText) {
-            payload.chatInput = transcribedText;
+          const transcription = await this.openaiService.speechToText(msg);
+          if (transcription) {
+            payload.chatInput = transcription;
           } else {
             payload.chatInput = '[Audio message could not be transcribed]';
           }

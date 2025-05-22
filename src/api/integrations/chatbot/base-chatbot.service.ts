@@ -2,11 +2,9 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
-import { ConfigService, Language } from '@config/env.config';
+import { ConfigService } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { IntegrationSession } from '@prisma/client';
-import axios from 'axios';
-import FormData from 'form-data';
 
 /**
  * Base class for all chatbot service implementations
@@ -74,46 +72,6 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
   }
 
   /**
-   * Transcribes audio to text using OpenAI's Whisper API
-   */
-  protected async speechToText(audioBuffer: Buffer): Promise<string | null> {
-    if (!this.configService) {
-      this.logger.error('ConfigService not available for speech-to-text transcription');
-      return null;
-    }
-
-    try {
-      // Try to get the API key from process.env directly since ConfigService might not access it correctly
-      const apiKey = this.configService.get<any>('OPENAI')?.API_KEY || process.env.OPENAI_API_KEY;
-      if (!apiKey) {
-        this.logger.error('No OpenAI API key set for Whisper transcription');
-        return null;
-      }
-
-      const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
-        ? 'pt'
-        : this.configService.get<Language>('LANGUAGE');
-
-      const formData = new FormData();
-      formData.append('file', audioBuffer, 'audio.ogg');
-      formData.append('model', 'whisper-1');
-      formData.append('language', lang);
-
-      const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
-        headers: {
-          ...formData.getHeaders(),
-          Authorization: `Bearer ${apiKey}`,
-        },
-      });
-
-      return response?.data?.text || null;
-    } catch (err) {
-      this.logger.error(`Whisper transcription failed: ${err}`);
-      return null;
-    }
-  }
-
-  /**
    * Create a new chatbot session
    */
   public async createNewSession(instance: InstanceDto | any, data: any, type: string) {
@@ -174,12 +132,9 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
       }
 
       // For existing sessions, keywords might indicate the conversation should end
-      const keywordFinish = (settings as any)?.keywordFinish || [];
+      const keywordFinish = (settings as any)?.keywordFinish || '';
       const normalizedContent = content.toLowerCase().trim();
-      if (
-        keywordFinish.length > 0 &&
-        keywordFinish.some((keyword: string) => normalizedContent === keyword.toLowerCase())
-      ) {
+      if (keywordFinish.length > 0 && normalizedContent === keywordFinish.toLowerCase()) {
         // Update session to closed and return
         await this.prismaRepository.integrationSession.update({
           where: {

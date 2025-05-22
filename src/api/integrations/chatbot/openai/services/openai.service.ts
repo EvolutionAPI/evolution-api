@@ -114,12 +114,9 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
       }
 
       // Handle keyword finish
-      const keywordFinish = settings?.keywordFinish?.split(',') || [];
+      const keywordFinish = settings?.keywordFinish || '';
       const normalizedContent = content.toLowerCase().trim();
-      if (
-        keywordFinish.length > 0 &&
-        keywordFinish.some((keyword: string) => normalizedContent === keyword.toLowerCase().trim())
-      ) {
+      if (keywordFinish.length > 0 && normalizedContent === keywordFinish.toLowerCase()) {
         if (settings?.keepOpen) {
           await this.prismaRepository.integrationSession.update({
             where: {

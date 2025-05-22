@@ -115,23 +115,24 @@ export const channelController = new ChannelController(prismaRepository, waMonit
 export const evolutionController = new EvolutionController(prismaRepository, waMonitor);
 export const metaController = new MetaController(prismaRepository, waMonitor);
 export const baileysController = new BaileysController(waMonitor);
-// chatbots
-const typebotService = new TypebotService(waMonitor, configService, prismaRepository);
-export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);
 
 const openaiService = new OpenaiService(waMonitor, prismaRepository, configService);
 export const openaiController = new OpenaiController(openaiService, prismaRepository, waMonitor);
 
-const difyService = new DifyService(waMonitor, configService, prismaRepository);
+// chatbots
+const typebotService = new TypebotService(waMonitor, configService, prismaRepository, openaiService);
+export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);
+
+const difyService = new DifyService(waMonitor, configService, prismaRepository, openaiService);
 export const difyController = new DifyController(difyService, prismaRepository, waMonitor);
 
-const evolutionBotService = new EvolutionBotService(waMonitor, configService, prismaRepository);
+const evolutionBotService = new EvolutionBotService(waMonitor, configService, prismaRepository, openaiService);
 export const evolutionBotController = new EvolutionBotController(evolutionBotService, prismaRepository, waMonitor);
 
-const flowiseService = new FlowiseService(waMonitor, configService, prismaRepository);
+const flowiseService = new FlowiseService(waMonitor, configService, prismaRepository, openaiService);
 export const flowiseController = new FlowiseController(flowiseService, prismaRepository, waMonitor);
 
-const n8nService = new N8nService(waMonitor, prismaRepository, configService);
+const n8nService = new N8nService(waMonitor, prismaRepository, configService, openaiService);
 export const n8nController = new N8nController(n8nService, prismaRepository, waMonitor);
 
 const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService);

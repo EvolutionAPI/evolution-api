@@ -13,7 +13,7 @@ import { ChatbotController, ChatbotControllerInterface, EmitData } from './chatb
 // Common settings interface for all chatbot integrations
 export interface ChatbotSettings {
   expire: number;
-  keywordFinish: string[];
+  keywordFinish: string;
   delayMessage: number;
   unknownMessage: string;
   listeningFromMe: boolean;
@@ -344,7 +344,6 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
         const settings = await this.settingsRepository.create({
           data: {
             ...settingsData,
-            instanceId: instanceId,
             Instance: {
               connect: {
                 id: instanceId,
@@ -399,7 +398,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
       if (!settings) {
         return {
           expire: 300,
-          keywordFinish: ['bye', 'exit', 'quit', 'stop'],
+          keywordFinish: 'bye',
           delayMessage: 1000,
           unknownMessage: 'Sorry, I dont understand',
           listeningFromMe: true,

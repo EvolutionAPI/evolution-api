@@ -176,7 +176,7 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
       await this.settings(instance, {
         openaiCredsId: data.openaiCredsId,
         expire: data.expire || 300,
-        keywordFinish: data.keywordFinish || 'bye,exit,quit,stop',
+        keywordFinish: data.keywordFinish || 'bye',
         delayMessage: data.delayMessage || 1000,
         unknownMessage: data.unknownMessage || 'Sorry, I dont understand',
         listeningFromMe: data.listeningFromMe !== undefined ? data.listeningFromMe : true,
@@ -385,7 +385,7 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
       });
 
       // Convert keywordFinish to string if it's an array
-      const keywordFinish = Array.isArray(data.keywordFinish) ? data.keywordFinish.join(',') : data.keywordFinish;
+      const keywordFinish = data.keywordFinish;
 
       // Additional OpenAI-specific fields
       const settingsData = {

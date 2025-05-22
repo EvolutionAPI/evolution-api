@@ -6,10 +6,19 @@ import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
+import { OpenaiService } from '../../openai/services/openai.service';
 
 export class TypebotService extends BaseChatbotService<TypebotModel, any> {
-  constructor(waMonitor: WAMonitoringService, configService: ConfigService, prismaRepository: PrismaRepository) {
+  private openaiService: OpenaiService;
+
+  constructor(
+    waMonitor: WAMonitoringService,
+    configService: ConfigService,
+    prismaRepository: PrismaRepository,
+    openaiService: OpenaiService,
+  ) {
     super(waMonitor, prismaRepository, 'TypebotService', configService);
+    this.openaiService = openaiService;
   }
 
   /**
@@ -58,7 +67,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       // Continue an existing chat
       const version = this.configService?.get<Typebot>('TYPEBOT').API_VERSION;
       let url: string;
-      let reqData: {};
+      let reqData: any;
 
       if (version === 'latest') {
         url = `${bot.url}/api/v1/sessions/${session.sessionId.split('-')[1]}/continueChat`;
@@ -69,6 +78,21 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           message: content,
           sessionId: session.sessionId.split('-')[1],
         };
+      }
+
+      if (this.isAudioMessage(content) && msg) {
+        try {
+          this.logger.debug(`[EvolutionBot] Downloading audio for Whisper transcription`);
+          const transcription = await this.openaiService.speechToText(msg);
+          if (transcription) {
+            reqData.message = transcription;
+          } else {
+            reqData.message = '[Audio message could not be transcribed]';
+          }
+        } catch (err) {
+          this.logger.error(`[EvolutionBot] Failed to transcribe audio: ${err}`);
+          reqData.message = '[Audio message could not be transcribed]';
+        }
       }
 
       const response = await axios.post(url, reqData);
