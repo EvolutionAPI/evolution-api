@@ -1110,7 +1110,7 @@ export class ChatwootService {
         return messageSent;
       }
 
-      const documentExtensions = ['.gif', '.svg', '.tiff'];
+      const documentExtensions = ['.gif', '.svg', '.tiff', '.tif'];
       if (type === 'image' && parsedMedia && documentExtensions.includes(parsedMedia?.ext)) {
         type = 'document';
       }
