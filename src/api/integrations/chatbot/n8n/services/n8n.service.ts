@@ -439,16 +439,6 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
 
       // If session exists but is paused
       if (session.status === 'paused') {
-        await this.prismaRepository.integrationSession.update({
-          where: {
-            id: session.id,
-          },
-          data: {
-            status: 'opened',
-            awaitUser: true,
-          },
-        });
-
         return;
       }
 
