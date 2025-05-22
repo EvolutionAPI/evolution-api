@@ -24,7 +24,7 @@ export class MessageRaw {
   key?: Key;
   pushName?: string;
   participant?: string;
-  message?: object;
+  message?: any;
   messageType?: string;
   messageTimestamp?: number | Long;
   owner: string;
