@@ -181,8 +181,7 @@ class ChatwootImport {
       let query: string;
       if (conversationId) {
         query = 'SELECT source_id FROM messages WHERE source_id = ANY($1) AND conversation_id = $2';
-
-      if (!conversationId) {
+      } else {
         query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
       }
 
@@ -337,6 +336,7 @@ class ChatwootImport {
 
       this.deleteHistoryMessages(instance);
       this.deleteRepositoryMessagesCache(instance);
+      return 0;
     }
   }
 
