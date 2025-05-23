@@ -177,25 +177,26 @@ class ChatwootImport {
         return existingSourceIdsSet;
       }
 
-      const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`); // Make sure the sourceId is always formatted as WAID:1234567890
-      let query: string;
-      if (conversationId) {
-        query = 'SELECT source_id FROM messages WHERE source_id = ANY($1) AND conversation_id = $2';
-
-      if (!conversationId) {
-        query = 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
-      }
-
+      const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`);
       const pgClient = postgresClient.getChatwootConnection();
-      const result = await pgClient.query(query, [formattedSourceIds, conversationId]);
-
+      
+      const params = conversationId 
+        ? [formattedSourceIds, conversationId] 
+        : [formattedSourceIds];
+      
+      const query = conversationId
+        ? 'SELECT source_id FROM messages WHERE source_id = ANY($1) AND conversation_id = $2'
+        : 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
+      
+      const result = await pgClient.query(query, params);
       for (const row of result.rows) {
         existingSourceIdsSet.add(row.source_id);
       }
 
       return existingSourceIdsSet;
     } catch (error) {
-      return null;
+      this.logger.error(`Error on getExistingSourceIds: ${error.toString()}`);
+      return new Set<string>();
     }
   }
 
