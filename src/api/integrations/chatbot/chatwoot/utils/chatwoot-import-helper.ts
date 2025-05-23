@@ -177,17 +177,16 @@ class ChatwootImport {
         return existingSourceIdsSet;
       }
 
+      // Ensure all sourceIds are consistently prefixed with 'WAID:' as required by downstream systems and database queries.
       const formattedSourceIds = sourceIds.map((sourceId) => `WAID:${sourceId.replace('WAID:', '')}`);
       const pgClient = postgresClient.getChatwootConnection();
-      
-      const params = conversationId 
-        ? [formattedSourceIds, conversationId] 
-        : [formattedSourceIds];
-      
+
+      const params = conversationId ? [formattedSourceIds, conversationId] : [formattedSourceIds];
+
       const query = conversationId
         ? 'SELECT source_id FROM messages WHERE source_id = ANY($1) AND conversation_id = $2'
         : 'SELECT source_id FROM messages WHERE source_id = ANY($1)';
-      
+
       const result = await pgClient.query(query, params);
       for (const row of result.rows) {
         existingSourceIdsSet.add(row.source_id);
