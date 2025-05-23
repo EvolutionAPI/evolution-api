@@ -50,7 +50,7 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
       // Check if this is an audio message that we should try to transcribe
       if (this.isAudioMessage(content) && msg) {
         try {
-          this.logger.debug(`[Dify] Downloading audio for Whisper transcription`);
+          this.logger.debug(`[EvoAI] Downloading audio for Whisper transcription`);
           const transcription = await this.openaiService.speechToText(msg);
           if (transcription) {
             contentProcessed = transcription;
@@ -58,7 +58,7 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
             contentProcessed = '[Audio message could not be transcribed]';
           }
         } catch (err) {
-          this.logger.error(`[Dify] Failed to transcribe audio: ${err}`);
+          this.logger.error(`[EvoAI] Failed to transcribe audio: ${err}`);
           contentProcessed = '[Audio message could not be transcribed]';
         }
       }
@@ -85,8 +85,8 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
       this.logger.debug(`[EvoAI] Sending message to bot with content: ${content}`);
 
       const endpoint: string = evoai.agentUrl;
-      const callId = `call-${uuidv4()}`;
-      const taskId = `task-${uuidv4()}`;
+      const callId = `req-${uuidv4().substring(0, 8)}`;
+      const messageId = uuidv4();
 
       // Prepare message parts
       const parts = [
@@ -111,8 +111,8 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
             type: 'file',
             file: {
               name: fileName,
-              bytes: fileContent,
               mimeType: 'image/jpeg',
+              bytes: fileContent,
             },
           } as any);
         } catch (fileErr) {
@@ -122,16 +122,16 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
 
       const payload = {
         jsonrpc: '2.0',
-        method: 'tasks/send',
+        id: callId,
+        method: 'message/send',
         params: {
+          contextId: session.sessionId,
           message: {
             role: 'user',
             parts,
+            messageId: messageId,
           },
-          sessionId: session.sessionId,
-          id: taskId,
         },
-        id: callId,
       };
 
       this.logger.debug(`[EvoAI] Sending request to: ${endpoint}`);
@@ -159,17 +159,23 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
         },
       });
 
-      this.logger.debug(`[EvoAI] Response: ${JSON.stringify(response.data.status)}`);
+      this.logger.debug(`[EvoAI] Response: ${JSON.stringify(response.data)}`);
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS)
         await instance.client.sendPresenceUpdate('paused', remoteJid);
 
       let message = undefined;
       const result = response?.data?.result;
-      if (result?.status?.message?.parts && Array.isArray(result.status.message.parts)) {
-        const textPart = result.status.message.parts.find((p) => p.type === 'text' && p.text);
-        if (textPart) message = textPart.text;
+
+      // Extract message from artifacts array
+      if (result?.artifacts && Array.isArray(result.artifacts) && result.artifacts.length > 0) {
+        const artifact = result.artifacts[0];
+        if (artifact?.parts && Array.isArray(artifact.parts)) {
+          const textPart = artifact.parts.find((p) => p.type === 'text' && p.text);
+          if (textPart) message = textPart.text;
+        }
       }
+
       this.logger.debug(`[EvoAI] Extracted message to send: ${message}`);
       const conversationId = session.sessionId;
 
