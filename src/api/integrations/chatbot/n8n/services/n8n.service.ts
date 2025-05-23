@@ -1,7 +1,7 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
-import { Auth, ConfigService, HttpServer } from '@config/env.config';
+import { ConfigService, HttpServer } from '@config/env.config';
 import { IntegrationSession, N8n, N8nSetting } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
