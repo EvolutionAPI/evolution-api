@@ -90,34 +90,20 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
     pushName?: string,
     msg?: any,
   ) {
-    await this.typebotService.processTypebot(
-      instance,
-      remoteJid,
-      msg,
-      session,
-      bot,
-      bot.url,
-      settings.expire,
-      bot.typebot,
-      settings.keywordFinish,
-      settings.delayMessage,
-      settings.unknownMessage,
-      settings.listeningFromMe,
-      settings.stopBotFromMe,
-      settings.keepOpen,
-      content,
-    );
+    // Use the simplified service method that follows the base class pattern
+    await this.typebotService.processTypebot(instance, remoteJid, bot, session, settings, content, pushName, msg);
   }
 
   // TypeBot specific method for starting a bot from API
   public async startBot(instance: InstanceDto, data: any) {
-    if (!this.integrationEnabled) throw new BadRequestException('Typebot is disabled');
+    if (!this.integrationEnabled)
+      throw new BadRequestException('Typebot is disabled');
 
     if (data.remoteJid === 'status@broadcast') return;
 
     const instanceData = await this.prismaRepository.instance.findFirst({
       where: {
-        name: instance.instanceName,
+        id: instance.instanceId,
       },
     });
 
@@ -226,22 +212,25 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
         },
       });
 
-      await this.typebotService.processTypebot(
-        instanceData,
-        remoteJid,
-        null,
-        null,
-        findBot,
-        url,
+      // Use the simplified service method instead of the complex one
+      const settings = {
         expire,
-        typebot,
         keywordFinish,
         delayMessage,
         unknownMessage,
         listeningFromMe,
         stopBotFromMe,
         keepOpen,
+      };
+
+      await this.typebotService.processTypebot(
+        instanceData,
+        remoteJid,
+        findBot,
+        null, // session
+        settings,
         'init',
+        null, // pushName
         prefilledVariables,
       );
     } else {
@@ -287,7 +276,7 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
           request.data.clientSideActions,
         );
 
-        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
+        this.waMonitor.waInstances[instance.instanceId].sendDataWebhook(Events.TYPEBOT_START, {
           remoteJid: remoteJid,
           url: url,
           typebot: typebot,

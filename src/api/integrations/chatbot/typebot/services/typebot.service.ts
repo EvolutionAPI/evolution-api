@@ -1,8 +1,7 @@
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Auth, ConfigService, HttpServer, Typebot } from '@config/env.config';
-import { Instance, IntegrationSession, Message, Typebot as TypebotModel } from '@prisma/client';
-import { sendTelemetry } from '@utils/sendTelemetry';
+import { IntegrationSession, Typebot as TypebotModel } from '@prisma/client';
 import axios from 'axios';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
@@ -83,15 +82,12 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       if (this.isAudioMessage(content) && msg) {
         try {
           this.logger.debug(`[EvolutionBot] Downloading audio for Whisper transcription`);
-          const transcription = await this.openaiService.speechToText(msg);
+          const transcription = await this.openaiService.speechToText(msg, instance);
           if (transcription) {
-            reqData.message = transcription;
-          } else {
-            reqData.message = '[Audio message could not be transcribed]';
+            reqData.message = `[audio] ${transcription}`;
           }
         } catch (err) {
           this.logger.error(`[EvolutionBot] Failed to transcribe audio: ${err}`);
-          reqData.message = '[Audio message could not be transcribed]';
         }
       }
 
@@ -107,9 +103,6 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         response?.data?.input,
         response?.data?.clientSideActions,
       );
-
-      // Send telemetry data
-      sendTelemetry('/message/sendText');
     } catch (error) {
       this.logger.error(`Error in sendMessageToBot for Typebot: ${error.message || JSON.stringify(error)}`);
     }
@@ -526,44 +519,20 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       return { text, buttons: [] };
     }
   }
-
   /**
-   * Main process method for handling Typebot messages
-   * This is called directly from the controller
+   * Simplified method that matches the base class pattern
+   * This should be the preferred way for the controller to call
    */
   public async processTypebot(
-    instance: Instance,
+    instance: any,
     remoteJid: string,
-    msg: Message,
-    session: IntegrationSession,
     bot: TypebotModel,
-    url: string,
-    expire: number,
-    typebot: string,
-    keywordFinish: string,
-    delayMessage: number,
-    unknownMessage: string,
-    listeningFromMe: boolean,
-    stopBotFromMe: boolean,
-    keepOpen: boolean,
+    session: IntegrationSession,
+    settings: any,
     content: string,
-    prefilledVariables?: any,
-  ) {
-    try {
-      const settings = {
-        expire,
-        keywordFinish,
-        delayMessage,
-        unknownMessage,
-        listeningFromMe,
-        stopBotFromMe,
-        keepOpen,
-      };
-
-      // Use the base class process method to handle the message
-      await this.process(instance, remoteJid, bot, session, settings, content, msg.pushName, prefilledVariables || msg);
-    } catch (error) {
-      this.logger.error(`Error in processTypebot: ${error}`);
-    }
+    pushName?: string,
+    msg?: any,
+  ): Promise<void> {
+    return this.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
   }
 }
