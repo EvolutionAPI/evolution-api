@@ -135,7 +135,7 @@ export const flowiseController = new FlowiseController(flowiseService, prismaRep
 const n8nService = new N8nService(waMonitor, prismaRepository, configService, openaiService);
 export const n8nController = new N8nController(n8nService, prismaRepository, waMonitor);
 
-const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService);
+const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService, openaiService);
 export const evoaiController = new EvoaiController(evoaiService, prismaRepository, waMonitor);
 
 logger.info('Module - ON');

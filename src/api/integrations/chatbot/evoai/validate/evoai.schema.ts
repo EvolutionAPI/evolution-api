@@ -71,7 +71,7 @@ export const evoaiSettingSchema: JSONSchema7 = {
     keepOpen: { type: 'boolean' },
     debounceTime: { type: 'integer' },
     ignoreJids: { type: 'array', items: { type: 'string' } },
-    evoaiIdFallback: { type: 'string' },
+    botIdFallback: { type: 'string' },
     splitMessages: { type: 'boolean' },
     timePerChar: { type: 'integer' },
   },
