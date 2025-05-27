@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
-import { ConfigService, Language } from '@config/env.config';
-import { Logger } from '@config/logger.config';
-import { IntegrationSession, OpenaiBot, OpenaiCreds, OpenaiSetting } from '@prisma/client';
+import { ConfigService, Language, Openai as OpenaiConfig } from '@config/env.config';
+import { IntegrationSession, OpenaiBot, OpenaiSetting } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 import { downloadMediaMessage } from 'baileys';
@@ -31,13 +28,6 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
    */
   protected getBotType(): string {
     return 'openai';
-  }
-
-  /**
-   * Create a new session specific to OpenAI
-   */
-  public async createNewSession(instance: InstanceDto, data: any) {
-    return super.createNewSession(instance, data, 'openai');
   }
 
   /**
@@ -82,7 +72,7 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
         this.initClient(creds.apiKey);
 
         // Transcribe the audio
-        const transcription = await this.speechToText(msg);
+        const transcription = await this.speechToText(msg, instance);
 
         if (transcription) {
           this.logger.log(`Audio transcribed: ${transcription}`);
@@ -149,6 +139,7 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
         const createSession = await this.createNewSession(
           { instanceName: instance.instanceName, instanceId: instance.instanceId },
           data,
+          this.getBotType(),
         );
 
         await this.initNewSession(
@@ -650,159 +641,67 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
 
   /**
    * Implementation of speech-to-text transcription for audio messages
-   * This overrides the base class implementation with extra functionality
-   * Can be called directly with a message object or with an audio buffer
    */
-  public async speechToText(msgOrBuffer: any, updateMediaMessage?: any): Promise<string | null> {
-    try {
-      this.logger.log('Starting speechToText transcription');
+  public async speechToText(msg: any, instance: any): Promise<string | null> {
+    const settings = await this.prismaRepository.openaiSetting.findFirst({
+      where: {
+        instanceId: instance.instanceId,
+      },
+    });
 
-      // Handle direct calls with message object
-      if (msgOrBuffer && (msgOrBuffer.key || msgOrBuffer.message)) {
-        this.logger.log('Processing message object for audio transcription');
-        const audioBuffer = await this.getAudioBufferFromMsg(msgOrBuffer, updateMediaMessage);
-
-        if (!audioBuffer) {
-          this.logger.error('Failed to get audio buffer from message');
-          return null;
-        }
-
-        this.logger.log(`Got audio buffer of size: ${audioBuffer.length} bytes`);
-
-        // Process the audio buffer with the base implementation
-        return this.processAudioTranscription(audioBuffer);
-      }
-
-      // Handle calls with a buffer directly (base implementation)
-      this.logger.log('Processing buffer directly for audio transcription');
-      return this.processAudioTranscription(msgOrBuffer);
-    } catch (err) {
-      this.logger.error(`Error in speechToText: ${err}`);
-      return null;
-    }
-  }
-
-  /**
-   * Helper method to process audio buffer for transcription
-   */
-  private async processAudioTranscription(audioBuffer: Buffer): Promise<string | null> {
-    if (!this.configService) {
-      this.logger.error('ConfigService not available for speech-to-text transcription');
+    if (!settings) {
+      this.logger.error(`OpenAI settings not found. InstanceId: ${instance.instanceId}`);
       return null;
     }
 
-    try {
-      // Use the initialized client's API key if available
-      let apiKey;
+    const creds = await this.prismaRepository.openaiCreds.findUnique({
+      where: { id: settings.openaiCredsId },
+    });
 
-      if (this.client) {
-        // Extract the API key from the initialized client if possible
-        // OpenAI client doesn't expose the API key directly, so we need to use environment or config
-        apiKey = this.configService.get<any>('OPENAI')?.API_KEY || process.env.OPENAI_API_KEY;
-      } else {
-        this.logger.log('No OpenAI client initialized, using config API key');
-        apiKey = this.configService.get<any>('OPENAI')?.API_KEY || process.env.OPENAI_API_KEY;
-      }
+    if (!creds) {
+      this.logger.error(`OpenAI credentials not found. CredsId: ${settings.openaiCredsId}`);
+      return null;
+    }
 
-      if (!apiKey) {
-        this.logger.error('No OpenAI API key set for Whisper transcription');
-        return null;
-      }
+    let audio: Buffer;
 
-      const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
-        ? 'pt'
-        : this.configService.get<Language>('LANGUAGE');
-
-      this.logger.log(`Sending audio for transcription with language: ${lang}`);
-
-      const formData = new FormData();
-      formData.append('file', audioBuffer, 'audio.ogg');
-      formData.append('model', 'whisper-1');
-      formData.append('language', lang);
-
-      this.logger.log('Making API request to OpenAI Whisper transcription');
-
-      const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
-        headers: {
-          ...formData.getHeaders(),
-          Authorization: `Bearer ${apiKey}`,
-        },
+    if (msg.message.mediaUrl) {
+      audio = await axios.get(msg.message.mediaUrl, { responseType: 'arraybuffer' }).then((response) => {
+        return Buffer.from(response.data, 'binary');
       });
-
-      this.logger.log(`Transcription completed: ${response?.data?.text || 'No text returned'}`);
-      return response?.data?.text || null;
-    } catch (err) {
-      this.logger.error(`Whisper transcription failed: ${JSON.stringify(err.response?.data || err.message || err)}`);
-      return null;
+    } else if (msg.message.base64) {
+      audio = Buffer.from(msg.message.base64, 'base64');
+    } else {
+      // Fallback for raw WhatsApp audio messages that need downloadMediaMessage
+      audio = await downloadMediaMessage(
+        { key: msg.key, message: msg?.message },
+        'buffer',
+        {},
+        {
+          logger: P({ level: 'error' }) as any,
+          reuploadRequest: instance,
+        },
+      );
     }
-  }
 
-  /**
-   * Helper method to convert message to audio buffer
-   */
-  private async getAudioBufferFromMsg(msg: any, updateMediaMessage: any): Promise<Buffer | null> {
-    try {
-      this.logger.log('Getting audio buffer from message');
-      this.logger.log(`Message type: ${msg.messageType}, has media URL: ${!!msg?.message?.mediaUrl}`);
+    const lang = this.configService.get<Language>('LANGUAGE').includes('pt')
+      ? 'pt'
+      : this.configService.get<Language>('LANGUAGE');
 
-      let audio;
+    const formData = new FormData();
+    formData.append('file', audio, 'audio.ogg');
+    formData.append('model', 'whisper-1');
+    formData.append('language', lang);
 
-      if (msg?.message?.mediaUrl) {
-        this.logger.log(`Getting audio from media URL: ${msg.message.mediaUrl}`);
-        audio = await axios.get(msg.message.mediaUrl, { responseType: 'arraybuffer' }).then((response) => {
-          return Buffer.from(response.data, 'binary');
-        });
-      } else if (msg?.message?.audioMessage) {
-        // Handle WhatsApp audio messages
-        this.logger.log('Getting audio from audioMessage');
-        audio = await downloadMediaMessage(
-          { key: msg.key, message: msg?.message },
-          'buffer',
-          {},
-          {
-            logger: P({ level: 'error' }) as any,
-            reuploadRequest: updateMediaMessage,
-          },
-        );
-      } else if (msg?.message?.pttMessage) {
-        // Handle PTT voice messages
-        this.logger.log('Getting audio from pttMessage');
-        audio = await downloadMediaMessage(
-          { key: msg.key, message: msg?.message },
-          'buffer',
-          {},
-          {
-            logger: P({ level: 'error' }) as any,
-            reuploadRequest: updateMediaMessage,
-          },
-        );
-      } else {
-        this.logger.log('No recognized audio format found');
-        audio = await downloadMediaMessage(
-          { key: msg.key, message: msg?.message },
-          'buffer',
-          {},
-          {
-            logger: P({ level: 'error' }) as any,
-            reuploadRequest: updateMediaMessage,
-          },
-        );
-      }
+    const apiKey = creds?.apiKey || this.configService.get<OpenaiConfig>('OPENAI').API_KEY_GLOBAL;
 
-      if (audio) {
-        this.logger.log(`Successfully obtained audio buffer of size: ${audio.length} bytes`);
-      } else {
-        this.logger.error('Failed to obtain audio buffer');
-      }
+    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
 
-      return audio;
-    } catch (error) {
-      this.logger.error(`Error getting audio buffer: ${error.message || JSON.stringify(error)}`);
-      if (error.response) {
-        this.logger.error(`API response status: ${error.response.status}`);
-        this.logger.error(`API response data: ${JSON.stringify(error.response.data || {})}`);
-      }
-      return null;
-    }
+    return response?.data?.text;
   }
 }
