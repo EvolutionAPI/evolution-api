@@ -2,7 +2,7 @@
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Integration } from '@api/types/wa.types';
-import { Auth, ConfigService, HttpServer } from '@config/env.config';
+import { ConfigService, HttpServer } from '@config/env.config';
 import { EvolutionBot, EvolutionBotSetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
@@ -15,8 +15,8 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
 
   constructor(
     waMonitor: WAMonitoringService,
-    configService: ConfigService,
     prismaRepository: PrismaRepository,
+    configService: ConfigService,
     openaiService: OpenaiService,
   ) {
     super(waMonitor, prismaRepository, 'EvolutionBotService', configService);
@@ -65,12 +65,9 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
           const transcription = await this.openaiService.speechToText(msg, instance);
           if (transcription) {
             payload.query = transcription;
-          } else {
-            payload.query = '[Audio message could not be transcribed]';
           }
         } catch (err) {
           this.logger.error(`[EvolutionBot] Failed to transcribe audio: ${err}`);
-          payload.query = '[Audio message could not be transcribed]';
         }
       }
 
@@ -91,6 +88,13 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         await instance.client.sendPresenceUpdate('composing', remoteJid);
       }
 
+      const endpoint = bot.apiUrl;
+
+      if (!endpoint) {
+        this.logger.error('No Evolution Bot endpoint defined');
+        return;
+      }
+
       let headers: any = {
         'Content-Type': 'application/json',
       };
@@ -102,7 +106,7 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         };
       }
 
-      const response = await axios.post(bot.apiUrl, payload, {
+      const response = await axios.post(endpoint, payload, {
         headers,
       });
 

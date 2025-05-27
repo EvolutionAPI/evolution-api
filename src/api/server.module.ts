@@ -126,7 +126,7 @@ export const typebotController = new TypebotController(typebotService, prismaRep
 const difyService = new DifyService(waMonitor, prismaRepository, configService, openaiService);
 export const difyController = new DifyController(difyService, prismaRepository, waMonitor);
 
-const evolutionBotService = new EvolutionBotService(waMonitor, configService, prismaRepository, openaiService);
+const evolutionBotService = new EvolutionBotService(waMonitor, prismaRepository, configService, openaiService);
 export const evolutionBotController = new EvolutionBotController(evolutionBotService, prismaRepository, waMonitor);
 
 const flowiseService = new FlowiseService(waMonitor, prismaRepository, configService, openaiService);
