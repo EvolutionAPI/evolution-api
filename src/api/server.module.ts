@@ -123,19 +123,19 @@ export const openaiController = new OpenaiController(openaiService, prismaReposi
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository, openaiService);
 export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);
 
-const difyService = new DifyService(waMonitor, configService, prismaRepository, openaiService);
+const difyService = new DifyService(waMonitor, prismaRepository, configService, openaiService);
 export const difyController = new DifyController(difyService, prismaRepository, waMonitor);
 
-const evolutionBotService = new EvolutionBotService(waMonitor, configService, prismaRepository, openaiService);
+const evolutionBotService = new EvolutionBotService(waMonitor, prismaRepository, configService, openaiService);
 export const evolutionBotController = new EvolutionBotController(evolutionBotService, prismaRepository, waMonitor);
 
-const flowiseService = new FlowiseService(waMonitor, configService, prismaRepository, openaiService);
+const flowiseService = new FlowiseService(waMonitor, prismaRepository, configService, openaiService);
 export const flowiseController = new FlowiseController(flowiseService, prismaRepository, waMonitor);
 
 const n8nService = new N8nService(waMonitor, prismaRepository, configService, openaiService);
 export const n8nController = new N8nController(n8nService, prismaRepository, waMonitor);
 
-const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService);
+const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService, openaiService);
 export const evoaiController = new EvoaiController(evoaiService, prismaRepository, waMonitor);
 
 logger.info('Module - ON');

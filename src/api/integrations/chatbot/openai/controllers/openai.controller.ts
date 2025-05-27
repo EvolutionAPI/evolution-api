@@ -117,7 +117,7 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
     }
   }
 
-  // Bots
+  // Override createBot to handle OpenAI-specific credential logic
   public async createBot(instance: InstanceDto, data: OpenaiDto) {
     if (!this.integrationEnabled) throw new BadRequestException('Openai is disabled');
 
@@ -206,58 +206,6 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
     return super.createBot(instance, data);
   }
 
-  public async findBot(instance: InstanceDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Openai is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bots = await this.botRepository.findMany({
-      where: {
-        instanceId: instanceId,
-      },
-    });
-
-    if (!bots.length) {
-      return null;
-    }
-
-    return bots;
-  }
-
-  public async fetchBot(instance: InstanceDto, botId: string) {
-    if (!this.integrationEnabled) throw new BadRequestException('Openai is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bot = await this.botRepository.findFirst({
-      where: {
-        id: botId,
-      },
-    });
-
-    if (!bot) {
-      throw new Error('Openai Bot not found');
-    }
-
-    if (bot.instanceId !== instanceId) {
-      throw new Error('Openai Bot not found');
-    }
-
-    return bot;
-  }
-
   // Process OpenAI-specific bot logic
   protected async processBot(
     instance: any,
@@ -284,8 +232,31 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
       })
       .then((instance) => instance.id);
 
-    if (!data.apiKey) throw new Error('API Key is required');
-    if (!data.name) throw new Error('Name is required');
+    if (!data.apiKey) throw new BadRequestException('API Key is required');
+    if (!data.name) throw new BadRequestException('Name is required');
+
+    // Check if API key already exists
+    const existingApiKey = await this.credsRepository.findFirst({
+      where: {
+        apiKey: data.apiKey,
+      },
+    });
+
+    if (existingApiKey) {
+      throw new BadRequestException('This API key is already registered. Please use a different API key.');
+    }
+
+    // Check if name already exists for this instance
+    const existingName = await this.credsRepository.findFirst({
+      where: {
+        name: data.name,
+        instanceId: instanceId,
+      },
+    });
+
+    if (existingName) {
+      throw new BadRequestException('This credential name is already in use. Please choose a different name.');
+    }
 
     try {
       const creds = await this.credsRepository.create({
@@ -449,7 +420,7 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
   }
 
   // Models - OpenAI specific functionality
-  public async getModels(instance: InstanceDto) {
+  public async getModels(instance: InstanceDto, openaiCredsId?: string) {
     if (!this.integrationEnabled) throw new BadRequestException('Openai is disabled');
 
     const instanceId = await this.prismaRepository.instance
@@ -462,21 +433,40 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
 
     if (!instanceId) throw new Error('Instance not found');
 
-    const defaultSettings = await this.settingsRepository.findFirst({
-      where: {
-        instanceId: instanceId,
-      },
-      include: {
-        OpenaiCreds: true,
-      },
-    });
+    let apiKey: string;
 
-    if (!defaultSettings) throw new Error('Settings not found');
+    if (openaiCredsId) {
+      // Use specific credential ID if provided
+      const creds = await this.credsRepository.findFirst({
+        where: {
+          id: openaiCredsId,
+          instanceId: instanceId, // Ensure the credential belongs to this instance
+        },
+      });
 
-    if (!defaultSettings.OpenaiCreds)
-      throw new Error('OpenAI credentials not found. Please create credentials and associate them with the settings.');
+      if (!creds) throw new Error('OpenAI credentials not found for the provided ID');
 
-    const { apiKey } = defaultSettings.OpenaiCreds;
+      apiKey = creds.apiKey;
+    } else {
+      // Use default credentials from settings if no ID provided
+      const defaultSettings = await this.settingsRepository.findFirst({
+        where: {
+          instanceId: instanceId,
+        },
+        include: {
+          OpenaiCreds: true,
+        },
+      });
+
+      if (!defaultSettings) throw new Error('Settings not found');
+
+      if (!defaultSettings.OpenaiCreds)
+        throw new Error(
+          'OpenAI credentials not found. Please create credentials and associate them with the settings.',
+        );
+
+      apiKey = defaultSettings.OpenaiCreds.apiKey;
+    }
 
     try {
       this.client = new OpenAI({ apiKey });

@@ -49,7 +49,7 @@ export class ChannelStartupService {
 
   public typebotService = new TypebotService(waMonitor, this.configService, this.prismaRepository, this.openaiService);
 
-  public difyService = new DifyService(waMonitor, this.configService, this.prismaRepository, this.openaiService);
+  public difyService = new DifyService(waMonitor, this.prismaRepository, this.configService, this.openaiService);
 
   public setInstance(instance: InstanceDto) {
     this.logger.setInstance(instance.instanceName);

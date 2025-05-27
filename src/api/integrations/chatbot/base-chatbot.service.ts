@@ -353,20 +353,25 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
             ? pushName
             : null;
 
-      session = (
-        await this.createNewSession(
-          {
-            instanceName: instance.instanceName,
-            instanceId: instance.instanceId,
-          },
-          {
-            remoteJid,
-            pushName: pushNameValue,
-            botId: (bot as any).id,
-          },
-          this.getBotType(),
-        )
-      )?.session;
+      const sessionResult = await this.createNewSession(
+        {
+          instanceName: instance.instanceName,
+          instanceId: instance.instanceId,
+        },
+        {
+          remoteJid,
+          pushName: pushNameValue,
+          botId: (bot as any).id,
+        },
+        this.getBotType(),
+      );
+
+      if (!sessionResult || !sessionResult.session) {
+        this.logger.error('Failed to create new session');
+        return;
+      }
+
+      session = sessionResult.session;
     }
 
     // Update session status to opened

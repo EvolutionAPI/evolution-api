@@ -80,7 +80,7 @@ export class DifyController extends BaseChatbotController<DifyModel, DifyDto> {
     }
   }
 
-  // Bots
+  // Override createBot to add Dify-specific validation
   public async createBot(instance: InstanceDto, data: DifyDto) {
     if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
 
@@ -92,7 +92,7 @@ export class DifyController extends BaseChatbotController<DifyModel, DifyDto> {
       })
       .then((instance) => instance.id);
 
-    // Check for Dify-specific duplicate
+    // Dify-specific duplicate check
     const checkDuplicate = await this.botRepository.findFirst({
       where: {
         instanceId: instanceId,
@@ -106,60 +106,8 @@ export class DifyController extends BaseChatbotController<DifyModel, DifyDto> {
       throw new Error('Dify already exists');
     }
 
-    // Let the base class handle the rest of the bot creation process
+    // Let the base class handle the rest
     return super.createBot(instance, data);
-  }
-
-  public async findBot(instance: InstanceDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bots = await this.botRepository.findMany({
-      where: {
-        instanceId: instanceId,
-      },
-    });
-
-    if (!bots.length) {
-      return null;
-    }
-
-    return bots;
-  }
-
-  public async fetchBot(instance: InstanceDto, botId: string) {
-    if (!this.integrationEnabled) throw new BadRequestException('Dify is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bot = await this.botRepository.findFirst({
-      where: {
-        id: botId,
-      },
-    });
-
-    if (!bot) {
-      throw new Error('Dify not found');
-    }
-
-    if (bot.instanceId !== instanceId) {
-      throw new Error('Dify not found');
-    }
-
-    return bot;
   }
 
   // Process Dify-specific bot logic
@@ -173,6 +121,6 @@ export class DifyController extends BaseChatbotController<DifyModel, DifyDto> {
     pushName?: string,
     msg?: any,
   ) {
-    this.difyService.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
+    await this.difyService.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
   }
 }

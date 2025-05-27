@@ -15,5 +15,6 @@ export default defineConfig({
   },
   loader: {
     '.json': 'file',
+    '.yml': 'file',
   },
 });

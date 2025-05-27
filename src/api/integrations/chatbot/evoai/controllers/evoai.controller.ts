@@ -77,7 +77,7 @@ export class EvoaiController extends BaseChatbotController<EvoaiModel, EvoaiDto>
     }
   }
 
-  // Bots
+  // Override createBot to add EvoAI-specific validation
   public async createBot(instance: InstanceDto, data: EvoaiDto) {
     if (!this.integrationEnabled) throw new BadRequestException('Evoai is disabled');
 
@@ -89,6 +89,7 @@ export class EvoaiController extends BaseChatbotController<EvoaiModel, EvoaiDto>
       })
       .then((instance) => instance.id);
 
+    // EvoAI-specific duplicate check
     const checkDuplicate = await this.botRepository.findFirst({
       where: {
         instanceId: instanceId,
@@ -101,59 +102,8 @@ export class EvoaiController extends BaseChatbotController<EvoaiModel, EvoaiDto>
       throw new Error('Evoai already exists');
     }
 
+    // Let the base class handle the rest
     return super.createBot(instance, data);
-  }
-
-  public async findBot(instance: InstanceDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('Evoai is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bots = await this.botRepository.findMany({
-      where: {
-        instanceId: instanceId,
-      },
-    });
-
-    if (!bots.length) {
-      return null;
-    }
-
-    return bots;
-  }
-
-  public async fetchBot(instance: InstanceDto, botId: string) {
-    if (!this.integrationEnabled) throw new BadRequestException('Evoai is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bot = await this.botRepository.findFirst({
-      where: {
-        id: botId,
-      },
-    });
-
-    if (!bot) {
-      throw new Error('Evoai not found');
-    }
-
-    if (bot.instanceId !== instanceId) {
-      throw new Error('Evoai not found');
-    }
-
-    return bot;
   }
 
   // Process Evoai-specific bot logic
