@@ -554,7 +554,7 @@ export class ChatwootService {
 
       // If it already exists in the cache, return conversationId
       if (await this.cache.has(cacheKey)) {
-        const conversationId = await this.cache.get(cacheKey) as number;
+        const conversationId = (await this.cache.get(cacheKey)) as number;
         this.logger.verbose(`Found conversation to: ${remoteJid}, conversation ID: ${conversationId}`);
         return conversationId;
       }
@@ -568,9 +568,9 @@ export class ChatwootService {
             this.logger.warn(`Timeout aguardando lock para ${remoteJid}`);
             break;
           }
-          await new Promise(res => setTimeout(res, 300));
+          await new Promise((res) => setTimeout(res, 300));
           if (await this.cache.has(cacheKey)) {
-            const conversationId = await this.cache.get(cacheKey) as number;
+            const conversationId = (await this.cache.get(cacheKey)) as number;
             this.logger.verbose(`Resolves creation of: ${remoteJid}, conversation ID: ${conversationId}`);
             return conversationId;
           }
@@ -587,7 +587,7 @@ export class ChatwootService {
         Utilizei uma nova verificação para evitar que outra thread execute entre o terminio do while e o set lock
         */
         if (await this.cache.has(cacheKey)) {
-          return await this.cache.get(cacheKey) as number;
+          return (await this.cache.get(cacheKey)) as number;
         }
 
         const client = await this.clientCw(instance);

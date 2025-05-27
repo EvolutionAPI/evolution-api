@@ -31,8 +31,8 @@ export class RabbitmqController extends EventController implements EventControll
         port: url.port || 5672,
         username: url.username || 'guest',
         password: url.password || 'guest',
-        vhost: url.pathname.slice(1) || '/', 
-        frameMax: frameMax
+        vhost: url.pathname.slice(1) || '/',
+        frameMax: frameMax,
       };
 
       amqp.connect(connectionOptions, (error, connection) => {
