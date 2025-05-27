@@ -96,8 +96,7 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
 
   // TypeBot specific method for starting a bot from API
   public async startBot(instance: InstanceDto, data: any) {
-    if (!this.integrationEnabled)
-      throw new BadRequestException('Typebot is disabled');
+    if (!this.integrationEnabled) throw new BadRequestException('Typebot is disabled');
 
     if (data.remoteJid === 'status@broadcast') return;
 

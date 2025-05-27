@@ -89,8 +89,7 @@ export class FlowiseController extends BaseChatbotController<FlowiseModel, Flowi
 
   // Override createBot to add module availability check and Flowise-specific validation
   public async createBot(instance: InstanceDto, data: FlowiseDto) {
-    if (!this.integrationEnabled)
-      throw new BadRequestException('Flowise is disabled');
+    if (!this.integrationEnabled) throw new BadRequestException('Flowise is disabled');
 
     const instanceId = await this.prismaRepository.instance
       .findFirst({

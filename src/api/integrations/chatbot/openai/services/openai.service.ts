@@ -173,7 +173,7 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
       }
 
       // Process with the appropriate API based on bot type
-      await this.sendMessageToBot(instance, session, settings, openaiBot, remoteJid, pushName || '', content, msg);
+      await this.sendMessageToBot(instance, session, settings, openaiBot, remoteJid, pushName || '', content);
     } catch (error) {
       this.logger.error(`Error in process: ${error.message || JSON.stringify(error)}`);
       return;
@@ -191,7 +191,6 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
     remoteJid: string,
     pushName: string,
     content: string,
-    msg?: any,
   ): Promise<void> {
     this.logger.log(`Sending message to bot for remoteJid: ${remoteJid}, bot type: ${openaiBot.botType}`);
 
@@ -223,11 +222,10 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
           pushName,
           false, // Not fromMe
           content,
-          msg,
         );
       } else {
         this.logger.log('Processing with ChatCompletion API');
-        message = await this.processChatCompletionMessage(instance, openaiBot, remoteJid, content, msg);
+        message = await this.processChatCompletionMessage(instance, openaiBot, remoteJid, content);
       }
 
       this.logger.log(`Got response from OpenAI: ${message?.substring(0, 50)}${message?.length > 50 ? '...' : ''}`);
@@ -270,7 +268,6 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
     pushName: string,
     fromMe: boolean,
     content: string,
-    msg?: any,
   ): Promise<string> {
     const messageData: any = {
       role: fromMe ? 'assistant' : 'user',
@@ -379,7 +376,6 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
     openaiBot: OpenaiBot,
     remoteJid: string,
     content: string,
-    msg?: any,
   ): Promise<string> {
     this.logger.log('Starting processChatCompletionMessage');
 

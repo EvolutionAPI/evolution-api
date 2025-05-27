@@ -1,7 +1,9 @@
+import { RouterBroker } from '@api/abstract/abstract.router';
 import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { TypebotDto, TypebotSettingDto } from '@api/integrations/chatbot/typebot/dto/typebot.dto';
 import { HttpStatus } from '@api/routes/index.router';
+import { typebotController } from '@api/server.module';
 import {
   instanceSchema,
   typebotIgnoreJidSchema,
@@ -10,10 +12,7 @@ import {
   typebotStartSchema,
   typebotStatusSchema,
 } from '@validate/validate.schema';
-import { typebotController } from '@api/server.module';
 import { RequestHandler, Router } from 'express';
-
-import { RouterBroker } from '@api/abstract/abstract.router';
 
 export class TypebotRouter extends RouterBroker {
   constructor(...guards: RequestHandler[]) {
