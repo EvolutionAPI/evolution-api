@@ -62,7 +62,7 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
       if (this.isAudioMessage(content) && msg) {
         try {
           this.logger.debug(`[EvolutionBot] Downloading audio for Whisper transcription`);
-          const transcription = await this.openaiService.speechToText(msg);
+          const transcription = await this.openaiService.speechToText(msg, instance);
           if (transcription) {
             payload.query = transcription;
           } else {

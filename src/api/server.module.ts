@@ -123,7 +123,7 @@ export const openaiController = new OpenaiController(openaiService, prismaReposi
 const typebotService = new TypebotService(waMonitor, configService, prismaRepository, openaiService);
 export const typebotController = new TypebotController(typebotService, prismaRepository, waMonitor);
 
-const difyService = new DifyService(waMonitor, configService, prismaRepository, openaiService);
+const difyService = new DifyService(waMonitor, prismaRepository, configService, openaiService);
 export const difyController = new DifyController(difyService, prismaRepository, waMonitor);
 
 const evolutionBotService = new EvolutionBotService(waMonitor, configService, prismaRepository, openaiService);
