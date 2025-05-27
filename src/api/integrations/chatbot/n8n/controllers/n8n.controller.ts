@@ -110,58 +110,6 @@ export class N8nController extends BaseChatbotController<N8nModel, N8nDto> {
     return super.createBot(instance, data);
   }
 
-  public async findBot(instance: InstanceDto) {
-    if (!this.integrationEnabled) throw new BadRequestException('N8n is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bots = await this.botRepository.findMany({
-      where: {
-        instanceId: instanceId,
-      },
-    });
-
-    if (!bots.length) {
-      return null;
-    }
-
-    return bots;
-  }
-
-  public async fetchBot(instance: InstanceDto, botId: string) {
-    if (!this.integrationEnabled) throw new BadRequestException('N8n is disabled');
-
-    const instanceId = await this.prismaRepository.instance
-      .findFirst({
-        where: {
-          name: instance.instanceName,
-        },
-      })
-      .then((instance) => instance.id);
-
-    const bot = await this.botRepository.findFirst({
-      where: {
-        id: botId,
-      },
-    });
-
-    if (!bot) {
-      throw new Error('N8n not found');
-    }
-
-    if (bot.instanceId !== instanceId) {
-      throw new Error('N8n not found');
-    }
-
-    return bot;
-  }
-
   // Process N8n-specific bot logic
   protected async processBot(
     instance: any,
@@ -173,6 +121,7 @@ export class N8nController extends BaseChatbotController<N8nModel, N8nDto> {
     pushName?: string,
     msg?: any,
   ) {
-    this.n8nService.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
+    // Use the base class pattern instead of calling n8nService.process directly
+    await this.n8nService.process(instance, remoteJid, bot, session, settings, content, pushName, msg);
   }
 }
