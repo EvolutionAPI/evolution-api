@@ -129,7 +129,7 @@ export const difyController = new DifyController(difyService, prismaRepository, 
 const evolutionBotService = new EvolutionBotService(waMonitor, configService, prismaRepository, openaiService);
 export const evolutionBotController = new EvolutionBotController(evolutionBotService, prismaRepository, waMonitor);
 
-const flowiseService = new FlowiseService(waMonitor, configService, prismaRepository, openaiService);
+const flowiseService = new FlowiseService(waMonitor, prismaRepository, configService, openaiService);
 export const flowiseController = new FlowiseController(flowiseService, prismaRepository, waMonitor);
 
 const n8nService = new N8nService(waMonitor, prismaRepository, configService, openaiService);
