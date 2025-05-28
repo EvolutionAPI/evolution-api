@@ -1,3 +1,32 @@
+# 2.3.0 (develop)
+
+### Feature
+
+* Add support to get Catalogs and Collections with new routes: '{{baseUrl}}/chat/fetchCatalogs' and '{{baseUrl}}/chat/fetchCollections'
+* Add NATS integration support to the event system
+* Add message location support meta
+* Add S3_SKIP_POLICY env variable to disable setBucketPolicy for incompatible providers
+* Add EvoAI integration with models, services, and routes
+* Add N8n integration with models, services, and routes
+
+### Fixed
+
+* Shell injection vulnerability
+* Update Baileys Version v6.7.17
+* Audio send duplicate from chatwoot
+* Chatwoot csat creating new conversation in another language
+* Refactor SQS controller to correct bug in sqs events by instance
+* Adjustin cloud api send audio and video
+* Preserve animation in GIF and WebP stickers
+* Preventing use conversation from other inbox for the same user
+* Ensure full WhatsApp compatibility for audio conversion (libopus, 48kHz, mono)
+* Enhance message fetching and processing logic
+
+### Security
+
+* Change execSync to execFileSync
+* Enhance WebSocket authentication and connection handling
+
 # 2.2.3 (2025-02-03 11:52)
 
 ### Fixed

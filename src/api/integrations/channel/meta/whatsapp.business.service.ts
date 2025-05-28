@@ -192,17 +192,77 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   private messageTextJson(received: any) {
-    let content: any;
+    // Verificar que received y received.messages existen
+    if (!received || !received.messages || received.messages.length === 0) {
+      this.logger.error('Error: received object or messages array is undefined or empty');
+      return null;
+    }
+
     const message = received.messages[0];
+    let content: any;
+
+    // Verificar si es un mensaje de tipo sticker, location u otro tipo que no tiene text
+    if (!message.text) {
+      // Si no hay texto, manejamos diferente según el tipo de mensaje
+      if (message.type === 'sticker') {
+        content = { stickerMessage: {} };
+      } else if (message.type === 'location') {
+        content = {
+          locationMessage: {
+            degreesLatitude: message.location?.latitude,
+            degreesLongitude: message.location?.longitude,
+            name: message.location?.name,
+            address: message.location?.address,
+          },
+        };
+      } else {
+        // Para otros tipos de mensajes sin texto, creamos un contenido genérico
+        this.logger.log(`Mensaje de tipo ${message.type} sin campo text`);
+        content = { [message.type + 'Message']: message[message.type] || {} };
+      }
+
+      // Añadir contexto si existe
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
+
+      return content;
+    }
+
+    // Si el mensaje tiene texto, procesamos normalmente
+    if (!received.metadata || !received.metadata.phone_number_id) {
+      this.logger.error('Error: metadata or phone_number_id is undefined');
+      return null;
+    }
+
     if (message.from === received.metadata.phone_number_id) {
       content = {
         extendedTextMessage: { text: message.text.body },
       };
-      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
     } else {
       content = { conversation: message.text.body };
-      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
     }
+
+    return content;
+  }
+
+  private messageLocationJson(received: any) {
+    const message = received.messages[0];
+    let content: any = {
+      locationMessage: {
+        degreesLatitude: message.location.latitude,
+        degreesLongitude: message.location.longitude,
+        name: message.location?.name,
+        address: message.location?.address,
+      },
+    };
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
     return content;
   }
 
@@ -283,6 +343,12 @@ export class BusinessStartupService extends ChannelStartupService {
       case 'template':
         messageType = 'conversation';
         break;
+      case 'location':
+        messageType = 'locationMessage';
+        break;
+      case 'sticker':
+        messageType = 'stickerMessage';
+        break;
       default:
         messageType = 'conversation';
         break;
@@ -299,12 +365,28 @@ export class BusinessStartupService extends ChannelStartupService {
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
+        const message = received.messages[0]; // Añadir esta línea para definir message
+
         const key = {
-          id: received.messages[0].id,
+          id: message.id,
           remoteJid: this.phoneNumber,
-          fromMe: received.messages[0].from === received.metadata.phone_number_id,
+          fromMe: message.from === received.metadata.phone_number_id,
         };
-        if (this.isMediaMessage(received?.messages[0])) {
+
+        if (message.type === 'sticker') {
+          this.logger.log('Procesando mensaje de tipo sticker');
+          messageRaw = {
+            key,
+            pushName,
+            message: {
+              stickerMessage: message.sticker || {},
+            },
+            messageType: 'stickerMessage',
+            messageTimestamp: parseInt(message.timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
+          };
+        } else if (this.isMediaMessage(message)) {
           messageRaw = {
             key,
             pushName,
@@ -473,16 +555,12 @@ export class BusinessStartupService extends ChannelStartupService {
             openAiDefaultSettings.speechToText &&
             audioMessage
           ) {
-            messageRaw.message.speechToText = await this.openaiService.speechToText(
-              openAiDefaultSettings.OpenaiCreds,
-              {
-                message: {
-                  mediaUrl: messageRaw.message.mediaUrl,
-                  ...messageRaw,
-                },
+            messageRaw.message.speechToText = await this.openaiService.speechToText(openAiDefaultSettings.OpenaiCreds, {
+              message: {
+                mediaUrl: messageRaw.message.mediaUrl,
+                ...messageRaw,
               },
-              () => {},
-            );
+            });
           }
         }
 
@@ -511,7 +589,7 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        if (!this.isMediaMessage(received?.messages[0])) {
+        if (!this.isMediaMessage(message) && message.type !== 'sticker') {
           await this.prismaRepository.message.create({
             data: messageRaw,
           });
@@ -714,17 +792,54 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   protected async eventHandler(content: any) {
-    const database = this.configService.get<Database>('DATABASE');
-    const settings = await this.findSettings();
+    try {
+      // Registro para depuración
+      this.logger.log('Contenido recibido en eventHandler:');
+      this.logger.log(JSON.stringify(content, null, 2));
 
-    this.messageHandle(content, database, settings);
+      const database = this.configService.get<Database>('DATABASE');
+      const settings = await this.findSettings();
+
+      // Si hay mensajes, verificar primero el tipo
+      if (content.messages && content.messages.length > 0) {
+        const message = content.messages[0];
+        this.logger.log(`Tipo de mensaje recibido: ${message.type}`);
+
+        // Verificamos el tipo de mensaje antes de procesarlo
+        if (
+          message.type === 'text' ||
+          message.type === 'image' ||
+          message.type === 'video' ||
+          message.type === 'audio' ||
+          message.type === 'document' ||
+          message.type === 'sticker' ||
+          message.type === 'location' ||
+          message.type === 'contacts' ||
+          message.type === 'interactive' ||
+          message.type === 'button' ||
+          message.type === 'reaction'
+        ) {
+          // Procesar el mensaje normalmente
+          this.messageHandle(content, database, settings);
+        } else {
+          this.logger.warn(`Tipo de mensaje no reconocido: ${message.type}`);
+        }
+      } else if (content.statuses) {
+        // Procesar actualizaciones de estado
+        this.messageHandle(content, database, settings);
+      } else {
+        this.logger.warn('No se encontraron mensajes ni estados en el contenido recibido');
+      }
+    } catch (error) {
+      this.logger.error('Error en eventHandler:');
+      this.logger.error(error);
+    }
   }
 
   protected async sendMessageWithTyping(number: string, message: any, options?: Options, isIntegration = false) {
     try {
       let quoted: any;
       let webhookUrl: any;
-      const linkPreview = options?.linkPreview != false ? undefined : false;
       if (options?.quoted) {
         const m = options?.quoted;
 
@@ -792,7 +907,7 @@ export class BusinessStartupService extends ChannelStartupService {
             to: number.replace(/\D/g, ''),
             text: {
               body: message['conversation'],
-              preview_url: linkPreview,
+              preview_url: Boolean(options?.linkPreview),
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
@@ -808,7 +923,7 @@ export class BusinessStartupService extends ChannelStartupService {
             to: number.replace(/\D/g, ''),
             [message['mediaType']]: {
               [message['type']]: message['id'],
-              preview_url: linkPreview,
+              preview_url: Boolean(options?.linkPreview),
               ...(message['fileName'] && !isImage && { filename: message['fileName'] }),
               caption: message['caption'],
             },
@@ -977,7 +1092,6 @@ export class BusinessStartupService extends ChannelStartupService {
 
   private async getIdMedia(mediaMessage: any) {
     const formData = new FormData();
-
     const fileStream = createReadStream(mediaMessage.media);
 
     formData.append('file', fileStream, { filename: 'media', contentType: mediaMessage.mimetype });

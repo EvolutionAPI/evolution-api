@@ -20,7 +20,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: atendai/evolution-api
+          images: evoapicloud/evolution-api
           tags: latest
 
       - name: Set up QEMU

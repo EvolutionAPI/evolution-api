@@ -72,6 +72,7 @@ export type EventsRabbitmq = {
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
+  SEND_MESSAGE_UPDATE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -94,10 +95,20 @@ export type EventsRabbitmq = {
 export type Rabbitmq = {
   ENABLED: boolean;
   URI: string;
+  FRAME_MAX: number;
   EXCHANGE_NAME: string;
   GLOBAL_ENABLED: boolean;
   EVENTS: EventsRabbitmq;
-  PREFIX_KEY: string;
+  PREFIX_KEY?: string;
+};
+
+export type Nats = {
+  ENABLED: boolean;
+  URI: string;
+  EXCHANGE_NAME: string;
+  GLOBAL_ENABLED: boolean;
+  EVENTS: EventsRabbitmq;
+  PREFIX_KEY?: string;
 };
 
 export type Sqs = {
@@ -131,6 +142,7 @@ export type EventsWebhook = {
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
+  SEND_MESSAGE_UPDATE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -163,6 +175,7 @@ export type EventsPusher = {
   MESSAGES_UPDATE: boolean;
   MESSAGES_DELETE: boolean;
   SEND_MESSAGE: boolean;
+  SEND_MESSAGE_UPDATE: boolean;
   CONTACTS_SET: boolean;
   CONTACTS_UPDATE: boolean;
   CONTACTS_UPSERT: boolean;
@@ -220,7 +233,21 @@ export type CacheConfLocal = {
   TTL: number;
 };
 export type SslConf = { PRIVKEY: string; FULLCHAIN: string };
-export type Webhook = { GLOBAL?: GlobalWebhook; EVENTS: EventsWebhook };
+export type Webhook = {
+  GLOBAL?: GlobalWebhook;
+  EVENTS: EventsWebhook;
+  REQUEST?: {
+    TIMEOUT_MS?: number;
+  };
+  RETRY?: {
+    MAX_ATTEMPTS?: number;
+    INITIAL_DELAY_SECONDS?: number;
+    USE_EXPONENTIAL_BACKOFF?: boolean;
+    MAX_DELAY_SECONDS?: number;
+    JITTER_FACTOR?: number;
+    NON_RETRYABLE_STATUS_CODES?: number[];
+  };
+};
 export type Pusher = { ENABLED: boolean; GLOBAL?: GlobalPusher; EVENTS: EventsPusher };
 export type ConfigSessionPhone = { CLIENT: string; NAME: string; VERSION: string };
 export type QrCode = { LIMIT: number; COLOR: string };
@@ -241,6 +268,9 @@ export type Chatwoot = {
 };
 export type Openai = { ENABLED: boolean; API_KEY_GLOBAL?: string };
 export type Dify = { ENABLED: boolean };
+export type N8n = { ENABLED: boolean };
+export type Evoai = { ENABLED: boolean };
+export type Flowise = { ENABLED: boolean };
 
 export type S3 = {
   ACCESS_KEY: string;
@@ -251,6 +281,7 @@ export type S3 = {
   PORT?: number;
   USE_SSL?: boolean;
   REGION?: string;
+  SKIP_POLICY?: boolean;
 };
 
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
@@ -263,6 +294,7 @@ export interface Env {
   PROVIDER: ProviderSession;
   DATABASE: Database;
   RABBITMQ: Rabbitmq;
+  NATS: Nats;
   SQS: Sqs;
   WEBSOCKET: Websocket;
   WA_BUSINESS: WaBusiness;
@@ -278,6 +310,9 @@ export interface Env {
   CHATWOOT: Chatwoot;
   OPENAI: Openai;
   DIFY: Dify;
+  N8N: N8n;
+  EVOAI: Evoai;
+  FLOWISE: Flowise;
   CACHE: CacheConf;
   S3?: S3;
   AUTHENTICATION: Auth;
@@ -356,9 +391,10 @@ export class ConfigService {
       RABBITMQ: {
         ENABLED: process.env?.RABBITMQ_ENABLED === 'true',
         GLOBAL_ENABLED: process.env?.RABBITMQ_GLOBAL_ENABLED === 'true',
-        PREFIX_KEY: process.env?.RABBITMQ_PREFIX_KEY || 'evolution',
+        PREFIX_KEY: process.env?.RABBITMQ_PREFIX_KEY,
         EXCHANGE_NAME: process.env?.RABBITMQ_EXCHANGE_NAME || 'evolution_exchange',
         URI: process.env.RABBITMQ_URI || '',
+        FRAME_MAX: Number.parseInt(process.env.RABBITMQ_FRAME_MAX) || 8192,
         EVENTS: {
           APPLICATION_STARTUP: process.env?.RABBITMQ_EVENTS_APPLICATION_STARTUP === 'true',
           INSTANCE_CREATE: process.env?.RABBITMQ_EVENTS_INSTANCE_CREATE === 'true',
@@ -370,6 +406,7 @@ export class ConfigService {
           MESSAGES_UPDATE: process.env?.RABBITMQ_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.RABBITMQ_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.RABBITMQ_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.RABBITMQ_EVENTS_SEND_MESSAGE_UPDATE === 'true',
           CONTACTS_SET: process.env?.RABBITMQ_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.RABBITMQ_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.RABBITMQ_EVENTS_CONTACTS_UPSERT === 'true',
@@ -387,6 +424,43 @@ export class ConfigService {
           CALL: process.env?.RABBITMQ_EVENTS_CALL === 'true',
           TYPEBOT_START: process.env?.RABBITMQ_EVENTS_TYPEBOT_START === 'true',
           TYPEBOT_CHANGE_STATUS: process.env?.RABBITMQ_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
+        },
+      },
+      NATS: {
+        ENABLED: process.env?.NATS_ENABLED === 'true',
+        GLOBAL_ENABLED: process.env?.NATS_GLOBAL_ENABLED === 'true',
+        PREFIX_KEY: process.env?.NATS_PREFIX_KEY,
+        EXCHANGE_NAME: process.env?.NATS_EXCHANGE_NAME || 'evolution_exchange',
+        URI: process.env.NATS_URI || '',
+        EVENTS: {
+          APPLICATION_STARTUP: process.env?.NATS_EVENTS_APPLICATION_STARTUP === 'true',
+          INSTANCE_CREATE: process.env?.NATS_EVENTS_INSTANCE_CREATE === 'true',
+          INSTANCE_DELETE: process.env?.NATS_EVENTS_INSTANCE_DELETE === 'true',
+          QRCODE_UPDATED: process.env?.NATS_EVENTS_QRCODE_UPDATED === 'true',
+          MESSAGES_SET: process.env?.NATS_EVENTS_MESSAGES_SET === 'true',
+          MESSAGES_UPSERT: process.env?.NATS_EVENTS_MESSAGES_UPSERT === 'true',
+          MESSAGES_EDITED: process.env?.NATS_EVENTS_MESSAGES_EDITED === 'true',
+          MESSAGES_UPDATE: process.env?.NATS_EVENTS_MESSAGES_UPDATE === 'true',
+          MESSAGES_DELETE: process.env?.NATS_EVENTS_MESSAGES_DELETE === 'true',
+          SEND_MESSAGE: process.env?.NATS_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.NATS_EVENTS_SEND_MESSAGE_UPDATE === 'true',
+          CONTACTS_SET: process.env?.NATS_EVENTS_CONTACTS_SET === 'true',
+          CONTACTS_UPDATE: process.env?.NATS_EVENTS_CONTACTS_UPDATE === 'true',
+          CONTACTS_UPSERT: process.env?.NATS_EVENTS_CONTACTS_UPSERT === 'true',
+          PRESENCE_UPDATE: process.env?.NATS_EVENTS_PRESENCE_UPDATE === 'true',
+          CHATS_SET: process.env?.NATS_EVENTS_CHATS_SET === 'true',
+          CHATS_UPDATE: process.env?.NATS_EVENTS_CHATS_UPDATE === 'true',
+          CHATS_UPSERT: process.env?.NATS_EVENTS_CHATS_UPSERT === 'true',
+          CHATS_DELETE: process.env?.NATS_EVENTS_CHATS_DELETE === 'true',
+          CONNECTION_UPDATE: process.env?.NATS_EVENTS_CONNECTION_UPDATE === 'true',
+          LABELS_EDIT: process.env?.NATS_EVENTS_LABELS_EDIT === 'true',
+          LABELS_ASSOCIATION: process.env?.NATS_EVENTS_LABELS_ASSOCIATION === 'true',
+          GROUPS_UPSERT: process.env?.NATS_EVENTS_GROUPS_UPSERT === 'true',
+          GROUP_UPDATE: process.env?.NATS_EVENTS_GROUPS_UPDATE === 'true',
+          GROUP_PARTICIPANTS_UPDATE: process.env?.NATS_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          CALL: process.env?.NATS_EVENTS_CALL === 'true',
+          TYPEBOT_START: process.env?.NATS_EVENTS_TYPEBOT_START === 'true',
+          TYPEBOT_CHANGE_STATUS: process.env?.NATS_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
         },
       },
       SQS: {
@@ -421,6 +495,7 @@ export class ConfigService {
           MESSAGES_UPDATE: process.env?.PUSHER_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.PUSHER_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.PUSHER_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.PUSHER_EVENTS_SEND_MESSAGE_UPDATE === 'true',
           CONTACTS_SET: process.env?.PUSHER_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.PUSHER_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.PUSHER_EVENTS_CONTACTS_UPSERT === 'true',
@@ -477,6 +552,7 @@ export class ConfigService {
           MESSAGES_UPDATE: process.env?.WEBHOOK_EVENTS_MESSAGES_UPDATE === 'true',
           MESSAGES_DELETE: process.env?.WEBHOOK_EVENTS_MESSAGES_DELETE === 'true',
           SEND_MESSAGE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.WEBHOOK_EVENTS_SEND_MESSAGE_UPDATE === 'true',
           CONTACTS_SET: process.env?.WEBHOOK_EVENTS_CONTACTS_SET === 'true',
           CONTACTS_UPDATE: process.env?.WEBHOOK_EVENTS_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.WEBHOOK_EVENTS_CONTACTS_UPSERT === 'true',
@@ -496,6 +572,19 @@ export class ConfigService {
           TYPEBOT_CHANGE_STATUS: process.env?.WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
           ERRORS: process.env?.WEBHOOK_EVENTS_ERRORS === 'true',
           ERRORS_WEBHOOK: process.env?.WEBHOOK_EVENTS_ERRORS_WEBHOOK || '',
+        },
+        REQUEST: {
+          TIMEOUT_MS: Number.parseInt(process.env?.WEBHOOK_REQUEST_TIMEOUT_MS) || 30000,
+        },
+        RETRY: {
+          MAX_ATTEMPTS: Number.parseInt(process.env?.WEBHOOK_RETRY_MAX_ATTEMPTS) || 10,
+          INITIAL_DELAY_SECONDS: Number.parseInt(process.env?.WEBHOOK_RETRY_INITIAL_DELAY_SECONDS) || 5,
+          USE_EXPONENTIAL_BACKOFF: process.env?.WEBHOOK_RETRY_USE_EXPONENTIAL_BACKOFF !== 'false',
+          MAX_DELAY_SECONDS: Number.parseInt(process.env?.WEBHOOK_RETRY_MAX_DELAY_SECONDS) || 300,
+          JITTER_FACTOR: Number.parseFloat(process.env?.WEBHOOK_RETRY_JITTER_FACTOR) || 0.2,
+          NON_RETRYABLE_STATUS_CODES: process.env?.WEBHOOK_RETRY_NON_RETRYABLE_STATUS_CODES?.split(',').map(Number) || [
+            400, 401, 403, 404, 422,
+          ],
         },
       },
       CONFIG_SESSION_PHONE: {
@@ -533,6 +622,15 @@ export class ConfigService {
       DIFY: {
         ENABLED: process.env?.DIFY_ENABLED === 'true',
       },
+      N8N: {
+        ENABLED: process.env?.N8N_ENABLED === 'true',
+      },
+      EVOAI: {
+        ENABLED: process.env?.EVOAI_ENABLED === 'true',
+      },
+      FLOWISE: {
+        ENABLED: process.env?.FLOWISE_ENABLED === 'true',
+      },
       CACHE: {
         REDIS: {
           ENABLED: process.env?.CACHE_REDIS_ENABLED === 'true',
@@ -555,6 +653,7 @@ export class ConfigService {
         PORT: Number.parseInt(process.env?.S3_PORT || '9000'),
         USE_SSL: process.env?.S3_USE_SSL === 'true',
         REGION: process.env?.S3_REGION,
+        SKIP_POLICY: process.env?.S3_SKIP_POLICY === 'true',
       },
       AUTHENTICATION: {
         API_KEY: {

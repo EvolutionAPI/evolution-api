@@ -4,8 +4,10 @@ import { OpenaiRouter } from '@api/integrations/chatbot/openai/routes/openai.rou
 import { TypebotRouter } from '@api/integrations/chatbot/typebot/routes/typebot.router';
 import { Router } from 'express';
 
+import { EvoaiRouter } from './evoai/routes/evoai.router';
 import { EvolutionBotRouter } from './evolutionBot/routes/evolutionBot.router';
 import { FlowiseRouter } from './flowise/routes/flowise.router';
+import { N8nRouter } from './n8n/routes/n8n.router';
 
 export class ChatbotRouter {
   public readonly router: Router;
@@ -19,5 +21,7 @@ export class ChatbotRouter {
     this.router.use('/openai', new OpenaiRouter(...guards).router);
     this.router.use('/dify', new DifyRouter(...guards).router);
     this.router.use('/flowise', new FlowiseRouter(...guards).router);
+    this.router.use('/n8n', new N8nRouter(...guards).router);
+    this.router.use('/evoai', new EvoaiRouter(...guards).router);
   }
 }
