@@ -200,6 +200,12 @@ export class ChannelStartupService {
     this.logger.verbose(`Settings wavoipToken: ${data.wavoipToken}`);
     Object.assign(this.localSettings, data);
     this.logger.verbose('Settings set');
+
+    // restart instance
+    if (this.localSettings.wavoipToken && this.localSettings.wavoipToken.length > 0) {
+      this.client.ws.close();
+      this.client.ws.connect();
+    }
   }
 
   public async findSettings() {
