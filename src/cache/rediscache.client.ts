@@ -30,7 +30,7 @@ class Redis {
       });
 
       this.client.on('error', () => {
-        this.logger.error('redis disconnected');
+        this.logger.error(`redis disconnected, URI:${this.conf.URI}`);
         this.connected = false;
       });
 
@@ -40,7 +40,7 @@ class Redis {
       });
 
       try {
-        this.client.connect();
+        this.client.connect().then(()=> {this.logger.verbose("Attempting redis connection")});
         this.connected = true;
       } catch (e) {
         this.connected = false;

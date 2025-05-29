@@ -152,11 +152,10 @@ async function bootstrap() {
       logger.info('Server closed, exiting...');
       process.exit(0);
     });
-
     setTimeout(() => {
       logger.error('Could not close connections in time, forcefully exiting');
       process.exit(1);
-    }, 30000);
+    }, 60000);
   });
 }
 
