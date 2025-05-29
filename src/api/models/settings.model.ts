@@ -11,6 +11,7 @@ export class SettingsRaw {
   read_messages?: boolean;
   read_status?: boolean;
   sync_full_history?: boolean;
+  wavoipToken?: string;
 }
 
 const settingsSchema = new Schema<SettingsRaw>({
@@ -22,6 +23,7 @@ const settingsSchema = new Schema<SettingsRaw>({
   read_messages: { type: Boolean, required: true },
   read_status: { type: Boolean, required: true },
   sync_full_history: { type: Boolean, required: true },
+  wavoipToken: { type: String, required: true },
 });
 
 export const SettingsModel = dbserver?.model(SettingsRaw.name, settingsSchema, 'settings');

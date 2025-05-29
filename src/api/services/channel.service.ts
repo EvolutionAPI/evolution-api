@@ -181,6 +181,9 @@ export class ChannelStartupService {
     this.localSettings.sync_full_history = data?.sync_full_history;
     this.logger.verbose(`Settings sync_full_history: ${this.localSettings.sync_full_history}`);
 
+    this.localSettings.wavoipToken = data?.wavoipToken;
+    this.logger.verbose(`Settings wavoipToken: ${this.localSettings.wavoipToken}`);
+
     this.logger.verbose('Settings loaded');
   }
 
@@ -194,6 +197,7 @@ export class ChannelStartupService {
     this.logger.verbose(`Settings read_messages: ${data.read_messages}`);
     this.logger.verbose(`Settings read_status: ${data.read_status}`);
     this.logger.verbose(`Settings sync_full_history: ${data.sync_full_history}`);
+    this.logger.verbose(`Settings wavoipToken: ${data.wavoipToken}`);
     Object.assign(this.localSettings, data);
     this.logger.verbose('Settings set');
   }
@@ -214,6 +218,7 @@ export class ChannelStartupService {
     this.logger.verbose(`Settings read_messages: ${data.read_messages}`);
     this.logger.verbose(`Settings read_status: ${data.read_status}`);
     this.logger.verbose(`Settings sync_full_history: ${data.sync_full_history}`);
+    this.logger.verbose(`Settings wavoipToken: ${data.wavoipToken}`);
     return {
       reject_call: data.reject_call,
       msg_call: data.msg_call,
@@ -222,6 +227,7 @@ export class ChannelStartupService {
       read_messages: data.read_messages,
       read_status: data.read_status,
       sync_full_history: data.sync_full_history,
+      wavoipToken: data.wavoipToken,
     };
   }
 
@@ -719,7 +725,12 @@ export class ChannelStartupService {
     }
   }
 
-  public async sendDataWebhook<T = any>(event: Events, data: T, local = true) {
+  public async sendDataWebhook<T = any>(
+    event: Events,
+    data: T,
+    local = true,
+    integration = ['websocket', 'rabbitmq', 'sqs', 'webhook'],
+  ) {
     const webhookGlobal = this.configService.get<Webhook>('WEBHOOK');
     const webhookLocal = this.localWebhook.events;
     const websocketLocal = this.localWebsocket.events;
@@ -739,7 +750,7 @@ export class ChannelStartupService {
     const tokenStore = await this.repository.auth.find(this.instanceName);
     const instanceApikey = tokenStore?.apikey || 'Apikey not found';
 
-    if (rabbitmqEnabled) {
+    if (rabbitmqEnabled && integration.includes('rabbitmq')) {
       const amqp = getAMQP();
       if (this.localRabbitmq.enabled && amqp) {
         if (Array.isArray(rabbitmqLocal) && rabbitmqLocal.includes(we)) {
@@ -884,7 +895,7 @@ export class ChannelStartupService {
       }
     }
 
-    if (this.localSqs.enabled) {
+    if (this.localSqs.enabled && integration.includes('sqs')) {
       const sqs = getSQS();
 
       if (sqs) {
@@ -954,7 +965,7 @@ export class ChannelStartupService {
       }
     }
 
-    if (this.configService.get<Websocket>('WEBSOCKET')?.ENABLED) {
+    if (this.configService.get<Websocket>('WEBSOCKET')?.ENABLED && integration.includes('websocket')) {
       this.logger.verbose('Sending data to websocket on channel: ' + this.instance.name);
       const io = getIO();
 
@@ -1028,7 +1039,7 @@ export class ChannelStartupService {
     const globalApiKey = this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
 
     if (local) {
-      if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
+      if (Array.isArray(webhookLocal) && webhookLocal.includes(we) && integration.includes('webhook')) {
         this.logger.verbose('Sending data to webhook local');
         let baseURL: string;
 
@@ -1096,7 +1107,7 @@ export class ChannelStartupService {
       }
     }
 
-    if (webhookGlobal.GLOBAL?.ENABLED) {
+    if (webhookGlobal.GLOBAL?.ENABLED && integration.includes('webhook')) {
       if (webhookGlobal.EVENTS[we]) {
         this.logger.verbose('Sending data to webhook global');
         const globalWebhook = this.configService.get<Webhook>('WEBHOOK').GLOBAL;

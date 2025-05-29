@@ -1,4 +1,10 @@
-# 1.8.6 (develop)
+# 1.8.7
+
+### Features
+
+* Wavoip integration
+
+# 1.8.6
 
 ### Features
 

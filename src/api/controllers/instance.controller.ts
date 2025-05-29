@@ -78,6 +78,7 @@ export class InstanceController {
     read_messages,
     read_status,
     sync_full_history,
+    wavoipToken,
     websocket_enabled,
     websocket_events,
     rabbitmq_enabled,
@@ -401,6 +402,7 @@ export class InstanceController {
         read_messages: read_messages || false,
         read_status: read_status || false,
         sync_full_history: sync_full_history ?? false,
+        wavoipToken: wavoipToken ?? '',
       };
 
       this.logger.verbose('settings: ' + JSON.stringify(settings));

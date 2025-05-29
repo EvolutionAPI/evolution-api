@@ -84,6 +84,7 @@
     "redis": "^4.6.5",
     "sharp": "^0.32.2",
     "socket.io": "^4.7.1",
+    "socket.io-client": "^4.8.1",
     "socks-proxy-agent": "^8.0.1",
     "swagger-ui-express": "^5.0.0",
     "uuid": "^9.0.0",

@@ -1002,9 +1002,26 @@ export const settingsSchema: JSONSchema7 = {
     read_messages: { type: 'boolean', enum: [true, false] },
     read_status: { type: 'boolean', enum: [true, false] },
     sync_full_history: { type: 'boolean', enum: [true, false] },
+    wavoipToken: { type: 'string' },
   },
-  required: ['reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status', 'sync_full_history'],
-  ...isNotEmpty('reject_call', 'groups_ignore', 'always_online', 'read_messages', 'read_status', 'sync_full_history'),
+  required: [
+    'reject_call',
+    'groups_ignore',
+    'always_online',
+    'read_messages',
+    'read_status',
+    'sync_full_history',
+    'wavoipToken',
+  ],
+  ...isNotEmpty(
+    'reject_call',
+    'groups_ignore',
+    'always_online',
+    'read_messages',
+    'read_status',
+    'sync_full_history',
+    'wavoipToken',
+  ),
 };
 
 export const websocketSchema: JSONSchema7 = {

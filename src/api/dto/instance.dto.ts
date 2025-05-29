@@ -21,6 +21,7 @@ export class InstanceDto {
   read_messages?: boolean;
   read_status?: boolean;
   sync_full_history?: boolean;
+  wavoipToken?: string;
   chatwoot_account_id?: string;
   chatwoot_token?: string;
   chatwoot_url?: string;

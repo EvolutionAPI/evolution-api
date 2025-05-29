@@ -131,6 +131,7 @@ import { waMonitor } from '../../server.module';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '../../types/wa.types';
 import { CacheService } from './../cache.service';
 import { ChannelStartupService } from './../channel.service';
+import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
@@ -669,9 +670,31 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.logger.verbose('Socket created');
 
+    if (this.localSettings.wavoipToken && this.localSettings.wavoipToken.length > 0) {
+      useVoiceCallsBaileys(this.localSettings.wavoipToken, this.client, this.connectionStatus.state as any, true);
+    }
+
     this.eventHandler();
 
     this.logger.verbose('Socket event handler initialized');
+
+    this.client.ws.on('CB:call', (packet) => {
+      console.log('CB:call', packet);
+      const payload = {
+        event: 'CB:call',
+        packet: packet,
+      };
+      this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
+    });
+
+    this.client.ws.on('CB:ack,class:call', (packet) => {
+      console.log('CB:ack,class:call', packet);
+      const payload = {
+        event: 'CB:ack,class:call',
+        packet: packet,
+      };
+      this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
+    });
 
     this.phoneNumber = number;
 
@@ -1030,7 +1053,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
         await this.contactHandle['contacts.upsert'](
           contacts
-            .filter((c) => !!c.notify ?? !!c.name)
+            .filter((c) => !!c.notify || !!c.name)
             .map((c) => ({
               id: c.id,
               name: c.name ?? c.notify,
@@ -1117,13 +1140,9 @@ export class BaileysStartupService extends ChannelStartupService {
           const contentMsg = received?.message[getContentType(received.message)] as any;
 
           if (
-            (
-              this.localWebhook.webhook_base64 === true ||
-              (
-                this.configService.get<Websocket>('WEBSOCKET').GLOBAL_EVENTS === true &&
-                this.configService.get<Websocket>('WEBSOCKET').ENABLED === true
-              )
-            ) &&
+            (this.localWebhook.webhook_base64 === true ||
+              (this.configService.get<Websocket>('WEBSOCKET').GLOBAL_EVENTS === true &&
+                this.configService.get<Websocket>('WEBSOCKET').ENABLED === true)) &&
             isMedia
           ) {
             const buffer = await downloadMediaMessage(
@@ -1975,13 +1994,9 @@ export class BaileysStartupService extends ChannelStartupService {
       console.log('isMedia', isMedia);
 
       if (
-        (
-          this.localWebhook.webhook_base64 === true ||
-          (
-            this.configService.get<Websocket>('WEBSOCKET').GLOBAL_EVENTS === true &&
-            this.configService.get<Websocket>('WEBSOCKET').ENABLED === true
-          )
-        ) &&
+        (this.localWebhook.webhook_base64 === true ||
+          (this.configService.get<Websocket>('WEBSOCKET').GLOBAL_EVENTS === true &&
+            this.configService.get<Websocket>('WEBSOCKET').ENABLED === true)) &&
         isMedia
       ) {
         const buffer = await downloadMediaMessage(
