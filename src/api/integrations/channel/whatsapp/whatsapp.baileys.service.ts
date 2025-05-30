@@ -1368,7 +1368,6 @@ export class BaileysStartupService extends ChannelStartupService {
             if (isMedia && this.localWebhook.webhookBase64) {
               try {
                 let buffer: Buffer = null;
-                console.dir({ received }, { depth: null });
                 if (
                   (received.message.stickerMessage &&
                     received.message.stickerMessage.url === 'https://web.whatsapp.net') ||
@@ -1415,7 +1414,6 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          console.dir({ webhookMessage: messageRaw }, { depth: null });
           this.logger.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
@@ -1653,12 +1651,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly groupHandler = {
     'groups.upsert': (groupMetadata: GroupMetadata[]) => {
-      console.dir(groupMetadata, { depth: null });
+      console.dir({groupMetadata}, { depth: null });
       this.sendDataWebhook(Events.GROUPS_UPSERT, groupMetadata);
     },
 
     'groups.update': (groupMetadataUpdate: Partial<GroupMetadata>[]) => {
-      console.dir(groupMetadataUpdate, { depth: null });
+      console.dir({groupMetadataUpdate}, { depth: null });
+      console.dir("1-groupMetadataUpdate");
       this.sendDataWebhook(Events.GROUPS_UPDATE, groupMetadataUpdate);
 
       groupMetadataUpdate.forEach((group) => {

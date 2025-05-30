@@ -113,6 +113,7 @@ export class EventManager {
     local?: boolean;
     integration?: string[];
   }): Promise<void> {
+    if(eventData.event === 'groups.update') console.dir(3);
     await this.websocket.emit(eventData);
     await this.rabbitmq.emit(eventData);
     await this.nats.emit(eventData);

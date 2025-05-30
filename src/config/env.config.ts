@@ -85,7 +85,7 @@ export type EventsRabbitmq = {
   LABELS_EDIT: boolean;
   LABELS_ASSOCIATION: boolean;
   GROUPS_UPSERT: boolean;
-  GROUP_UPDATE: boolean;
+  GROUPS_UPDATE: boolean;
   GROUP_PARTICIPANTS_UPDATE: boolean;
   CALL: boolean;
   TYPEBOT_START: boolean;
@@ -154,7 +154,7 @@ export type EventsWebhook = {
   LABELS_EDIT: boolean;
   LABELS_ASSOCIATION: boolean;
   GROUPS_UPSERT: boolean;
-  GROUP_UPDATE: boolean;
+  GROUPS_UPDATE: boolean;
   GROUP_PARTICIPANTS_UPDATE: boolean;
   CALL: boolean;
   TYPEBOT_START: boolean;
@@ -187,7 +187,7 @@ export type EventsPusher = {
   LABELS_EDIT: boolean;
   LABELS_ASSOCIATION: boolean;
   GROUPS_UPSERT: boolean;
-  GROUP_UPDATE: boolean;
+  GROUPS_UPDATE: boolean;
   GROUP_PARTICIPANTS_UPDATE: boolean;
   CALL: boolean;
   TYPEBOT_START: boolean;
@@ -396,7 +396,7 @@ export class ConfigService {
           LABELS_EDIT: process.env?.RABBITMQ_EVENTS_LABELS_EDIT === 'true',
           LABELS_ASSOCIATION: process.env?.RABBITMQ_EVENTS_LABELS_ASSOCIATION === 'true',
           GROUPS_UPSERT: process.env?.RABBITMQ_EVENTS_GROUPS_UPSERT === 'true',
-          GROUP_UPDATE: process.env?.RABBITMQ_EVENTS_GROUPS_UPDATE === 'true',
+          GROUPS_UPDATE: process.env?.RABBITMQ_EVENTS_GROUPS_UPDATE === 'true',
           GROUP_PARTICIPANTS_UPDATE: process.env?.RABBITMQ_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
           CALL: process.env?.RABBITMQ_EVENTS_CALL === 'true',
           TYPEBOT_START: process.env?.RABBITMQ_EVENTS_TYPEBOT_START === 'true',
@@ -433,7 +433,7 @@ export class ConfigService {
           LABELS_EDIT: process.env?.NATS_EVENTS_LABELS_EDIT === 'true',
           LABELS_ASSOCIATION: process.env?.NATS_EVENTS_LABELS_ASSOCIATION === 'true',
           GROUPS_UPSERT: process.env?.NATS_EVENTS_GROUPS_UPSERT === 'true',
-          GROUP_UPDATE: process.env?.NATS_EVENTS_GROUPS_UPDATE === 'true',
+          GROUPS_UPDATE: process.env?.NATS_EVENTS_GROUPS_UPDATE === 'true',
           GROUP_PARTICIPANTS_UPDATE: process.env?.NATS_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
           CALL: process.env?.NATS_EVENTS_CALL === 'true',
           TYPEBOT_START: process.env?.NATS_EVENTS_TYPEBOT_START === 'true',
@@ -485,7 +485,7 @@ export class ConfigService {
           LABELS_EDIT: process.env?.PUSHER_EVENTS_LABELS_EDIT === 'true',
           LABELS_ASSOCIATION: process.env?.PUSHER_EVENTS_LABELS_ASSOCIATION === 'true',
           GROUPS_UPSERT: process.env?.PUSHER_EVENTS_GROUPS_UPSERT === 'true',
-          GROUP_UPDATE: process.env?.PUSHER_EVENTS_GROUPS_UPDATE === 'true',
+          GROUPS_UPDATE: process.env?.PUSHER_EVENTS_GROUPS_UPDATE === 'true',
           GROUP_PARTICIPANTS_UPDATE: process.env?.PUSHER_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
           CALL: process.env?.PUSHER_EVENTS_CALL === 'true',
           TYPEBOT_START: process.env?.PUSHER_EVENTS_TYPEBOT_START === 'true',
@@ -542,7 +542,7 @@ export class ConfigService {
           LABELS_EDIT: process.env?.WEBHOOK_EVENTS_LABELS_EDIT === 'true',
           LABELS_ASSOCIATION: process.env?.WEBHOOK_EVENTS_LABELS_ASSOCIATION === 'true',
           GROUPS_UPSERT: process.env?.WEBHOOK_EVENTS_GROUPS_UPSERT === 'true',
-          GROUP_UPDATE: process.env?.WEBHOOK_EVENTS_GROUPS_UPDATE === 'true',
+          GROUPS_UPDATE: process.env?.WEBHOOK_EVENTS_GROUPS_UPDATE === 'true',
           GROUP_PARTICIPANTS_UPDATE: process.env?.WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
           CALL: process.env?.WEBHOOK_EVENTS_CALL === 'true',
           TYPEBOT_START: process.env?.WEBHOOK_EVENTS_TYPEBOT_START === 'true',

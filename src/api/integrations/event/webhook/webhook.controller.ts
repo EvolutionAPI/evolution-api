@@ -65,12 +65,13 @@ export class WebhookController extends EventController implements EventControlle
     local,
     integration,
   }: EmitData): Promise<void> {
+    if(event === 'groups.update')console.dir(4);
     if (integration && !integration.includes('webhook')) {
       return;
     }
-
+    if(event === 'groups.update')console.dir(5);
     const instance = (await this.get(instanceName)) as wa.LocalWebHook;
-
+    if(event === 'groups.update')console.dir(6);
     const webhookConfig = configService.get<Webhook>('WEBHOOK');
     const webhookLocal = instance?.events;
     const webhookHeaders = instance?.headers;
@@ -89,34 +90,42 @@ export class WebhookController extends EventController implements EventControlle
       server_url: serverUrl,
       apikey: apiKey,
     };
-
+    if(event === 'groups.update')console.dir(7);
     if (local && instance?.enabled) {
+      if(event === 'groups.update')console.dir(7.1);
+      console.dir({webhookLocal, we})
       if (Array.isArray(webhookLocal) && webhookLocal.includes(we)) {
         let baseURL: string;
-
+        if(event === 'groups.update')console.dir(7.2);
         if (instance?.webhookByEvents) {
+          if(event === 'groups.update')console.dir(7.21);
           baseURL = `${instance?.url}/${transformedWe}`;
         } else {
+          if(event === 'groups.update')console.dir(7.22);
           baseURL = instance?.url;
         }
-
+        if(event === 'groups.update')console.dir(7.3);
         if (enabledLog) {
           const logData = {
             local: `${origin}.sendData-Webhook`,
             url: baseURL,
             ...webhookData,
           };
-
+          if(event === 'groups.update')console.dir(7.4);
           this.logger.log(logData);
         }
 
         try {
+          if(event === 'groups.update')console.dir(7.5);
           if (instance?.enabled && regex.test(instance.url)) {
+            if(event === 'groups.update')console.dir(7.6);
             const httpService = axios.create({
               baseURL,
               headers: webhookHeaders as Record<string, string> | undefined,
             });
-
+            if(event === 'groups.update')console.dir(7.7);
+            console.dir({url:`${origin}.sendData-Webhook`, baseURL, serverUrl}, {depth: null})
+            if(event === 'groups.update')console.dir(7.8);
             await this.retryWebhookRequest(httpService, webhookData, `${origin}.sendData-Webhook`, baseURL, serverUrl);
           }
         } catch (error) {
@@ -135,7 +144,7 @@ export class WebhookController extends EventController implements EventControlle
         }
       }
     }
-
+    if(event === 'groups.update')console.dir(8);
     if (webhookConfig.GLOBAL?.ENABLED) {
       if (webhookConfig.EVENTS[we]) {
         let globalURL = webhookConfig.GLOBAL.URL;
@@ -182,6 +191,7 @@ export class WebhookController extends EventController implements EventControlle
         }
       }
     }
+    if(event === 'groups.update')console.dir(9)
   }
 
   private async retryWebhookRequest(
