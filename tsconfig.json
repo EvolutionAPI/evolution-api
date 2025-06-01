@@ -17,6 +17,7 @@
     "strictNullChecks": false,
     "incremental": true,
     "noImplicitAny": false,
+    "allowJs": true,
     "baseUrl": ".",
     "paths": {
       "@api/*": ["./src/api/*"],
