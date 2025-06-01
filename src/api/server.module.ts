@@ -1,5 +1,5 @@
 import { CacheEngine } from '@cache/cacheengine';
-import { Chatwoot, configService, ProviderSession } from '@config/env.config';
+import { Chatwoot, configService, ProviderSession, Database } from '@config/env.config';
 import { eventEmitter } from '@config/event.config';
 import { Logger } from '@config/logger.config';
 
@@ -40,6 +40,9 @@ import { ProxyService } from './services/proxy.service';
 import { SettingsService } from './services/settings.service';
 import { TemplateService } from './services/template.service';
 
+import pgPathToMysql from './extensions/prismaExtensionPgpathToMysql';
+import { extendsWithProxy } from '@utils/extendsWithProxy';
+
 const logger = new Logger('WA MODULE');
 
 let chatwootCache: CacheService = null;
@@ -55,7 +58,12 @@ if (configService.get<ProviderSession>('PROVIDER').ENABLED) {
   providerFiles = new ProviderFiles(configService);
 }
 
-export const prismaRepository = new PrismaRepository(configService);
+const provider = configService.get<Database>('DATABASE').PROVIDER;
+let extendablePrismaRepository: PrismaRepository = new PrismaRepository(configService)
+if (provider === "mysql") {
+  extendablePrismaRepository = extendsWithProxy(extendablePrismaRepository, pgPathToMysql);
+}
+export const prismaRepository = extendablePrismaRepository;
 
 export const waMonitor = new WAMonitoringService(
   eventEmitter,
