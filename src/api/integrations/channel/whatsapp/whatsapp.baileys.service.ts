@@ -1509,7 +1509,7 @@ export class BaileysStartupService extends ChannelStartupService {
             remoteJid: key.remoteJid,
             fromMe: key.fromMe,
             participant: key?.remoteJid,
-            status: status[update.status],
+            status: status[update.status] || findMessage.status,
             pollUpdates,
             instanceId: this.instanceId,
           };
