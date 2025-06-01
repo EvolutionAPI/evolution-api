@@ -656,6 +656,14 @@ export class ChannelStartupService {
   }
 
   public async fetchStatusMessage(query: any) {
+    if (!query?.offset) {
+      query.offset = 50;
+    }
+
+    if (!query?.page) {
+      query.page = 1;
+    }
+
     return await this.prismaRepository.messageUpdate.findMany({
       where: {
         instanceId: this.instanceId,
