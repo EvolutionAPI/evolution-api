@@ -4,7 +4,9 @@ import { Logger } from '@config/logger.config';
 const logger = new Logger('PGPATH2MYSQL');
 
 function convertPgPathToMysql (path) {
-  if (!Array.isArray(path)) return path
+  if (!Array.isArray(path)) {
+    return path
+  }
   let result = '$'
   for (const item of path) {
     if (/^\d+$/.test(item)) {

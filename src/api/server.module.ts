@@ -60,7 +60,7 @@ if (configService.get<ProviderSession>('PROVIDER').ENABLED) {
 
 const provider = configService.get<Database>('DATABASE').PROVIDER;
 let extendablePrismaRepository: PrismaRepository = new PrismaRepository(configService)
-if (provider === "mysql") {
+if (typeof provider === 'string' && provider?.toLowerCase() === 'mysql') {
   extendablePrismaRepository = extendsWithProxy(extendablePrismaRepository, pgPathToMysql);
 }
 export const prismaRepository = extendablePrismaRepository;
