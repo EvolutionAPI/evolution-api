@@ -34,6 +34,7 @@ export const templateMessageSchema: JSONSchema7 = {
     language: { type: 'string' },
     components: { type: 'array' },
     webhookUrl: { type: 'string' },
+    message: { type: 'string' },
   },
   required: ['name', 'language'],
 };

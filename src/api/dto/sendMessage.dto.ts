@@ -157,6 +157,7 @@ export class SendTemplateDto extends Metadata {
   language: string;
   components: any;
   webhookUrl?: string;
+  message?: string;
 }
 export class SendContactDto extends Metadata {
   contact: ContactMessage[];

@@ -713,6 +713,20 @@ export class BusinessStartupService extends ChannelStartupService {
     return message;
   }
 
+  private getTemplateMessage(message: string, parameters?: any[]) {
+    if (!message) return;
+    let transformedMessage = message;
+    parameters?.forEach((parameter, index) => {
+      transformedMessage = transformedMessage.replace(`{{${index + 1}}}`, parameter.text);
+    });
+    return transformedMessage;
+  }
+
+  private getTemplateComponent(components: any[], name: string) {
+    const c = components.find((c) => c.type.toUpperCase() === name.toUpperCase());
+    return c ?? {};
+  }
+
   protected async eventHandler(content: any) {
     const database = this.configService.get<Database>('DATABASE');
     const settings = await this.findSettings();
@@ -903,7 +917,13 @@ export class BusinessStartupService extends ChannelStartupService {
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
-          message = { conversation: `▶️${message['template']['name']}◀️` };
+
+          const body = this.getTemplateComponent(message['template']['components'], 'body');
+          const templateMessage = this.getTemplateMessage(message['template']['message'], body.parameters);
+
+          message = {
+            conversation: templateMessage ?? `▶️${message['template']['name']}◀️`,
+          };
           return await this.post(content, 'messages');
         }
       })();
