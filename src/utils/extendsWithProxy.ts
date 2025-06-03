@@ -2,10 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 type ExtensionArgs = Parameters<PrismaClient['$extends']>[0];
 
-export function extendsWithProxy<T extends PrismaClient>(
-  instanciaBase: T,
-  extensao: ExtensionArgs
-): T {
+export function extendsWithProxy<T extends PrismaClient>(instanciaBase: T, extensao: ExtensionArgs): T {
   const instanciaEstendida = instanciaBase.$extends(extensao);
 
   const proxy = new Proxy(instanciaBase as unknown as object, {
@@ -16,7 +13,9 @@ export function extendsWithProxy<T extends PrismaClient>(
       if (prop === Symbol.toStringTag) {
         return undefined;
       }
-      return prop in instanciaEstendida ? Reflect.get(instanciaEstendida as any, prop, receiver) : Reflect.get(target, prop, receiver);
+      return prop in instanciaEstendida
+        ? Reflect.get(instanciaEstendida as any, prop, receiver)
+        : Reflect.get(target, prop, receiver);
     },
     has(target, prop) {
       return prop in target || prop in (instanciaEstendida as any);

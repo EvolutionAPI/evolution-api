@@ -1,7 +1,8 @@
 import { CacheEngine } from '@cache/cacheengine';
-import { Chatwoot, configService, ProviderSession, Database } from '@config/env.config';
+import { Chatwoot, configService, Database, ProviderSession } from '@config/env.config';
 import { eventEmitter } from '@config/event.config';
 import { Logger } from '@config/logger.config';
+import { extendsWithProxy } from '@utils/extendsWithProxy';
 
 import { CallController } from './controllers/call.controller';
 import { ChatController } from './controllers/chat.controller';
@@ -12,6 +13,7 @@ import { ProxyController } from './controllers/proxy.controller';
 import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { TemplateController } from './controllers/template.controller';
+import pgPathToMysql from './extensions/prismaExtensionPgpathToMysql';
 import { ChannelController } from './integrations/channel/channel.controller';
 import { EvolutionController } from './integrations/channel/evolution/evolution.controller';
 import { MetaController } from './integrations/channel/meta/meta.controller';
@@ -40,9 +42,6 @@ import { ProxyService } from './services/proxy.service';
 import { SettingsService } from './services/settings.service';
 import { TemplateService } from './services/template.service';
 
-import pgPathToMysql from './extensions/prismaExtensionPgpathToMysql';
-import { extendsWithProxy } from '@utils/extendsWithProxy';
-
 const logger = new Logger('WA MODULE');
 
 let chatwootCache: CacheService = null;
@@ -59,7 +58,7 @@ if (configService.get<ProviderSession>('PROVIDER').ENABLED) {
 }
 
 const provider = configService.get<Database>('DATABASE').PROVIDER;
-let extendablePrismaRepository: PrismaRepository = new PrismaRepository(configService)
+let extendablePrismaRepository: PrismaRepository = new PrismaRepository(configService);
 if (typeof provider === 'string' && provider?.toLowerCase() === 'mysql') {
   extendablePrismaRepository = extendsWithProxy(extendablePrismaRepository, pgPathToMysql);
 }
