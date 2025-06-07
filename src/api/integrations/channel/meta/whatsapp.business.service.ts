@@ -147,11 +147,20 @@ export class BusinessStartupService extends ChannelStartupService {
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
       urlServer = `${urlServer}/${version}/${id}`;
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+
+      // Primeiro, obtenha a URL do arquivo
       let result = await axios.get(urlServer, { headers });
-      result = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
+
+      // Depois, baixe o arquivo usando a URL retornada
+      result = await axios.get(result.data.url, {
+        headers: { Authorization: `Bearer ${this.token}` }, // Use apenas o token de autorização para download
+        responseType: 'arraybuffer',
+      });
+
       return result.data;
     } catch (e) {
-      this.logger.error(e);
+      this.logger.error(`Error downloading media: ${e}`);
+      throw e;
     }
   }
 
@@ -159,7 +168,23 @@ export class BusinessStartupService extends ChannelStartupService {
     const message = received.messages[0];
     let content: any = message.type + 'Message';
     content = { [content]: message[message.type] };
-    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+    if (message.context) {
+      content = { ...content, contextInfo: { stanzaId: message.context.id } };
+    }
+    return content;
+  }
+
+  private messageAudioJson(received: any) {
+    const message = received.messages[0];
+    let content: any = {
+      audioMessage: {
+        ...message.audio,
+        ptt: message.audio.voice || false, // Define se é mensagem de voz
+      },
+    };
+    if (message.context) {
+      content = { ...content, contextInfo: { stanzaId: message.context.id } };
+    }
     return content;
   }
 
@@ -387,11 +412,14 @@ export class BusinessStartupService extends ChannelStartupService {
             instanceId: this.instanceId,
           };
         } else if (this.isMediaMessage(message)) {
+          const messageContent =
+            message.type === 'audio' ? this.messageAudioJson(received) : this.messageMediaJson(received);
+
           messageRaw = {
             key,
             pushName,
-            message: this.messageMediaJson(received),
-            contextInfo: this.messageMediaJson(received)?.contextInfo,
+            message: messageContent,
+            contextInfo: messageContent?.contextInfo,
             messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
@@ -409,7 +437,10 @@ export class BusinessStartupService extends ChannelStartupService {
               const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
               const result = await axios.get(urlServer, { headers });
 
-              const buffer = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
+              const buffer = await axios.get(result.data.url, {
+                headers: { Authorization: `Bearer ${this.token}` }, // Use apenas o token de autorização para download
+                responseType: 'arraybuffer',
+              });
 
               let mediaType;
 
@@ -431,6 +462,17 @@ export class BusinessStartupService extends ChannelStartupService {
                 const match = contentDisposition.match(/filename="(.+?)"/);
                 if (match) {
                   fileName = match[1];
+                }
+              }
+
+              // Para áudio, garantir extensão correta baseada no mimetype
+              if (mediaType === 'audio') {
+                if (mimetype.includes('ogg')) {
+                  fileName = `${message.messages[0].id}.ogg`;
+                } else if (mimetype.includes('mp3')) {
+                  fileName = `${message.messages[0].id}.mp3`;
+                } else if (mimetype.includes('m4a')) {
+                  fileName = `${message.messages[0].id}.m4a`;
                 }
               }
 
@@ -460,13 +502,72 @@ export class BusinessStartupService extends ChannelStartupService {
 
               messageRaw.message.mediaUrl = mediaUrl;
               messageRaw.message.base64 = buffer.data.toString('base64');
+
+              // Processar OpenAI speech-to-text para áudio após o mediaUrl estar disponível
+              if (this.configService.get<Openai>('OPENAI').ENABLED && mediaType === 'audio') {
+                const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+                  where: {
+                    instanceId: this.instanceId,
+                  },
+                  include: {
+                    OpenaiCreds: true,
+                  },
+                });
+
+                if (
+                  openAiDefaultSettings &&
+                  openAiDefaultSettings.openaiCredsId &&
+                  openAiDefaultSettings.speechToText
+                ) {
+                  try {
+                    messageRaw.message.speechToText = await this.openaiService.speechToText(
+                      openAiDefaultSettings.OpenaiCreds,
+                      {
+                        message: {
+                          mediaUrl: messageRaw.message.mediaUrl,
+                          ...messageRaw,
+                        },
+                      },
+                    );
+                  } catch (speechError) {
+                    this.logger.error(`Error processing speech-to-text: ${speechError}`);
+                  }
+                }
+              }
             } catch (error) {
               this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
             }
           } else {
             const buffer = await this.downloadMediaMessage(received?.messages[0]);
-
             messageRaw.message.base64 = buffer.toString('base64');
+
+            // Processar OpenAI speech-to-text para áudio mesmo sem S3
+            if (this.configService.get<Openai>('OPENAI').ENABLED && message.type === 'audio') {
+              const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+                where: {
+                  instanceId: this.instanceId,
+                },
+                include: {
+                  OpenaiCreds: true,
+                },
+              });
+
+              if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
+                try {
+                  messageRaw.message.speechToText = await this.openaiService.speechToText(
+                    openAiDefaultSettings.OpenaiCreds,
+                    {
+                      message: {
+                        base64: messageRaw.message.base64,
+                        ...messageRaw,
+                      },
+                    },
+                  );
+                } catch (speechError) {
+                  this.logger.error(`Error processing speech-to-text: ${speechError}`);
+                }
+              }
+            }
           }
         } else if (received?.messages[0].interactive) {
           messageRaw = {
@@ -535,33 +636,6 @@ export class BusinessStartupService extends ChannelStartupService {
 
         if (this.localSettings.readMessages) {
           // await this.client.readMessages([received.key]);
-        }
-
-        if (this.configService.get<Openai>('OPENAI').ENABLED) {
-          const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
-            where: {
-              instanceId: this.instanceId,
-            },
-            include: {
-              OpenaiCreds: true,
-            },
-          });
-
-          const audioMessage = received?.messages[0]?.audio;
-
-          if (
-            openAiDefaultSettings &&
-            openAiDefaultSettings.openaiCredsId &&
-            openAiDefaultSettings.speechToText &&
-            audioMessage
-          ) {
-            messageRaw.message.speechToText = await this.openaiService.speechToText(openAiDefaultSettings.OpenaiCreds, {
-              message: {
-                mediaUrl: messageRaw.message.mediaUrl,
-                ...messageRaw,
-              },
-            });
-          }
         }
 
         this.logger.log(messageRaw);
