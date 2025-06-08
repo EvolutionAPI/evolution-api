@@ -58,6 +58,7 @@
     "@prisma/client": "^6.1.0",
     "@sentry/node": "^8.47.0",
     "amqplib": "^0.10.5",
+    "audio-decode": "^2.2.3",
     "axios": "^1.7.9",
     "baileys": "github:EvolutionAPI/Baileys",
     "class-validator": "^0.14.1",
