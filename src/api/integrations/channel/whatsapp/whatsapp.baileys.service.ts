@@ -3024,6 +3024,8 @@ export class BaileysStartupService extends ChannelStartupService {
         inputAudioStream.end(audioBuffer);
       }
 
+      const isLpcm = isURL(audio) && /\.lpcm($|\?)/i.test(audio);
+
       return new Promise((resolve, reject) => {
         const outputAudioStream = new PassThrough();
         const chunks: Buffer[] = [];
@@ -3041,7 +3043,14 @@ export class BaileysStartupService extends ChannelStartupService {
 
         ffmpeg.setFfmpegPath(ffmpegPath.path);
 
-        ffmpeg(inputAudioStream)
+        let command = ffmpeg(inputAudioStream);
+
+        if (isLpcm) {
+          this.logger.verbose('Detected LPCM input – applying raw PCM settings');
+          command = command.inputFormat('s16le').inputOptions(['-ar', '24000', '-ac', '1']);
+        }
+
+        command
           .outputFormat('ogg')
           .noVideo()
           .audioCodec('libopus')
