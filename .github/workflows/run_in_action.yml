@@ -1,0 +1,28 @@
+name: Run Application Stack in Action
+
+on:
+  workflow_dispatch: # Allows manual triggering
+  pull_request:
+    branches: [ main, develop ] # Or specify branches as needed
+
+jobs:
+  run_stack:
+    name: Run Docker Compose Stack
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Start Docker Compose Stack
+        run: docker-compose up -d
+
+      - name: Health Check
+        run: |
+          echo "Waiting for services to start..."
+          sleep 30 # Wait for 30 seconds
+          echo "Pinging API..."
+          curl -f http://localhost:8080/ | grep "Welcome to the Evolution API, it is working!"
+
+      - name: Stop Docker Compose Stack
+        if: always() # Ensures this step runs even if previous steps fail
+        run: docker-compose down
