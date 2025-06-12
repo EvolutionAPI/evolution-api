@@ -705,7 +705,7 @@ export class ChatwootService {
           if (this.provider.reopenConversation) {
             this.logger.verbose(`Found conversation in reopenConversation mode: ${JSON.stringify(inboxConversation)}`);
 
-            if (this.provider.conversationPending && inboxConversation.status !== 'open') {
+            if (inboxConversation && this.provider.conversationPending && inboxConversation.status !== 'open') {
               await client.conversations.toggleStatus({
                 accountId: this.provider.accountId,
                 conversationId: inboxConversation.id,
@@ -716,7 +716,7 @@ export class ChatwootService {
             }
           } else {
             inboxConversation = contactConversations.payload.find(
-              (conversation) => conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
+              (conversation) => conversation && conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
             );
             this.logger.verbose(`Found conversation: ${JSON.stringify(inboxConversation)}`);
           }
