@@ -1195,7 +1195,7 @@ export class BusinessStartupService extends ChannelStartupService {
       formData.append('typeFile', mimetype);
       formData.append('messaging_product', 'whatsapp');
 
-      const token = process.env.FACEBOOK_USER_TOKEN;
+      const token = this.token;
 
       const headers = { Authorization: `Bearer ${token}` };
       const url = `${this.configService.get<WaBusiness>('WA_BUSINESS').URL}/${
