@@ -357,6 +357,8 @@ model Typebot {
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
+  splitMessages   Boolean?         @default(false) @db.Boolean
+  timePerChar     Int?             @default(50) @db.Integer
   Instance        Instance         @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String
   TypebotSetting  TypebotSetting[]
@@ -374,6 +376,8 @@ model TypebotSetting {
   debounceTime      Int?      @db.Integer
   typebotIdFallback String?   @db.VarChar(100)
   ignoreJids        Json?
+  splitMessages     Boolean?         @default(false) @db.Boolean
+  timePerChar       Int?             @default(50) @db.Integer
   createdAt         DateTime? @default(now()) @db.Timestamp
   updatedAt         DateTime  @updatedAt @db.Timestamp
   Fallback          Typebot?  @relation(fields: [typebotIdFallback], references: [id])

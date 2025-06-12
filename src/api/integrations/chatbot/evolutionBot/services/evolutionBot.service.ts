@@ -64,7 +64,7 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
           this.logger.debug(`[EvolutionBot] Downloading audio for Whisper transcription`);
           const transcription = await this.openaiService.speechToText(msg, instance);
           if (transcription) {
-            payload.query = transcription;
+            payload.query = `[audio] ${transcription}`;
           }
         } catch (err) {
           this.logger.error(`[EvolutionBot] Failed to transcribe audio: ${err}`);

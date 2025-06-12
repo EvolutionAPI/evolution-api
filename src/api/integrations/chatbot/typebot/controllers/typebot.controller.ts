@@ -90,8 +90,25 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
     pushName?: string,
     msg?: any,
   ) {
-    // Use the simplified service method that follows the base class pattern
-    await this.typebotService.processTypebot(instance, remoteJid, bot, session, settings, content, pushName, msg);
+    // Map to the original processTypebot method signature
+    await this.typebotService.processTypebot(
+      instance,
+      remoteJid,
+      msg,
+      session,
+      bot,
+      bot.url,
+      settings.expire,
+      bot.typebot,
+      settings.keywordFinish,
+      settings.delayMessage,
+      settings.unknownMessage,
+      settings.listeningFromMe,
+      settings.stopBotFromMe,
+      settings.keepOpen,
+      content,
+      {}, // prefilledVariables (optional)
+    );
   }
 
   // TypeBot specific method for starting a bot from API
@@ -211,25 +228,23 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
         },
       });
 
-      // Use the simplified service method instead of the complex one
-      const settings = {
+      // Use the original processTypebot method with all parameters
+      await this.typebotService.processTypebot(
+        this.waMonitor.waInstances[instanceData.name],
+        remoteJid,
+        null, // msg
+        null, // session
+        findBot,
+        url,
         expire,
+        typebot,
         keywordFinish,
         delayMessage,
         unknownMessage,
         listeningFromMe,
         stopBotFromMe,
         keepOpen,
-      };
-
-      await this.typebotService.processTypebot(
-        instanceData,
-        remoteJid,
-        findBot,
-        null, // session
-        settings,
         'init',
-        null, // pushName
         prefilledVariables,
       );
     } else {

@@ -280,7 +280,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
       });
 
       if (!bot) {
-        throw new Error(`${this.integrationName} not found`);
+        return null;
       }
 
       return bot;

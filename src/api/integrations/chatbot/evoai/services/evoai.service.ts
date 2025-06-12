@@ -55,7 +55,7 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
           this.logger.debug(`[EvoAI] Downloading audio for Whisper transcription`);
           const transcription = await this.openaiService.speechToText(msg, instance);
           if (transcription) {
-            processedContent = transcription;
+            processedContent = `[audio] ${transcription}`;
           }
         } catch (err) {
           this.logger.error(`[EvoAI] Failed to transcribe audio: ${err}`);

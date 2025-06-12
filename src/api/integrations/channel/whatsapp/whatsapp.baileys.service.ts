@@ -1188,7 +1188,7 @@ export class BaileysStartupService extends ChannelStartupService {
             });
 
             if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
-              messageRaw.message.speechToText = await this.openaiService.speechToText(received, this);
+              messageRaw.message.speechToText = `[audio] ${await this.openaiService.speechToText(received, this)}`;
             }
           }
 
@@ -2111,7 +2111,7 @@ export class BaileysStartupService extends ChannelStartupService {
         });
 
         if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
-          messageRaw.message.speechToText = await this.openaiService.speechToText(messageRaw, this);
+          messageRaw.message.speechToText = `[audio] ${await this.openaiService.speechToText(messageRaw, this)}`;
         }
       }
 

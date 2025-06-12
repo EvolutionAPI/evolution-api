@@ -61,7 +61,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
           this.logger.debug(`[N8n] Downloading audio for Whisper transcription`);
           const transcription = await this.openaiService.speechToText(msg, instance);
           if (transcription) {
-            payload.chatInput = transcription;
+            payload.chatInput = `[audio] ${transcription}`;
           }
         } catch (err) {
           this.logger.error(`[N8n] Failed to transcribe audio: ${err}`);

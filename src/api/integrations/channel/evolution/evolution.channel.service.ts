@@ -165,7 +165,7 @@ export class EvolutionStartupService extends ChannelStartupService {
             openAiDefaultSettings.speechToText &&
             received?.message?.audioMessage
           ) {
-            messageRaw.message.speechToText = await this.openaiService.speechToText(received, this);
+            messageRaw.message.speechToText = `[audio] ${await this.openaiService.speechToText(received, this)}`;
           }
         }
 

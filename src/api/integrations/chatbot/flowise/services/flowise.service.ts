@@ -72,7 +72,7 @@ export class FlowiseService extends BaseChatbotService<FlowiseModel> {
         this.logger.debug(`[Flowise] Downloading audio for Whisper transcription`);
         const transcription = await this.openaiService.speechToText(msg, instance);
         if (transcription) {
-          payload.question = transcription;
+          payload.question = `[audio] ${transcription}`;
         }
       } catch (err) {
         this.logger.error(`[Flowise] Failed to transcribe audio: ${err}`);
