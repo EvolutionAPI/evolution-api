@@ -28,7 +28,6 @@ import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
-import { createReadStream } from 'fs';
 import mimeTypes from 'mime-types';
 import { join } from 'path';
 
@@ -997,9 +996,10 @@ export class BusinessStartupService extends ChannelStartupService {
             to: number.replace(/\D/g, ''),
             [message['mediaType']]: {
               [message['type']]: message['id'],
-              preview_url: Boolean(options?.linkPreview),
-              ...(message['fileName'] && !isImage && { filename: message['fileName'] }),
-              caption: message['caption'],
+              ...(message['mediaType'] !== 'audio' &&
+                message['fileName'] &&
+                !isImage && { filename: message['fileName'] }),
+              ...(message['mediaType'] !== 'audio' && message['caption'] && { caption: message['caption'] }),
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
@@ -1097,7 +1097,7 @@ export class BusinessStartupService extends ChannelStartupService {
         }
       })();
 
-      if (messageSent?.error_data) {
+      if (messageSent?.error_data || messageSent.message) {
         this.logger.error(messageSent);
         return messageSent;
       }
@@ -1164,28 +1164,50 @@ export class BusinessStartupService extends ChannelStartupService {
     return res;
   }
 
-  private async getIdMedia(mediaMessage: any) {
-    const formData = new FormData();
-    const fileStream = createReadStream(mediaMessage.media);
+  private async getIdMedia(mediaMessage: any, isFile = false) {
+    try {
+      const formData = new FormData();
 
-    formData.append('file', fileStream, { filename: 'media', contentType: mediaMessage.mimetype });
-    formData.append('typeFile', mediaMessage.mimetype);
-    formData.append('messaging_product', 'whatsapp');
+      if (isFile === false) {
+        if (isURL(mediaMessage.media)) {
+          const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
+          const buffer = Buffer.from(response.data, 'base64');
+          formData.append('file', buffer, {
+            filename: mediaMessage.fileName || 'media',
+            contentType: mediaMessage.mimetype,
+          });
+        } else {
+          const buffer = Buffer.from(mediaMessage.media, 'base64');
+          formData.append('file', buffer, {
+            filename: mediaMessage.fileName || 'media',
+            contentType: mediaMessage.mimetype,
+          });
+        }
+      } else {
+        formData.append('file', mediaMessage.media.buffer, {
+          filename: mediaMessage.media.originalname,
+          contentType: mediaMessage.media.mimetype,
+        });
+      }
 
-    // const fileBuffer = await fs.readFile(mediaMessage.media);
+      const mimetype = mediaMessage.mimetype || mediaMessage.media.mimetype;
 
-    // const fileBlob = new Blob([fileBuffer], { type: mediaMessage.mimetype });
-    // formData.append('file', fileBlob);
-    // formData.append('typeFile', mediaMessage.mimetype);
-    // formData.append('messaging_product', 'whatsapp');
+      formData.append('typeFile', mimetype);
+      formData.append('messaging_product', 'whatsapp');
 
-    const headers = { Authorization: `Bearer ${this.token}` };
-    const res = await axios.post(
-      process.env.API_URL + '/' + process.env.VERSION + '/' + this.number + '/media',
-      formData,
-      { headers },
-    );
-    return res.data.id;
+      const token = process.env.FACEBOOK_USER_TOKEN;
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const url = `${this.configService.get<WaBusiness>('WA_BUSINESS').URL}/${
+        this.configService.get<WaBusiness>('WA_BUSINESS').VERSION
+      }/${this.number}/media`;
+
+      const res = await axios.post(url, formData, { headers });
+      return res.data.id;
+    } catch (error) {
+      this.logger.error(error.response.data);
+      throw new InternalServerErrorException(error?.toString() || error);
+    }
   }
 
   protected async prepareMediaMessage(mediaMessage: MediaMessage) {
@@ -1258,48 +1280,87 @@ export class BusinessStartupService extends ChannelStartupService {
     return mediaSent;
   }
 
-  public async processAudio(audio: string, number: string) {
+  public async processAudio(audio: string, number: string, file: any) {
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
 
-    let mimetype: string | false;
+    if (process.env.API_AUDIO_CONVERTER) {
+      this.logger.verbose('Using audio converter API');
+      const formData = new FormData();
 
-    const prepareMedia: any = {
-      fileName: `${hash}.mp3`,
-      mediaType: 'audio',
-      media: audio,
-    };
+      if (file) {
+        formData.append('file', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      } else if (isURL(audio)) {
+        formData.append('url', audio);
+      } else {
+        formData.append('base64', audio);
+      }
 
-    if (isURL(audio)) {
-      mimetype = mimeTypes.lookup(audio);
-      prepareMedia.id = audio;
-      prepareMedia.type = 'link';
-    } else {
-      mimetype = mimeTypes.lookup(prepareMedia.fileName);
+      formData.append('format', 'mp3');
+
+      const response = await axios.post(process.env.API_AUDIO_CONVERTER, formData, {
+        headers: {
+          ...formData.getHeaders(),
+          apikey: process.env.API_AUDIO_CONVERTER_KEY,
+        },
+      });
+
+      const audioConverter = response?.data?.audio || response?.data?.url;
+
+      if (!audioConverter) {
+        throw new InternalServerErrorException('Failed to convert audio');
+      }
+
+      const prepareMedia: any = {
+        fileName: `${hash}.mp3`,
+        mediaType: 'audio',
+        media: audioConverter,
+        mimetype: 'audio/mpeg',
+      };
+
       const id = await this.getIdMedia(prepareMedia);
       prepareMedia.id = id;
       prepareMedia.type = 'id';
+
+      this.logger.verbose('Audio converted');
+      return prepareMedia;
+    } else {
+      let mimetype: string | false;
+
+      const prepareMedia: any = {
+        fileName: `${hash}.mp3`,
+        mediaType: 'audio',
+        media: audio,
+      };
+
+      if (isURL(audio)) {
+        mimetype = mimeTypes.lookup(audio);
+        prepareMedia.id = audio;
+        prepareMedia.type = 'link';
+      } else if (audio && !file) {
+        mimetype = mimeTypes.lookup(prepareMedia.fileName);
+        const id = await this.getIdMedia(prepareMedia);
+        prepareMedia.id = id;
+        prepareMedia.type = 'id';
+      } else if (file) {
+        prepareMedia.media = file;
+        const id = await this.getIdMedia(prepareMedia, true);
+        prepareMedia.id = id;
+        prepareMedia.type = 'id';
+        mimetype = file.mimetype;
+      }
+
+      prepareMedia.mimetype = mimetype;
+
+      return prepareMedia;
     }
-
-    prepareMedia.mimetype = mimetype;
-
-    return prepareMedia;
   }
 
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
-    const mediaData: SendAudioDto = { ...data };
-
-    if (file?.buffer) {
-      mediaData.audio = file.buffer.toString('base64');
-    } else if (isURL(mediaData.audio)) {
-      // DO NOTHING
-      // mediaData.audio = mediaData.audio;
-    } else {
-      console.error('El archivo no tiene buffer o file es undefined');
-      throw new Error('File or buffer is undefined');
-    }
-
-    const message = await this.processAudio(mediaData.audio, data.number);
+    const message = await this.processAudio(data.audio, data.number, file);
 
     const audioSent = await this.sendMessageWithTyping(
       data.number,

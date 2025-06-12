@@ -1819,7 +1819,7 @@ export class BaileysStartupService extends ChannelStartupService {
       // setTimeout(() => this.client.terminateCall(call.id, call.to), callDuration * 1000);
 
       // return call;
-      return { id: '123' };
+      return { id: '123', jid, isVideo, callDuration };
     } catch (error) {
       return error;
     }
