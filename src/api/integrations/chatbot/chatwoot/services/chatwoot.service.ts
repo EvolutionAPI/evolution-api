@@ -232,6 +232,7 @@ export class ChatwootService {
         '123456',
         inboxId,
         false,
+        false,
         organization ? organization : 'EvolutionAPI',
         logo ? logo : 'https://evolution-api.com/files/evolution-api-favicon.png',
       )) as any);
@@ -291,6 +292,7 @@ export class ChatwootService {
     phoneNumber: string,
     inboxId: number,
     isGroup: boolean,
+    isLid: boolean,
     name?: string,
     avatar_url?: string,
     jid?: string,
@@ -303,7 +305,7 @@ export class ChatwootService {
     }
 
     let data: any = {};
-    if (!isGroup) {
+    if (!isGroup && !isLid) {
       data = {
         inbox_id: inboxId,
         name: name || phoneNumber,
@@ -675,6 +677,7 @@ export class ChatwootService {
             chatId,
             filterInbox.id,
             isGroup,
+            isLid,
             nameContact,
             picture_url.profilePictureUrl || null,
             jid,
