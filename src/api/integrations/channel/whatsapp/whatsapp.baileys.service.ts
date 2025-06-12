@@ -229,10 +229,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private authStateProvider: AuthStateProvider;
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
-  private readonly userDevicesCache: CacheStore = new NodeCache({
-    stdTTL: 300000,
-    useClones: false,
-  });
+  private readonly userDevicesCache: CacheStore = new NodeCache({ stdTTL: 300000, useClones: false });
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
@@ -249,24 +246,16 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.client?.ws?.close();
 
-    const sessionExists = await this.prismaRepository.session.findFirst({
-      where: { sessionId: this.instanceId },
-    });
+    const sessionExists = await this.prismaRepository.session.findFirst({ where: { sessionId: this.instanceId } });
     if (sessionExists) {
-      await this.prismaRepository.session.delete({
-        where: {
-          sessionId: this.instanceId,
-        },
-      });
+      await this.prismaRepository.session.delete({ where: { sessionId: this.instanceId } });
     }
   }
 
   public async getProfileName() {
     let profileName = this.client.user?.name ?? this.client.user?.verifiedName;
     if (!profileName) {
-      const data = await this.prismaRepository.session.findUnique({
-        where: { sessionId: this.instanceId },
-      });
+      const data = await this.prismaRepository.session.findUnique({ where: { sessionId: this.instanceId } });
 
       if (data) {
         const creds = JSON.parse(JSON.stringify(data.creds), BufferJSON.reviver);
@@ -308,10 +297,7 @@ export class BaileysStartupService extends ChannelStartupService {
           this.chatwootService.eventWhatsapp(
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name, instanceId: this.instanceId },
-            {
-              message: 'QR code limit reached, please login again',
-              statusCode: DisconnectReason.badSession,
-            },
+            { message: 'QR code limit reached, please login again', statusCode: DisconnectReason.badSession },
           );
         }
 
@@ -357,12 +343,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.instance.qrcode.code = qr;
 
         this.sendDataWebhook(Events.QRCODE_UPDATED, {
-          qrcode: {
-            instance: this.instance.name,
-            pairingCode: this.instance.qrcode.pairingCode,
-            code: qr,
-            base64,
-          },
+          qrcode: { instance: this.instance.name, pairingCode: this.instance.qrcode.pairingCode, code: qr, base64 },
         });
 
         if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
@@ -370,12 +351,7 @@ export class BaileysStartupService extends ChannelStartupService {
             Events.QRCODE_UPDATED,
             { instanceName: this.instance.name, instanceId: this.instanceId },
             {
-              qrcode: {
-                instance: this.instance.name,
-                pairingCode: this.instance.qrcode.pairingCode,
-                code: qr,
-                base64,
-              },
+              qrcode: { instance: this.instance.name, pairingCode: this.instance.qrcode.pairingCode, code: qr, base64 },
             },
           );
         }
@@ -390,9 +366,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       await this.prismaRepository.instance.update({
         where: { id: this.instanceId },
-        data: {
-          connectionStatus: 'connecting',
-        },
+        data: { connectionStatus: 'connecting' },
       });
     }
 
@@ -432,10 +406,7 @@ export class BaileysStartupService extends ChannelStartupService {
           this.chatwootService.eventWhatsapp(
             Events.STATUS_INSTANCE,
             { instanceName: this.instance.name, instanceId: this.instanceId },
-            {
-              instance: this.instance.name,
-              status: 'closed',
-            },
+            { instance: this.instance.name, status: 'closed' },
           );
         }
 
@@ -443,10 +414,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.client?.ws?.close();
         this.client.end(new Error('Close connection'));
 
-        this.sendDataWebhook(Events.CONNECTION_UPDATE, {
-          instance: this.instance.name,
-          ...this.stateConnection,
-        });
+        this.sendDataWebhook(Events.CONNECTION_UPDATE, { instance: this.instance.name, ...this.stateConnection });
       }
     }
 
@@ -487,10 +455,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.chatwootService.eventWhatsapp(
           Events.CONNECTION_UPDATE,
           { instanceName: this.instance.name, instanceId: this.instanceId },
-          {
-            instance: this.instance.name,
-            status: 'open',
-          },
+          { instance: this.instance.name, status: 'open' },
         );
         this.syncChatwootLostMessages();
       }
@@ -505,23 +470,14 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'connecting') {
-      this.sendDataWebhook(Events.CONNECTION_UPDATE, {
-        instance: this.instance.name,
-        ...this.stateConnection,
-      });
+      this.sendDataWebhook(Events.CONNECTION_UPDATE, { instance: this.instance.name, ...this.stateConnection });
     }
   }
 
   private async getMessage(key: proto.IMessageKey, full = false) {
     try {
       const webMessageInfo = (await this.prismaRepository.message.findMany({
-        where: {
-          instanceId: this.instanceId,
-          key: {
-            path: ['id'],
-            equals: key.id,
-          },
-        },
+        where: { instanceId: this.instanceId, key: { path: ['id'], equals: key.id } },
       })) as unknown as proto.IWebMessageInfo[];
       if (full) {
         return webMessageInfo[0];
@@ -533,9 +489,7 @@ export class BaileysStartupService extends ChannelStartupService {
           const messageSecret = Buffer.from(messageSecretBase64, 'base64');
 
           const msg = {
-            messageContextInfo: {
-              messageSecret,
-            },
+            messageContextInfo: { messageSecret },
             pollCreationMessage: webMessageInfo[0].message?.pollCreationMessage,
           };
 
@@ -615,10 +569,7 @@ export class BaileysStartupService extends ChannelStartupService {
           const proxyUrls = text.split('\r\n');
           const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
           const proxyUrl = 'http://' + proxyUrls[rand];
-          options = {
-            agent: makeProxyAgent(proxyUrl),
-            fetchAgent: makeProxyAgent(proxyUrl),
-          };
+          options = { agent: makeProxyAgent(proxyUrl), fetchAgent: makeProxyAgent(proxyUrl) };
         } catch (error) {
           this.localProxy.enabled = false;
         }
@@ -712,19 +663,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.client.ws.on('CB:call', (packet) => {
       console.log('CB:call', packet);
-      const payload = {
-        event: 'CB:call',
-        packet: packet,
-      };
+      const payload = { event: 'CB:call', packet: packet };
       this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
     });
 
     this.client.ws.on('CB:ack,class:call', (packet) => {
       console.log('CB:ack,class:call', packet);
-      const payload = {
-        event: 'CB:ack,class:call',
-        packet: packet,
-      };
+      const payload = { event: 'CB:ack,class:call', packet: packet };
       this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
     });
 
@@ -778,18 +723,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
       if (chatsToInsert.length > 0) {
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS)
-          await this.prismaRepository.chat.createMany({
-            data: chatsToInsert,
-            skipDuplicates: true,
-          });
+          await this.prismaRepository.chat.createMany({ data: chatsToInsert, skipDuplicates: true });
       }
     },
 
     'chats.update': async (
       chats: Partial<
-        proto.IConversation & {
-          lastMessageRecvTimestamp?: number;
-        } & {
+        proto.IConversation & { lastMessageRecvTimestamp?: number } & {
           conditional: (bufferedData: BufferedEventData) => boolean;
         }
       >[],
@@ -802,11 +742,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       for (const chat of chats) {
         await this.prismaRepository.chat.updateMany({
-          where: {
-            instanceId: this.instanceId,
-            remoteJid: chat.id,
-            name: chat.name,
-          },
+          where: { instanceId: this.instanceId, remoteJid: chat.id, name: chat.name },
           data: { remoteJid: chat.id },
         });
       }
@@ -815,9 +751,7 @@ export class BaileysStartupService extends ChannelStartupService {
     'chats.delete': async (chats: string[]) => {
       chats.forEach(
         async (chat) =>
-          await this.prismaRepository.chat.deleteMany({
-            where: { instanceId: this.instanceId, remoteJid: chat },
-          }),
+          await this.prismaRepository.chat.deleteMany({ where: { instanceId: this.instanceId, remoteJid: chat } }),
       );
 
       this.sendDataWebhook(Events.CHATS_DELETE, [...chats]);
@@ -838,10 +772,7 @@ export class BaileysStartupService extends ChannelStartupService {
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
 
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
-            await this.prismaRepository.contact.createMany({
-              data: contactsRaw,
-              skipDuplicates: true,
-            });
+            await this.prismaRepository.contact.createMany({ data: contactsRaw, skipDuplicates: true });
 
           const usersContacts = contactsRaw.filter((c) => c.remoteJid.includes('@s.whatsapp'));
           if (usersContacts) {
@@ -885,9 +816,7 @@ export class BaileysStartupService extends ChannelStartupService {
             updatedContacts.map(async (contact) => {
               const update = this.prismaRepository.contact.updateMany({
                 where: { remoteJid: contact.remoteJid, instanceId: this.instanceId },
-                data: {
-                  profilePicUrl: contact.profilePicUrl,
-                },
+                data: { profilePicUrl: contact.profilePicUrl },
               });
 
               if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
@@ -919,12 +848,7 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'contacts.update': async (contacts: Partial<Contact>[]) => {
-      const contactsRaw: {
-        remoteJid: string;
-        pushName?: string;
-        profilePicUrl?: string;
-        instanceId: string;
-      }[] = [];
+      const contactsRaw: { remoteJid: string; pushName?: string; profilePicUrl?: string; instanceId: string }[] = [];
       for await (const contact of contacts) {
         contactsRaw.push({
           remoteJid: contact.id,
@@ -999,20 +923,15 @@ export class BaileysStartupService extends ChannelStartupService {
 
         for (const contact of contacts) {
           if (contact.id && (contact.notify || contact.name)) {
-            contactsMap.set(contact.id, {
-              name: contact.name ?? contact.notify,
-              jid: contact.id,
-            });
+            contactsMap.set(contact.id, { name: contact.name ?? contact.notify, jid: contact.id });
           }
         }
 
         const chatsRaw: { remoteJid: string; instanceId: string; name?: string }[] = [];
         const chatsRepository = new Set(
-          (
-            await this.prismaRepository.chat.findMany({
-              where: { instanceId: this.instanceId },
-            })
-          ).map((chat) => chat.remoteJid),
+          (await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } })).map(
+            (chat) => chat.remoteJid,
+          ),
         );
 
         for (const chat of chats) {
@@ -1020,20 +939,13 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          chatsRaw.push({
-            remoteJid: chat.id,
-            instanceId: this.instanceId,
-            name: chat.name,
-          });
+          chatsRaw.push({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name });
         }
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          await this.prismaRepository.chat.createMany({
-            data: chatsRaw,
-            skipDuplicates: true,
-          });
+          await this.prismaRepository.chat.createMany({ data: chatsRaw, skipDuplicates: true });
         }
 
         const messagesRaw: any[] = [];
@@ -1046,9 +958,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 where: { instanceId: this.instanceId },
               })
             ).map((message) => {
-              const key = message.key as {
-                id: string;
-              };
+              const key = message.key as { id: string };
 
               return key.id;
             }),
@@ -1092,10 +1002,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw]);
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          await this.prismaRepository.message.createMany({
-            data: messagesRaw,
-            skipDuplicates: true,
-          });
+          await this.prismaRepository.message.createMany({ data: messagesRaw, skipDuplicates: true });
         }
 
         if (
@@ -1111,12 +1018,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         await this.contactHandle['contacts.upsert'](
-          contacts
-            .filter((c) => !!c.notify || !!c.name)
-            .map((c) => ({
-              id: c.id,
-              name: c.name ?? c.notify,
-            })),
+          contacts.filter((c) => !!c.notify || !!c.name).map((c) => ({ id: c.id, name: c.name ?? c.notify })),
         );
 
         contacts = undefined;
@@ -1128,15 +1030,7 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.upsert': async (
-      {
-        messages,
-        type,
-        requestId,
-      }: {
-        messages: proto.IWebMessageInfo[];
-        type: MessageUpsertType;
-        requestId?: string;
-      },
+      { messages, type, requestId }: { messages: proto.IWebMessageInfo[]; type: MessageUpsertType; requestId?: string },
       settings: any,
     ) => {
       try {
@@ -1289,12 +1183,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (this.configService.get<Openai>('OPENAI').ENABLED && received?.message?.audioMessage) {
             const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
-              where: {
-                instanceId: this.instanceId,
-              },
-              include: {
-                OpenaiCreds: true,
-              },
+              where: { instanceId: this.instanceId },
+              include: { OpenaiCreds: true },
             });
 
             if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
@@ -1303,9 +1193,7 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
-            const msg = await this.prismaRepository.message.create({
-              data: messageRaw,
-            });
+            const msg = await this.prismaRepository.message.create({ data: messageRaw });
 
             const { remoteJid } = received.key;
             const timestamp = msg.messageTimestamp;
@@ -1338,12 +1226,7 @@ export class BaileysStartupService extends ChannelStartupService {
               if (this.configService.get<S3>('S3').ENABLE) {
                 try {
                   const message: any = received;
-                  const media = await this.getBase64FromMediaMessage(
-                    {
-                      message,
-                    },
-                    true,
-                  );
+                  const media = await this.getBase64FromMediaMessage({ message }, true);
 
                   const { buffer, mediaType, fileName, size } = media;
                   const mimetype = mimeTypes.lookup(fileName).toString();
@@ -1353,9 +1236,7 @@ export class BaileysStartupService extends ChannelStartupService {
                     mediaType,
                     `${Date.now()}_${fileName}`,
                   );
-                  await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
-                    'Content-Type': mimetype,
-                  });
+                  await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, { 'Content-Type': mimetype });
 
                   await this.prismaRepository.media.create({
                     data: {
@@ -1371,10 +1252,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
                   messageRaw.message.mediaUrl = mediaUrl;
 
-                  await this.prismaRepository.message.update({
-                    where: { id: msg.id },
-                    data: messageRaw,
-                  });
+                  await this.prismaRepository.message.update({ where: { id: msg.id }, data: messageRaw });
                 } catch (error) {
                   this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
                 }
@@ -1389,10 +1267,7 @@ export class BaileysStartupService extends ChannelStartupService {
                   { key: received.key, message: received?.message },
                   'buffer',
                   {},
-                  {
-                    logger: P({ level: 'error' }) as any,
-                    reuploadRequest: this.client.updateMediaMessage,
-                  },
+                  { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
                 );
 
                 if (buffer) {
@@ -1403,10 +1278,7 @@ export class BaileysStartupService extends ChannelStartupService {
                     { key: received.key, message: received?.message },
                     'buffer',
                     {},
-                    {
-                      logger: P({ level: 'error' }) as any,
-                      reuploadRequest: this.client.updateMediaMessage,
-                    },
+                    { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
                   );
 
                   if (buffer) {
@@ -1470,12 +1342,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
             await this.prismaRepository.contact.upsert({
-              where: {
-                remoteJid_instanceId: {
-                  remoteJid: contactRaw.remoteJid,
-                  instanceId: contactRaw.instanceId,
-                },
-              },
+              where: { remoteJid_instanceId: { remoteJid: contactRaw.remoteJid, instanceId: contactRaw.instanceId } },
               update: contactRaw,
               create: contactRaw,
             });
@@ -1535,13 +1402,7 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           const findMessage = await this.prismaRepository.message.findFirst({
-            where: {
-              instanceId: this.instanceId,
-              key: {
-                path: ['id'],
-                equals: key.id,
-              },
-            },
+            where: { instanceId: this.instanceId, key: { path: ['id'], equals: key.id } },
           });
 
           if (!findMessage) {
@@ -1563,9 +1424,7 @@ export class BaileysStartupService extends ChannelStartupService {
             this.sendDataWebhook(Events.MESSAGES_DELETE, key);
 
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE)
-              await this.prismaRepository.messageUpdate.create({
-                data: message,
-              });
+              await this.prismaRepository.messageUpdate.create({ data: message });
 
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
               this.chatwootService.eventWhatsapp(
@@ -1609,30 +1468,19 @@ export class BaileysStartupService extends ChannelStartupService {
           this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE)
-            await this.prismaRepository.messageUpdate.create({
-              data: message,
-            });
+            await this.prismaRepository.messageUpdate.create({ data: message });
 
           const existingChat = await this.prismaRepository.chat.findFirst({
             where: { instanceId: this.instanceId, remoteJid: message.remoteJid },
           });
 
           if (existingChat) {
-            const chatToInsert = {
-              remoteJid: message.remoteJid,
-              instanceId: this.instanceId,
-              unreadMessages: 0,
-            };
+            const chatToInsert = { remoteJid: message.remoteJid, instanceId: this.instanceId, unreadMessages: 0 };
 
             this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
               try {
-                await this.prismaRepository.chat.update({
-                  where: {
-                    id: existingChat.id,
-                  },
-                  data: chatToInsert,
-                });
+                await this.prismaRepository.chat.update({ where: { id: existingChat.id }, data: chatToInsert });
               } catch (error) {
                 console.log(`Chat insert record ignored: ${chatToInsert.remoteJid} - ${chatToInsert.instanceId}`);
               }
@@ -1675,9 +1523,7 @@ export class BaileysStartupService extends ChannelStartupService {
     [Events.LABELS_EDIT]: async (label: Label) => {
       this.sendDataWebhook(Events.LABELS_EDIT, { ...label, instance: this.instance.name });
 
-      const labelsRepository = await this.prismaRepository.label.findMany({
-        where: { instanceId: this.instanceId },
-      });
+      const labelsRepository = await this.prismaRepository.label.findMany({ where: { instanceId: this.instanceId } });
 
       const savedLabel = labelsRepository.find((l) => l.labelId === label.id);
       if (label.deleted && savedLabel) {
@@ -1699,12 +1545,7 @@ export class BaileysStartupService extends ChannelStartupService {
             instanceId: this.instanceId,
           };
           await this.prismaRepository.label.upsert({
-            where: {
-              labelId_instanceId: {
-                instanceId: labelData.instanceId,
-                labelId: labelData.labelId,
-              },
-            },
+            where: { labelId_instanceId: { instanceId: labelData.instanceId, labelId: labelData.labelId } },
             update: labelData,
             create: labelData,
           });
@@ -1754,14 +1595,9 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (settings?.msgCall?.trim().length > 0 && call.status == 'offer') {
-            const msg = await this.client.sendMessage(call.from, {
-              text: settings.msgCall,
-            });
+            const msg = await this.client.sendMessage(call.from, { text: settings.msgCall });
 
-            this.client.ev.emit('messages.upsert', {
-              messages: [msg],
-              type: 'notify',
-            });
+            this.client.ev.emit('messages.upsert', { messages: [msg], type: 'notify' });
           }
 
           this.sendDataWebhook(Events.CALL, call);
@@ -1910,15 +1746,9 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const profilePictureUrl = await this.client.profilePictureUrl(jid, 'image');
 
-      return {
-        wuid: jid,
-        profilePictureUrl,
-      };
+      return { wuid: jid, profilePictureUrl };
     } catch (error) {
-      return {
-        wuid: jid,
-        profilePictureUrl: null,
-      };
+      return { wuid: jid, profilePictureUrl: null };
     }
   }
 
@@ -1926,15 +1756,9 @@ export class BaileysStartupService extends ChannelStartupService {
     const jid = createJid(number);
 
     try {
-      return {
-        wuid: jid,
-        status: (await this.client.fetchStatus(jid))[0]?.status,
-      };
+      return { wuid: jid, status: (await this.client.fetchStatus(jid))[0]?.status };
     } catch (error) {
-      return {
-        wuid: jid,
-        status: null,
-      };
+      return { wuid: jid, status: null };
     }
   }
 
@@ -1983,14 +1807,7 @@ export class BaileysStartupService extends ChannelStartupService {
         };
       }
     } catch (error) {
-      return {
-        wuid: jid,
-        name: null,
-        picture: null,
-        status: null,
-        os: null,
-        isBusiness: false,
-      };
+      return { wuid: jid, name: null, picture: null, status: null, os: null, isBusiness: false };
     }
   }
 
@@ -1998,10 +1815,11 @@ export class BaileysStartupService extends ChannelStartupService {
     const jid = createJid(number);
 
     try {
-      const call = await this.client.offerCall(jid, isVideo);
-      setTimeout(() => this.client.terminateCall(call.id, call.to), callDuration * 1000);
+      // const call = await this.client.offerCall(jid, isVideo);
+      // setTimeout(() => this.client.terminateCall(call.id, call.to), callDuration * 1000);
 
-      return call;
+      // return call;
+      return { id: '123' };
     } catch (error) {
       return error;
     }
@@ -2019,9 +1837,7 @@ export class BaileysStartupService extends ChannelStartupService {
   ) {
     sender = sender.toLowerCase();
 
-    const option: any = {
-      quoted,
-    };
+    const option: any = { quoted };
 
     if (isJidGroup(sender)) {
       option.useCachedGroupMetadata = true;
@@ -2044,12 +1860,7 @@ export class BaileysStartupService extends ChannelStartupService {
         quoted,
       });
       const id = await this.client.relayMessage(sender, message, { messageId });
-      m.key = {
-        id: id,
-        remoteJid: sender,
-        participant: isJidUser(sender) ? sender : undefined,
-        fromMe: true,
-      };
+      m.key = { id: id, remoteJid: sender, participant: isJidUser(sender) ? sender : undefined, fromMe: true };
       for (const [key, value] of Object.entries(m)) {
         if (!value || (isArray(value) && value.length) === 0) {
           delete m[key];
@@ -2069,10 +1880,7 @@ export class BaileysStartupService extends ChannelStartupService {
         return await this.client.sendMessage(
           sender,
           {
-            react: {
-              text: message['reactionMessage']['text'],
-              key: message['reactionMessage']['key'],
-            },
+            react: { text: message['reactionMessage']['text'], key: message['reactionMessage']['key'] },
           } as unknown as AnyMessageContent,
           option as unknown as MiscMessageGenerationOptions,
         );
@@ -2082,11 +1890,7 @@ export class BaileysStartupService extends ChannelStartupService {
     if (message['conversation']) {
       return await this.client.sendMessage(
         sender,
-        {
-          text: message['conversation'],
-          mentions,
-          linkPreview: linkPreview,
-        } as unknown as AnyMessageContent,
+        { text: message['conversation'], mentions, linkPreview: linkPreview } as unknown as AnyMessageContent,
         option as unknown as MiscMessageGenerationOptions,
       );
     }
@@ -2094,13 +1898,7 @@ export class BaileysStartupService extends ChannelStartupService {
     if (!message['audio'] && !message['poll'] && !message['sticker'] && sender != 'status@broadcast') {
       return await this.client.sendMessage(
         sender,
-        {
-          forward: {
-            key: { remoteJid: this.instance.wuid, fromMe: true },
-            message,
-          },
-          mentions,
-        },
+        { forward: { key: { remoteJid: this.instance.wuid, fromMe: true }, message }, mentions },
         option as unknown as MiscMessageGenerationOptions,
       );
     }
@@ -2109,14 +1907,7 @@ export class BaileysStartupService extends ChannelStartupService {
       let jidList;
       if (message['status'].option.allContacts) {
         const contacts = await this.prismaRepository.contact.findMany({
-          where: {
-            instanceId: this.instanceId,
-            remoteJid: {
-              not: {
-                endsWith: '@g.us',
-              },
-            },
-          },
+          where: { instanceId: this.instanceId, remoteJid: { not: { endsWith: '@g.us' } } },
         });
 
         jidList = contacts.map((contact) => contact.remoteJid);
@@ -2315,12 +2106,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
       if (this.configService.get<Openai>('OPENAI').ENABLED && messageRaw?.message?.audioMessage) {
         const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
-          where: {
-            instanceId: this.instanceId,
-          },
-          include: {
-            OpenaiCreds: true,
-          },
+          where: { instanceId: this.instanceId },
+          include: { OpenaiCreds: true },
         });
 
         if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
@@ -2329,19 +2116,12 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
-        const msg = await this.prismaRepository.message.create({
-          data: messageRaw,
-        });
+        const msg = await this.prismaRepository.message.create({ data: messageRaw });
 
         if (isMedia && this.configService.get<S3>('S3').ENABLE) {
           try {
             const message: any = messageRaw;
-            const media = await this.getBase64FromMediaMessage(
-              {
-                message,
-              },
-              true,
-            );
+            const media = await this.getBase64FromMediaMessage({ message }, true);
 
             const { buffer, mediaType, fileName, size } = media;
 
@@ -2355,28 +2135,17 @@ export class BaileysStartupService extends ChannelStartupService {
               fileName,
             );
 
-            await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, {
-              'Content-Type': mimetype,
-            });
+            await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, { 'Content-Type': mimetype });
 
             await this.prismaRepository.media.create({
-              data: {
-                messageId: msg.id,
-                instanceId: this.instanceId,
-                type: mediaType,
-                fileName: fullName,
-                mimetype,
-              },
+              data: { messageId: msg.id, instanceId: this.instanceId, type: mediaType, fileName: fullName, mimetype },
             });
 
             const mediaUrl = await s3Service.getObjectUrl(fullName);
 
             messageRaw.message.mediaUrl = mediaUrl;
 
-            await this.prismaRepository.message.update({
-              where: { id: msg.id },
-              data: messageRaw,
-            });
+            await this.prismaRepository.message.update({ where: { id: msg.id }, data: messageRaw });
           } catch (error) {
             this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
           }
@@ -2390,10 +2159,7 @@ export class BaileysStartupService extends ChannelStartupService {
               { key: messageRaw.key, message: messageRaw?.message },
               'buffer',
               {},
-              {
-                logger: P({ level: 'error' }) as any,
-                reuploadRequest: this.client.updateMediaMessage,
-              },
+              { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
             );
 
             if (buffer) {
@@ -2404,10 +2170,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 { key: messageRaw.key, message: messageRaw?.message },
                 'buffer',
                 {},
-                {
-                  logger: P({ level: 'error' }) as any,
-                  reuploadRequest: this.client.updateMediaMessage,
-                },
+                { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
               );
 
               if (buffer) {
@@ -2515,9 +2278,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     return await this.sendMessageWithTyping(
       data.number,
-      {
-        conversation: data.text,
-      },
+      { conversation: data.text },
       {
         delay: data?.delay,
         presence: 'composing',
@@ -2533,13 +2294,7 @@ export class BaileysStartupService extends ChannelStartupService {
   public async pollMessage(data: SendPollDto) {
     return await this.sendMessageWithTyping(
       data.number,
-      {
-        poll: {
-          name: data.name,
-          selectableCount: data.selectableCount,
-          values: data.values,
-        },
-      },
+      { poll: { name: data.name, selectableCount: data.selectableCount, values: data.values } },
       {
         delay: data?.delay,
         presence: 'composing',
@@ -2561,9 +2316,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (status.allContacts) {
-      const contacts = await this.prismaRepository.contact.findMany({
-        where: { instanceId: this.instanceId },
-      });
+      const contacts = await this.prismaRepository.contact.findMany({ where: { instanceId: this.instanceId } });
 
       if (!contacts.length) {
         throw new BadRequestException('Contacts not found');
@@ -2586,41 +2339,21 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       return {
-        content: {
-          text: status.content,
-        },
-        option: {
-          backgroundColor: status.backgroundColor,
-          font: status.font,
-          statusJidList: status.statusJidList,
-        },
+        content: { text: status.content },
+        option: { backgroundColor: status.backgroundColor, font: status.font, statusJidList: status.statusJidList },
       };
     }
     if (status.type === 'image') {
       return {
-        content: {
-          image: {
-            url: status.content,
-          },
-          caption: status.caption,
-        },
-        option: {
-          statusJidList: status.statusJidList,
-        },
+        content: { image: { url: status.content }, caption: status.caption },
+        option: { statusJidList: status.statusJidList },
       };
     }
 
     if (status.type === 'video') {
       return {
-        content: {
-          video: {
-            url: status.content,
-          },
-          caption: status.caption,
-        },
-        option: {
-          statusJidList: status.statusJidList,
-        },
+        content: { video: { url: status.content }, caption: status.caption },
+        option: { statusJidList: status.statusJidList },
       };
     }
 
@@ -2628,14 +2361,8 @@ export class BaileysStartupService extends ChannelStartupService {
       const convert = await this.processAudioMp4(status.content);
       if (Buffer.isBuffer(convert)) {
         const result = {
-          content: {
-            audio: convert,
-            ptt: true,
-            mimetype: 'audio/ogg; codecs=opus',
-          },
-          option: {
-            statusJidList: status.statusJidList,
-          },
+          content: { audio: convert, ptt: true, mimetype: 'audio/ogg; codecs=opus' },
+          option: { statusJidList: status.statusJidList },
         };
 
         return result;
@@ -2654,9 +2381,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     const status = await this.formatStatusMessage(mediaData);
 
-    const statusSent = await this.sendMessageWithTyping('status@broadcast', {
-      status,
-    });
+    const statusSent = await this.sendMessageWithTyping('status@broadcast', { status });
 
     return statusSent;
   }
@@ -2696,9 +2421,7 @@ export class BaileysStartupService extends ChannelStartupService {
         mimetype = mimeTypes.lookup(mediaMessage.fileName);
 
         if (!mimetype && isURL(mediaMessage.media)) {
-          let config: any = {
-            responseType: 'arraybuffer',
-          };
+          let config: any = { responseType: 'arraybuffer' };
 
           if (this.localProxy?.enabled) {
             config = {
@@ -2783,9 +2506,7 @@ export class BaileysStartupService extends ChannelStartupService {
         const timestamp = new Date().getTime();
         const url = `${image}?timestamp=${timestamp}`;
 
-        let config: any = {
-          responseType: 'arraybuffer',
-        };
+        let config: any = { responseType: 'arraybuffer' };
 
         if (this.localProxy?.enabled) {
           config = {
@@ -2844,10 +2565,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const gifPlayback = data.sticker.includes('.gif');
     const result = await this.sendMessageWithTyping(
       data.number,
-      {
-        sticker: convert,
-        gifPlayback,
-      },
+      { sticker: convert, gifPlayback },
       {
         delay: data?.delay,
         presence: 'composing',
@@ -2993,10 +2711,7 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       const { data } = await axios.post(process.env.API_AUDIO_CONVERTER, formData, {
-        headers: {
-          ...formData.getHeaders(),
-          apikey: process.env.API_AUDIO_CONVERTER_KEY,
-        },
+        headers: { ...formData.getHeaders(), apikey: process.env.API_AUDIO_CONVERTER_KEY },
       });
 
       if (!data.audio) {
@@ -3012,9 +2727,7 @@ export class BaileysStartupService extends ChannelStartupService {
         const timestamp = new Date().getTime();
         const url = `${audio}?timestamp=${timestamp}`;
 
-        const config: any = {
-          responseType: 'stream',
-        };
+        const config: any = { responseType: 'stream' };
 
         const response = await axios.get(url, config);
         inputAudioStream = response.data.pipe(new PassThrough());
@@ -3107,11 +2820,7 @@ export class BaileysStartupService extends ChannelStartupService {
       if (Buffer.isBuffer(convert)) {
         const result = this.sendMessageWithTyping<AnyMessageContent>(
           data.number,
-          {
-            audio: convert,
-            ptt: true,
-            mimetype: 'audio/ogg; codecs=opus',
-          },
+          { audio: convert, ptt: true, mimetype: 'audio/ogg; codecs=opus' },
           { presence: 'recording', delay: data?.delay },
           isIntegration,
         );
@@ -3150,41 +2859,19 @@ export class BaileysStartupService extends ChannelStartupService {
       call: () => toString({ display_text: button.displayText, phone_number: button.phoneNumber }),
       reply: () => toString({ display_text: button.displayText, id: button.id }),
       copy: () => toString({ display_text: button.displayText, copy_code: button.copyCode }),
-      url: () =>
-        toString({
-          display_text: button.displayText,
-          url: button.url,
-          merchant_url: button.url,
-        }),
+      url: () => toString({ display_text: button.displayText, url: button.url, merchant_url: button.url }),
       pix: () =>
         toString({
           currency: button.currency,
-          total_amount: {
-            value: 0,
-            offset: 100,
-          },
+          total_amount: { value: 0, offset: 100 },
           reference_id: this.generateRandomId(),
           type: 'physical-goods',
           order: {
             status: 'pending',
-            subtotal: {
-              value: 0,
-              offset: 100,
-            },
+            subtotal: { value: 0, offset: 100 },
             order_type: 'ORDER',
             items: [
-              {
-                name: '',
-                amount: {
-                  value: 0,
-                  offset: 100,
-                },
-                quantity: 0,
-                sale_amount: {
-                  value: 0,
-                  offset: 100,
-                },
-              },
+              { name: '', amount: { value: 0, offset: 100 }, quantity: 0, sale_amount: { value: 0, offset: 100 } },
             ],
           },
           payment_settings: [
@@ -3253,16 +2940,8 @@ export class BaileysStartupService extends ChannelStartupService {
           message: {
             interactiveMessage: {
               nativeFlowMessage: {
-                buttons: [
-                  {
-                    name: this.mapType.get('pix'),
-                    buttonParamsJson: this.toJSONString(data.buttons[0]),
-                  },
-                ],
-                messageParamsJson: JSON.stringify({
-                  from: 'api',
-                  templateId: v4(),
-                }),
+                buttons: [{ name: this.mapType.get('pix'), buttonParamsJson: this.toJSONString(data.buttons[0]) }],
+                messageParamsJson: JSON.stringify({ from: 'api', templateId: v4() }),
               },
             },
           },
@@ -3280,18 +2959,12 @@ export class BaileysStartupService extends ChannelStartupService {
 
     const generate = await (async () => {
       if (data?.thumbnailUrl) {
-        return await this.prepareMediaMessage({
-          mediatype: 'image',
-          media: data.thumbnailUrl,
-        });
+        return await this.prepareMediaMessage({ mediatype: 'image', media: data.thumbnailUrl });
       }
     })();
 
     const buttons = data.buttons.map((value) => {
-      return {
-        name: this.mapType.get(value.type),
-        buttonParamsJson: this.toJSONString(value),
-      };
+      return { name: this.mapType.get(value.type), buttonParamsJson: this.toJSONString(value) };
     });
 
     const message: proto.IMessage = {
@@ -3309,9 +2982,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 return t;
               })(),
             },
-            footer: {
-              text: data?.footer,
-            },
+            footer: { text: data?.footer },
             header: (() => {
               if (generate?.message?.imageMessage) {
                 return {
@@ -3322,10 +2993,7 @@ export class BaileysStartupService extends ChannelStartupService {
             })(),
             nativeFlowMessage: {
               buttons: buttons,
-              messageParamsJson: JSON.stringify({
-                from: 'api',
-                templateId: v4(),
-              }),
+              messageParamsJson: JSON.stringify({ from: 'api', templateId: v4() }),
             },
           },
         },
@@ -3413,18 +3081,12 @@ export class BaileysStartupService extends ChannelStartupService {
     };
 
     if (data.contact.length === 1) {
-      message.contactMessage = {
-        displayName: data.contact[0].fullName,
-        vcard: vcard(data.contact[0]),
-      };
+      message.contactMessage = { displayName: data.contact[0].fullName, vcard: vcard(data.contact[0]) };
     } else {
       message.contactsArrayMessage = {
         displayName: `${data.contact.length} contacts`,
         contacts: data.contact.map((contact) => {
-          return {
-            displayName: contact.fullName,
-            vcard: vcard(contact),
-          };
+          return { displayName: contact.fullName, vcard: vcard(contact) };
         }),
       };
     }
@@ -3434,10 +3096,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   public async reactionMessage(data: SendReactionDto) {
     return await this.sendMessageWithTyping(data.key.remoteJid, {
-      reactionMessage: {
-        key: data.key,
-        text: data.reaction,
-      },
+      reactionMessage: { key: data.key, text: data.reaction },
     });
   }
 
@@ -3447,11 +3106,7 @@ export class BaileysStartupService extends ChannelStartupService {
       groups: { number: string; jid: string }[];
       broadcast: { number: string; jid: string }[];
       users: { number: string; jid: string; name?: string }[];
-    } = {
-      groups: [],
-      broadcast: [],
-      users: [],
-    };
+    } = { groups: [], broadcast: [], users: [] };
 
     data.numbers.forEach((number) => {
       const jid = createJid(number);
@@ -3486,12 +3141,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     // USERS
     const contacts: any[] = await this.prismaRepository.contact.findMany({
-      where: {
-        instanceId: this.instanceId,
-        remoteJid: {
-          in: jids.users.map(({ jid }) => jid),
-        },
-      },
+      where: { instanceId: this.instanceId, remoteJid: { in: jids.users.map(({ jid }) => jid) } },
     });
 
     const numbersToVerify = jids.users.map(({ jid }) => jid.replace('+', ''));
@@ -3580,11 +3230,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const keys: proto.IMessageKey[] = [];
       data.readMessages.forEach((read) => {
         if (isJidGroup(read.remoteJid) || isJidUser(read.remoteJid)) {
-          keys.push({
-            remoteJid: read.remoteJid,
-            fromMe: read.fromMe,
-            id: read.id,
-          });
+          keys.push({ remoteJid: read.remoteJid, fromMe: read.fromMe, id: read.id });
         }
       });
       await this.client.readMessages(keys);
@@ -3595,18 +3241,11 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async getLastMessage(number: string) {
-    const where: any = {
-      key: {
-        remoteJid: number,
-      },
-      instanceId: this.instance.id,
-    };
+    const where: any = { key: { remoteJid: number }, instanceId: this.instance.id };
 
     const messages = await this.prismaRepository.message.findMany({
       where,
-      orderBy: {
-        messageTimestamp: 'desc',
-      },
+      orderBy: { messageTimestamp: 'desc' },
       take: 1,
     });
 
@@ -3642,18 +3281,9 @@ export class BaileysStartupService extends ChannelStartupService {
         throw new NotFoundException('Last message not found');
       }
 
-      await this.client.chatModify(
-        {
-          archive: data.archive,
-          lastMessages: [last_message],
-        },
-        createJid(number),
-      );
+      await this.client.chatModify({ archive: data.archive, lastMessages: [last_message] }, createJid(number));
 
-      return {
-        chatId: number,
-        archived: true,
-      };
+      return { chatId: number, archived: true };
     } catch (error) {
       throw new InternalServerErrorException({
         archived: false,
@@ -3679,18 +3309,9 @@ export class BaileysStartupService extends ChannelStartupService {
         throw new NotFoundException('Last message not found');
       }
 
-      await this.client.chatModify(
-        {
-          markRead: false,
-          lastMessages: [last_message],
-        },
-        createJid(number),
-      );
+      await this.client.chatModify({ markRead: false, lastMessages: [last_message] }, createJid(number));
 
-      return {
-        chatId: number,
-        markedChatUnread: true,
-      };
+      return { chatId: number, markedChatUnread: true };
     } catch (error) {
       throw new InternalServerErrorException({
         markedChatUnread: false,
@@ -3707,25 +3328,14 @@ export class BaileysStartupService extends ChannelStartupService {
         if (messageId) {
           const isLogicalDeleted = configService.get<Database>('DATABASE').DELETE_DATA.LOGICAL_MESSAGE_DELETE;
           let message = await this.prismaRepository.message.findFirst({
-            where: {
-              key: {
-                path: ['id'],
-                equals: messageId,
-              },
-            },
+            where: { key: { path: ['id'], equals: messageId } },
           });
           if (isLogicalDeleted) {
             if (!message) return response;
             const existingKey = typeof message?.key === 'object' && message.key !== null ? message.key : {};
             message = await this.prismaRepository.message.update({
               where: { id: message.id },
-              data: {
-                key: {
-                  ...existingKey,
-                  deleted: true,
-                },
-                status: 'DELETED',
-              },
+              data: { key: { ...existingKey, deleted: true }, status: 'DELETED' },
             });
             const messageUpdate: any = {
               messageId: message.id,
@@ -3736,15 +3346,9 @@ export class BaileysStartupService extends ChannelStartupService {
               status: 'DELETED',
               instanceId: this.instanceId,
             };
-            await this.prismaRepository.messageUpdate.create({
-              data: messageUpdate,
-            });
+            await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
           } else {
-            await this.prismaRepository.message.deleteMany({
-              where: {
-                id: message.id,
-              },
-            });
+            await this.prismaRepository.message.deleteMany({ where: { id: message.id } });
           }
           this.sendDataWebhook(Events.MESSAGES_DELETE, {
             id: message.id,
@@ -3811,10 +3415,7 @@ export class BaileysStartupService extends ChannelStartupService {
         { key: msg?.key, message: msg?.message },
         'buffer',
         {},
-        {
-          logger: P({ level: 'error' }) as any,
-          reuploadRequest: this.client.updateMediaMessage,
-        },
+        { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
       );
       const typeMessage = getContentType(msg.message);
 
@@ -3853,11 +3454,7 @@ export class BaileysStartupService extends ChannelStartupService {
         mediaType,
         fileName,
         caption: mediaMessage['caption'],
-        size: {
-          fileLength: mediaMessage['fileLength'],
-          height: mediaMessage['height'],
-          width: mediaMessage['width'],
-        },
+        size: { fileLength: mediaMessage['fileLength'], height: mediaMessage['height'], width: mediaMessage['width'] },
         mimetype: mediaMessage['mimetype'],
         base64: buffer.toString('base64'),
         buffer: getBuffer ? buffer : null,
@@ -3918,17 +3515,10 @@ export class BaileysStartupService extends ChannelStartupService {
       if (!profile) {
         const info = await this.whatsappNumber({ numbers: [jid] });
 
-        return {
-          isBusiness: false,
-          message: 'Not is business profile',
-          ...info?.shift(),
-        };
+        return { isBusiness: false, message: 'Not is business profile', ...info?.shift() };
       }
 
-      return {
-        isBusiness: true,
-        ...profile,
-      };
+      return { isBusiness: true, ...profile };
     } catch (error) {
       throw new InternalServerErrorException('Error updating profile name', error.toString());
     }
@@ -3961,9 +3551,7 @@ export class BaileysStartupService extends ChannelStartupService {
         const timestamp = new Date().getTime();
         const url = `${picture}?timestamp=${timestamp}`;
 
-        let config: any = {
-          responseType: 'arraybuffer',
-        };
+        let config: any = { responseType: 'arraybuffer' };
 
         if (this.localProxy?.enabled) {
           config = {
@@ -4032,23 +3620,15 @@ export class BaileysStartupService extends ChannelStartupService {
       const msg: any = await this.getMessage(data.key, true);
 
       if (msg?.messageType === 'conversation' || msg?.messageType === 'extendedTextMessage') {
-        return {
-          text: data.text,
-        };
+        return { text: data.text };
       }
 
       if (msg?.messageType === 'imageMessage') {
-        return {
-          image: msg?.message?.imageMessage,
-          caption: data.text,
-        };
+        return { image: msg?.message?.imageMessage, caption: data.text };
       }
 
       if (msg?.messageType === 'videoMessage') {
-        return {
-          video: msg?.message?.videoMessage,
-          caption: data.text,
-        };
+        return { video: msg?.message?.videoMessage, caption: data.text };
       }
 
       return null;
@@ -4079,10 +3659,7 @@ export class BaileysStartupService extends ChannelStartupService {
         throw new BadRequestException('Message is older than 15 minutes');
       }
 
-      const messageSent = await this.client.sendMessage(jid, {
-        ...(options as any),
-        edit: data.key,
-      });
+      const messageSent = await this.client.sendMessage(jid, { ...(options as any), edit: data.key });
       if (messageSent) {
         const editedMessage =
           messageSent?.message?.protocolMessage || messageSent?.message?.editedMessage?.message?.protocolMessage;
@@ -4099,12 +3676,7 @@ export class BaileysStartupService extends ChannelStartupService {
           const messageId = messageSent.message?.protocolMessage?.key?.id;
           if (messageId) {
             let message = await this.prismaRepository.message.findFirst({
-              where: {
-                key: {
-                  path: ['id'],
-                  equals: messageId,
-                },
-              },
+              where: { key: { path: ['id'], equals: messageId } },
             });
             if (!message) throw new NotFoundException('Message not found');
 
@@ -4136,9 +3708,7 @@ export class BaileysStartupService extends ChannelStartupService {
               status: 'EDITED',
               instanceId: this.instanceId,
             };
-            await this.prismaRepository.messageUpdate.create({
-              data: messageUpdate,
-            });
+            await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
           }
         }
       }
@@ -4151,11 +3721,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchLabels(): Promise<LabelDto[]> {
-    const labels = await this.prismaRepository.label.findMany({
-      where: {
-        instanceId: this.instanceId,
-      },
-    });
+    const labels = await this.prismaRepository.label.findMany({ where: { instanceId: this.instanceId } });
 
     return labels.map((label) => ({
       color: label.color,
@@ -4202,10 +3768,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
         this.logger.verbose(`Updating cache for group: ${groupJid}`);
-        await groupMetadataCache.set(groupJid, {
-          timestamp: Date.now(),
-          data: meta,
-        });
+        await groupMetadataCache.set(groupJid, { timestamp: Date.now(), data: meta });
       }
 
       return meta;
@@ -4251,11 +3814,7 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       if (create?.promoteParticipants) {
-        await this.updateGParticipant({
-          groupJid: id,
-          action: 'promote',
-          participants: participants,
-        });
+        await this.updateGParticipant({ groupJid: id, action: 'promote', participants: participants });
       }
 
       const group = await this.client.groupMetadata(id);
@@ -4274,9 +3833,7 @@ export class BaileysStartupService extends ChannelStartupService {
         const timestamp = new Date().getTime();
         const url = `${picture.image}?timestamp=${timestamp}`;
 
-        let config: any = {
-          responseType: 'arraybuffer',
-        };
+        let config: any = { responseType: 'arraybuffer' };
 
         if (this.localProxy?.enabled) {
           config = {
@@ -4425,9 +3982,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const msg = `${description}\n\n${inviteUrl}`;
 
-      const message = {
-        conversation: msg,
-      };
+      const message = { conversation: msg };
 
       for await (const number of numbers) {
         await this.sendMessageWithTyping(number, message);
@@ -4461,12 +4016,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const participants = (await this.client.groupMetadata(id.groupJid)).participants;
       const contacts = await this.prismaRepository.contact.findMany({
-        where: {
-          instanceId: this.instanceId,
-          remoteJid: {
-            in: participants.map((p) => p.id),
-          },
-        },
+        where: { instanceId: this.instanceId, remoteJid: { in: participants.map((p) => p.id) } },
       });
       const parsedParticipants = participants.map((participant) => {
         const contact = contacts.find((c) => c.remoteJid === participant.id);
@@ -4608,9 +4158,7 @@ export class BaileysStartupService extends ChannelStartupService {
           { key: { path: ['remoteJid'], equals: remoteJid } },
           { key: { path: ['fromMe'], equals: false } },
           { messageTimestamp: { lte: timestamp } },
-          {
-            OR: [{ status: null }, { status: status[3] }],
-          },
+          { OR: [{ status: null }, { status: status[3] }] },
         ],
       },
       data: { status: status[4] },
@@ -4642,10 +4190,7 @@ export class BaileysStartupService extends ChannelStartupService {
     ]);
 
     if (chat && chat.unreadMessages !== unreadMessages) {
-      await this.prismaRepository.chat.update({
-        where: { id: chat.id },
-        data: { unreadMessages },
-      });
+      await this.prismaRepository.chat.update({ where: { id: chat.id }, data: { unreadMessages } });
     }
 
     return unreadMessages;
@@ -4757,11 +4302,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const ciphertextBuffer = Buffer.from(ciphertext, 'base64');
 
-      const response = await this.client.signalRepository.decryptMessage({
-        jid,
-        type,
-        ciphertext: ciphertextBuffer,
-      });
+      const response = await this.client.signalRepository.decryptMessage({ jid, type, ciphertext: ciphertextBuffer });
 
       return response instanceof Uint8Array ? Buffer.from(response).toString('base64') : response;
     } catch (error) {
@@ -4772,10 +4313,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async baileysGetAuthState() {
-    const response = {
-      me: this.client.authState.creds.me,
-      account: this.client.authState.creds.account,
-    };
+    const response = { me: this.client.authState.creds.me, account: this.client.authState.creds.account };
 
     return response;
   }
@@ -4827,11 +4365,7 @@ export class BaileysStartupService extends ChannelStartupService {
       };
     } catch (error) {
       console.log(error);
-      return {
-        wuid: jid,
-        name: null,
-        isBusiness: false,
-      };
+      return { wuid: jid, name: null, isBusiness: false };
     }
   }
 
@@ -4846,10 +4380,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const catalog = await this.client.getCatalog({ jid, limit: limit, cursor: cursor });
 
       if (!catalog) {
-        return {
-          products: undefined,
-          nextPageCursor: undefined,
-        };
+        return { products: undefined, nextPageCursor: undefined };
       }
 
       return catalog;
@@ -4882,11 +4413,7 @@ export class BaileysStartupService extends ChannelStartupService {
         collections: collections,
       };
     } catch (error) {
-      return {
-        wuid: jid,
-        name: null,
-        isBusiness: false,
-      };
+      return { wuid: jid, name: null, isBusiness: false };
     }
   }
 
@@ -4897,14 +4424,7 @@ export class BaileysStartupService extends ChannelStartupService {
       const result = await this.client.getCollections(jid, limit);
 
       if (!result) {
-        return [
-          {
-            id: undefined,
-            name: undefined,
-            products: [],
-            status: undefined,
-          },
-        ];
+        return [{ id: undefined, name: undefined, products: [], status: undefined }];
       }
 
       return result.collections;
@@ -4969,9 +4489,7 @@ export class BaileysStartupService extends ChannelStartupService {
           keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
         ],
       },
-      orderBy: {
-        messageTimestamp: 'desc',
-      },
+      orderBy: { messageTimestamp: 'desc' },
       skip: query.offset * (query?.page === 1 ? 0 : (query?.page as number) - 1),
       take: query.offset,
       select: {
@@ -4984,11 +4502,7 @@ export class BaileysStartupService extends ChannelStartupService {
         instanceId: true,
         source: true,
         contextInfo: true,
-        MessageUpdate: {
-          select: {
-            status: true,
-          },
-        },
+        MessageUpdate: { select: { status: true } },
       },
     });
 

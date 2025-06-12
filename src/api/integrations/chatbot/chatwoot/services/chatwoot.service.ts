@@ -415,8 +415,9 @@ export class ChatwootService {
 
     let query: any;
     const isGroup = phoneNumber.includes('@g.us');
+    const isLid = phoneNumber.includes('@lid');
 
-    if (!isGroup) {
+    if (!isGroup && !isLid) {
       query = `+${phoneNumber}`;
     } else {
       query = phoneNumber;
@@ -424,7 +425,7 @@ export class ChatwootService {
 
     let contact: any;
 
-    if (isGroup) {
+    if (isGroup || isLid) {
       contact = await client.contacts.search({
         accountId: this.provider.accountId,
         q: query,
@@ -444,7 +445,7 @@ export class ChatwootService {
       return null;
     }
 
-    if (!isGroup) {
+    if (!isGroup && !isLid) {
       return contact.payload.length > 1 ? this.findContactInContactList(contact.payload, query) : contact.payload[0];
     } else {
       return contact.payload.find((contact) => contact.identifier === query);
@@ -594,12 +595,13 @@ export class ChatwootService {
         if (!client) return null;
 
         const isGroup = remoteJid.includes('@g.us');
-        const chatId = isGroup ? remoteJid : remoteJid.split('@')[0];
+        const isLid = remoteJid.includes('@lid');
+        const chatId = isGroup || isLid ? remoteJid : remoteJid.split('@')[0];
         let nameContact = !body.key.fromMe ? body.pushName : chatId;
         const filterInbox = await this.getInbox(instance);
         if (!filterInbox) return null;
 
-        if (isGroup) {
+        if (isGroup || isLid) {
           this.logger.verbose(`Processing group conversation`);
           const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
           this.logger.verbose(`Group metadata: ${JSON.stringify(group)}`);
