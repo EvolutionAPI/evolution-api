@@ -68,6 +68,7 @@ router
       clientName: process.env.DATABASE_CONNECTION_CLIENT_NAME,
       manager: !serverConfig.DISABLE_MANAGER ? `${req.protocol}://${req.get('host')}/manager` : undefined,
       documentation: `https://doc.evolution-api.com`,
+      whatsappWebVersion: process.env.CONFIG_SESSION_PHONE_VERSION,
     });
   })
   .post('/verify-creds', authGuard['apikey'], async (req, res) => {
