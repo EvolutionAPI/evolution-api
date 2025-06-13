@@ -4,7 +4,6 @@ import { eventEmitter } from '@config/event.config';
 import { Logger } from '@config/logger.config';
 
 import { BusinessController } from './controllers/business.controller';
-import { CallController } from './controllers/call.controller';
 import { ChatController } from './controllers/chat.controller';
 import { GroupController } from './controllers/group.controller';
 import { HealthController } from './controllers/health.controller';
@@ -98,7 +97,6 @@ export const instanceController = new InstanceController(
   providerFiles,
 );
 export const sendMessageController = new SendMessageController(waMonitor);
-export const callController = new CallController(waMonitor);
 export const chatController = new ChatController(waMonitor);
 export const businessController = new BusinessController(waMonitor);
 export const groupController = new GroupController(waMonitor);

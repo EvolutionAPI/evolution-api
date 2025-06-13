@@ -2,13 +2,15 @@ services:
   api:
     container_name: evolution_api_${ENVIROMNENT}
     build: .
-    image: adaptweb/evolution-api:1.6.1
+    image: adaptweb/evolution-api:1.7.0
     restart: always
     depends_on:
       - redis
       - postgres
     ports:
       - ${MIRROR_PORT}:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - evolution_instances:/evolution/instances
     networks:

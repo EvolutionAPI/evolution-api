@@ -439,7 +439,6 @@ export class ChannelStartupService {
     const expose = this.configService.get<Auth>('AUTHENTICATION').EXPOSE_IN_FETCH_INSTANCES;
 
     const instanceApikey = this.token || 'Apikey not found';
-    if(event === Events.GROUPS_UPDATE )console.dir(2);
     await eventManager.emit({
       instanceName: this.instance.name,
       origin: ChannelStartupService.name,

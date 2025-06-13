@@ -40,7 +40,9 @@ class Redis {
       });
 
       try {
-        this.client.connect().then(()=> {this.logger.verbose("Attempting redis connection")});
+        this.client.connect().then(() => {
+          this.logger.verbose('Attempting redis connection');
+        });
         this.connected = true;
       } catch (e) {
         this.connected = false;

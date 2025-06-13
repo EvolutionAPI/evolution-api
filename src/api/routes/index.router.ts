@@ -12,7 +12,6 @@ import mimeTypes from 'mime-types';
 import path from 'path';
 
 import { BusinessRouter } from './business.router';
-import { CallRouter } from './call.router';
 import { ChatRouter } from './chat.router';
 import { GroupRouter } from './group.router';
 import { HealthRouter } from './health.router';
@@ -58,8 +57,6 @@ router.get('/assets/*', (req, res) => {
   }
 });
 
-console.dir(new HealthRouter().router, { depth: null });
-
 router
   .use((req, res, next) => telemetry.collectTelemetry(req, res, next))
 
@@ -85,7 +82,6 @@ router
   .use('', new HealthRouter().router)
   .use('/instance', new InstanceRouter(configService, ...guards).router)
   .use('/message', new MessageRouter(...guards).router)
-  .use('/call', new CallRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
   .use('/business', new BusinessRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)

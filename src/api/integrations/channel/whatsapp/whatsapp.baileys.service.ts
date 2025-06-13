@@ -1,5 +1,4 @@
 import { getCollectionsDto } from '@api/dto/business.dto';
-import { OfferCallDto } from '@api/dto/call.dto';
 import {
   ArchiveChatDto,
   BlockUserDto,
@@ -383,7 +382,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-          qrcode,
+            qrcode,
         ),
       );
 
@@ -1024,18 +1023,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-          (
-            await this.prismaRepository.message.findMany({
-              select: { key: true },
-              where: { instanceId: this.instanceId },
-            })
-          ).map((message) => {
-            const key = message.key as {
-              id: string;
-            };
+            (
+              await this.prismaRepository.message.findMany({
+                select: { key: true },
+                where: { instanceId: this.instanceId },
+              })
+            ).map((message) => {
+              const key = message.key as {
+                id: string;
+              };
 
-            return key.id;
-          }),
+              return key.id;
+            }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1651,13 +1650,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly groupHandler = {
     'groups.upsert': (groupMetadata: GroupMetadata[]) => {
-      console.dir({groupMetadata}, { depth: null });
       this.sendDataWebhook(Events.GROUPS_UPSERT, groupMetadata);
     },
 
     'groups.update': (groupMetadataUpdate: Partial<GroupMetadata>[]) => {
-      console.dir({groupMetadataUpdate}, { depth: null });
-      console.dir("1-groupMetadataUpdate");
       this.sendDataWebhook(Events.GROUPS_UPDATE, groupMetadataUpdate);
 
       groupMetadataUpdate.forEach((group) => {
@@ -1672,7 +1668,6 @@ export class BaileysStartupService extends ChannelStartupService {
       participants: string[];
       action: ParticipantAction;
     }) => {
-      console.dir(participantsUpdate, { depth: null })
       this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
 
       this.updateGroupMetadataCache(participantsUpdate.id);
@@ -1999,19 +1994,6 @@ export class BaileysStartupService extends ChannelStartupService {
         os: null,
         isBusiness: false,
       };
-    }
-  }
-
-  public async offerCall({ number, isVideo, callDuration }: OfferCallDto) {
-    const jid = createJid(number);
-
-    try {
-      const call = await this.client.offerCall(jid, isVideo);
-      setTimeout(() => this.client.terminateCall(call.id, call.to), callDuration * 1000);
-
-      return call;
-    } catch (error) {
-      return error;
     }
   }
 
@@ -3448,7 +3430,6 @@ export class BaileysStartupService extends ChannelStartupService {
     const filteredNumbers = numbersToVerify.filter(
       (jid) => !cachedNumbers.some((cached) => cached.jidOptions.includes(jid)),
     );
-
     const verify = await this.client.onWhatsApp(...filteredNumbers);
     const users: OnWhatsAppDto[] = await Promise.all(
       jids.users.map(async (user) => {
@@ -3515,7 +3496,6 @@ export class BaileysStartupService extends ChannelStartupService {
         };
       }),
     );
-
     await saveOnWhatsappCache(users.filter((user) => user.exists).map((user) => ({ remoteJid: user.jid })));
 
     onWhatsapp.push(...users);
