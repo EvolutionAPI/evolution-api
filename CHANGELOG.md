@@ -12,7 +12,7 @@
 ### Fixed
 
 * Shell injection vulnerability
-* Update Baileys Version v6.7.17
+* Update Baileys Version v6.7.18
 * Audio send duplicate from chatwoot
 * Chatwoot csat creating new conversation in another language
 * Refactor SQS controller to correct bug in sqs events by instance
@@ -21,6 +21,7 @@
 * Preventing use conversation from other inbox for the same user
 * Ensure full WhatsApp compatibility for audio conversion (libopus, 48kHz, mono)
 * Enhance message fetching and processing logic
+* Fixed issue with @lid in chatwoot
 
 ### Security
 
