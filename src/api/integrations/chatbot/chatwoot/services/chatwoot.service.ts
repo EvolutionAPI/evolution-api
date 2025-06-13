@@ -226,12 +226,11 @@ export class ChatwootService {
 
     this.logger.log('Creating chatwoot bot contact');
     const contact =
-      (await this.findContact(instance, { phone_number: '123456', identifier: '123456' })) ||
+      (await this.findContact(instance, '123456')) ||
       ((await this.createContact(
         instance,
-        { phone_number: '123456', identifier: '123456' },
+        '123456',
         inboxId,
-        false,
         false,
         organization ? organization : 'EvolutionAPI',
         logo ? logo : 'https://evolution-api.com/files/evolution-api-favicon.png',
@@ -289,10 +288,9 @@ export class ChatwootService {
 
   public async createContact(
     instance: InstanceDto,
-    phoneNumber: { phone_number: string; identifier: string },
+    phoneNumber: string,
     inboxId: number,
     isGroup: boolean,
-    isLid: boolean,
     name?: string,
     avatar_url?: string,
     jid?: string,
@@ -306,22 +304,22 @@ export class ChatwootService {
       }
 
       let data: any = {};
-      if (!isGroup && !isLid) {
+      if (!isGroup) {
         data = {
           inbox_id: inboxId,
-          name: name || phoneNumber.phone_number,
-          identifier: phoneNumber.identifier,
+          name: name || phoneNumber,
+          identifier: jid,
           avatar_url: avatar_url,
         };
 
-        if (jid && jid.endsWith('@s.whatsapp.net')) {
-          data['phone_number'] = `+${phoneNumber.phone_number}`;
+        if ((jid && jid.includes('@')) || !jid) {
+          data['phone_number'] = `+${phoneNumber}`;
         }
       } else {
         data = {
           inbox_id: inboxId,
-          name: name || phoneNumber.phone_number,
-          identifier: phoneNumber.identifier,
+          name: name || phoneNumber,
+          identifier: phoneNumber,
           avatar_url: avatar_url,
         };
       }
@@ -413,8 +411,7 @@ export class ChatwootService {
     }
   }
 
-  public async findContact(instance: InstanceDto, phoneNumber: { phone_number?: string; identifier: string }) {
-    console.log('findContact phoneNumber', phoneNumber);
+  public async findContact(instance: InstanceDto, phoneNumber: string) {
     const client = await this.clientCw(instance);
 
     if (!client) {
@@ -423,18 +420,17 @@ export class ChatwootService {
     }
 
     let query: any;
-    const isGroup = phoneNumber.identifier?.includes('@g.us');
-    const isLid = phoneNumber.identifier?.includes('@lid');
+    const isGroup = phoneNumber.includes('@g.us');
 
-    if (!isGroup && !isLid) {
-      query = `+${phoneNumber.phone_number}`;
+    if (!isGroup) {
+      query = `+${phoneNumber}`;
     } else {
-      query = phoneNumber.identifier;
+      query = phoneNumber;
     }
 
     let contact: any;
 
-    if (isGroup || isLid) {
+    if (isGroup) {
       contact = await client.contacts.search({
         accountId: this.provider.accountId,
         q: query,
@@ -449,25 +445,12 @@ export class ChatwootService {
       });
     }
 
-    // Se não encontrou e não é @lid, tenta buscar pelo número limpo
-    if ((!contact || contact?.payload?.length === 0) && !isLid) {
-      this.logger.verbose(`Contact not found by identifier, trying clean number: ${phoneNumber.phone_number}`);
-
-      contact = await chatwootRequest(this.getClientCwConfig(), {
-        method: 'POST',
-        url: `/api/v1/accounts/${this.provider.accountId}/contacts/filter`,
-        body: {
-          payload: this.getFilterPayload(phoneNumber.phone_number),
-        },
-      });
-    }
-
-    if (!contact || contact?.payload?.length === 0) {
+    if (!contact && contact?.payload?.length === 0) {
       this.logger.warn('contact not found');
       return null;
     }
 
-    if (!isGroup && !isLid) {
+    if (!isGroup) {
       return contact.payload.length > 1 ? this.findContactInContactList(contact.payload, query) : contact.payload[0];
     } else {
       return contact.payload.find((contact) => contact.identifier === query);
@@ -565,46 +548,27 @@ export class ChatwootService {
     return filterPayload;
   }
 
-  private normalizeContactIdentifier(msg: any) {
-    // Priority: senderLid > participantLid > remoteJid with @lid > normal number
-    const normalizedContact = {
-      phone_number: null,
-      identifier: null,
-    };
-
-    if (msg.key.remoteJid?.includes('@lid')) {
-      if (msg.key.SenderPn && msg.key.SenderPn?.includes('@s.whatsapp.net')) {
-        normalizedContact.phone_number = msg.key.SenderPn.split('@')[0];
-        normalizedContact.identifier = msg.key.SenderPn;
-      } else {
-        normalizedContact.identifier = msg.key.remoteJid;
-      }
-    }
-
-    if (msg.key.remoteJid && msg.key.remoteJid?.includes('@s.whatsapp.net')) {
-      normalizedContact.phone_number = msg.key.remoteJid.split('@')[0];
-      normalizedContact.identifier = msg.key.remoteJid;
-    }
-
-    if (msg.key.remoteJid && msg.key.remoteJid?.includes('@g.us')) {
-      normalizedContact.identifier = msg.key.remoteJid;
-    }
-
-    if (msg.key.participant && msg.key.participant?.includes('@s.whatsapp.net')) {
-      normalizedContact.phone_number = msg.key.participant.split('@')[0];
-      normalizedContact.identifier = msg.key.participant;
-    }
-
-    return normalizedContact;
-  }
-
   public async createConversation(instance: InstanceDto, body: any) {
-    const remoteJid = body.key.remoteJid;
+    const isLid = body.key.remoteJid.includes('@lid') && body.key.senderPn;
+    const remoteJid = isLid ? body.key.senderPn : body.key.remoteJid;
     const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
     const lockKey = `${instance.instanceName}:lock:createConversation-${remoteJid}`;
     const maxWaitTime = 5000; // 5 secounds
 
     try {
+      // Processa atualização de contatos já criados @lid
+      if (body.key.remoteJid.includes('@lid') && body.key.senderPn && body.key.senderPn !== body.key.remoteJid) {
+        const contact = await this.findContact(instance, body.key.remoteJid.split('@')[0]);
+        if (contact && contact.identifier !== body.key.senderPn) {
+          this.logger.verbose(
+            `Identifier needs update: (contact.identifier: ${contact.identifier}, body.key.remoteJid: ${body.key.remoteJid}, body.key.senderPn: ${body.key.senderPn})`,
+          );
+          await this.updateContact(instance, contact.id, {
+            identifier: body.key.senderPn,
+            phone_number: `+${body.key.senderPn.split('@')[0]}`,
+          });
+        }
+      }
       this.logger.verbose(`--- Start createConversation ---`);
       this.logger.verbose(`Instance: ${JSON.stringify(instance)}`);
 
@@ -650,20 +614,14 @@ export class ChatwootService {
         if (!client) return null;
 
         const isGroup = remoteJid.includes('@g.us');
-        const isLid = remoteJid.includes('@lid');
-        this.logger.verbose('is group: ' + isGroup);
-
-        const chat = this.normalizeContactIdentifier(body);
-        this.logger.verbose('chat id: ' + chat.identifier);
-
+        const chatId = isGroup ? remoteJid : remoteJid.split('@')[0];
+        let nameContact = !body.key.fromMe ? body.pushName : chatId;
         const filterInbox = await this.getInbox(instance);
         if (!filterInbox) return null;
 
-        let nameContact = !body.key.fromMe ? body.pushName : chat.phone_number;
-
-        if (isGroup || isLid) {
+        if (isGroup) {
           this.logger.verbose(`Processing group conversation`);
-          const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chat.identifier);
+          const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
           this.logger.verbose(`Group metadata: ${JSON.stringify(group)}`);
 
           nameContact = `${group.subject} (GROUP)`;
@@ -673,14 +631,11 @@ export class ChatwootService {
           );
           this.logger.verbose(`Participant profile picture URL: ${JSON.stringify(picture_url)}`);
 
-          const participantIdentifier = this.normalizeContactIdentifier(body);
-          this.logger.verbose(`Normalized participant identifier: ${participantIdentifier}`);
-
-          const findParticipant = await this.findContact(instance, participantIdentifier);
+          const findParticipant = await this.findContact(instance, body.key.participant.split('@')[0]);
           this.logger.verbose(`Found participant: ${JSON.stringify(findParticipant)}`);
 
           if (findParticipant) {
-            if (!findParticipant.name || findParticipant.name === chat.phone_number) {
+            if (!findParticipant.name || findParticipant.name === chatId) {
               await this.updateContact(instance, findParticipant.id, {
                 name: body.pushName,
                 avatar_url: picture_url.profilePictureUrl || null,
@@ -689,9 +644,9 @@ export class ChatwootService {
           } else {
             await this.createContact(
               instance,
-              participantIdentifier,
+              body.key.participant.split('@')[0],
               filterInbox.id,
-              false,
+              isGroup,
               body.pushName,
               picture_url.profilePictureUrl || null,
               body.key.participant,
@@ -699,10 +654,10 @@ export class ChatwootService {
           }
         }
 
-        const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(chat.identifier);
+        const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(chatId);
         this.logger.verbose(`Contact profile picture URL: ${JSON.stringify(picture_url)}`);
 
-        let contact = await this.findContact(instance, chat);
+        let contact = await this.findContact(instance, chatId);
 
         if (contact) {
           this.logger.verbose(`Found contact: ${JSON.stringify(contact)}`);
@@ -713,16 +668,14 @@ export class ChatwootService {
             const pictureNeedsUpdate = waProfilePictureFile !== chatwootProfilePictureFile;
             const nameNeedsUpdate =
               !contact.name ||
-              contact.name === chat.phone_number ||
-              (`+${chat.phone_number}`.startsWith('+55')
-                ? this.getNumbers(`+${chat.phone_number}`).some(
+              contact.name === chatId ||
+              (`+${chatId}`.startsWith('+55')
+                ? this.getNumbers(`+${chatId}`).some(
                     (v) => contact.name === v || contact.name === v.substring(3) || contact.name === v.substring(1),
                   )
                 : false);
-
             this.logger.verbose(`Picture needs update: ${pictureNeedsUpdate}`);
             this.logger.verbose(`Name needs update: ${nameNeedsUpdate}`);
-
             if (pictureNeedsUpdate || nameNeedsUpdate) {
               contact = await this.updateContact(instance, contact.id, {
                 ...(nameNeedsUpdate && { name: nameContact }),
@@ -732,13 +685,12 @@ export class ChatwootService {
             }
           }
         } else {
-          const jid = body.key.remoteJid;
+          const jid = isLid && body?.key?.senderPn ? body.key.senderPn : body.key.remoteJid;
           contact = await this.createContact(
             instance,
-            chat,
+            chatId,
             filterInbox.id,
             isGroup,
-            isLid,
             nameContact,
             picture_url.profilePictureUrl || null,
             jid,
@@ -770,7 +722,6 @@ export class ChatwootService {
         if (inboxConversation) {
           if (this.provider.reopenConversation) {
             this.logger.verbose(`Found conversation in reopenConversation mode: ${JSON.stringify(inboxConversation)}`);
-
             if (inboxConversation && this.provider.conversationPending && inboxConversation.status !== 'open') {
               await client.conversations.toggleStatus({
                 accountId: this.provider.accountId,
@@ -804,6 +755,14 @@ export class ChatwootService {
           data['status'] = 'pending';
         }
 
+        /*
+        Triple check after lock
+        Utilizei uma nova verificação para evitar que outra thread execute entre o terminio do while e o set lock
+        */
+        if (await this.cache.has(cacheKey)) {
+          return (await this.cache.get(cacheKey)) as number;
+        }
+
         const conversation = await client.conversations.create({
           accountId: this.provider.accountId,
           data,
@@ -814,7 +773,7 @@ export class ChatwootService {
           return null;
         }
 
-        this.logger.verbose(`New conversation created with ID: ${conversation.id}`);
+        this.logger.verbose(`New conversation created of ${remoteJid} with ID: ${conversation.id}`);
         this.cache.set(cacheKey, conversation.id);
         return conversation.id;
       } finally {
@@ -822,7 +781,6 @@ export class ChatwootService {
         this.logger.verbose(`Block released for: ${lockKey}`);
       }
     } catch (error) {
-      console.log(error);
       this.logger.error(`Error in createConversation: ${error}`);
       return null;
     }
@@ -952,7 +910,7 @@ export class ChatwootService {
       return null;
     }
 
-    const contact = await this.findContact(instance, { phone_number: '123456', identifier: '123456' });
+    const contact = await this.findContact(instance, '123456');
 
     if (!contact) {
       this.logger.warn('contact not found');
@@ -1082,7 +1040,7 @@ export class ChatwootService {
       return true;
     }
 
-    const contact = await this.findContact(instance, { phone_number: '123456', identifier: '123456' });
+    const contact = await this.findContact(instance, '123456');
 
     if (!contact) {
       this.logger.warn('contact not found');
