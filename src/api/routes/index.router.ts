@@ -6,7 +6,7 @@ import { ChatbotRouter } from '@api/integrations/chatbot/chatbot.router';
 import { EventRouter } from '@api/integrations/event/event.router';
 import { StorageRouter } from '@api/integrations/storage/storage.router';
 import { configService } from '@config/env.config';
-import { fetchLatestBaileysVersion } from 'baileys';
+import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
 import { Router } from 'express';
 import fs from 'fs';
 import mimeTypes from 'mime-types';
@@ -70,7 +70,7 @@ router
       manager: !serverConfig.DISABLE_MANAGER ? `${req.protocol}://${req.get('host')}/manager` : undefined,
       documentation: `https://doc.evolution-api.com`,
       whatsappWebVersion:
-        process.env.CONFIG_SESSION_PHONE_VERSION || (await fetchLatestBaileysVersion()).version.join('.'),
+        process.env.CONFIG_SESSION_PHONE_VERSION || (await fetchLatestWaWebVersion({})).version.join('.'),
     });
   })
   .post('/verify-creds', authGuard['apikey'], async (req, res) => {

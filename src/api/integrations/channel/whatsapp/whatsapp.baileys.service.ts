@@ -80,6 +80,7 @@ import { Boom } from '@hapi/boom';
 import { createId as cuid } from '@paralleldrive/cuid2';
 import { Instance, Message } from '@prisma/client';
 import { createJid } from '@utils/createJid';
+import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
 import { status } from '@utils/renderStatus';
@@ -99,7 +100,6 @@ import makeWASocket, {
   delay,
   DisconnectReason,
   downloadMediaMessage,
-  fetchLatestBaileysVersion,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
   GetCatalogOptions,
@@ -548,7 +548,7 @@ export class BaileysStartupService extends ChannelStartupService {
       version = session.VERSION.split('.');
       log = `Baileys version env: ${version}`;
     } else {
-      const baileysVersion = await fetchLatestBaileysVersion();
+      const baileysVersion = await fetchLatestWaWebVersion({});
       version = baileysVersion.version;
       log = `Baileys version: ${version}`;
     }
