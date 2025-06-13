@@ -22,6 +22,8 @@
 * Ensure full WhatsApp compatibility for audio conversion (libopus, 48kHz, mono)
 * Enhance message fetching and processing logic
 * Fixed issue with @lid in chatwoot
+* Added lid on whatsapp numbers router
+* Now if the CONFIG_SESSION_PHONE_VERSION variable is not filled in it automatically searches for the most updated version
 
 ### Security
 
