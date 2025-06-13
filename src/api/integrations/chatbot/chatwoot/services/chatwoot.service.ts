@@ -569,7 +569,12 @@ export class ChatwootService {
     }
 
     // If it doesn't have @lid, return the normal number
-    return msg.key.participant?.split('@')[0] || msg.key.remoteJid?.split('@')[0];
+    // Try to get the number from senderPn first, then participant, then remoteJid
+    const getNumber = (value: string) => {
+      return value?.includes('@s.whatsapp.net') ? value.split('@')[0] : value;
+    };
+
+    return getNumber(msg.key.senderPn) || getNumber(msg.key.participant) || getNumber(msg.key.remoteJid);
   }
 
   public async createConversation(instance: InstanceDto, body: any) {
