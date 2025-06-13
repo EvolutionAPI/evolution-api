@@ -822,10 +822,10 @@ export class BaileysStartupService extends ChannelStartupService {
               if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
                 const instance = { instanceName: this.instance.name, instanceId: this.instance.id };
 
-                const findParticipant = await this.chatwootService.findContact(instance, {
-                  identifier: contact.remoteJid,
-                  phone_number: contact.remoteJid.split('@')[0],
-                });
+                const findParticipant = await this.chatwootService.findContact(
+                  instance,
+                  contact.remoteJid.split('@')[0],
+                );
 
                 if (!findParticipant) {
                   return;
