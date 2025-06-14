@@ -646,6 +646,9 @@ export class ChatwootService {
       this.logger.verbose("[createConversation] Removido pendingCreateConv para " + remoteJid);
     }
   }
+
+
+ 
   
   private async _createConversation(instance: InstanceDto, body: any): Promise<number> {
     const remoteJid = body.key.remoteJid as string;
@@ -687,9 +690,18 @@ export class ChatwootService {
       this.logger.verbose("[_createConversation] Contato encontrado: id=" + contact.id);
     } else {
       this.logger.verbose("[_createConversation] Contato nao existe, criando...");
+
+
+      const isOutgoing = body.key.fromMe;
+      const senderName = !isOutgoing && body.pushName ? body.pushName : chatId;
+
       const name = isGroup
-        ? (await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId)).subject + " (GROUP)"
-        : body.pushName || chatId;
+        ? (await this.waMonitor.waInstances[instance.instanceName]
+              .client.groupMetadata(chatId)).subject + " (GROUP)"
+        : senderName;
+
+
+
       const pictureUrl = (await this.waMonitor.waInstances[instance.instanceName].profilePicture(chatId)).profilePictureUrl;
       contact = await this.createContact(
         instance,
@@ -760,13 +772,16 @@ export class ChatwootService {
         accountId: this.provider.accountId,
         data: payload,
       });
-      if (!newConv?.id) {
-        this.logger.error("[_createConversation] create retornou sem ID");
-        throw new Error("Falha ao criar nova conversa: resposta sem ID");
+
+      const displayId = (newConv as any).display_id ?? newConv.id;
+
+      if (!displayId) {
+        this.logger.error("[_createConversation] create retornou sem DisplayID");
+        throw new Error("Falha ao criar nova conversa: resposta sem DisplayID");
       }
-      this.logger.verbose("[_createConversation] Nova conversa criada id=" + newConv.id);
-      this.cache.set(cacheKey, newConv.id, 5 * 60);
-      return newConv.id;
+      this.logger.verbose("[_createConversation] Nova conversa criada DisplayId=" + displayId);
+      this.cache.set(cacheKey, displayId, 5 * 60);
+      return displayId;
   
     } catch (err: any) {
       this.logger.error("[_createConversation] Erro ao criar conversa: " + err);
