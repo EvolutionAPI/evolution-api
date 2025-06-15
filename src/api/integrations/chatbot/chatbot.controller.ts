@@ -194,13 +194,13 @@ export class ChatbotController {
     instance: InstanceDto,
     session?: IntegrationSession,
   ) {
-    let findBot: null;
+    let findBot: any = null;
 
     if (!session) {
       findBot = await findBotByTrigger(botRepository, content, instance.instanceId);
 
       if (!findBot) {
-        return;
+        return null;
       }
     } else {
       findBot = await botRepository.findFirst({
