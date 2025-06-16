@@ -110,7 +110,7 @@ export class ChatwootService {
     await this.waMonitor.waInstances[instance.instanceName].setChatwoot(data);
 
     if (data.autoCreate) {
-      this.logger.log('Auto create chatwoot instance');
+      //this.logger.log('Auto create chatwoot instance');
       const urlServer = this.configService.get<HttpServer>('SERVER').URL;
 
       await this.initInstanceChatwoot(
@@ -185,7 +185,7 @@ export class ChatwootService {
 
     let inboxId: number;
 
-    this.logger.log('Creating chatwoot inbox');
+    //this.logger.log('Creating chatwoot inbox');
     if (!checkDuplicate) {
       const data = {
         type: 'api',
@@ -216,15 +216,15 @@ export class ChatwootService {
 
       inboxId = inbox.id;
     }
-    this.logger.log(`Inbox created - inboxId: ${inboxId}`);
+    //this.logger.log(`Inbox created - inboxId: ${inboxId}`);
 
     if (!this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT) {
-      this.logger.log('Chatwoot bot contact is disabled');
+      // this.logger.log('Chatwoot bot contact is disabled');
 
       return true;
     }
 
-    this.logger.log('Creating chatwoot bot contact');
+    //this.logger.log('Creating chatwoot bot contact');
     const contact =
       (await this.findContact(instance, '123456')) ||
       ((await this.createContact(
@@ -242,10 +242,10 @@ export class ChatwootService {
     }
 
     const contactId = contact.id || contact.payload.contact.id;
-    this.logger.log(`Contact created - contactId: ${contactId}`);
+    //this.logger.log(`Contact created - contactId: ${contactId}`);
 
     if (qrcode) {
-      this.logger.log('QR code enabled');
+      //this.logger.log('QR code enabled');
       const data = {
         contact_id: contactId.toString(),
         inbox_id: inboxId.toString(),
@@ -280,7 +280,7 @@ export class ChatwootService {
         this.logger.warn('conversation not found');
         return null;
       }
-      this.logger.log('Init message sent');
+      // this.logger.log('Init message sent');
     }
 
     return true;
@@ -1005,7 +1005,7 @@ export class ChatwootService {
     }
 
     if (!this.configService.get<Chatwoot>('CHATWOOT').BOT_CONTACT) {
-      this.logger.log('Chatwoot bot contact is disabled');
+      // this.logger.log('Chatwoot bot contact is disabled');
 
       return true;
     }

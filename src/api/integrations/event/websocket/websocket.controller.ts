@@ -148,12 +148,12 @@ export class WebsocketController extends EventController implements EventControl
         this.socket.of(`/${instanceName}`).emit(event, message);
 
         if (logEnabled) {
-          this.logger.log({ local: `${origin}.sendData-Websocket`, ...message });
+          //  this.logger.log({ local: `${origin}.sendData-Websocket`, ...message });
         }
       }
     } catch (err) {
       if (logEnabled) {
-        this.logger.log(err);
+        // this.logger.log(err);
       }
     }
   }

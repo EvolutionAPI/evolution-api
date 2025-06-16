@@ -51,7 +51,7 @@ export function createJid(number: string): string {
     .split(':')[0]
     .split('@')[0];
 
-  if (number.includes('-') && number.length >= 24) {
+  if (number.includes('-') && number.length >= 23) {
     number = number.replace(/[^\d-]/g, '');
     return `${number}@g.us`;
   }

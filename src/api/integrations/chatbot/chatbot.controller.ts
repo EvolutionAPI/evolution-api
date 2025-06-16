@@ -109,7 +109,7 @@ export class ChatbotController {
   ) {
     if (userMessageDebounce[remoteJid]) {
       userMessageDebounce[remoteJid].message += `\n${content}`;
-      this.logger.log('message debounced: ' + userMessageDebounce[remoteJid].message);
+      //this.logger.log('message debounced: ' + userMessageDebounce[remoteJid].message);
       clearTimeout(userMessageDebounce[remoteJid].timeoutId);
     } else {
       userMessageDebounce[remoteJid] = {
@@ -120,7 +120,7 @@ export class ChatbotController {
 
     userMessageDebounce[remoteJid].timeoutId = setTimeout(() => {
       const myQuestion = userMessageDebounce[remoteJid].message;
-      this.logger.log('Debounce complete. Processing message: ' + myQuestion);
+      // this.logger.log('Debounce complete. Processing message: ' + myQuestion);
 
       delete userMessageDebounce[remoteJid];
       callback(myQuestion);

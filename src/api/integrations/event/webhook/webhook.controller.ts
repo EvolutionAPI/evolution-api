@@ -190,13 +190,13 @@ export class WebhookController extends EventController implements EventControlle
     while (attempts < maxRetries) {
       try {
         await httpService.post('', webhookData);
-        if (attempts > 0) {
+        /*  if (attempts > 0) {
           this.logger.log({
             local: `${origin}`,
             message: `Sucesso no envio após ${attempts + 1} tentativas`,
             url: baseURL,
           });
-        }
+        } */
         return;
       } catch (error) {
         attempts++;

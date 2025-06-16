@@ -1306,17 +1306,17 @@ export class BaileysStartupService extends ChannelStartupService {
 
             if (received.key.fromMe === false) {
               if (msg.status === status[3]) {
-                this.logger.log(`Update not read messages ${received.key.remoteJid}`);
+                // this.logger.log(`Update not read messages ${received.key.remoteJid}`);
 
                 await this.updateChatUnreadMessages(received.key.remoteJid);
               } else if (msg.status === status[4]) {
-                this.logger.log(`Update readed messages ${received.key.remoteJid} - ${msg.messageTimestamp}`);
+                // this.logger.log(`Update readed messages ${received.key.remoteJid} - ${msg.messageTimestamp}`);
 
                 await this.updateMessagesReadedByTimestamp(received.key.remoteJid, msg.messageTimestamp);
               }
             } else {
               // is send message by me
-              this.logger.log(`Update readed messages ${received.key.remoteJid} - ${msg.messageTimestamp}`);
+              //this.logger.log(`Update readed messages ${received.key.remoteJid} - ${msg.messageTimestamp}`);
 
               await this.updateMessagesReadedByTimestamp(received.key.remoteJid, msg.messageTimestamp);
             }
@@ -1413,7 +1413,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          this.logger.log(messageRaw);
+          //this.logger.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
@@ -1484,7 +1484,7 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.update': async (args: WAMessageUpdate[], settings: any) => {
-      this.logger.log(`Update messages ${JSON.stringify(args, undefined, 2)}`);
+      //this.logger.log(`Update messages ${JSON.stringify(args, undefined, 2)}`);
 
       const readChatToUpdate: Record<string, true> = {}; // {remoteJid: true}
 
@@ -1587,7 +1587,7 @@ export class BaileysStartupService extends ChannelStartupService {
               readChatToUpdate[key.remoteJid] = true;
 
               if (status[update.status] === status[4]) {
-                this.logger.log(`Update as read ${key.remoteJid} - ${findMessage.messageTimestamp}`);
+                //this.logger.log(`Update as read ${key.remoteJid} - ${findMessage.messageTimestamp}`);
                 this.updateMessagesReadedByTimestamp(key.remoteJid, findMessage.messageTimestamp);
               }
             }
@@ -2398,7 +2398,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      this.logger.log(messageRaw);
+      //this.logger.log(messageRaw);
 
       this.sendDataWebhook(Events.SEND_MESSAGE, messageRaw);
 
@@ -3382,7 +3382,6 @@ export class BaileysStartupService extends ChannelStartupService {
       broadcast: [],
       users: [],
     };
-
     data.numbers.forEach((number) => {
       const jid = createJid(number);
 
@@ -4252,7 +4251,6 @@ export class BaileysStartupService extends ChannelStartupService {
   public async findGroup(id: GroupJid, reply: 'inner' | 'out' = 'out') {
     try {
       const group = await this.client.groupMetadata(id.groupJid);
-
       if (!group) {
         this.logger.error('Group not found');
         return null;

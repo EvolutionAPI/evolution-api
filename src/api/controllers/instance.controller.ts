@@ -236,7 +236,7 @@ export class InstanceController {
           autoCreate: instanceData.chatwootAutoCreate !== false,
         });
       } catch (error) {
-        this.logger.log(error);
+        //this.logger.log(error);
       }
 
       return {
