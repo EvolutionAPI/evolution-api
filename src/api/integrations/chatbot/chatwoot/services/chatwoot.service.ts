@@ -457,6 +457,24 @@ export class ChatwootService {
     }
   }
 
+  private async mergeContacts(baseId: number, mergeId: number) {
+    try {
+      const contact = await chatwootRequest(this.getClientCwConfig(), {
+        method: 'POST',
+        url: `/api/v1/accounts/${this.provider.accountId}/actions/contact_merge`,
+        body: {
+          base_contact_id: baseId,
+          mergee_contact_id: mergeId,
+        },
+      });
+
+      return contact;
+    } catch {
+      this.logger.error('Error merging contacts');
+      return null;
+    }
+  }
+
   private async mergeBrazilianContacts(contacts: any[]) {
     try {
       const contact = await chatwootRequest(this.getClientCwConfig(), {
@@ -561,12 +579,22 @@ export class ChatwootService {
         const contact = await this.findContact(instance, body.key.remoteJid.split('@')[0]);
         if (contact && contact.identifier !== body.key.senderPn) {
           this.logger.verbose(
-            `Identifier needs update: (contact.identifier: ${contact.identifier}, body.key.remoteJid: ${body.key.remoteJid}, body.key.senderPn: ${body.key.senderPn})`,
+            `Identifier needs update: (contact.identifier: ${contact.identifier}, body.key.remoteJid: ${body.key.remoteJid}, body.key.senderPn: ${body.key.senderPn}`,
           );
-          await this.updateContact(instance, contact.id, {
+          const updateContact = await this.updateContact(instance, contact.id, {
             identifier: body.key.senderPn,
             phone_number: `+${body.key.senderPn.split('@')[0]}`,
           });
+
+          if (updateContact === null) {
+            const baseContact = await this.findContact(instance, body.key.senderPn.split('@')[0]);
+            if (baseContact) {
+              await this.mergeContacts(baseContact.id, contact.id);
+              this.logger.verbose(
+                `Merge contacts: (${baseContact.id}) ${baseContact.phone_number} and (${contact.id}) ${contact.phone_number}`,
+              );
+            }
+          }
         }
       }
       this.logger.verbose(`--- Start createConversation ---`);
