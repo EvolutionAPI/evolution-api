@@ -46,14 +46,19 @@ export class ChatRouter extends RouterBroker {
     super();
     this.router
       .post(this.routerPath('whatsappNumbers'), ...guards, async (req, res) => {
-        const response = await this.dataValidate<WhatsAppNumberDto>({
-          request: req,
-          schema: whatsappNumberSchema,
-          ClassRef: WhatsAppNumberDto,
-          execute: (instance, data) => chatController.whatsappNumber(instance, data),
-        });
+        try {
+          const response = await this.dataValidate<WhatsAppNumberDto>({
+            request: req,
+            schema: whatsappNumberSchema,
+            ClassRef: WhatsAppNumberDto,
+            execute: (instance, data) => chatController.whatsappNumber(instance, data),
+          });
 
-        return res.status(HttpStatus.OK).json(response);
+          return res.status(HttpStatus.OK).json(response);
+        } catch (error) {
+          console.log(error);
+          return res.status(HttpStatus.BAD_REQUEST).json(error);
+        }
       })
       .post(this.routerPath('markMessageAsRead'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ReadMessageDto>({
@@ -207,7 +212,6 @@ export class ChatRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
-
       .post(this.routerPath('updateProfileName'), ...guards, async (req, res) => {
         const response = await this.dataValidate<ProfileNameDto>({
           request: req,

@@ -1,15 +1,13 @@
-import { TriggerOperator, TriggerType } from '@prisma/client';
+import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
 
 export class OpenaiCredsDto {
   name: string;
   apiKey: string;
 }
 
-export class OpenaiDto {
-  enabled?: boolean;
-  description?: string;
+export class OpenaiDto extends BaseChatbotDto {
   openaiCredsId: string;
-  botType?: string;
+  botType: string;
   assistantId?: string;
   functionUrl?: string;
   model?: string;
@@ -17,35 +15,10 @@ export class OpenaiDto {
   assistantMessages?: string[];
   userMessages?: string[];
   maxTokens?: number;
-  expire?: number;
-  keywordFinish?: string;
-  delayMessage?: number;
-  unknownMessage?: string;
-  listeningFromMe?: boolean;
-  stopBotFromMe?: boolean;
-  keepOpen?: boolean;
-  debounceTime?: number;
-  triggerType?: TriggerType;
-  triggerOperator?: TriggerOperator;
-  triggerValue?: string;
-  ignoreJids?: any;
-  splitMessages?: boolean;
-  timePerChar?: number;
 }
 
-export class OpenaiSettingDto {
+export class OpenaiSettingDto extends BaseChatbotSettingDto {
   openaiCredsId?: string;
-  expire?: number;
-  keywordFinish?: string;
-  delayMessage?: number;
-  unknownMessage?: string;
-  listeningFromMe?: boolean;
-  stopBotFromMe?: boolean;
-  keepOpen?: boolean;
-  debounceTime?: number;
   openaiIdFallback?: string;
-  ignoreJids?: any;
   speechToText?: boolean;
-  splitMessages?: boolean;
-  timePerChar?: number;
 }

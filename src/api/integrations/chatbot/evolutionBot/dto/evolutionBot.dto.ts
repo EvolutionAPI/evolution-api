@@ -1,37 +1,10 @@
-import { TriggerOperator, TriggerType } from '@prisma/client';
+import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
 
-export class EvolutionBotDto {
-  enabled?: boolean;
-  description?: string;
-  apiUrl?: string;
-  apiKey?: string;
-  expire?: number;
-  keywordFinish?: string;
-  delayMessage?: number;
-  unknownMessage?: string;
-  listeningFromMe?: boolean;
-  stopBotFromMe?: boolean;
-  keepOpen?: boolean;
-  debounceTime?: number;
-  triggerType?: TriggerType;
-  triggerOperator?: TriggerOperator;
-  triggerValue?: string;
-  ignoreJids?: any;
-  splitMessages?: boolean;
-  timePerChar?: number;
+export class EvolutionBotDto extends BaseChatbotDto {
+  apiUrl: string;
+  apiKey: string;
 }
 
-export class EvolutionBotSettingDto {
-  expire?: number;
-  keywordFinish?: string;
-  delayMessage?: number;
-  unknownMessage?: string;
-  listeningFromMe?: boolean;
-  stopBotFromMe?: boolean;
-  keepOpen?: boolean;
-  debounceTime?: number;
+export class EvolutionBotSettingDto extends BaseChatbotSettingDto {
   botIdFallback?: string;
-  ignoreJids?: any;
-  splitMessages?: boolean;
-  timePerChar?: number;
 }

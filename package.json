@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.2.3",
+  "version": "2.3.0",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
@@ -41,7 +41,7 @@
   ],
   "author": {
     "name": "Davidson Gomes",
-    "email": "contato@atendai.com"
+    "email": "contato@evolution-api.com"
   },
   "license": "Apache-2.0",
   "bugs": {
@@ -58,6 +58,7 @@
     "@prisma/client": "^6.1.0",
     "@sentry/node": "^8.47.0",
     "amqplib": "^0.10.5",
+    "audio-decode": "^2.2.3",
     "axios": "^1.7.9",
     "baileys": "github:EvolutionAPI/Baileys",
     "class-validator": "^0.14.1",
@@ -75,6 +76,7 @@
     "jimp": "^0.16.13",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.4.1",
+    "jsonwebtoken": "^9.0.2",
     "link-preview-js": "^3.0.13",
     "long": "^5.2.3",
     "mediainfo.js": "^0.3.4",
@@ -82,6 +84,7 @@
     "mime-types": "^2.1.35",
     "minio": "^8.0.3",
     "multer": "^1.4.5-lts.1",
+    "nats": "^2.29.1",
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "openai": "^4.77.3",

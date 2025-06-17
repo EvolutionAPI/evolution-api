@@ -295,51 +295,57 @@ export class ChatwootService {
     avatar_url?: string,
     jid?: string,
   ) {
-    const client = await this.clientCw(instance);
+    try {
+      const client = await this.clientCw(instance);
 
-    if (!client) {
-      this.logger.warn('client not found');
-      return null;
-    }
-
-    let data: any = {};
-    if (!isGroup) {
-      data = {
-        inbox_id: inboxId,
-        name: name || phoneNumber,
-        identifier: jid,
-        avatar_url: avatar_url,
-      };
-
-      if ((jid && jid.includes('@')) || !jid) {
-        data['phone_number'] = `+${phoneNumber}`;
+      if (!client) {
+        this.logger.warn('client not found');
+        return null;
       }
-    } else {
-      data = {
-        inbox_id: inboxId,
-        name: name || phoneNumber,
-        identifier: phoneNumber,
-        avatar_url: avatar_url,
-      };
-    }
 
-    const contact = await client.contacts.create({
-      accountId: this.provider.accountId,
-      data,
-    });
+      let data: any = {};
+      if (!isGroup) {
+        data = {
+          inbox_id: inboxId,
+          name: name || phoneNumber,
+          identifier: jid,
+          avatar_url: avatar_url,
+        };
 
-    if (!contact) {
-      this.logger.warn('contact not found');
+        if ((jid && jid.includes('@')) || !jid) {
+          data['phone_number'] = `+${phoneNumber}`;
+        }
+      } else {
+        data = {
+          inbox_id: inboxId,
+          name: name || phoneNumber,
+          identifier: phoneNumber,
+          avatar_url: avatar_url,
+        };
+      }
+
+      const contact = await client.contacts.create({
+        accountId: this.provider.accountId,
+        data,
+      });
+
+      if (!contact) {
+        this.logger.warn('contact not found');
+        return null;
+      }
+
+      const findContact = await this.findContact(instance, phoneNumber);
+
+      const contactId = findContact?.id;
+
+      await this.addLabelToContact(this.provider.nameInbox, contactId);
+
+      return contact;
+    } catch (error) {
+      this.logger.error('Error creating contact');
+      console.log(error);
       return null;
     }
-
-    const findContact = await this.findContact(instance, phoneNumber);
-
-    const contactId = findContact?.id;
-
-    await this.addLabelToContact(this.provider.nameInbox, contactId);
-
-    return contact;
   }
 
   public async updateContact(instance: InstanceDto, id: number, data: any) {
@@ -543,216 +549,240 @@ export class ChatwootService {
   }
 
   public async createConversation(instance: InstanceDto, body: any) {
+    const isLid = body.key.remoteJid.includes('@lid') && body.key.senderPn;
+    const remoteJid = isLid ? body.key.senderPn : body.key.remoteJid;
+    const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
+    const lockKey = `${instance.instanceName}:lock:createConversation-${remoteJid}`;
+    const maxWaitTime = 5000; // 5 secounds
+
     try {
-      this.logger.verbose('--- Start createConversation ---');
+      // Processa atualização de contatos já criados @lid
+      if (body.key.remoteJid.includes('@lid') && body.key.senderPn && body.key.senderPn !== body.key.remoteJid) {
+        const contact = await this.findContact(instance, body.key.remoteJid.split('@')[0]);
+        if (contact && contact.identifier !== body.key.senderPn) {
+          this.logger.verbose(
+            `Identifier needs update: (contact.identifier: ${contact.identifier}, body.key.remoteJid: ${body.key.remoteJid}, body.key.senderPn: ${body.key.senderPn})`,
+          );
+          await this.updateContact(instance, contact.id, {
+            identifier: body.key.senderPn,
+            phone_number: `+${body.key.senderPn.split('@')[0]}`,
+          });
+        }
+      }
+      this.logger.verbose(`--- Start createConversation ---`);
       this.logger.verbose(`Instance: ${JSON.stringify(instance)}`);
 
-      const client = await this.clientCw(instance);
-
-      if (!client) {
-        this.logger.warn(`Client not found for instance: ${JSON.stringify(instance)}`);
-        return null;
-      }
-
-      const cacheKey = `${instance.instanceName}:createConversation-${body.key.remoteJid}`;
-      this.logger.verbose(`Cache key: ${cacheKey}`);
-
+      // If it already exists in the cache, return conversationId
       if (await this.cache.has(cacheKey)) {
-        this.logger.verbose(`Cache hit for key: ${cacheKey}`);
         const conversationId = (await this.cache.get(cacheKey)) as number;
-        this.logger.verbose(`Cached conversation ID: ${conversationId}`);
-        let conversationExists: conversation | boolean;
-        try {
-          conversationExists = await client.conversations.get({
-            accountId: this.provider.accountId,
-            conversationId: conversationId,
-          });
-          this.logger.verbose(`Conversation exists: ${JSON.stringify(conversationExists)}`);
-        } catch (error) {
-          this.logger.error(`Error getting conversation: ${error}`);
-          conversationExists = false;
-        }
-        if (!conversationExists) {
-          this.logger.verbose('Conversation does not exist, re-calling createConversation');
-          this.cache.delete(cacheKey);
-          return await this.createConversation(instance, body);
-        }
-
+        this.logger.verbose(`Found conversation to: ${remoteJid}, conversation ID: ${conversationId}`);
         return conversationId;
       }
 
-      const isGroup = body.key.remoteJid.includes('@g.us');
-      this.logger.verbose(`Is group: ${isGroup}`);
-
-      const chatId = isGroup ? body.key.remoteJid : body.key.remoteJid.split('@')[0];
-      this.logger.verbose(`Chat ID: ${chatId}`);
-
-      let nameContact: string;
-
-      nameContact = !body.key.fromMe ? body.pushName : chatId;
-      this.logger.verbose(`Name contact: ${nameContact}`);
-
-      const filterInbox = await this.getInbox(instance);
-
-      if (!filterInbox) {
-        this.logger.warn(`Inbox not found for instance: ${JSON.stringify(instance)}`);
-        return null;
+      // If lock already exists, wait until release or timeout
+      if (await this.cache.has(lockKey)) {
+        this.logger.verbose(`Operação de criação já em andamento para ${remoteJid}, aguardando resultado...`);
+        const start = Date.now();
+        while (await this.cache.has(lockKey)) {
+          if (Date.now() - start > maxWaitTime) {
+            this.logger.warn(`Timeout aguardando lock para ${remoteJid}`);
+            break;
+          }
+          await new Promise((res) => setTimeout(res, 300));
+          if (await this.cache.has(cacheKey)) {
+            const conversationId = (await this.cache.get(cacheKey)) as number;
+            this.logger.verbose(`Resolves creation of: ${remoteJid}, conversation ID: ${conversationId}`);
+            return conversationId;
+          }
+        }
       }
 
-      if (isGroup) {
-        this.logger.verbose('Processing group conversation');
-        const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
-        this.logger.verbose(`Group metadata: ${JSON.stringify(group)}`);
+      // Adquire lock
+      await this.cache.set(lockKey, true, 30);
+      this.logger.verbose(`Bloqueio adquirido para: ${lockKey}`);
 
-        nameContact = `${group.subject} (GROUP)`;
+      try {
+        /*
+        Double check after lock
+        Utilizei uma nova verificação para evitar que outra thread execute entre o terminio do while e o set lock
+        */
+        if (await this.cache.has(cacheKey)) {
+          return (await this.cache.get(cacheKey)) as number;
+        }
 
-        const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(
-          body.key.participant.split('@')[0],
-        );
-        this.logger.verbose(`Participant profile picture URL: ${JSON.stringify(picture_url)}`);
+        const client = await this.clientCw(instance);
+        if (!client) return null;
 
-        const findParticipant = await this.findContact(instance, body.key.participant.split('@')[0]);
-        this.logger.verbose(`Found participant: ${JSON.stringify(findParticipant)}`);
+        const isGroup = remoteJid.includes('@g.us');
+        const chatId = isGroup ? remoteJid : remoteJid.split('@')[0];
+        let nameContact = !body.key.fromMe ? body.pushName : chatId;
+        const filterInbox = await this.getInbox(instance);
+        if (!filterInbox) return null;
 
-        if (findParticipant) {
-          if (!findParticipant.name || findParticipant.name === chatId) {
-            await this.updateContact(instance, findParticipant.id, {
-              name: body.pushName,
-              avatar_url: picture_url.profilePictureUrl || null,
-            });
+        if (isGroup) {
+          this.logger.verbose(`Processing group conversation`);
+          const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
+          this.logger.verbose(`Group metadata: ${JSON.stringify(group)}`);
+
+          nameContact = `${group.subject} (GROUP)`;
+
+          const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(
+            body.key.participant.split('@')[0],
+          );
+          this.logger.verbose(`Participant profile picture URL: ${JSON.stringify(picture_url)}`);
+
+          const findParticipant = await this.findContact(instance, body.key.participant.split('@')[0]);
+          this.logger.verbose(`Found participant: ${JSON.stringify(findParticipant)}`);
+
+          if (findParticipant) {
+            if (!findParticipant.name || findParticipant.name === chatId) {
+              await this.updateContact(instance, findParticipant.id, {
+                name: body.pushName,
+                avatar_url: picture_url.profilePictureUrl || null,
+              });
+            }
+          } else {
+            await this.createContact(
+              instance,
+              body.key.participant.split('@')[0],
+              filterInbox.id,
+              isGroup,
+              body.pushName,
+              picture_url.profilePictureUrl || null,
+              body.key.participant,
+            );
+          }
+        }
+
+        const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(chatId);
+        this.logger.verbose(`Contact profile picture URL: ${JSON.stringify(picture_url)}`);
+
+        let contact = await this.findContact(instance, chatId);
+
+        if (contact) {
+          this.logger.verbose(`Found contact: ${JSON.stringify(contact)}`);
+          if (!body.key.fromMe) {
+            const waProfilePictureFile =
+              picture_url?.profilePictureUrl?.split('#')[0].split('?')[0].split('/').pop() || '';
+            const chatwootProfilePictureFile = contact?.thumbnail?.split('#')[0].split('?')[0].split('/').pop() || '';
+            const pictureNeedsUpdate = waProfilePictureFile !== chatwootProfilePictureFile;
+            const nameNeedsUpdate =
+              !contact.name ||
+              contact.name === chatId ||
+              (`+${chatId}`.startsWith('+55')
+                ? this.getNumbers(`+${chatId}`).some(
+                    (v) => contact.name === v || contact.name === v.substring(3) || contact.name === v.substring(1),
+                  )
+                : false);
+            this.logger.verbose(`Picture needs update: ${pictureNeedsUpdate}`);
+            this.logger.verbose(`Name needs update: ${nameNeedsUpdate}`);
+            if (pictureNeedsUpdate || nameNeedsUpdate) {
+              contact = await this.updateContact(instance, contact.id, {
+                ...(nameNeedsUpdate && { name: nameContact }),
+                ...(waProfilePictureFile === '' && { avatar: null }),
+                ...(pictureNeedsUpdate && { avatar_url: picture_url?.profilePictureUrl }),
+              });
+            }
           }
         } else {
-          await this.createContact(
+          const jid = isLid && body?.key?.senderPn ? body.key.senderPn : body.key.remoteJid;
+          contact = await this.createContact(
             instance,
-            body.key.participant.split('@')[0],
+            chatId,
             filterInbox.id,
-            false,
-            body.pushName,
+            isGroup,
+            nameContact,
             picture_url.profilePictureUrl || null,
-            body.key.participant,
+            jid,
           );
         }
-      }
 
-      const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(chatId);
-      this.logger.verbose(`Contact profile picture URL: ${JSON.stringify(picture_url)}`);
-
-      let contact = await this.findContact(instance, chatId);
-      this.logger.verbose(`Found contact: ${JSON.stringify(contact)}`);
-
-      if (contact) {
-        if (!body.key.fromMe) {
-          const waProfilePictureFile =
-            picture_url?.profilePictureUrl?.split('#')[0].split('?')[0].split('/').pop() || '';
-          const chatwootProfilePictureFile = contact?.thumbnail?.split('#')[0].split('?')[0].split('/').pop() || '';
-          const pictureNeedsUpdate = waProfilePictureFile !== chatwootProfilePictureFile;
-          const nameNeedsUpdate =
-            !contact.name ||
-            contact.name === chatId ||
-            (`+${chatId}`.startsWith('+55')
-              ? this.getNumbers(`+${chatId}`).some(
-                  (v) => contact.name === v || contact.name === v.substring(3) || contact.name === v.substring(1),
-                )
-              : false);
-
-          this.logger.verbose(`Picture needs update: ${pictureNeedsUpdate}`);
-          this.logger.verbose(`Name needs update: ${nameNeedsUpdate}`);
-
-          if (pictureNeedsUpdate || nameNeedsUpdate) {
-            contact = await this.updateContact(instance, contact.id, {
-              ...(nameNeedsUpdate && { name: nameContact }),
-              ...(waProfilePictureFile === '' && { avatar: null }),
-              ...(pictureNeedsUpdate && { avatar_url: picture_url?.profilePictureUrl }),
-            });
-          }
+        if (!contact) {
+          this.logger.warn(`Contact not created or found`);
+          return null;
         }
-      } else {
-        const jid = body.key.remoteJid;
-        contact = await this.createContact(
-          instance,
-          chatId,
-          filterInbox.id,
-          isGroup,
-          nameContact,
-          picture_url.profilePictureUrl || null,
-          jid,
+
+        const contactId = contact?.payload?.id || contact?.payload?.contact?.id || contact?.id;
+        this.logger.verbose(`Contact ID: ${contactId}`);
+
+        const contactConversations = (await client.contacts.listConversations({
+          accountId: this.provider.accountId,
+          id: contactId,
+        })) as any;
+        this.logger.verbose(`Contact conversations: ${JSON.stringify(contactConversations)}`);
+
+        if (!contactConversations || !contactConversations.payload) {
+          this.logger.error(`No conversations found or payload is undefined`);
+          return null;
+        }
+
+        let inboxConversation = contactConversations.payload.find(
+          (conversation) => conversation.inbox_id == filterInbox.id,
         );
-      }
-
-      if (!contact) {
-        this.logger.warn('Contact not created or found');
-        return null;
-      }
-
-      const contactId = contact?.payload?.id || contact?.payload?.contact?.id || contact?.id;
-      this.logger.verbose(`Contact ID: ${contactId}`);
-
-      const contactConversations = (await client.contacts.listConversations({
-        accountId: this.provider.accountId,
-        id: contactId,
-      })) as any;
-      this.logger.verbose(`Contact conversations: ${JSON.stringify(contactConversations)}`);
-
-      if (!contactConversations || !contactConversations.payload) {
-        this.logger.error('No conversations found or payload is undefined');
-        return null;
-      }
-
-      if (contactConversations.payload.length) {
-        let conversation: any;
-        if (this.provider.reopenConversation) {
-          conversation = contactConversations.payload.find((conversation) => conversation.inbox_id == filterInbox.id);
-          this.logger.verbose(`Found conversation in reopenConversation mode: ${JSON.stringify(conversation)}`);
-
-          if (this.provider.conversationPending && conversation.status !== 'open') {
-            if (conversation) {
+        if (inboxConversation) {
+          if (this.provider.reopenConversation) {
+            this.logger.verbose(`Found conversation in reopenConversation mode: ${JSON.stringify(inboxConversation)}`);
+            if (inboxConversation && this.provider.conversationPending && inboxConversation.status !== 'open') {
               await client.conversations.toggleStatus({
                 accountId: this.provider.accountId,
-                conversationId: conversation.id,
+                conversationId: inboxConversation.id,
                 data: {
                   status: 'pending',
                 },
               });
             }
+          } else {
+            inboxConversation = contactConversations.payload.find(
+              (conversation) =>
+                conversation && conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
+            );
+            this.logger.verbose(`Found conversation: ${JSON.stringify(inboxConversation)}`);
           }
-        } else {
-          conversation = contactConversations.payload.find(
-            (conversation) => conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
-          );
-          this.logger.verbose(`Found conversation: ${JSON.stringify(conversation)}`);
+
+          if (inboxConversation) {
+            this.logger.verbose(`Returning existing conversation ID: ${inboxConversation.id}`);
+            this.cache.set(cacheKey, inboxConversation.id);
+            return inboxConversation.id;
+          }
         }
 
-        if (conversation) {
-          this.logger.verbose(`Returning existing conversation ID: ${conversation.id}`);
-          this.cache.set(cacheKey, conversation.id);
-          return conversation.id;
+        const data = {
+          contact_id: contactId.toString(),
+          inbox_id: filterInbox.id.toString(),
+        };
+
+        if (this.provider.conversationPending) {
+          data['status'] = 'pending';
         }
+
+        /*
+        Triple check after lock
+        Utilizei uma nova verificação para evitar que outra thread execute entre o terminio do while e o set lock
+        */
+        if (await this.cache.has(cacheKey)) {
+          return (await this.cache.get(cacheKey)) as number;
+        }
+
+        const conversation = await client.conversations.create({
+          accountId: this.provider.accountId,
+          data,
+        });
+
+        if (!conversation) {
+          this.logger.warn(`Conversation not created or found`);
+          return null;
+        }
+
+        this.logger.verbose(`New conversation created of ${remoteJid} with ID: ${conversation.id}`);
+        this.cache.set(cacheKey, conversation.id);
+        return conversation.id;
+      } finally {
+        await this.cache.delete(lockKey);
+        this.logger.verbose(`Block released for: ${lockKey}`);
       }
-
-      const data = {
-        contact_id: contactId.toString(),
-        inbox_id: filterInbox.id.toString(),
-      };
-
-      if (this.provider.conversationPending) {
-        data['status'] = 'pending';
-      }
-
-      const conversation = await client.conversations.create({
-        accountId: this.provider.accountId,
-        data,
-      });
-
-      if (!conversation) {
-        this.logger.warn('Conversation not created or found');
-        return null;
-      }
-
-      this.logger.verbose(`New conversation created with ID: ${conversation.id}`);
-      this.cache.set(cacheKey, conversation.id);
-      return conversation.id;
     } catch (error) {
       this.logger.error(`Error in createConversation: ${error}`);
+      return null;
     }
   }
 
@@ -931,7 +961,7 @@ export class ChatwootService {
     quotedMsg?: MessageModel,
   ) {
     if (sourceId && this.isImportHistoryAvailable()) {
-      const messageAlreadySaved = await chatwootImport.getExistingSourceIds([sourceId]);
+      const messageAlreadySaved = await chatwootImport.getExistingSourceIds([sourceId], conversationId);
       if (messageAlreadySaved) {
         if (messageAlreadySaved.size > 0) {
           this.logger.warn('Message already saved on chatwoot');
@@ -1106,12 +1136,13 @@ export class ChatwootService {
 
         sendTelemetry('/message/sendWhatsAppAudio');
 
-        const messageSent = await waInstance?.audioWhatsapp(data, true);
+        const messageSent = await waInstance?.audioWhatsapp(data, null, true);
 
         return messageSent;
       }
 
-      if (type === 'image' && parsedMedia && parsedMedia?.ext === '.gif') {
+      const documentExtensions = ['.gif', '.svg', '.tiff', '.tif'];
+      if (type === 'image' && parsedMedia && documentExtensions.includes(parsedMedia?.ext)) {
         type = 'document';
       }
 
@@ -1653,7 +1684,7 @@ export class ChatwootService {
       stickerMessage: undefined,
       documentMessage: msg.documentMessage?.caption,
       documentWithCaptionMessage: msg.documentWithCaptionMessage?.message?.documentMessage?.caption,
-      audioMessage: msg.audioMessage?.caption,
+      audioMessage: msg.audioMessage ? (msg.audioMessage.caption ?? '') : undefined,
       contactMessage: msg.contactMessage?.vcard,
       contactsArrayMessage: msg.contactsArrayMessage,
       locationMessage: msg.locationMessage,
@@ -1898,7 +1929,7 @@ export class ChatwootService {
               .replaceAll(/~((?!\s)([^\n~]+?)(?<!\s))~/g, '~~$1~~')
           : originalMessage;
 
-        if (bodyMessage && bodyMessage.includes('Por favor, classifique esta conversa, http')) {
+        if (bodyMessage && bodyMessage.includes('/survey/responses/') && bodyMessage.includes('http')) {
           return;
         }
 
@@ -2199,7 +2230,7 @@ export class ChatwootService {
         }
       }
 
-      if (event === 'messages.edit') {
+      if (event === 'messages.edit' || event === 'send.message.update') {
         const editedText = `${
           body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
         }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;

@@ -2,6 +2,7 @@
 
 <div align="center">
 
+[![Docker Image	(https://img.shields.io/badge/Docker-Image-blue)](https://hub.docker.com/r/evoapicloud/evolution-api)]
 [![Whatsapp Group](https://img.shields.io/badge/Group-WhatsApp-%2322BC18)](https://evolution-api.com/whatsapp)
 [![Discord Community](https://img.shields.io/badge/Discord-Community-blue)](https://evolution-api.com/discord)
 [![Postman Collection](https://img.shields.io/badge/Postman-Collection-orange)](https://evolution-api.com/postman) 
@@ -87,6 +88,7 @@ https://github.com/sponsors/EvolutionAPI
 We are proud to collaborate with the following content creators who have contributed valuable insights and tutorials about Evolution API:
 
 - [Promovaweb](https://www.youtube.com/@promovaweb)
+- [Sandeco](https://www.youtube.com/@canalsandeco)
 - [Comunidade ZDG](https://www.youtube.com/@ComunidadeZDG)
 - [Francis MNO](https://www.youtube.com/@FrancisMNO)
 - [Pablo Cabral](https://youtube.com/@pablocabral)
@@ -111,7 +113,7 @@ Evolution API is licensed under the Apache License 2.0, with the following addit
 
 2. **Usage Notification Requirement**: If Evolution API is used as part of any project, including closed-source systems (e.g., proprietary software), the user is required to display a clear notification within the system that Evolution API is being utilized. This notification should be visible to system administrators and accessible from the system's documentation or settings page. Failure to comply with this requirement may result in the necessity for a commercial license, as determined by the producer.
 
-Please contact contato@atendai.com to inquire about licensing matters.
+Please contact contato@evolution-api.com to inquire about licensing matters.
 
 Apart from the specific conditions mentioned above, all other rights and restrictions follow the Apache License 2.0. Detailed information about the Apache License 2.0 can be found at [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
