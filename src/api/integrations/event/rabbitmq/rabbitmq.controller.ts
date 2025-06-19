@@ -21,9 +21,21 @@ export class RabbitmqController extends EventController implements EventControll
 
     await new Promise<void>((resolve, reject) => {
       const uri = configService.get<Rabbitmq>('RABBITMQ').URI;
+      const frameMax = configService.get<Rabbitmq>('RABBITMQ').FRAME_MAX;
       const rabbitmqExchangeName = configService.get<Rabbitmq>('RABBITMQ').EXCHANGE_NAME;
 
-      amqp.connect(uri, (error, connection) => {
+      const url = new URL(uri);
+      const connectionOptions = {
+        protocol: url.protocol.slice(0, -1),
+        hostname: url.hostname,
+        port: url.port || 5672,
+        username: url.username || 'guest',
+        password: url.password || 'guest',
+        vhost: url.pathname.slice(1) || '/',
+        frameMax: frameMax,
+      };
+
+      amqp.connect(connectionOptions, (error, connection) => {
         if (error) {
           reject(error);
 

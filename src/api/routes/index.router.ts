@@ -6,11 +6,13 @@ import { ChatbotRouter } from '@api/integrations/chatbot/chatbot.router';
 import { EventRouter } from '@api/integrations/event/event.router';
 import { StorageRouter } from '@api/integrations/storage/storage.router';
 import { configService } from '@config/env.config';
+import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
 import { Router } from 'express';
 import fs from 'fs';
 import mimeTypes from 'mime-types';
 import path from 'path';
 
+import { BusinessRouter } from './business.router';
 import { CallRouter } from './call.router';
 import { ChatRouter } from './chat.router';
 import { GroupRouter } from './group.router';
@@ -59,7 +61,7 @@ router.get('/assets/*', (req, res) => {
 router
   .use((req, res, next) => telemetry.collectTelemetry(req, res, next))
 
-  .get('/', (req, res) => {
+  .get('/', async (req, res) => {
     res.status(HttpStatus.OK).json({
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
@@ -67,6 +69,8 @@ router
       clientName: process.env.DATABASE_CONNECTION_CLIENT_NAME,
       manager: !serverConfig.DISABLE_MANAGER ? `${req.protocol}://${req.get('host')}/manager` : undefined,
       documentation: `https://doc.evolution-api.com`,
+      whatsappWebVersion:
+        process.env.CONFIG_SESSION_PHONE_VERSION || (await fetchLatestWaWebVersion({})).version.join('.'),
     });
   })
   .post('/verify-creds', authGuard['apikey'], async (req, res) => {
@@ -82,6 +86,7 @@ router
   .use('/message', new MessageRouter(...guards).router)
   .use('/call', new CallRouter(...guards).router)
   .use('/chat', new ChatRouter(...guards).router)
+  .use('/business', new BusinessRouter(...guards).router)
   .use('/group', new GroupRouter(...guards).router)
   .use('/template', new TemplateRouter(configService, ...guards).router)
   .use('/settings', new SettingsRouter(...guards).router)
