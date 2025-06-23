@@ -43,7 +43,7 @@ RUN echo "DOCKER_ENV=true" > .env && \
 RUN ./Docker/scripts/generate_database.sh
 
 # Build do projeto
-RUN npm run build:docker
+RUN npm run build
 
 # Remove devDependencies para reduzir tamanho
 RUN npm prune --production
