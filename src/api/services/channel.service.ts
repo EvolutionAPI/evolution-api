@@ -814,4 +814,28 @@ export class ChannelStartupService {
 
     return [];
   }
+
+  public hasValidMediaContent(message: any): boolean {
+    if (!message?.message) return false;
+
+    const msg = message.message;
+
+    // Se só tem messageContextInfo, não é mídia válida
+    if (Object.keys(msg).length === 1 && 'messageContextInfo' in msg) {
+      return false;
+    }
+
+    // Verifica se tem pelo menos um tipo de mídia válido
+    const mediaTypes = [
+      'imageMessage',
+      'videoMessage',
+      'stickerMessage',
+      'documentMessage',
+      'documentWithCaptionMessage',
+      'ptvMessage',
+      'audioMessage',
+    ];
+
+    return mediaTypes.some((type) => msg[type] && Object.keys(msg[type]).length > 0);
+  }
 }
