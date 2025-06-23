@@ -9,35 +9,25 @@ LABEL contact="contato@evolution-api.com"
 
 WORKDIR /evolution
 
-# Define variáveis de ambiente padrão para o build
-COPY ./package.json ./tsconfig.json ./
+COPY ./package*.json ./
+COPY ./tsconfig.json ./
+COPY ./tsup.config.ts ./
 
-# Instala todas as dependências (incluindo dev para build)
-RUN npm install
+RUN npm ci --silent
 
-# Copia código fonte
 COPY ./src ./src
 COPY ./public ./public
 COPY ./prisma ./prisma
 COPY ./manager ./manager
 COPY ./.env.example ./.env
 COPY ./runWithProvider.js ./
-COPY ./tsup.config.ts ./
 
-# Copia scripts Docker
 COPY ./Docker ./Docker
 
 RUN chmod +x ./Docker/scripts/* && dos2unix ./Docker/scripts/*
 
-# Cria um arquivo .env básico com as variáveis de ambiente para o build
-RUN echo "DOCKER_ENV=true" > .env && \
-    echo "DATABASE_PROVIDER=${DATABASE_PROVIDER}" >> .env && \
-    echo "DATABASE_URL=${DATABASE_URL}" >> .env
-
-# Executa o script de geração de banco - agora com variáveis definidas
 RUN ./Docker/scripts/generate_database.sh
 
-# Build do projeto
 RUN npm run build
 
 FROM node:20-alpine AS final
