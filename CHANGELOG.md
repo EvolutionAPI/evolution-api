@@ -7,6 +7,7 @@
 * Fixed sending variables in typebot
 * Add unreadMessages in the response
 * Phone number as message ID for Evo AI
+* Fix upload to s3 when media message
 
 # 2.3.0 (2025-06-17 09:19)
 
