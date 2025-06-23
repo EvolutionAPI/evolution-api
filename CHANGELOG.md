@@ -1,3 +1,13 @@
+# 2.3.1 (develop)
+
+### Fixed
+
+* Update Baileys Version
+* Update Dockerhub Repository and Delete Config Session Variable
+* Fixed sending variables in typebot
+* Add unreadMessages in the response
+* Phone number as message ID for Evo AI
+
 # 2.3.0 (2025-06-17 09:19)
 
 ### Feature
