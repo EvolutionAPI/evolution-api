@@ -2,8 +2,10 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import {
   difyController,
+  evoaiController,
   evolutionBotController,
   flowiseController,
+  n8nController,
   openaiController,
   typebotController,
 } from '@api/server.module';
@@ -97,6 +99,10 @@ export class ChatbotController {
 
     await difyController.emit(emitData);
 
+    await n8nController.emit(emitData);
+
+    await evoaiController.emit(emitData);
+
     await flowiseController.emit(emitData);
   }
 
@@ -173,7 +179,7 @@ export class ChatbotController {
     if (session) {
       if (session.status !== 'closed' && !session.botId) {
         this.logger.warn('Session is already opened in another integration');
-        return;
+        return null;
       } else if (!session.botId) {
         session = null;
       }
@@ -188,13 +194,13 @@ export class ChatbotController {
     instance: InstanceDto,
     session?: IntegrationSession,
   ) {
-    let findBot: null;
+    let findBot: any = null;
 
     if (!session) {
       findBot = await findBotByTrigger(botRepository, content, instance.instanceId);
 
       if (!findBot) {
-        return;
+        return null;
       }
     } else {
       findBot = await botRepository.findFirst({

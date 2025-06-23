@@ -1,37 +1,10 @@
-import { TriggerOperator, TriggerType } from '@prisma/client';
+import { BaseChatbotDto, BaseChatbotSettingDto } from '../../base-chatbot.dto';
 
-export class FlowiseDto {
-  enabled?: boolean;
-  description?: string;
-  apiUrl?: string;
+export class FlowiseDto extends BaseChatbotDto {
+  apiUrl: string;
   apiKey?: string;
-  expire?: number;
-  keywordFinish?: string;
-  delayMessage?: number;
-  unknownMessage?: string;
-  listeningFromMe?: boolean;
-  stopBotFromMe?: boolean;
-  keepOpen?: boolean;
-  debounceTime?: number;
-  triggerType?: TriggerType;
-  triggerOperator?: TriggerOperator;
-  triggerValue?: string;
-  ignoreJids?: any;
-  splitMessages?: boolean;
-  timePerChar?: number;
 }
 
-export class FlowiseSettingDto {
-  expire?: number;
-  keywordFinish?: string;
-  delayMessage?: number;
-  unknownMessage?: string;
-  listeningFromMe?: boolean;
-  stopBotFromMe?: boolean;
-  keepOpen?: boolean;
-  debounceTime?: number;
+export class FlowiseSettingDto extends BaseChatbotSettingDto {
   flowiseIdFallback?: string;
-  ignoreJids?: any;
-  splitMessages?: boolean;
-  timePerChar?: number;
 }

@@ -28,7 +28,6 @@ import axios from 'axios';
 import { arrayUnique, isURL } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
 import FormData from 'form-data';
-import { createReadStream } from 'fs';
 import mimeTypes from 'mime-types';
 import { join } from 'path';
 
@@ -147,11 +146,20 @@ export class BusinessStartupService extends ChannelStartupService {
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
       urlServer = `${urlServer}/${version}/${id}`;
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+
+      // Primeiro, obtenha a URL do arquivo
       let result = await axios.get(urlServer, { headers });
-      result = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
+
+      // Depois, baixe o arquivo usando a URL retornada
+      result = await axios.get(result.data.url, {
+        headers: { Authorization: `Bearer ${this.token}` }, // Use apenas o token de autorização para download
+        responseType: 'arraybuffer',
+      });
+
       return result.data;
     } catch (e) {
-      this.logger.error(e);
+      this.logger.error(`Error downloading media: ${e}`);
+      throw e;
     }
   }
 
@@ -159,7 +167,23 @@ export class BusinessStartupService extends ChannelStartupService {
     const message = received.messages[0];
     let content: any = message.type + 'Message';
     content = { [content]: message[message.type] };
-    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+    if (message.context) {
+      content = { ...content, contextInfo: { stanzaId: message.context.id } };
+    }
+    return content;
+  }
+
+  private messageAudioJson(received: any) {
+    const message = received.messages[0];
+    let content: any = {
+      audioMessage: {
+        ...message.audio,
+        ptt: message.audio.voice || false, // Define se é mensagem de voz
+      },
+    };
+    if (message.context) {
+      content = { ...content, contextInfo: { stanzaId: message.context.id } };
+    }
     return content;
   }
 
@@ -192,17 +216,77 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   private messageTextJson(received: any) {
-    let content: any;
+    // Verificar que received y received.messages existen
+    if (!received || !received.messages || received.messages.length === 0) {
+      this.logger.error('Error: received object or messages array is undefined or empty');
+      return null;
+    }
+
     const message = received.messages[0];
+    let content: any;
+
+    // Verificar si es un mensaje de tipo sticker, location u otro tipo que no tiene text
+    if (!message.text) {
+      // Si no hay texto, manejamos diferente según el tipo de mensaje
+      if (message.type === 'sticker') {
+        content = { stickerMessage: {} };
+      } else if (message.type === 'location') {
+        content = {
+          locationMessage: {
+            degreesLatitude: message.location?.latitude,
+            degreesLongitude: message.location?.longitude,
+            name: message.location?.name,
+            address: message.location?.address,
+          },
+        };
+      } else {
+        // Para otros tipos de mensajes sin texto, creamos un contenido genérico
+        this.logger.log(`Mensaje de tipo ${message.type} sin campo text`);
+        content = { [message.type + 'Message']: message[message.type] || {} };
+      }
+
+      // Añadir contexto si existe
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
+
+      return content;
+    }
+
+    // Si el mensaje tiene texto, procesamos normalmente
+    if (!received.metadata || !received.metadata.phone_number_id) {
+      this.logger.error('Error: metadata or phone_number_id is undefined');
+      return null;
+    }
+
     if (message.from === received.metadata.phone_number_id) {
       content = {
         extendedTextMessage: { text: message.text.body },
       };
-      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
     } else {
       content = { conversation: message.text.body };
-      message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
+      if (message.context) {
+        content = { ...content, contextInfo: { stanzaId: message.context.id } };
+      }
     }
+
+    return content;
+  }
+
+  private messageLocationJson(received: any) {
+    const message = received.messages[0];
+    let content: any = {
+      locationMessage: {
+        degreesLatitude: message.location.latitude,
+        degreesLongitude: message.location.longitude,
+        name: message.location?.name,
+        address: message.location?.address,
+      },
+    };
+    message.context ? (content = { ...content, contextInfo: { stanzaId: message.context.id } }) : content;
     return content;
   }
 
@@ -283,6 +367,12 @@ export class BusinessStartupService extends ChannelStartupService {
       case 'template':
         messageType = 'conversation';
         break;
+      case 'location':
+        messageType = 'locationMessage';
+        break;
+      case 'sticker':
+        messageType = 'stickerMessage';
+        break;
       default:
         messageType = 'conversation';
         break;
@@ -299,17 +389,36 @@ export class BusinessStartupService extends ChannelStartupService {
       if (received.contacts) pushName = received.contacts[0].profile.name;
 
       if (received.messages) {
+        const message = received.messages[0]; // Añadir esta línea para definir message
+
         const key = {
-          id: received.messages[0].id,
+          id: message.id,
           remoteJid: this.phoneNumber,
-          fromMe: received.messages[0].from === received.metadata.phone_number_id,
+          fromMe: message.from === received.metadata.phone_number_id,
         };
-        if (this.isMediaMessage(received?.messages[0])) {
+
+        if (message.type === 'sticker') {
+          this.logger.log('Procesando mensaje de tipo sticker');
           messageRaw = {
             key,
             pushName,
-            message: this.messageMediaJson(received),
-            contextInfo: this.messageMediaJson(received)?.contextInfo,
+            message: {
+              stickerMessage: message.sticker || {},
+            },
+            messageType: 'stickerMessage',
+            messageTimestamp: parseInt(message.timestamp) as number,
+            source: 'unknown',
+            instanceId: this.instanceId,
+          };
+        } else if (this.isMediaMessage(message)) {
+          const messageContent =
+            message.type === 'audio' ? this.messageAudioJson(received) : this.messageMediaJson(received);
+
+          messageRaw = {
+            key,
+            pushName,
+            message: messageContent,
+            contextInfo: messageContent?.contextInfo,
             messageType: this.renderMessageType(received.messages[0].type),
             messageTimestamp: parseInt(received.messages[0].timestamp) as number,
             source: 'unknown',
@@ -327,7 +436,10 @@ export class BusinessStartupService extends ChannelStartupService {
               const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
               const result = await axios.get(urlServer, { headers });
 
-              const buffer = await axios.get(result.data.url, { headers, responseType: 'arraybuffer' });
+              const buffer = await axios.get(result.data.url, {
+                headers: { Authorization: `Bearer ${this.token}` }, // Use apenas o token de autorização para download
+                responseType: 'arraybuffer',
+              });
 
               let mediaType;
 
@@ -349,6 +461,17 @@ export class BusinessStartupService extends ChannelStartupService {
                 const match = contentDisposition.match(/filename="(.+?)"/);
                 if (match) {
                   fileName = match[1];
+                }
+              }
+
+              // Para áudio, garantir extensão correta baseada no mimetype
+              if (mediaType === 'audio') {
+                if (mimetype.includes('ogg')) {
+                  fileName = `${message.messages[0].id}.ogg`;
+                } else if (mimetype.includes('mp3')) {
+                  fileName = `${message.messages[0].id}.mp3`;
+                } else if (mimetype.includes('m4a')) {
+                  fileName = `${message.messages[0].id}.m4a`;
                 }
               }
 
@@ -378,13 +501,72 @@ export class BusinessStartupService extends ChannelStartupService {
 
               messageRaw.message.mediaUrl = mediaUrl;
               messageRaw.message.base64 = buffer.data.toString('base64');
+
+              // Processar OpenAI speech-to-text para áudio após o mediaUrl estar disponível
+              if (this.configService.get<Openai>('OPENAI').ENABLED && mediaType === 'audio') {
+                const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+                  where: {
+                    instanceId: this.instanceId,
+                  },
+                  include: {
+                    OpenaiCreds: true,
+                  },
+                });
+
+                if (
+                  openAiDefaultSettings &&
+                  openAiDefaultSettings.openaiCredsId &&
+                  openAiDefaultSettings.speechToText
+                ) {
+                  try {
+                    messageRaw.message.speechToText = `[audio] ${await this.openaiService.speechToText(
+                      openAiDefaultSettings.OpenaiCreds,
+                      {
+                        message: {
+                          mediaUrl: messageRaw.message.mediaUrl,
+                          ...messageRaw,
+                        },
+                      },
+                    )}`;
+                  } catch (speechError) {
+                    this.logger.error(`Error processing speech-to-text: ${speechError}`);
+                  }
+                }
+              }
             } catch (error) {
               this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
             }
           } else {
             const buffer = await this.downloadMediaMessage(received?.messages[0]);
-
             messageRaw.message.base64 = buffer.toString('base64');
+
+            // Processar OpenAI speech-to-text para áudio mesmo sem S3
+            if (this.configService.get<Openai>('OPENAI').ENABLED && message.type === 'audio') {
+              const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
+                where: {
+                  instanceId: this.instanceId,
+                },
+                include: {
+                  OpenaiCreds: true,
+                },
+              });
+
+              if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
+                try {
+                  messageRaw.message.speechToText = `[audio] ${await this.openaiService.speechToText(
+                    openAiDefaultSettings.OpenaiCreds,
+                    {
+                      message: {
+                        base64: messageRaw.message.base64,
+                        ...messageRaw,
+                      },
+                    },
+                  )}`;
+                } catch (speechError) {
+                  this.logger.error(`Error processing speech-to-text: ${speechError}`);
+                }
+              }
+            }
           }
         } else if (received?.messages[0].interactive) {
           messageRaw = {
@@ -455,37 +637,6 @@ export class BusinessStartupService extends ChannelStartupService {
           // await this.client.readMessages([received.key]);
         }
 
-        if (this.configService.get<Openai>('OPENAI').ENABLED) {
-          const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
-            where: {
-              instanceId: this.instanceId,
-            },
-            include: {
-              OpenaiCreds: true,
-            },
-          });
-
-          const audioMessage = received?.messages[0]?.audio;
-
-          if (
-            openAiDefaultSettings &&
-            openAiDefaultSettings.openaiCredsId &&
-            openAiDefaultSettings.speechToText &&
-            audioMessage
-          ) {
-            messageRaw.message.speechToText = await this.openaiService.speechToText(
-              openAiDefaultSettings.OpenaiCreds,
-              {
-                message: {
-                  mediaUrl: messageRaw.message.mediaUrl,
-                  ...messageRaw,
-                },
-              },
-              () => {},
-            );
-          }
-        }
-
         this.logger.log(messageRaw);
 
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
@@ -511,7 +662,7 @@ export class BusinessStartupService extends ChannelStartupService {
           }
         }
 
-        if (!this.isMediaMessage(received?.messages[0])) {
+        if (!this.isMediaMessage(message) && message.type !== 'sticker') {
           await this.prismaRepository.message.create({
             data: messageRaw,
           });
@@ -714,17 +865,54 @@ export class BusinessStartupService extends ChannelStartupService {
   }
 
   protected async eventHandler(content: any) {
-    const database = this.configService.get<Database>('DATABASE');
-    const settings = await this.findSettings();
+    try {
+      // Registro para depuración
+      this.logger.log('Contenido recibido en eventHandler:');
+      this.logger.log(JSON.stringify(content, null, 2));
 
-    this.messageHandle(content, database, settings);
+      const database = this.configService.get<Database>('DATABASE');
+      const settings = await this.findSettings();
+
+      // Si hay mensajes, verificar primero el tipo
+      if (content.messages && content.messages.length > 0) {
+        const message = content.messages[0];
+        this.logger.log(`Tipo de mensaje recibido: ${message.type}`);
+
+        // Verificamos el tipo de mensaje antes de procesarlo
+        if (
+          message.type === 'text' ||
+          message.type === 'image' ||
+          message.type === 'video' ||
+          message.type === 'audio' ||
+          message.type === 'document' ||
+          message.type === 'sticker' ||
+          message.type === 'location' ||
+          message.type === 'contacts' ||
+          message.type === 'interactive' ||
+          message.type === 'button' ||
+          message.type === 'reaction'
+        ) {
+          // Procesar el mensaje normalmente
+          this.messageHandle(content, database, settings);
+        } else {
+          this.logger.warn(`Tipo de mensaje no reconocido: ${message.type}`);
+        }
+      } else if (content.statuses) {
+        // Procesar actualizaciones de estado
+        this.messageHandle(content, database, settings);
+      } else {
+        this.logger.warn('No se encontraron mensajes ni estados en el contenido recibido');
+      }
+    } catch (error) {
+      this.logger.error('Error en eventHandler:');
+      this.logger.error(error);
+    }
   }
 
   protected async sendMessageWithTyping(number: string, message: any, options?: Options, isIntegration = false) {
     try {
       let quoted: any;
       let webhookUrl: any;
-      const linkPreview = options?.linkPreview != false ? undefined : false;
       if (options?.quoted) {
         const m = options?.quoted;
 
@@ -792,7 +980,7 @@ export class BusinessStartupService extends ChannelStartupService {
             to: number.replace(/\D/g, ''),
             text: {
               body: message['conversation'],
-              preview_url: linkPreview,
+              preview_url: Boolean(options?.linkPreview),
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
@@ -808,9 +996,10 @@ export class BusinessStartupService extends ChannelStartupService {
             to: number.replace(/\D/g, ''),
             [message['mediaType']]: {
               [message['type']]: message['id'],
-              preview_url: linkPreview,
-              ...(message['fileName'] && !isImage && { filename: message['fileName'] }),
-              caption: message['caption'],
+              ...(message['mediaType'] !== 'audio' &&
+                message['fileName'] &&
+                !isImage && { filename: message['fileName'] }),
+              ...(message['mediaType'] !== 'audio' && message['caption'] && { caption: message['caption'] }),
             },
           };
           quoted ? (content.context = { message_id: quoted.id }) : content;
@@ -908,7 +1097,7 @@ export class BusinessStartupService extends ChannelStartupService {
         }
       })();
 
-      if (messageSent?.error_data) {
+      if (messageSent?.error_data || messageSent.message) {
         this.logger.error(messageSent);
         return messageSent;
       }
@@ -975,29 +1164,50 @@ export class BusinessStartupService extends ChannelStartupService {
     return res;
   }
 
-  private async getIdMedia(mediaMessage: any) {
-    const formData = new FormData();
+  private async getIdMedia(mediaMessage: any, isFile = false) {
+    try {
+      const formData = new FormData();
 
-    const fileStream = createReadStream(mediaMessage.media);
+      if (isFile === false) {
+        if (isURL(mediaMessage.media)) {
+          const response = await axios.get(mediaMessage.media, { responseType: 'arraybuffer' });
+          const buffer = Buffer.from(response.data, 'base64');
+          formData.append('file', buffer, {
+            filename: mediaMessage.fileName || 'media',
+            contentType: mediaMessage.mimetype,
+          });
+        } else {
+          const buffer = Buffer.from(mediaMessage.media, 'base64');
+          formData.append('file', buffer, {
+            filename: mediaMessage.fileName || 'media',
+            contentType: mediaMessage.mimetype,
+          });
+        }
+      } else {
+        formData.append('file', mediaMessage.media.buffer, {
+          filename: mediaMessage.media.originalname,
+          contentType: mediaMessage.media.mimetype,
+        });
+      }
 
-    formData.append('file', fileStream, { filename: 'media', contentType: mediaMessage.mimetype });
-    formData.append('typeFile', mediaMessage.mimetype);
-    formData.append('messaging_product', 'whatsapp');
+      const mimetype = mediaMessage.mimetype || mediaMessage.media.mimetype;
 
-    // const fileBuffer = await fs.readFile(mediaMessage.media);
+      formData.append('typeFile', mimetype);
+      formData.append('messaging_product', 'whatsapp');
 
-    // const fileBlob = new Blob([fileBuffer], { type: mediaMessage.mimetype });
-    // formData.append('file', fileBlob);
-    // formData.append('typeFile', mediaMessage.mimetype);
-    // formData.append('messaging_product', 'whatsapp');
+      const token = this.token;
 
-    const headers = { Authorization: `Bearer ${this.token}` };
-    const res = await axios.post(
-      process.env.API_URL + '/' + process.env.VERSION + '/' + this.number + '/media',
-      formData,
-      { headers },
-    );
-    return res.data.id;
+      const headers = { Authorization: `Bearer ${token}` };
+      const url = `${this.configService.get<WaBusiness>('WA_BUSINESS').URL}/${
+        this.configService.get<WaBusiness>('WA_BUSINESS').VERSION
+      }/${this.number}/media`;
+
+      const res = await axios.post(url, formData, { headers });
+      return res.data.id;
+    } catch (error) {
+      this.logger.error(error.response.data);
+      throw new InternalServerErrorException(error?.toString() || error);
+    }
   }
 
   protected async prepareMediaMessage(mediaMessage: MediaMessage) {
@@ -1070,48 +1280,87 @@ export class BusinessStartupService extends ChannelStartupService {
     return mediaSent;
   }
 
-  public async processAudio(audio: string, number: string) {
+  public async processAudio(audio: string, number: string, file: any) {
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
 
-    let mimetype: string | false;
+    if (process.env.API_AUDIO_CONVERTER) {
+      this.logger.verbose('Using audio converter API');
+      const formData = new FormData();
 
-    const prepareMedia: any = {
-      fileName: `${hash}.mp3`,
-      mediaType: 'audio',
-      media: audio,
-    };
+      if (file) {
+        formData.append('file', file.buffer, {
+          filename: file.originalname,
+          contentType: file.mimetype,
+        });
+      } else if (isURL(audio)) {
+        formData.append('url', audio);
+      } else {
+        formData.append('base64', audio);
+      }
 
-    if (isURL(audio)) {
-      mimetype = mimeTypes.lookup(audio);
-      prepareMedia.id = audio;
-      prepareMedia.type = 'link';
-    } else {
-      mimetype = mimeTypes.lookup(prepareMedia.fileName);
+      formData.append('format', 'mp3');
+
+      const response = await axios.post(process.env.API_AUDIO_CONVERTER, formData, {
+        headers: {
+          ...formData.getHeaders(),
+          apikey: process.env.API_AUDIO_CONVERTER_KEY,
+        },
+      });
+
+      const audioConverter = response?.data?.audio || response?.data?.url;
+
+      if (!audioConverter) {
+        throw new InternalServerErrorException('Failed to convert audio');
+      }
+
+      const prepareMedia: any = {
+        fileName: `${hash}.mp3`,
+        mediaType: 'audio',
+        media: audioConverter,
+        mimetype: 'audio/mpeg',
+      };
+
       const id = await this.getIdMedia(prepareMedia);
       prepareMedia.id = id;
       prepareMedia.type = 'id';
+
+      this.logger.verbose('Audio converted');
+      return prepareMedia;
+    } else {
+      let mimetype: string | false;
+
+      const prepareMedia: any = {
+        fileName: `${hash}.mp3`,
+        mediaType: 'audio',
+        media: audio,
+      };
+
+      if (isURL(audio)) {
+        mimetype = mimeTypes.lookup(audio);
+        prepareMedia.id = audio;
+        prepareMedia.type = 'link';
+      } else if (audio && !file) {
+        mimetype = mimeTypes.lookup(prepareMedia.fileName);
+        const id = await this.getIdMedia(prepareMedia);
+        prepareMedia.id = id;
+        prepareMedia.type = 'id';
+      } else if (file) {
+        prepareMedia.media = file;
+        const id = await this.getIdMedia(prepareMedia, true);
+        prepareMedia.id = id;
+        prepareMedia.type = 'id';
+        mimetype = file.mimetype;
+      }
+
+      prepareMedia.mimetype = mimetype;
+
+      return prepareMedia;
     }
-
-    prepareMedia.mimetype = mimetype;
-
-    return prepareMedia;
   }
 
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
-    const mediaData: SendAudioDto = { ...data };
-
-    if (file?.buffer) {
-      mediaData.audio = file.buffer.toString('base64');
-    } else if (isURL(mediaData.audio)) {
-      // DO NOTHING
-      // mediaData.audio = mediaData.audio;
-    } else {
-      console.error('El archivo no tiene buffer o file es undefined');
-      throw new Error('File or buffer is undefined');
-    }
-
-    const message = await this.processAudio(mediaData.audio, data.number);
+    const message = await this.processAudio(data.audio, data.number, file);
 
     const audioSent = await this.sendMessageWithTyping(
       data.number,
