@@ -59,9 +59,7 @@ async function bootstrap() {
   app.set('view engine', 'hbs');
   app.set('views', join(ROOT_DIR, 'views'));
   app.use(express.static(join(ROOT_DIR, 'public')));
-
   app.use('/store', express.static(join(ROOT_DIR, 'store')));
-
   app.use('/', router);
 
   app.use(
@@ -69,10 +67,9 @@ async function bootstrap() {
       if (err) {
         const webhook = configService.get<Webhook>('WEBHOOK');
 
-        if (webhook.EVENTS.ERRORS_WEBHOOK && webhook.EVENTS.ERRORS_WEBHOOK != '' && webhook.EVENTS.ERRORS) {
-          const tzoffset = new Date().getTimezoneOffset() * 60000; //offset in milliseconds
+        if (webhook.EVENTS.ERRORS_WEBHOOK && webhook.EVENTS.ERRORS_WEBHOOK !== '' && webhook.EVENTS) {
+          const tzoffset = new Date().getTimezoneOffset() * 60000;
           const localISOTime = new Date(Date.now() - tzoffset).toISOString();
-          const now = localISOTime;
           const globalApiKey = configService.get<Auth>('AUTHENTICATION').API_KEY.KEY;
           const serverUrl = configService.get<HttpServer>('SERVER').URL;
 
@@ -86,17 +83,14 @@ async function bootstrap() {
                 message: err['message'] || 'Internal Server Error',
               },
             },
-            date_time: now,
+            date_time: localISOTime,
             api_key: globalApiKey,
             server_url: serverUrl,
           };
 
           logger.error(errorData);
-
           const baseURL = webhook.EVENTS.ERRORS_WEBHOOK;
-          const httpService = axios.create({ baseURL });
-
-          httpService.post('', errorData);
+          axios.create({ baseURL }).post('', errorData);
         }
 
         return res.status(err['status'] || 500).json({
@@ -112,7 +106,6 @@ async function bootstrap() {
     },
     (req: Request, res: Response, next: NextFunction) => {
       const { method, url } = req;
-
       res.status(HttpStatus.NOT_FOUND).json({
         status: HttpStatus.NOT_FOUND,
         error: 'Not Found',
@@ -120,12 +113,12 @@ async function bootstrap() {
           message: [`Cannot ${method.toUpperCase()} ${url}`],
         },
       });
-
       next();
     },
   );
 
   const httpServer = configService.get<HttpServer>('SERVER');
+  const PORT = process.env.PORT || httpServer.PORT || 8080;
 
   ServerUP.app = app;
   let server = ServerUP[httpServer.TYPE];
@@ -133,7 +126,6 @@ async function bootstrap() {
   if (server === null) {
     logger.warn('SSL cert load failed — falling back to HTTP.');
     logger.info("Ensure 'SSL_CONF_PRIVKEY' and 'SSL_CONF_FULLCHAIN' env vars point to valid certificate files.");
-
     httpServer.TYPE = 'http';
     server = ServerUP[httpServer.TYPE];
   }
@@ -142,16 +134,14 @@ async function bootstrap() {
 
   if (process.env.SENTRY_DSN) {
     logger.info('Sentry - ON');
-
-    // Add this after all routes,
-    // but before any and other error-handling middlewares are defined
     Sentry.setupExpressErrorHandler(app);
   }
 
-  server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
+  server.listen(PORT, () => {
+    logger.log(`${httpServer.TYPE.toUpperCase()} - ON: ${PORT}`);
+  });
 
   initWA();
-
   onUnexpectedError();
 }
 
