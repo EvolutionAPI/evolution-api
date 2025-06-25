@@ -236,15 +236,15 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
     if (!data.name) throw new BadRequestException('Name is required');
 
     // Check if API key already exists
-    const existingApiKey = await this.credsRepository.findFirst({
-      where: {
-        apiKey: data.apiKey,
-      },
-    });
+    // const existingApiKey = await this.credsRepository.findFirst({
+    //   where: {
+    //     apiKey: data.apiKey,
+    //   },
+    // });
 
-    if (existingApiKey) {
-      throw new BadRequestException('This API key is already registered. Please use a different API key.');
-    }
+    // if (existingApiKey) {
+    //   throw new BadRequestException('This API key is already registered. Please use a different API key.');
+    // }
 
     // Check if name already exists for this instance
     const existingName = await this.credsRepository.findFirst({
