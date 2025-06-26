@@ -197,6 +197,9 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
    * Apply rich text formatting for TypeBot messages
    */
   private applyFormatting(element: any): string {
+    if (typeof element === 'string') return element;
+    if (!element) return '';
+
     let text = '';
 
     if (element.text) {
