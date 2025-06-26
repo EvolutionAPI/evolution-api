@@ -9,6 +9,16 @@ import axios from 'axios';
 import { BaseChatbotService } from '../../base-chatbot.service';
 import { OpenaiService } from '../../openai/services/openai.service';
 
+interface RichTextNode {
+  text?: string;
+  type?: string;
+  children?: RichTextNode[];
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  url?: string;
+}
+
 export class TypebotService extends BaseChatbotService<TypebotModel, any> {
   private openaiService: OpenaiService;
 
@@ -196,9 +206,8 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
   /**
    * Apply rich text formatting for TypeBot messages
    */
-  private applyFormatting(element: any): string {
-    if (typeof element === 'string') return element;
-    if (!element) return '';
+  private applyFormatting(element: string | RichTextNode | undefined): string {
+    if (!element || typeof element === 'string') return element || '';
 
     let text = '';
 
