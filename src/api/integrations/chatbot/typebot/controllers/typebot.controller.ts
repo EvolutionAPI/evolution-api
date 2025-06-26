@@ -119,7 +119,7 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
 
     const instanceData = await this.prismaRepository.instance.findFirst({
       where: {
-        id: instance.instanceName,
+        name: instance.instanceName,
       },
     });
 
