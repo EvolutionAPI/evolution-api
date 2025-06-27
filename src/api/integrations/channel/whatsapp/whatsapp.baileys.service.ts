@@ -3253,8 +3253,8 @@ export class BaileysStartupService extends ChannelStartupService {
             typeof numberVerified?.lid === 'string'
               ? numberVerified.lid
               : numberJid.includes('@lid')
-              ? numberJid.split('@')[1]
-              : undefined;
+                ? numberJid.split('@')[1]
+                : undefined;
           return new OnWhatsAppDto(
             numberJid,
             !!numberVerified?.exists,
@@ -3452,7 +3452,7 @@ export class BaileysStartupService extends ChannelStartupService {
     return map[mediaType] || null;
   }
 
-    public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto, getBuffer = false) {
+  public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto, getBuffer = false) {
     try {
       const m = data?.message;
       const convertToMp4 = data?.convertToMp4 ?? false;
