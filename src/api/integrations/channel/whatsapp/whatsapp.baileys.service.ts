@@ -99,6 +99,7 @@ import makeWASocket, {
   Contact,
   delay,
   DisconnectReason,
+  downloadContentFromMessage,
   downloadMediaMessage,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
@@ -1035,6 +1036,16 @@ export class BaileysStartupService extends ChannelStartupService {
     ) => {
       try {
         for (const received of messages) {
+          if (
+            received?.messageStubParameters?.some?.((param) =>
+              ['No matching sessions found for message', 'Bad MAC', 'failed to decrypt message', 'SessionError'].some(
+                (err) => param?.includes?.(err),
+              ),
+            )
+          ) {
+            this.logger.warn(`Message ignored with messageStubParameters: ${JSON.stringify(received, null, 2)}`);
+            continue;
+          }
           if (received.message?.conversation || received.message?.extendedTextMessage?.text) {
             const text = received.message?.conversation || received.message?.extendedTextMessage?.text;
 
@@ -3242,8 +3253,8 @@ export class BaileysStartupService extends ChannelStartupService {
             typeof numberVerified?.lid === 'string'
               ? numberVerified.lid
               : numberJid.includes('@lid')
-                ? numberJid.split('@')[1]
-                : undefined;
+              ? numberJid.split('@')[1]
+              : undefined;
           return new OnWhatsAppDto(
             numberJid,
             !!numberVerified?.exists,
@@ -3429,7 +3440,19 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto, getBuffer = false) {
+  public async mapMediaType(mediaType) {
+    const map = {
+      imageMessage: 'image',
+      videoMessage: 'video',
+      documentMessage: 'document',
+      stickerMessage: 'sticker',
+      audioMessage: 'audio',
+      ptvMessage: 'video',
+    };
+    return map[mediaType] || null;
+  }
+
+    public async getBase64FromMediaMessage(data: getBase64FromMediaMessageDto, getBuffer = false) {
     try {
       const m = data?.message;
       const convertToMp4 = data?.convertToMp4 ?? false;
@@ -3469,12 +3492,39 @@ export class BaileysStartupService extends ChannelStartupService {
         msg.message = JSON.parse(JSON.stringify(msg.message));
       }
 
-      const buffer = await downloadMediaMessage(
-        { key: msg?.key, message: msg?.message },
-        'buffer',
-        {},
-        { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
-      );
+      let buffer: Buffer;
+
+      try {
+        buffer = await downloadMediaMessage(
+          { key: msg?.key, message: msg?.message },
+          'buffer',
+          {},
+          { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
+        );
+      } catch (err) {
+        this.logger.error('Download Media failed, trying to retry in 5 seconds...');
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        const mediaType = Object.keys(msg.message).find((key) => key.endsWith('Message'));
+        try {
+          const media = await downloadContentFromMessage(
+            {
+              mediaKey: msg.message?.[mediaType]?.mediaKey,
+              directPath: msg.message?.[mediaType]?.directPath,
+              url: `https://mmg.whatsapp.net${msg?.message?.[mediaType]?.directPath}`,
+            },
+            await this.mapMediaType(mediaType),
+            {},
+          );
+          const chunks = [];
+          for await (const chunk of media) {
+            chunks.push(chunk);
+          }
+          buffer = Buffer.concat(chunks);
+          this.logger.info('Download Media with downloadContentFromMessage was successful!');
+        } catch (fallbackErr) {
+          this.logger.error('Download Media with downloadContentFromMessage also failed!');
+        }
+      }
       const typeMessage = getContentType(msg.message);
 
       const ext = mimeTypes.extension(mediaMessage?.['mimetype']);
