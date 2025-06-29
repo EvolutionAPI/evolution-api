@@ -47,10 +47,9 @@ services:
       - -c
       - listen_addresses=*
     environment:
-      POSTGRES_DB:             ${POSTGRES_DATABASE}
-      POSTGRES_USER:           ${POSTGRES_USERNAME}
-      POSTGRES_PASSWORD:       ${POSTGRES_PASSWORD}
-      POSTGRES_HOST_AUTH_METHOD: trust
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
