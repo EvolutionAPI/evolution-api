@@ -7,7 +7,7 @@ services:
     restart: always
     depends_on:
       - redis
-      - postgres
+      - evolution-postgres
     ports:
       - "8080:8080"
     volumes:
@@ -21,48 +21,43 @@ services:
       - "8080"
 
   redis:
+    container_name: evolution_redis
     image: redis:latest
-    container_name: redis
+    restart: always
     command: >
       redis-server --port 6379 --appendonly yes
     volumes:
       - evolution_redis:/data
-    ports:
-      - "6379:6379"
-    expose:
-      - "6379"
     networks:
       - evolution-net
       - dokploy-network
+    expose:
+      - "6379"
 
-  postgres:
-    container_name: postgres
+  evolution-postgres:
+    container_name: evolution_postgres
     image: postgres:15
+    restart: always
+    env_file:
+      - .env
     command:
       - postgres
       - -c
       - max_connections=1000
       - -c
       - listen_addresses=*
-    restart: always
-    ports:
-      - "5432:5432"
     environment:
-      - POSTGRES_DB=${POSTGRES_DATABASE}
-      - POSTGRES_USER=${POSTGRES_USERNAME}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_HOST_AUTH_METHOD=trust
+      POSTGRES_DB:             ${POSTGRES_DATABASE}
+      POSTGRES_USER:           ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD:       ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution-net
+      - dokploy-network
     expose:
       - "5432"
-    networks:
-      evolution-net:
-        aliases:
-          - evolution-postgres
-      dokploy-network:
-        aliases:
-          - evolution-postgres
 
 volumes:
   evolution_instances:
