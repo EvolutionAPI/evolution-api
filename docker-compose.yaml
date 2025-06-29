@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   api:
     container_name: evolution_api
@@ -7,37 +9,44 @@ services:
       - redis
       - postgres
     ports:
-      - 8080:8080
+      - "8080:8080"
     volumes:
       - evolution_instances:/evolution/instances
     networks:
       - evolution-net
+      - dokploy-network
     env_file:
       - .env
     expose:
-      - 8080
+      - "8080"
 
   redis:
     image: redis:latest
-    networks:
-      - evolution-net
     container_name: redis
     command: >
       redis-server --port 6379 --appendonly yes
     volumes:
       - evolution_redis:/data
     ports:
-      - 6379:6379
+      - "6379:6379"
+    expose:
+      - "6379"
+    networks:
+      - evolution-net
+      - dokploy-network
 
   postgres:
     container_name: postgres
     image: postgres:15
-    networks:
-      - evolution-net
-    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+    command:
+      - postgres
+      - -c
+      - max_connections=1000
+      - -c
+      - listen_addresses=*
     restart: always
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
       - POSTGRES_DB=${POSTGRES_DATABASE}
       - POSTGRES_USER=${POSTGRES_USERNAME}
@@ -46,15 +55,19 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     expose:
-      - 5432
+      - "5432"
+    networks:
+      - evolution-net
+      - dokploy-network
 
 volumes:
   evolution_instances:
   evolution_redis:
   postgres_data:
 
-
 networks:
   evolution-net:
     name: evolution-net
     driver: bridge
+  dokploy-network:
+    external: true
