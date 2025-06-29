@@ -29,8 +29,12 @@ services:
     volumes:
       - evolution_redis:/data
     networks:
-      - evolution-net
-      - dokploy-network
+      evolution-net:
+        aliases:
+          - evolution-redis
+      dokploy-network:
+        aliases:
+          - evolution-redis
     expose:
       - "6379"
 
