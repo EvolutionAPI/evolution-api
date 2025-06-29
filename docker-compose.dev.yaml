@@ -1,13 +1,12 @@
 services:
   api:
-    container_name: evolution_api
+    container_name: api
     image: evolution/api:local
     build: .
-    restart: always
     ports:
       - 8080:8080
     volumes:
-      - evolution_instances:/evolution/instances
+      - instances:/evolution/instances
     networks:
       - evolution-net
     env_file:
@@ -15,8 +14,31 @@ services:
     expose:
       - 8080
 
+  api_db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=evolution
+    networks:
+      - evolution-net
+    volumes:
+      - api_db:/var/lib/postgresql/data
+
+
+  api_redis:
+    image: redis:7.2.5-alpine
+    networks:
+      - evolution-net
+    command: redis-server --port 6379 --appendonly yes
+    volumes:
+      - api_redis:/data      
+ 
+
 volumes:
-  evolution_instances:
+  instances:
+  api_redis:
+  api_db:
 
 
 networks:
