@@ -29,6 +29,7 @@ services:
 
   api_redis:
     image: redis:7.2.5-alpine
+    restart: unless-stopped
     networks:
       - evolution-net
     command: redis-server --port 6379 --appendonly yes
