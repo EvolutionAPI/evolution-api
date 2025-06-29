@@ -3,6 +3,7 @@ services:
     container_name: evolution_api
     image: evolution/api:local
     build: .
+    restart: always
     ports:
       - 8080:8080
     volumes:
