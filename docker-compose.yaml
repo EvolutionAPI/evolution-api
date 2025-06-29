@@ -57,8 +57,12 @@ services:
     expose:
       - "5432"
     networks:
-      - evolution-net
-      - dokploy-network
+      evolution-net:
+        aliases:
+          - evolution-postgres
+      dokploy-network:
+        aliases:
+          - evolution-postgres
 
 volumes:
   evolution_instances:
