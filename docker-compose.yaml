@@ -36,7 +36,7 @@ services:
 
   evolution-postgres:
     container_name: evolution_postgres
-    image: postgres:16-alpine
+    image: postgres:15
     restart: always
     env_file:
       - .env
