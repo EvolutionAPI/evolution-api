@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
 
 RUN apk update && \
     apk add git ffmpeg wget curl bash openssl
@@ -8,6 +8,8 @@ LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@atendai.com"
 
 WORKDIR /evolution
+
+FROM base AS builder
 
 COPY ./package.json ./tsconfig.json ./
 
@@ -28,6 +30,17 @@ RUN chmod +x ./Docker/scripts/* && dos2unix ./Docker/scripts/*
 RUN ./Docker/scripts/generate_database.sh
 
 RUN npm run build
+
+FROM base AS dev
+
+RUN apk update && \
+    apk add git ffmpeg wget curl bash openssl
+
+COPY . .
+
+RUN npm install
+
+ENTRYPOINT ["/bin/bash", "-c", "npm run dev:server" ]
 
 FROM node:20-alpine AS final
 

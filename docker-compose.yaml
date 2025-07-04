@@ -1,7 +1,10 @@
 services:
   api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
     container_name: evolution_api
-    image: atendai/evolution-api:homolog
     restart: always
     depends_on:
       - redis
@@ -34,13 +37,13 @@ services:
     image: postgres:15
     networks:
       - evolution-net
-    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+    #command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
     restart: always
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
+      - POSTGRES_USER=evolution
+      - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=evolution
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
