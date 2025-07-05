@@ -2,7 +2,7 @@ import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Auth, ConfigService, HttpServer, Typebot } from '@config/env.config';
 import { Instance, IntegrationSession, Message, Typebot as TypebotModel } from '@prisma/client';
-import { getConversationMessage } from '@utils/getConversationMessage';
+import { getConversationMessage, getTypeMessage } from '@utils/getConversationMessage';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
 
@@ -97,6 +97,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
             ...data.prefilledVariables,
             remoteJid: data.remoteJid,
             pushName: data.pushName || data.prefilledVariables?.pushName || '',
+            messageType: data.prefilledVariables?.messageType,
             instanceName: instance.name,
             serverUrl: this.configService.get<HttpServer>('SERVER').URL,
             apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
@@ -113,6 +114,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
               ...data.prefilledVariables,
               remoteJid: data.remoteJid,
               pushName: data.pushName || data.prefilledVariables?.pushName || '',
+              messageType: data.prefilledVariables?.messageType,
               instanceName: instance.name,
               serverUrl: this.configService.get<HttpServer>('SERVER').URL,
               apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
@@ -135,6 +137,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
               ...data.prefilledVariables,
               remoteJid: data.remoteJid,
               pushName: data.pushName || '',
+              messageType: data.prefilledVariables?.messageType,
               instanceName: instance.name,
               serverUrl: this.configService.get<HttpServer>('SERVER').URL,
               apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
@@ -600,20 +603,23 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           });
         }
 
-        const data = await this.createNewSession(instance, {
-          enabled: findTypebot?.enabled,
-          url: url,
-          typebot: typebot,
-          expire: expire,
-          keywordFinish: keywordFinish,
-          delayMessage: delayMessage,
-          unknownMessage: unknownMessage,
-          listeningFromMe: listeningFromMe,
-          remoteJid: remoteJid,
-          pushName: msg.pushName,
-          botId: findTypebot.id,
-          prefilledVariables: prefilledVariables,
-        });
+      const data = await this.createNewSession(instance, {
+        enabled: findTypebot?.enabled,
+        url: url,
+        typebot: typebot,
+        expire: expire,
+        keywordFinish: keywordFinish,
+        delayMessage: delayMessage,
+        unknownMessage: unknownMessage,
+        listeningFromMe: listeningFromMe,
+        remoteJid: remoteJid,
+        pushName: msg.pushName,
+        botId: findTypebot.id,
+        prefilledVariables: {
+          ...prefilledVariables,
+          messageType: getTypeMessage(msg).messageType,
+        },
+      });
 
         if (data?.session) {
           session = data.session;
@@ -667,12 +673,20 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
               urlTypebot = `${url}/api/v1/sessions/${data?.sessionId}/continueChat`;
               reqData = {
                 message: content,
+                instanceName: instance.name,
+                apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+                pushName: msg?.pushName,
+                messageType: getTypeMessage(msg).messageType,
               };
             } else {
               urlTypebot = `${url}/api/v1/sendMessage`;
               reqData = {
                 message: content,
                 sessionId: data?.sessionId,
+                instanceName: instance.name,
+                apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+                pushName: msg?.pushName,
+                messageType: getTypeMessage(msg).messageType,
               };
             }
 
@@ -743,7 +757,10 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         remoteJid: remoteJid,
         pushName: msg?.pushName,
         botId: findTypebot.id,
-        prefilledVariables: prefilledVariables,
+        prefilledVariables: {
+          ...prefilledVariables,
+          messageType: getTypeMessage(msg).messageType,
+        },
       });
 
       if (data?.session) {
@@ -818,12 +835,20 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
             urlTypebot = `${url}/api/v1/sessions/${data?.sessionId}/continueChat`;
             reqData = {
               message: content,
+              instanceName: instance.name,
+              apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+              pushName: msg?.pushName,
+              messageType: getTypeMessage(msg).messageType,
             };
           } else {
             urlTypebot = `${url}/api/v1/sendMessage`;
             reqData = {
               message: content,
               sessionId: data?.sessionId,
+              instanceName: instance.name,
+              apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+              pushName: msg?.pushName,
+              messageType: getTypeMessage(msg).messageType,
             };
           }
           request = await axios.post(urlTypebot, reqData);
@@ -904,17 +929,25 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
     // Continue existing chat
     const version = this.configService.get<Typebot>('TYPEBOT').API_VERSION;
     let urlTypebot: string;
-    let reqData: { message: string; sessionId?: string };
+    let reqData: any;
     if (version === 'latest') {
       urlTypebot = `${url}/api/v1/sessions/${session.sessionId.split('-')[1]}/continueChat`;
       reqData = {
         message: content,
+        instanceName: instance.name,
+        apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        pushName: msg?.pushName,
+        messageType: getTypeMessage(msg).messageType,
       };
     } else {
       urlTypebot = `${url}/api/v1/sendMessage`;
       reqData = {
         message: content,
         sessionId: session.sessionId.split('-')[1],
+        instanceName: instance.name,
+        apiKey: this.configService.get<Auth>('AUTHENTICATION').API_KEY.KEY,
+        pushName: msg?.pushName,
+        messageType: getTypeMessage(msg).messageType,
       };
     }
 
