@@ -3505,6 +3505,8 @@ export class BaileysStartupService extends ChannelStartupService {
         this.logger.error('Download Media failed, trying to retry in 5 seconds...');
         await new Promise((resolve) => setTimeout(resolve, 5000));
         const mediaType = Object.keys(msg.message).find((key) => key.endsWith('Message'));
+        if (!mediaType) throw new Error('Could not determine mediaType for fallback');
+
         try {
           const media = await downloadContentFromMessage(
             {
@@ -3523,6 +3525,7 @@ export class BaileysStartupService extends ChannelStartupService {
           this.logger.info('Download Media with downloadContentFromMessage was successful!');
         } catch (fallbackErr) {
           this.logger.error('Download Media with downloadContentFromMessage also failed!');
+          throw fallbackErr;
         }
       }
       const typeMessage = getContentType(msg.message);
