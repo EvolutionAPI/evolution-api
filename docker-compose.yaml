@@ -16,8 +16,6 @@ services:
       - evolution_instances:/evolution/instances
     networks:
       - evolution-net
-    env_file:
-      - .env
     expose:
       - 8080
 
