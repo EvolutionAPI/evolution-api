@@ -15,8 +15,10 @@ import { ServerUP } from '@utils/server-up';
 import axios from 'axios';
 import compression from 'compression';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import express, { json, NextFunction, Request, Response, urlencoded } from 'express';
 import { join } from 'path';
+dotenv.config();
 
 function initWA() {
   waMonitor.loadInstance();

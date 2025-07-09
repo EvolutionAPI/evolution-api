@@ -54,6 +54,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@figuro/chatwoot-sdk": "^1.1.16",
     "@hapi/boom": "^10.0.1",
+    "@nestjs/event-emitter": "^3.0.1",
     "@paralleldrive/cuid2": "^2.2.2",
     "@prisma/client": "^6.1.0",
     "@sentry/node": "^8.47.0",

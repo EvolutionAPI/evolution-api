@@ -51,6 +51,8 @@ export class InstanceDto extends IntegrationDto {
   chatwootSignMsg?: boolean;
   chatwootToken?: string;
   chatwootUrl?: string;
+  phoneNumberId?: string;
+  name?: string;
 }
 
 export class SetPresenceDto {

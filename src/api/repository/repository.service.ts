@@ -10,6 +10,11 @@ export class Query<T> {
 }
 
 export class PrismaRepository extends PrismaClient {
+  message: any;
+  media: any;
+  openaiSetting: any;
+  contact: any;
+  messageUpdate: any;
   constructor(private readonly configService: ConfigService) {
     super();
   }

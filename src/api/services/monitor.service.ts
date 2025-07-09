@@ -12,6 +12,7 @@ import EventEmitter2 from 'eventemitter2';
 import { rmSync } from 'fs';
 import { join } from 'path';
 
+import { ChatwootService } from '../../api/integrations/chatbot/chatwoot/services/chatwoot.service';
 import { CacheService } from './cache.service';
 
 export class WAMonitoringService {
@@ -144,7 +145,7 @@ export class WAMonitoringService {
 
       if (findInstance) {
         const instance = await this.prismaRepository.instance.update({
-          where: { name: instanceName },
+          where: { id: findInstance.id },
           data: { connectionStatus: 'close' },
         });
 
@@ -220,9 +221,17 @@ export class WAMonitoringService {
   public async saveInstance(data: any) {
     try {
       const clientName = await this.configService.get<Database>('DATABASE').CONNECTION.CLIENT_NAME;
-      await this.prismaRepository.instance.create({
-        data: {
-          id: data.instanceId,
+
+      // Pegue o token do .env/config
+      const token = process.env.SERPRO_CLIENT_SECRET;
+
+      // Garanta que nome está preenchido!
+      if (!data.instanceName) throw new Error('instanceName é obrigatório no saveInstance!');
+
+      await this.prismaRepository.instance.upsert({
+        where: { name: data.instanceName },
+        create: {
+          id: data.instanceId || data.instanceName, // sempre defina!
           name: data.instanceName,
           ownerJid: data.ownerJid,
           profileName: data.profileName,
@@ -231,7 +240,19 @@ export class WAMonitoringService {
             data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : (data.status ?? 'open'),
           number: data.number,
           integration: data.integration || Integration.WHATSAPP_BAILEYS,
-          token: data.hash,
+          token: token, // PEGA DO ENV!
+          clientName: clientName,
+          businessId: data.businessId,
+        },
+        update: {
+          ownerJid: data.ownerJid,
+          profileName: data.profileName,
+          profilePicUrl: data.profilePicUrl,
+          connectionStatus:
+            data.integration && data.integration === Integration.WHATSAPP_BAILEYS ? 'close' : (data.status ?? 'open'),
+          number: data.number,
+          integration: data.integration || Integration.WHATSAPP_BAILEYS,
+          token: token, // ATUALIZA DO ENV!
           clientName: clientName,
           businessId: data.businessId,
         },

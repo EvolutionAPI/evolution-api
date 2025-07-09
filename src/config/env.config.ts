@@ -317,6 +317,11 @@ export interface Env {
   S3?: S3;
   AUTHENTICATION: Auth;
   PRODUCTION?: Production;
+  SERPRO: {
+    API_BASE_URL: string;
+    CLIENT_ID: string;
+    CLIENT_SECRET: string;
+  };
 }
 
 export type Key = keyof Env;
@@ -660,6 +665,11 @@ export class ConfigService {
           KEY: process.env.AUTHENTICATION_API_KEY || 'BQYHJGJHJ',
         },
         EXPOSE_IN_FETCH_INSTANCES: process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
+      },
+      SERPRO: {
+        API_BASE_URL: process.env.SERPRO_API_BASE_URL || '',
+        CLIENT_ID: process.env.SERPRO_CLIENT_ID || '',
+        CLIENT_SECRET: process.env.SERPRO_CLIENT_SECRET || '',
       },
     };
   }
