@@ -1,0 +1,25 @@
+version: "3.7"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+    container_name: evolution_api
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - Docker
+    expose:
+      - 8080
+
+volumes:
+  evolution_instances:
+
+networks:
+  Docker: ## Nome da rede interna
+    external: true
+    name: Docker ## Nome da rede interna
