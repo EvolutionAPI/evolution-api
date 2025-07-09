@@ -568,7 +568,7 @@ export class ChatwootService {
 
   public async createConversation(instance: InstanceDto, body: any) {
     const isLid = body.key.previousRemoteJid?.includes('@lid') && body.key.senderPn;
-    const remoteJid = isLid ? body.key.senderPn : body.key.remoteJid;
+    const remoteJid = body.key.remoteJid;
     const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
     const lockKey = `${instance.instanceName}:lock:createConversation-${remoteJid}`;
     const maxWaitTime = 5000; // 5 secounds
@@ -576,8 +576,7 @@ export class ChatwootService {
     try {
       // Processa atualização de contatos já criados @lid
       if (
-        body.key.previousRemoteJid?.includes('@lid') &&
-        body.key.senderPn &&
+        isLid &&
         body.key.senderPn !== body.key.previousRemoteJid
       ) {
         const contact = await this.findContact(instance, body.key.remoteJid.split('@')[0]);
