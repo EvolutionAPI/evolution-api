@@ -15,14 +15,14 @@ services:
     volumes:
       - evolution_instances:/evolution/instances
     networks:
-      - evolution-net
+      - Docker
     expose:
       - 8080
 
   redis:
     image: redis:latest
     networks:
-      - evolution-net
+      - Docker
     container_name: redis
     command: >
       redis-server --port 6379 --appendonly yes
@@ -35,7 +35,7 @@ services:
     container_name: postgres
     image: postgres:15
     networks:
-      - evolution-net
+      - Docker
     #command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
     restart: always
     ports:
@@ -57,6 +57,6 @@ volumes:
 
 
 networks:
-  evolution-net:
-    name: evolution-net
-    driver: bridge
+  Docker: ## Nome da rede interna
+    external: true
+    name: Docker ## Nome da rede interna
