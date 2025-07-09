@@ -5,7 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: final
-    container_name: evolution_api
     restart: always
     volumes:
       - evolution_instances:/evolution/instances
