@@ -476,7 +476,7 @@ model OpenaiSetting {
   ignoreJids       Json?
   splitMessages    Boolean?     @default(false) @db.Boolean
   timePerChar      Int?         @default(50) @db.Integer
-  speechToText     Boolean?     @default(true) @db.Boolean
+  speechToText     Boolean?     @default(false) @db.Boolean
   createdAt        DateTime?    @default(now()) @db.Timestamp
   updatedAt        DateTime     @updatedAt @db.Timestamp
   OpenaiCreds      OpenaiCreds? @relation(fields: [openaiCredsId], references: [id])
