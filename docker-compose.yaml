@@ -54,22 +54,22 @@ services:
     volumes:
     - postgres_data:/var/lib/postgresql/data
 
-  pgbouncer:
-    image: edoburu/pgbouncer:latest
-    environment:
-      DB_HOST: postgres
-      DB_USER: user
-      DB_PASSWORD: pass
-      POOL_MODE: transaction
-      AUTH_TYPE: trust
-      MAX_CLIENT_CONN: 1000
-      DEFAULT_POOL_SIZE: 25
-    depends_on:
-      - postgres
-    ports:
-      - "6543:5432"
-    networks:
-      - evolution-net
+  # pgbouncer:
+  #   image: edoburu/pgbouncer:latest
+  #   environment:
+  #     DB_HOST: postgres
+  #     DB_USER: user
+  #     DB_PASSWORD: pass
+  #     POOL_MODE: transaction
+  #     AUTH_TYPE: trust
+  #     MAX_CLIENT_CONN: 1000
+  #     DEFAULT_POOL_SIZE: 25
+  #   depends_on:
+  #     - postgres
+  #   ports:
+  #     - "6543:5432"
+  #   networks:
+  #     - evolution-net
 
 volumes:
   evolution_instances:
