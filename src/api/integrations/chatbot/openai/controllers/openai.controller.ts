@@ -184,7 +184,7 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
         keepOpen: data.keepOpen !== undefined ? data.keepOpen : false,
         debounceTime: data.debounceTime || 1,
         ignoreJids: data.ignoreJids || [],
-        speechToText: false,
+        speechToText: true,
       });
     } else if (!existingSettings.openaiCredsId && data.openaiCredsId) {
       // Update settings with OpenAI credentials if they're missing
