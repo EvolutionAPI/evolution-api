@@ -11,7 +11,8 @@ WORKDIR /evolution
 
 COPY ./package.json ./tsconfig.json ./
 
-RUN npm install
+RUN npm install --legacy-peer-deps
+
 
 COPY ./src ./src
 COPY ./public ./public
