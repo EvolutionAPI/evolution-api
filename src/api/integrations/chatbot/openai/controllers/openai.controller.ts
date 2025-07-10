@@ -267,6 +267,9 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
         },
       });
 
+      // Automatically set this credential as default in settings
+      await this.setCredentialAsDefault(instanceId, creds.id);
+
       return creds;
     } catch (error) {
       this.logger.error(error);
@@ -295,6 +298,64 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
     });
 
     return creds;
+  }
+
+  private async setCredentialAsDefault(instanceId: string, credentialId: string) {
+    try {
+      // Check if settings already exist for this instance
+      const existingSettings = await this.settingsRepository.findFirst({
+        where: {
+          instanceId: instanceId,
+        },
+      });
+
+      if (existingSettings) {
+        // Update existing settings to use the new credential as default
+        await this.settingsRepository.update({
+          where: {
+            id: existingSettings.id,
+          },
+          data: {
+            OpenaiCreds: {
+              connect: {
+                id: credentialId,
+              },
+            },
+          },
+        });
+      } else {
+        // Create new settings with the credential as default
+        await this.settingsRepository.create({
+          data: {
+            expire: 0,
+            keywordFinish: null,
+            delayMessage: 1000,
+            unknownMessage: 'Sorry, I dont understand',
+            listeningFromMe: true,
+            stopBotFromMe: true,
+            keepOpen: false,
+            debounceTime: 1,
+            ignoreJids: [],
+            splitMessages: false,
+            timePerChar: 50,
+            speechToText: true,
+            Instance: {
+              connect: {
+                id: instanceId,
+              },
+            },
+            OpenaiCreds: {
+              connect: {
+                id: credentialId,
+              },
+            },
+          },
+        });
+      }
+    } catch (error) {
+      this.logger.error(`Error setting credential as default: ${error}`);
+      // Don't throw here to avoid breaking the credential creation flow
+    }
   }
 
   public async deleteCreds(instance: InstanceDto, openaiCredsId: string) {
@@ -379,7 +440,7 @@ export class OpenaiController extends BaseChatbotController<OpenaiBot, OpenaiDto
               },
             }
           : undefined,
-        speechToText: data.speechToText,
+        speechToText: data.speechToText !== undefined ? data.speechToText : true,
       };
 
       if (existingSettings) {
