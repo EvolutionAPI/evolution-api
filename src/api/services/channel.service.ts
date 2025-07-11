@@ -738,6 +738,7 @@ export class ChannelStartupService {
           "Chat"."name" as "pushName",
           "Chat"."createdAt" as "windowStart",
           "Chat"."createdAt" + INTERVAL '24 hours' as "windowExpires",
+          "Chat"."unreadMessages" as "unreadMessages",
           CASE WHEN "Chat"."createdAt" + INTERVAL '24 hours' > NOW() THEN true ELSE false END as "windowActive",
           "Message"."id" AS lastMessageId,
           "Message"."key" AS lastMessage_key,
@@ -797,7 +798,7 @@ export class ChannelStartupService {
           windowExpires: contact.windowexpires,
           windowActive: contact.windowactive,
           lastMessage: lastMessage ? this.cleanMessageData(lastMessage) : undefined,
-          unreadCount: 0,
+          unreadCount: contact.unreadMessages,
           isSaved: !!contact.contactid,
         };
       });
@@ -812,5 +813,29 @@ export class ChannelStartupService {
     }
 
     return [];
+  }
+
+  public hasValidMediaContent(message: any): boolean {
+    if (!message?.message) return false;
+
+    const msg = message.message;
+
+    // Se só tem messageContextInfo, não é mídia válida
+    if (Object.keys(msg).length === 1 && 'messageContextInfo' in msg) {
+      return false;
+    }
+
+    // Verifica se tem pelo menos um tipo de mídia válido
+    const mediaTypes = [
+      'imageMessage',
+      'videoMessage',
+      'stickerMessage',
+      'documentMessage',
+      'documentWithCaptionMessage',
+      'ptvMessage',
+      'audioMessage',
+    ];
+
+    return mediaTypes.some((type) => msg[type] && Object.keys(msg[type]).length > 0);
   }
 }

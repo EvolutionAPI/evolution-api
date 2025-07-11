@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   evolution_v2:
-  image: atendai/evolution-api:v2.2.3
+    image: evoapicloud/evolution-api:v2.3.1
     volumes:
       - evolution_instances:/evolution/instances
     networks:
@@ -94,7 +94,7 @@ services:
       - WEBHOOK_EVENTS_ERRORS_WEBHOOK=
       - CONFIG_SESSION_PHONE_CLIENT=Evolution API V2
       - CONFIG_SESSION_PHONE_NAME=Chrome
-      - CONFIG_SESSION_PHONE_VERSION=2.3000.1023204200
+      #- CONFIG_SESSION_PHONE_VERSION=2.3000.1023204200
       - QRCODE_LIMIT=30
       - OPENAI_ENABLED=true
       - DIFY_ENABLED=true
