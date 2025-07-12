@@ -3437,16 +3437,34 @@ export class BaileysStartupService extends ChannelStartupService {
       let mediaMessage: any;
       let mediaType: string;
 
-      for (const type of TypeMediaMessage) {
-        mediaMessage = msg.message[type];
-        if (mediaMessage) {
-          mediaType = type;
-          break;
-        }
-      }
+      if (msg.message?.templateMessage) {
+        const template =
+          msg.message.templateMessage.hydratedTemplate || msg.message.templateMessage.hydratedFourRowTemplate;
 
-      if (!mediaMessage) {
-        throw 'The message is not of the media type';
+        for (const type of TypeMediaMessage) {
+          if (template[type]) {
+            mediaMessage = template[type];
+            mediaType = type;
+            msg.message = { [type]: { ...template[type], url: template[type].staticUrl } };
+            break;
+          }
+        }
+
+        if (!mediaMessage) {
+          throw 'Template message does not contain a supported media type';
+        }
+      } else {
+        for (const type of TypeMediaMessage) {
+          mediaMessage = msg.message[type];
+          if (mediaMessage) {
+            mediaType = type;
+            break;
+          }
+        }
+
+        if (!mediaMessage) {
+          throw 'The message is not of the media type';
+        }
       }
 
       if (typeof mediaMessage['mediaKey'] === 'object') {
