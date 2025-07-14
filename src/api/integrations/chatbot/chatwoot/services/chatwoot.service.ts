@@ -575,10 +575,7 @@ export class ChatwootService {
 
     try {
       // Processa atualização de contatos já criados @lid
-      if (
-        isLid &&
-        body.key.senderPn !== body.key.previousRemoteJid
-      ) {
+      if (isLid && body.key.senderPn !== body.key.previousRemoteJid) {
         const contact = await this.findContact(instance, body.key.remoteJid.split('@')[0]);
         if (contact && contact.identifier !== body.key.senderPn) {
           this.logger.verbose(
