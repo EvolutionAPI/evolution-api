@@ -123,7 +123,7 @@ import makeWASocket, {
   WABrowserDescription,
   WAMediaUpload,
   WAMessage,
-  WAMessageUpdate,
+  WAMessageKey,
   WAPresence,
   WASocket,
 } from 'baileys';
@@ -888,7 +888,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }: {
       chats: Chat[];
       contacts: Contact[];
-      messages: proto.IWebMessageInfo[];
+      messages: WAMessage[];
       isLatest?: boolean;
       progress?: number;
       syncType?: proto.HistorySync.HistorySyncType;
@@ -974,6 +974,10 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
+          if (m.key.remoteJid?.includes('@lid') && m.key.senderPn) {
+            m.key.remoteJid = m.key.senderPn;
+          }
+
           if (Long.isLong(m?.messageTimestamp)) {
             m.messageTimestamp = m.messageTimestamp?.toNumber();
           }
@@ -1031,16 +1035,24 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'messages.upsert': async (
-      { messages, type, requestId }: { messages: proto.IWebMessageInfo[]; type: MessageUpsertType; requestId?: string },
+      { messages, type, requestId }: { messages: WAMessage[]; type: MessageUpsertType; requestId?: string },
       settings: any,
     ) => {
       try {
         for (const received of messages) {
+          if (received.key.remoteJid?.includes('@lid') && received.key.senderPn) {
+            (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
+            received.key.remoteJid = received.key.senderPn;
+          }
           if (
             received?.messageStubParameters?.some?.((param) =>
-              ['No matching sessions found for message', 'Bad MAC', 'failed to decrypt message', 'SessionError'].some(
-                (err) => param?.includes?.(err),
-              ),
+              [
+                'No matching sessions found for message',
+                'Bad MAC',
+                'failed to decrypt message',
+                'SessionError',
+                'Invalid PreKey ID',
+              ].some((err) => param?.includes?.(err)),
             )
           ) {
             this.logger.warn(`Message ignored with messageStubParameters: ${JSON.stringify(received, null, 2)}`);
@@ -1375,7 +1387,7 @@ export class BaileysStartupService extends ChannelStartupService {
       }
     },
 
-    'messages.update': async (args: WAMessageUpdate[], settings: any) => {
+    'messages.update': async (args: { update: Partial<WAMessage>; key: WAMessageKey }[], settings: any) => {
       this.logger.log(`Update messages ${JSON.stringify(args, undefined, 2)}`);
 
       const readChatToUpdate: Record<string, true> = {}; // {remoteJid: true}
@@ -1383,6 +1395,10 @@ export class BaileysStartupService extends ChannelStartupService {
       for await (const { key, update } of args) {
         if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
           continue;
+        }
+
+        if (key.remoteJid?.includes('@lid') && key.senderPn) {
+          key.remoteJid = key.senderPn;
         }
 
         const updateKey = `${this.instance.id}_${key.id}_${update.status}`;
