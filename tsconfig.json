@@ -11,6 +11,7 @@
     "outDir": "./dist",
     "noEmitOnError": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "skipLibCheck": true,
