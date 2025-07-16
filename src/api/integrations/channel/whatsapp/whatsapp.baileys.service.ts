@@ -148,6 +148,7 @@ import sharp from 'sharp';
 import { PassThrough, Readable } from 'stream';
 import { v4 } from 'uuid';
 
+import { BaileysMessageProcessor } from './baileysMessage.processor';
 import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
@@ -213,6 +214,8 @@ async function getVideoDuration(input: Buffer | string | Readable): Promise<numb
 }
 
 export class BaileysStartupService extends ChannelStartupService {
+  private messageProcessor = new BaileysMessageProcessor();
+
   constructor(
     public readonly configService: ConfigService,
     public readonly eventEmitter: EventEmitter2,
@@ -224,6 +227,9 @@ export class BaileysStartupService extends ChannelStartupService {
   ) {
     super(configService, eventEmitter, prismaRepository, chatwootCache);
     this.instance.qrcode = { count: 0 };
+    this.messageProcessor.mount({
+      onMessageReceive: this.messageHandle['messages.upsert'].bind(this), // Bind the method to the current context
+    });
 
     this.authStateProvider = new AuthStateProvider(this.providerFiles);
   }
@@ -243,6 +249,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async logoutInstance() {
+    this.messageProcessor.onDestroy();
     await this.client?.logout('Log out instance: ' + this.instanceName);
 
     this.client?.ws?.close();
@@ -1653,7 +1660,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (events['messages.upsert']) {
           const payload = events['messages.upsert'];
-          this.messageHandle['messages.upsert'](payload, settings);
+
+          this.messageProcessor.processMessage(payload, settings);
+          // this.messageHandle['messages.upsert'](payload, settings);
         }
 
         if (events['messages.update']) {
