@@ -2101,7 +2101,7 @@ export class ChatwootService {
           const fileData = Buffer.from(imgBuffer.data, 'binary');
 
           const img = await Jimp.read(fileData);
-          await img.cover(320, 180);
+          img.cover({ w: 320, h: 180 });
 
           const processedBuffer = await img.getBuffer(JimpMime.png);
 
