@@ -1,4 +1,5 @@
 services:
+  
   api:
     container_name: evolution_api
     image: evoapicloud/evolution-api:latest
@@ -34,19 +35,41 @@ services:
     image: postgres:15
     networks:
       - evolution-net
-    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+    command: [
+      "postgres",
+      "-c", "max_connections=200",
+      "-c", "listen_addresses=*",
+      "-c", "shared_buffers=256MB",
+      "-c", "effective_cache_size=1GB",
+      "-c", "work_mem=4MB"
+    ]
     restart: always
     ports:
       - 5432:5432
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=pass
-      - POSTGRES_DB=evolution
+      - POSTGRES_DB=evolution_db
       - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    expose:
-      - 5432
+    - postgres_data:/var/lib/postgresql/data
+
+  # pgbouncer:
+  #   image: edoburu/pgbouncer:latest
+  #   environment:
+  #     DB_HOST: postgres
+  #     DB_USER: user
+  #     DB_PASSWORD: pass
+  #     POOL_MODE: transaction
+  #     AUTH_TYPE: trust
+  #     MAX_CLIENT_CONN: 1000
+  #     DEFAULT_POOL_SIZE: 25
+  #   depends_on:
+  #     - postgres
+  #   ports:
+  #     - "6543:5432"
+  #   networks:
+  #     - evolution-net
 
 volumes:
   evolution_instances:

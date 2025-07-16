@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
@@ -73,7 +73,7 @@
     "form-data": "^4.0.1",
     "https-proxy-agent": "^7.0.6",
     "i18next": "^23.7.19",
-    "jimp": "^0.16.13",
+    "jimp": "^1.6.0",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
@@ -96,9 +96,10 @@
     "qrcode-terminal": "^0.12.0",
     "redis": "^4.7.0",
     "rxjs": "^7.8.2",
-    "sharp": "^0.32.6",
+    "sharp": "^0.34.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "swagger-ui-express": "^5.0.1",
     "tsup": "^8.3.5"
   },
   "devDependencies": {

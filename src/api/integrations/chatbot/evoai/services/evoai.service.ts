@@ -70,7 +70,7 @@ export class EvoaiService extends BaseChatbotService<Evoai, EvoaiSetting> {
       }
 
       const callId = `req-${uuidv4().substring(0, 8)}`;
-      const messageId = msg?.key?.id || uuidv4();
+      const messageId = remoteJid.split('@')[0] || uuidv4(); // Use phone number as messageId
 
       // Prepare message parts
       const parts = [
