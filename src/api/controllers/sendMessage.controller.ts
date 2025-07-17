@@ -19,10 +19,12 @@ import { BadRequestException } from '@exceptions';
 import { isBase64, isURL } from 'class-validator';
 import emojiRegex from 'emoji-regex';
 
+const regex = emojiRegex();
+
 function isEmoji(str: string) {
   if (str === '') return true;
 
-  const match = str.match(emojiRegex());
+  const match = str.match(regex);
   return match?.length === 1 && match[0] === str;
 }
 
