@@ -1085,7 +1085,7 @@ export class BaileysStartupService extends ChannelStartupService {
           const editedMessage =
             received?.message?.protocolMessage || received?.message?.editedMessage?.message?.protocolMessage;
 
-          if (received.message?.protocolMessage?.editedMessage && editedMessage) {
+          if (editedMessage) {
             if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
               this.chatwootService.eventWhatsapp(
                 'messages.edit',
@@ -1133,7 +1133,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (
             (type !== 'notify' && type !== 'append') ||
-            received.message?.protocolMessage ||
+            editedMessage ||
             received.message?.pollUpdateMessage ||
             !received?.message
           ) {
