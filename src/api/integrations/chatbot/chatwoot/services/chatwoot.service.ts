@@ -568,8 +568,7 @@ export class ChatwootService {
 
   public async createConversation(instance: InstanceDto, body: any) {
     if (!body?.key) {
-      this.logger.warn('body.key is null or undefined in createConversation');
-      this.logger.warn('Full body object:', JSON.stringify(body, null, 2));
+      this.logger.warn(`body.key is null or undefined in createConversation. Full body object: ${JSON.stringify(body)}`);
       return null;
     }
     
@@ -1945,8 +1944,7 @@ export class ChatwootService {
 
       if (event === 'messages.upsert' || event === 'send.message') {
         if (!body?.key) {
-          this.logger.warn('body.key is null or undefined');
-          this.logger.warn('Full body object:', JSON.stringify(body, null, 2));
+          this.logger.warn(`body.key is null or undefined. Full body object: ${JSON.stringify(body)}`);
           return;
         }
         
@@ -2273,8 +2271,7 @@ export class ChatwootService {
 
       if (event === 'messages.edit' || event === 'send.message.update') {
         if (!body?.key?.id) {
-          this.logger.warn('body.key.id is null or undefined in messages.edit');
-          this.logger.warn('Full body object:', JSON.stringify(body, null, 2));
+          this.logger.warn(`body.key.id is null or undefined in messages.edit. Full body object: ${JSON.stringify(body)}`);
           return;
         }
         
