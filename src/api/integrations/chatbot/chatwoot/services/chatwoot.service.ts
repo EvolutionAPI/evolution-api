@@ -568,10 +568,12 @@ export class ChatwootService {
 
   public async createConversation(instance: InstanceDto, body: any) {
     if (!body?.key) {
-      this.logger.warn(`body.key is null or undefined in createConversation. Full body object: ${JSON.stringify(body)}`);
+      this.logger.warn(
+        `body.key is null or undefined in createConversation. Full body object: ${JSON.stringify(body)}`,
+      );
       return null;
     }
-    
+
     const isLid = body.key.previousRemoteJid?.includes('@lid') && body.key.senderPn;
     const remoteJid = body.key.remoteJid;
     const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
@@ -1903,7 +1905,7 @@ export class ChatwootService {
         this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
         return;
       }
-      
+
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       if (!waInstance) {
@@ -1953,7 +1955,7 @@ export class ChatwootService {
           this.logger.warn(`body.key is null or undefined. Full body object: ${JSON.stringify(body)}`);
           return;
         }
-        
+
         if (body.key.remoteJid === 'status@broadcast') {
           return;
         }
@@ -2281,12 +2283,14 @@ export class ChatwootService {
           this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
           return;
         }
-        
+
         if (!body?.key?.id) {
-          this.logger.warn(`body.key.id is null or undefined in messages.edit. Full body object: ${JSON.stringify(body)}`);
+          this.logger.warn(
+            `body.key.id is null or undefined in messages.edit. Full body object: ${JSON.stringify(body)}`,
+          );
           return;
         }
-        
+
         const editedText = `${
           body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
         }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;
