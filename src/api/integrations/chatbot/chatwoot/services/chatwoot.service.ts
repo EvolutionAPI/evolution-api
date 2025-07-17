@@ -1898,7 +1898,7 @@ export class ChatwootService {
 
   public async eventWhatsapp(event: string, instance: InstanceDto, body: any) {
     try {
-      // Ignora eventos que não são mensagens (como EPHEMERAL_SYNC_RESPONSE)
+      // Ignore events that are not messages (like EPHEMERAL_SYNC_RESPONSE)
       if (body?.type && body.type !== 'message' && body.type !== 'conversation') {
         this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
         return;
@@ -2276,7 +2276,7 @@ export class ChatwootService {
       }
 
       if (event === 'messages.edit' || event === 'send.message.update') {
-        // Ignora eventos que não são mensagens (como EPHEMERAL_SYNC_RESPONSE)
+        // Ignore events that are not messages (like EPHEMERAL_SYNC_RESPONSE)
         if (body?.type && body.type !== 'message') {
           this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
           return;
