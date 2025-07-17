@@ -1898,6 +1898,12 @@ export class ChatwootService {
 
   public async eventWhatsapp(event: string, instance: InstanceDto, body: any) {
     try {
+      // Ignora eventos que não são mensagens (como EPHEMERAL_SYNC_RESPONSE)
+      if (body?.type && body.type !== 'message' && body.type !== 'conversation') {
+        this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
+        return;
+      }
+      
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       if (!waInstance) {
@@ -2270,6 +2276,12 @@ export class ChatwootService {
       }
 
       if (event === 'messages.edit' || event === 'send.message.update') {
+        // Ignora eventos que não são mensagens (como EPHEMERAL_SYNC_RESPONSE)
+        if (body?.type && body.type !== 'message') {
+          this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
+          return;
+        }
+        
         if (!body?.key?.id) {
           this.logger.warn(`body.key.id is null or undefined in messages.edit. Full body object: ${JSON.stringify(body)}`);
           return;
