@@ -66,6 +66,7 @@
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
+    "emoji-regex": "^10.4.0",
     "eventemitter2": "^6.4.9",
     "express": "^4.21.2",
     "express-async-errors": "^3.1.1",
