@@ -802,12 +802,6 @@ export class ChannelStartupService {
         };
       });
 
-      if (query?.take && query?.skip) {
-        const skip = query.skip || 0;
-        const take = query.take || 20;
-        return mappedResults.slice(skip, skip + take);
-      }
-
       return mappedResults;
     }
 
