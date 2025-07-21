@@ -696,6 +696,16 @@ export class ChannelStartupService {
     });
   }
 
+  public async findChatByRemoteJid(remoteJid: string) {
+    if (!remoteJid) return null;
+    return await this.prismaRepository.chat.findFirst({
+      where: {
+        instanceId: this.instanceId,
+        remoteJid: remoteJid,
+      },
+    });
+  }
+
   public async fetchChats(query: any) {
     const remoteJid = query?.where?.remoteJid
       ? query?.where?.remoteJid.includes('@')
