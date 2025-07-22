@@ -6,10 +6,10 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc --noEmit && tsup",
-    "start": "tsnd -r tsconfig-paths/register --files --transpile-only ./src/main.ts",
+    "start": "tsx ./src/main.ts",
     "start:prod": "node dist/main",
-    "dev:server": "tsnd -r tsconfig-paths/register --files --transpile-only --respawn --ignore-watch node_modules ./src/main.ts",
-    "test": "tsnd -r tsconfig-paths/register --files --transpile-only --respawn --ignore-watch node_modules ./test/all.test.ts",
+    "dev:server": "tsx watch ./src/main.ts",
+    "test": "tsx watch ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src",
     "lint:check": "eslint --ext .ts src",
     "db:generate": "node runWithProvider.js \"npx prisma generate --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
@@ -60,7 +60,7 @@
     "amqplib": "^0.10.5",
     "audio-decode": "^2.2.3",
     "axios": "^1.7.9",
-    "baileys": "github:EvolutionAPI/Baileys",
+    "baileys": "github:WhiskeySockets/Baileys",
     "class-validator": "^0.14.1",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
@@ -123,8 +123,8 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "prettier": "^3.4.2",
-    "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.7.2"
   }
 }
