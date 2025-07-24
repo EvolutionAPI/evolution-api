@@ -15,7 +15,7 @@ RUN npm install
 
 COPY . .
 
-RUN npm run build
+RUN npm install --legacy-peer-deps
 
 FROM node:20.7.0-alpine AS final
 
