@@ -425,7 +425,7 @@ export class BaileysStartupService extends ChannelStartupService {
       
       this.logger.log(`Connection state changed to: ${connection}, instance: ${this.instance.id}`);
       if (lastDisconnect?.error) {
-        this.logger.warn(`Connection error:`, lastDisconnect.error);
+        this.logger.warn(`Connection error: ${JSON.stringify(lastDisconnect.error)}`);
       }
     }
 
@@ -1997,7 +1997,7 @@ export class BaileysStartupService extends ChannelStartupService {
         this.logger.log(`Message sent successfully with ID: ${result.key.id}`);
         return result;
       } catch (error) {
-        this.logger.error(`Failed to send message to ${sender}:`, error);
+        this.logger.error(`Failed to send message to ${sender}: ${error.message || JSON.stringify(error)}`);
         throw error;
       }
     }
