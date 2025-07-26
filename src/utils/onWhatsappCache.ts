@@ -11,14 +11,16 @@ function getAvailableNumbers(remoteJid: string) {
 
   const [number, domain] = remoteJid.split('@');
 
-  // Brazilian numbers
+  // Brazilian numbers - prioritize format with 9
   if (remoteJid.startsWith('55')) {
     const numberWithDigit =
       number.slice(4, 5) === '9' && number.length === 13 ? number : `${number.slice(0, 4)}9${number.slice(4)}`;
     const numberWithoutDigit = number.length === 12 ? number : number.slice(0, 4) + number.slice(5);
 
-    numbersAvailable.push(numberWithDigit);
-    numbersAvailable.push(numberWithoutDigit);
+    // Add the format WITH 9 first (prioritized)
+    numbersAvailable.push(`${numberWithDigit}@${domain || 's.whatsapp.net'}`);
+    // Add the format WITHOUT 9 second (fallback)
+    numbersAvailable.push(`${numberWithoutDigit}@${domain || 's.whatsapp.net'}`);
   }
 
   // Mexican/Argentina numbers
@@ -38,8 +40,8 @@ function getAvailableNumbers(remoteJid: string) {
         : `${number.slice(0, 2)}${prefix}${number.slice(2)}`;
     const numberWithoutDigit = number.length === 12 ? number : number.slice(0, 2) + number.slice(3);
 
-    numbersAvailable.push(numberWithDigit);
-    numbersAvailable.push(numberWithoutDigit);
+    numbersAvailable.push(`${numberWithDigit}@${domain || 's.whatsapp.net'}`);
+    numbersAvailable.push(`${numberWithoutDigit}@${domain || 's.whatsapp.net'}`);
   }
 
   // Other countries
@@ -47,7 +49,7 @@ function getAvailableNumbers(remoteJid: string) {
     numbersAvailable.push(remoteJid);
   }
 
-  return numbersAvailable.map((number) => `${number}@${domain}`);
+  return numbersAvailable;
 }
 
 interface ISaveOnWhatsappCacheParams {

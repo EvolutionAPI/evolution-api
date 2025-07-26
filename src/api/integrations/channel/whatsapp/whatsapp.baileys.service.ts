@@ -138,6 +138,7 @@ import Long from 'long';
 import mimeTypes from 'mime-types';
 import NodeCache from 'node-cache';
 import cron from 'node-cron';
+import dayjs from 'dayjs';
 import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
@@ -171,6 +172,30 @@ function normalizeJid(jid: string): string {
   }
   
   return jid;
+}
+
+// Function to clear corrupted session data
+async function clearCorruptedSessionData(instanceId: string, baileysCache: CacheService) {
+  try {
+    // Clear all baileys cache for this instance
+    await baileysCache.deleteAll(instanceId);
+    
+    // Clear session-related cache patterns
+    const patterns = [
+      `${instanceId}_*`,
+      `*${instanceId}*`,
+      `*session*${instanceId}*`,
+      `*prekey*${instanceId}*`
+    ];
+    
+    for (const pattern of patterns) {
+      await baileysCache.deleteAll(pattern);
+    }
+    
+    console.log(`Cleared corrupted session data for instance: ${instanceId}`);
+  } catch (error) {
+    console.error('Error clearing session data:', error);
+  }
 }
 
 // Adicione a função getVideoDuration no início do arquivo
@@ -674,6 +699,9 @@ export class BaileysStartupService extends ChannelStartupService {
     };
 
     this.endSession = false;
+
+    // Clear any corrupted session data before connecting
+    await clearCorruptedSessionData(this.instanceId, this.baileysCache);
 
     this.client = makeWASocket(socketConfig);
 
@@ -3188,12 +3216,35 @@ export class BaileysStartupService extends ChannelStartupService {
       const cachedNumbers = await getOnWhatsappCache(numbersToVerify);
       console.log('cachedNumbers', cachedNumbers);
 
-      const filteredNumbers = numbersToVerify.filter(
-        (jid) => !cachedNumbers.some((cached) => cached.jidOptions.includes(jid)),
-      );
+      // Filter numbers that are not cached OR should be re-verified
+      const filteredNumbers = numbersToVerify.filter((jid) => {
+        const cached = cachedNumbers.find((cached) => cached.jidOptions.includes(jid));
+        // If not cached, we should verify
+        if (!cached) return true;
+        
+        // For Brazilian numbers, force verification if both formats exist in cache
+        // to ensure we're using the correct format
+        const isBrazilian = jid.startsWith('55') && jid.includes('@s.whatsapp.net');
+        if (isBrazilian) {
+          const numberPart = jid.replace('@s.whatsapp.net', '');
+          const hasDigit9 = numberPart.length === 13 && numberPart.slice(4, 5) === '9';
+          const altFormat = hasDigit9 
+            ? numberPart.slice(0, 4) + numberPart.slice(5) 
+            : numberPart.slice(0, 4) + '9' + numberPart.slice(4);
+          const altJid = altFormat + '@s.whatsapp.net';
+          
+          // If both formats exist in cache, prefer the one with 9
+          const altCached = cachedNumbers.find((c) => c.jidOptions.includes(altJid));
+          if (cached && altCached && !hasDigit9) {
+            return true; // Force verification to get the correct format
+          }
+        }
+        
+        return false; // Use cached result
+      });
       console.log('filteredNumbers', filteredNumbers);
 
-      const verify = await this.client.onWhatsApp(...filteredNumbers);
+      const verify = filteredNumbers.length > 0 ? await this.client.onWhatsApp(...filteredNumbers) : [];
       console.log('verify', verify);
       normalVerifiedUsers = await Promise.all(
         normalUsers.map(async (user) => {
