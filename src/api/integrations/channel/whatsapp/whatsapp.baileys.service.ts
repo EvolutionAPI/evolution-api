@@ -151,6 +151,28 @@ import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
+// Function to normalize JID and handle LID/JID conversion
+function normalizeJid(jid: string): string {
+  if (!jid) return jid;
+  
+  // Remove LID suffix and convert to standard JID format
+  if (jid.includes(':lid')) {
+    return jid.split(':')[0] + '@s.whatsapp.net';
+  }
+  
+  // Remove participant suffix from group messages
+  if (jid.includes(':') && jid.includes('@g.us')) {
+    return jid.split(':')[0] + '@g.us';
+  }
+  
+  // Remove any other participant suffixes
+  if (jid.includes(':') && !jid.includes('@g.us')) {
+    return jid.split(':')[0] + '@s.whatsapp.net';
+  }
+  
+  return jid;
+}
+
 // Adicione a função getVideoDuration no início do arquivo
 async function getVideoDuration(input: Buffer | string | Readable): Promise<number> {
   const MediaInfoFactory = (await import('mediainfo.js')).default;
@@ -1091,7 +1113,8 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          const messageKey = `${this.instance.id}_${received.key.id}`;
+          const normalizedJid = normalizeJid(received.key.remoteJid);
+          const messageKey = `${this.instance.id}_${normalizedJid}_${received.key.id}`;
           const cached = await this.baileysCache.get(messageKey);
 
           if (cached && !editedMessage) {
@@ -1118,8 +1141,9 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
+          const normalizedRemoteJid = normalizeJid(received.key.remoteJid);
           const existingChat = await this.prismaRepository.chat.findFirst({
-            where: { instanceId: this.instanceId, remoteJid: received.key.remoteJid },
+            where: { instanceId: this.instanceId, remoteJid: normalizedRemoteJid },
             select: { id: true, name: true },
           });
 
@@ -1198,7 +1222,8 @@ export class BaileysStartupService extends ChannelStartupService {
             const { remoteJid } = received.key;
             const timestamp = msg.messageTimestamp;
             const fromMe = received.key.fromMe.toString();
-            const messageKey = `${remoteJid}_${timestamp}_${fromMe}`;
+            const normalizedRemoteJid = normalizeJid(remoteJid);
+            const messageKey = `${normalizedRemoteJid}_${timestamp}_${fromMe}`;
 
             const cachedTimestamp = await this.baileysCache.get(messageKey);
 
@@ -1303,13 +1328,13 @@ export class BaileysStartupService extends ChannelStartupService {
           });
 
           const contact = await this.prismaRepository.contact.findFirst({
-            where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
+            where: { remoteJid: normalizedRemoteJid, instanceId: this.instanceId },
           });
 
           const contactRaw: { remoteJid: string; pushName: string; profilePicUrl?: string; instanceId: string } = {
-            remoteJid: received.key.remoteJid,
+            remoteJid: normalizedRemoteJid,
             pushName: received.key.fromMe ? '' : received.key.fromMe == null ? '' : received.pushName,
-            profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
+            profilePicUrl: (await this.profilePicture(normalizedRemoteJid)).profilePictureUrl,
             instanceId: this.instanceId,
           };
 
@@ -1366,7 +1391,11 @@ export class BaileysStartupService extends ChannelStartupService {
           continue;
         }
 
-        const updateKey = `${this.instance.id}_${key.id}_${update.status}`;
+        // Normalize JID and ensure we have valid key components
+        const normalizedJid = normalizeJid(key.remoteJid);
+        const messageId = key.id || 'unknown';
+        const status = update.status || 'unknown';
+        const updateKey = `${this.instance.id}_${normalizedJid}_${messageId}_${status}`;
 
         const cached = await this.baileysCache.get(updateKey);
 
@@ -1442,7 +1471,8 @@ export class BaileysStartupService extends ChannelStartupService {
               const { remoteJid } = key;
               const timestamp = findMessage.messageTimestamp;
               const fromMe = key.fromMe.toString();
-              const messageKey = `${remoteJid}_${timestamp}_${fromMe}`;
+              const normalizedRemoteJid = normalizeJid(remoteJid);
+              const messageKey = `${normalizedRemoteJid}_${timestamp}_${fromMe}`;
 
               const cachedTimestamp = await this.baileysCache.get(messageKey);
 
@@ -4130,8 +4160,15 @@ export class BaileysStartupService extends ChannelStartupService {
     const contentType = getContentType(message.message);
     const contentMsg = message?.message[contentType] as any;
 
+    // Normalize JID to handle LID/JID conversion
+    const normalizedKey = {
+      ...message.key,
+      remoteJid: normalizeJid(message.key.remoteJid),
+      participant: message.key.participant ? normalizeJid(message.key.participant) : undefined,
+    };
+
     const messageRaw = {
-      key: message.key,
+      key: normalizedKey,
       pushName:
         message.pushName ||
         (message.key.fromMe
