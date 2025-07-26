@@ -54,7 +54,7 @@ function getAvailableNumbers(remoteJid: string) {
 
 interface ISaveOnWhatsappCacheParams {
   remoteJid: string;
-  lid?: string;
+  lid?: string | null;
 }
 
 export async function saveOnWhatsappCache(data: ISaveOnWhatsappCacheParams[]) {

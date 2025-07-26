@@ -422,6 +422,11 @@ export class BaileysStartupService extends ChannelStartupService {
         state: connection,
         statusReason: (lastDisconnect?.error as Boom)?.output?.statusCode ?? 200,
       };
+      
+      this.logger.log(`Connection state changed to: ${connection}, instance: ${this.instance.id}`);
+      if (lastDisconnect?.error) {
+        this.logger.warn(`Connection error:`, lastDisconnect.error);
+      }
     }
 
     if (connection === 'close') {
@@ -1348,6 +1353,41 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
+          // Schedule automatic status update for PENDING sent messages
+          if (messageRaw.key.fromMe && messageRaw.status === 'PENDING') {
+            setTimeout(async () => {
+              try {
+                const stillPendingMessage = await this.prismaRepository.message.findFirst({
+                  where: { 
+                    instanceId: this.instanceId,
+                    key: { path: ['id'], equals: messageRaw.key.id },
+                    status: 'PENDING'
+                  }
+                });
+                
+                if (stillPendingMessage) {
+                  this.logger.warn(`Forcing status update for PENDING message after timeout: ${messageRaw.key.id}`);
+                  await this.prismaRepository.message.update({
+                    where: { id: stillPendingMessage.id },
+                    data: { status: 'SERVER_ACK' }
+                  });
+                  
+                  // Emit webhook for the status change
+                  this.sendDataWebhook(Events.MESSAGES_UPDATE, {
+                    messageId: stillPendingMessage.id,
+                    keyId: messageRaw.key.id,
+                    remoteJid: messageRaw.key.remoteJid,
+                    fromMe: messageRaw.key.fromMe,
+                    status: 'SERVER_ACK',
+                    instanceId: this.instanceId
+                  });
+                }
+              } catch (error) {
+                this.logger.error(`Error updating PENDING message status: ${error.message}`);
+              }
+            }, 30000); // 30 seconds timeout
+          }
+
           await chatbotController.emit({
             instance: { instanceName: this.instance.name, instanceId: this.instanceId },
             remoteJid: messageRaw.key.remoteJid,
@@ -1493,33 +1533,34 @@ export class BaileysStartupService extends ChannelStartupService {
 
             continue;
           } else if (update.status !== undefined && status[update.status] !== findMessage.status) {
-            if (!key.fromMe && key.remoteJid) {
-              readChatToUpdate[key.remoteJid] = true;
+            const { remoteJid } = key;
+            const timestamp = findMessage.messageTimestamp;
+            const fromMe = key.fromMe.toString();
+            const normalizedRemoteJid = normalizeJid(remoteJid);
+            const messageKey = `${normalizedRemoteJid}_${timestamp}_${fromMe}`;
 
-              const { remoteJid } = key;
-              const timestamp = findMessage.messageTimestamp;
-              const fromMe = key.fromMe.toString();
-              const normalizedRemoteJid = normalizeJid(remoteJid);
-              const messageKey = `${normalizedRemoteJid}_${timestamp}_${fromMe}`;
+            const cachedTimestamp = await this.baileysCache.get(messageKey);
 
-              const cachedTimestamp = await this.baileysCache.get(messageKey);
-
-              if (!cachedTimestamp) {
-                if (status[update.status] === status[4]) {
-                  this.logger.log(`Update as read in message.update ${remoteJid} - ${timestamp}`);
-                  await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
-                  await this.baileysCache.set(messageKey, true, 5 * 60);
-                }
-
-                await this.prismaRepository.message.update({
-                  where: { id: findMessage.id },
-                  data: { status: status[update.status] },
-                });
-              } else {
-                this.logger.info(
-                  `Update readed messages duplicated ignored in message.update [avoid deadlock]: ${messageKey}`,
-                );
+            if (!cachedTimestamp) {
+              // Handle read status for received messages
+              if (!key.fromMe && key.remoteJid && status[update.status] === status[4]) {
+                readChatToUpdate[key.remoteJid] = true;
+                this.logger.log(`Update as read in message.update ${remoteJid} - ${timestamp}`);
+                await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
+                await this.baileysCache.set(messageKey, true, 5 * 60);
               }
+
+              // Update message status for all messages (sent and received)
+              await this.prismaRepository.message.update({
+                where: { id: findMessage.id },
+                data: { status: status[update.status] },
+              });
+
+              this.logger.log(`Message status updated from ${findMessage.status} to ${status[update.status]} for message ${key.id}`);
+            } else {
+              this.logger.info(
+                `Update messages duplicated ignored in message.update [avoid deadlock]: ${messageKey}`,
+              );
             }
           }
 
@@ -1946,11 +1987,19 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (message['conversation']) {
-      return await this.client.sendMessage(
-        sender,
-        { text: message['conversation'], mentions, linkPreview: linkPreview } as unknown as AnyMessageContent,
-        option as unknown as MiscMessageGenerationOptions,
-      );
+      try {
+        this.logger.log(`Attempting to send conversation message to ${sender}: ${message['conversation']}`);
+        const result = await this.client.sendMessage(
+          sender,
+          { text: message['conversation'], mentions, linkPreview: linkPreview } as unknown as AnyMessageContent,
+          option as unknown as MiscMessageGenerationOptions,
+        );
+        this.logger.log(`Message sent successfully with ID: ${result.key.id}`);
+        return result;
+      } catch (error) {
+        this.logger.error(`Failed to send message to ${sender}:`, error);
+        throw error;
+      }
     }
 
     if (!message['audio'] && !message['poll'] && !message['sticker'] && sender != 'status@broadcast') {
@@ -3340,7 +3389,6 @@ export class BaileysStartupService extends ChannelStartupService {
         .filter((user) => user.exists)
         .map((user) => ({
           remoteJid: user.jid,
-          jidOptions: user.jid.replace('+', ''),
           lid: user.lid,
         })),
     );
@@ -4234,8 +4282,17 @@ export class BaileysStartupService extends ChannelStartupService {
       source: getDevice(message.key.id),
     };
 
-    if (!messageRaw.status && message.key.fromMe === false) {
-      messageRaw.status = status[3]; // DELIVERED MESSAGE
+    // Log for debugging PENDING status
+    if (message.key.fromMe && (!message.status || message.status === 1)) {
+      this.logger.warn(`Message sent with PENDING status - ID: ${message.key.id}, Instance: ${this.instance.id}, Status: ${message.status}, RemoteJid: ${message.key.remoteJid}`);
+    }
+
+    if (!messageRaw.status) {
+      if (message.key.fromMe === false) {
+        messageRaw.status = status[3]; // DELIVERED MESSAGE for received messages
+      } else {
+        messageRaw.status = status[2]; // SERVER_ACK for sent messages without status
+      }
     }
 
     if (messageRaw.message.extendedTextMessage) {
