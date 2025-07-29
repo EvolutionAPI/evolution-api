@@ -696,6 +696,16 @@ export class ChannelStartupService {
     });
   }
 
+  public async findChatByRemoteJid(remoteJid: string) {
+    if (!remoteJid) return null;
+    return await this.prismaRepository.chat.findFirst({
+      where: {
+        instanceId: this.instanceId,
+        remoteJid: remoteJid,
+      },
+    });
+  }
+
   public async fetchChats(query: any) {
     const remoteJid = query?.where?.remoteJid
       ? query?.where?.remoteJid.includes('@')
@@ -738,22 +748,23 @@ export class ChannelStartupService {
           "Chat"."name" as "pushName",
           "Chat"."createdAt" as "windowStart",
           "Chat"."createdAt" + INTERVAL '24 hours' as "windowExpires",
+          "Chat"."unreadMessages" as "unreadMessages",
           CASE WHEN "Chat"."createdAt" + INTERVAL '24 hours' > NOW() THEN true ELSE false END as "windowActive",
-          "Message"."id" AS lastMessageId,
-          "Message"."key" AS lastMessage_key,
+          "Message"."id" AS "lastMessageId",
+          "Message"."key" AS "lastMessage_key",
           CASE
             WHEN "Message"."key"->>'fromMe' = 'true' THEN 'Você'
             ELSE "Message"."pushName"
-          END AS lastMessagePushName,
-          "Message"."participant" AS lastMessageParticipant,
-          "Message"."messageType" AS lastMessageMessageType,
-          "Message"."message" AS lastMessageMessage,
-          "Message"."contextInfo" AS lastMessageContextInfo,
-          "Message"."source" AS lastMessageSource,
-          "Message"."messageTimestamp" AS lastMessageMessageTimestamp,
-          "Message"."instanceId" AS lastMessageInstanceId,
-          "Message"."sessionId" AS lastMessageSessionId,
-          "Message"."status" AS lastMessageStatus
+          END AS "lastMessagePushName",
+          "Message"."participant" AS "lastMessageParticipant",
+          "Message"."messageType" AS "lastMessageMessageType",
+          "Message"."message" AS "lastMessageMessage",
+          "Message"."contextInfo" AS "lastMessageContextInfo",
+          "Message"."source" AS "lastMessageSource",
+          "Message"."messageTimestamp" AS "lastMessageMessageTimestamp",
+          "Message"."instanceId" AS "lastMessageInstanceId",
+          "Message"."sessionId" AS "lastMessageSessionId",
+          "Message"."status" AS "lastMessageStatus"
         FROM "Message"
         LEFT JOIN "Contact" ON "Contact"."remoteJid" = "Message"."key"->>'remoteJid' AND "Contact"."instanceId" = "Message"."instanceId"
         LEFT JOIN "Chat" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid' AND "Chat"."instanceId" = "Message"."instanceId"
@@ -770,47 +781,65 @@ export class ChannelStartupService {
 
     if (results && isArray(results) && results.length > 0) {
       const mappedResults = results.map((contact) => {
-        const lastMessage = contact.lastmessageid
+        const lastMessage = contact.lastMessageId
           ? {
-              id: contact.lastmessageid,
-              key: contact.lastmessage_key,
-              pushName: contact.lastmessagepushname,
-              participant: contact.lastmessageparticipant,
-              messageType: contact.lastmessagemessagetype,
-              message: contact.lastmessagemessage,
-              contextInfo: contact.lastmessagecontextinfo,
-              source: contact.lastmessagesource,
-              messageTimestamp: contact.lastmessagemessagetimestamp,
-              instanceId: contact.lastmessageinstanceid,
-              sessionId: contact.lastmessagesessionid,
-              status: contact.lastmessagestatus,
+              id: contact.lastMessageId,
+              key: contact.lastMessage_key,
+              pushName: contact.lastMessagePushName,
+              participant: contact.lastMessageParticipant,
+              messageType: contact.lastMessageMessageType,
+              message: contact.lastMessageMessage,
+              contextInfo: contact.lastMessageContextInfo,
+              source: contact.lastMessageSource,
+              messageTimestamp: contact.lastMessageMessageTimestamp,
+              instanceId: contact.lastMessageInstanceId,
+              sessionId: contact.lastMessageSessionId,
+              status: contact.lastMessageStatus,
             }
           : undefined;
 
         return {
-          id: contact.contactid || null,
-          remoteJid: contact.remotejid,
-          pushName: contact.pushname,
-          profilePicUrl: contact.profilepicurl,
-          updatedAt: contact.updatedat,
-          windowStart: contact.windowstart,
-          windowExpires: contact.windowexpires,
-          windowActive: contact.windowactive,
+          id: contact.contactId || null,
+          remoteJid: contact.remoteJid,
+          pushName: contact.pushName,
+          profilePicUrl: contact.profilePicUrl,
+          updatedAt: contact.updatedAt,
+          windowStart: contact.windowStart,
+          windowExpires: contact.windowExpires,
+          windowActive: contact.windowActive,
           lastMessage: lastMessage ? this.cleanMessageData(lastMessage) : undefined,
-          unreadCount: 0,
-          isSaved: !!contact.contactid,
+          unreadCount: contact.unreadMessages,
+          isSaved: !!contact.contactId,
         };
       });
-
-      if (query?.take && query?.skip) {
-        const skip = query.skip || 0;
-        const take = query.take || 20;
-        return mappedResults.slice(skip, skip + take);
-      }
 
       return mappedResults;
     }
 
     return [];
+  }
+
+  public hasValidMediaContent(message: any): boolean {
+    if (!message?.message) return false;
+
+    const msg = message.message;
+
+    // Se só tem messageContextInfo, não é mídia válida
+    if (Object.keys(msg).length === 1 && 'messageContextInfo' in msg) {
+      return false;
+    }
+
+    // Verifica se tem pelo menos um tipo de mídia válido
+    const mediaTypes = [
+      'imageMessage',
+      'videoMessage',
+      'stickerMessage',
+      'documentMessage',
+      'documentWithCaptionMessage',
+      'ptvMessage',
+      'audioMessage',
+    ];
+
+    return mediaTypes.some((type) => msg[type] && Object.keys(msg[type]).length > 0);
   }
 }

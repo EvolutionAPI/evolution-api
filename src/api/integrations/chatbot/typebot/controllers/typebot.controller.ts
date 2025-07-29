@@ -119,7 +119,7 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
 
     const instanceData = await this.prismaRepository.instance.findFirst({
       where: {
-        id: instance.instanceId,
+        name: instance.instanceName,
       },
     });
 
@@ -290,7 +290,7 @@ export class TypebotController extends BaseChatbotController<TypebotModel, Typeb
           request.data.clientSideActions,
         );
 
-        this.waMonitor.waInstances[instance.instanceId].sendDataWebhook(Events.TYPEBOT_START, {
+        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_START, {
           remoteJid: remoteJid,
           url: url,
           typebot: typebot,
