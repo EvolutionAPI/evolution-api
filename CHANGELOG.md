@@ -15,6 +15,7 @@
 * Fix upload to s3 when media message
 * Simplify edited message check in BaileysStartupService
 * Avoid corrupting URLs with query strings
+* Removed CONFIG_SESSION_PHONE_VERSION environment variable
 
 # 2.3.0 (2025-06-17 09:19)
 
