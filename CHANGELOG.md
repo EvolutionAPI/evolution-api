@@ -1,5 +1,10 @@
 # 2.3.1 (develop)
 
+### Feature
+
+* Add BaileysMessageProcessor for improved message handling and integrate rxjs for asynchronous processing
+* Enhance message processing with retry logic for error handling
+
 ### Fixed
 
 * Update Baileys Version
@@ -8,6 +13,8 @@
 * Add unreadMessages in the response
 * Phone number as message ID for Evo AI
 * Fix upload to s3 when media message
+* Simplify edited message check in BaileysStartupService
+* Avoid corrupting URLs with query strings
 
 # 2.3.0 (2025-06-17 09:19)
 
