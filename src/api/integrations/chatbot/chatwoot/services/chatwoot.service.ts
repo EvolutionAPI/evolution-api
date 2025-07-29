@@ -26,7 +26,7 @@ import axios from 'axios';
 import { proto } from 'baileys';
 import dayjs from 'dayjs';
 import FormData from 'form-data';
-import Jimp from 'jimp';
+import { Jimp, JimpMime } from 'jimp';
 import Long from 'long';
 import mimeTypes from 'mime-types';
 import path from 'path';
@@ -457,6 +457,24 @@ export class ChatwootService {
     }
   }
 
+  private async mergeContacts(baseId: number, mergeId: number) {
+    try {
+      const contact = await chatwootRequest(this.getClientCwConfig(), {
+        method: 'POST',
+        url: `/api/v1/accounts/${this.provider.accountId}/actions/contact_merge`,
+        body: {
+          base_contact_id: baseId,
+          mergee_contact_id: mergeId,
+        },
+      });
+
+      return contact;
+    } catch {
+      this.logger.error('Error merging contacts');
+      return null;
+    }
+  }
+
   private async mergeBrazilianContacts(contacts: any[]) {
     try {
       const contact = await chatwootRequest(this.getClientCwConfig(), {
@@ -549,24 +567,41 @@ export class ChatwootService {
   }
 
   public async createConversation(instance: InstanceDto, body: any) {
-    const isLid = body.key.remoteJid.includes('@lid') && body.key.senderPn;
-    const remoteJid = isLid ? body.key.senderPn : body.key.remoteJid;
+    if (!body?.key) {
+      this.logger.warn(
+        `body.key is null or undefined in createConversation. Full body object: ${JSON.stringify(body)}`,
+      );
+      return null;
+    }
+
+    const isLid = body.key.previousRemoteJid?.includes('@lid') && body.key.senderPn;
+    const remoteJid = body.key.remoteJid;
     const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
     const lockKey = `${instance.instanceName}:lock:createConversation-${remoteJid}`;
     const maxWaitTime = 5000; // 5 secounds
 
     try {
       // Processa atualização de contatos já criados @lid
-      if (body.key.remoteJid.includes('@lid') && body.key.senderPn && body.key.senderPn !== body.key.remoteJid) {
+      if (isLid && body.key.senderPn !== body.key.previousRemoteJid) {
         const contact = await this.findContact(instance, body.key.remoteJid.split('@')[0]);
         if (contact && contact.identifier !== body.key.senderPn) {
           this.logger.verbose(
-            `Identifier needs update: (contact.identifier: ${contact.identifier}, body.key.remoteJid: ${body.key.remoteJid}, body.key.senderPn: ${body.key.senderPn})`,
+            `Identifier needs update: (contact.identifier: ${contact.identifier}, body.key.remoteJid: ${body.key.remoteJid}, body.key.senderPn: ${body.key.senderPn}`,
           );
-          await this.updateContact(instance, contact.id, {
+          const updateContact = await this.updateContact(instance, contact.id, {
             identifier: body.key.senderPn,
             phone_number: `+${body.key.senderPn.split('@')[0]}`,
           });
+
+          if (updateContact === null) {
+            const baseContact = await this.findContact(instance, body.key.senderPn.split('@')[0]);
+            if (baseContact) {
+              await this.mergeContacts(baseContact.id, contact.id);
+              this.logger.verbose(
+                `Merge contacts: (${baseContact.id}) ${baseContact.phone_number} and (${contact.id}) ${contact.phone_number}`,
+              );
+            }
+          }
         }
       }
       this.logger.verbose(`--- Start createConversation ---`);
@@ -646,7 +681,7 @@ export class ChatwootService {
               instance,
               body.key.participant.split('@')[0],
               filterInbox.id,
-              isGroup,
+              false,
               body.pushName,
               picture_url.profilePictureUrl || null,
               body.key.participant,
@@ -685,7 +720,6 @@ export class ChatwootService {
             }
           }
         } else {
-          const jid = isLid && body?.key?.senderPn ? body.key.senderPn : body.key.remoteJid;
           contact = await this.createContact(
             instance,
             chatId,
@@ -693,7 +727,7 @@ export class ChatwootService {
             isGroup,
             nameContact,
             picture_url.profilePictureUrl || null,
-            jid,
+            remoteJid,
           );
         }
 
@@ -1866,6 +1900,12 @@ export class ChatwootService {
 
   public async eventWhatsapp(event: string, instance: InstanceDto, body: any) {
     try {
+      // Ignore events that are not messages (like EPHEMERAL_SYNC_RESPONSE)
+      if (body?.type && body.type !== 'message' && body.type !== 'conversation') {
+        this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
+        return;
+      }
+
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
       if (!waInstance) {
@@ -1911,6 +1951,11 @@ export class ChatwootService {
       }
 
       if (event === 'messages.upsert' || event === 'send.message') {
+        if (!body?.key) {
+          this.logger.warn(`body.key is null or undefined. Full body object: ${JSON.stringify(body)}`);
+          return;
+        }
+
         if (body.key.remoteJid === 'status@broadcast') {
           return;
         }
@@ -2101,9 +2146,11 @@ export class ChatwootService {
           const fileData = Buffer.from(imgBuffer.data, 'binary');
 
           const img = await Jimp.read(fileData);
-          await img.cover(320, 180);
-
-          const processedBuffer = await img.getBufferAsync(Jimp.MIME_PNG);
+          await img.cover({
+            w: 320,
+            h: 180,
+          });
+          const processedBuffer = await img.getBuffer(JimpMime.png);
 
           const fileStream = new Readable();
           fileStream._read = () => {}; // _read is required but you can noop it
@@ -2231,10 +2278,23 @@ export class ChatwootService {
       }
 
       if (event === 'messages.edit' || event === 'send.message.update') {
+        // Ignore events that are not messages (like EPHEMERAL_SYNC_RESPONSE)
+        if (body?.type && body.type !== 'message') {
+          this.logger.verbose(`Ignoring non-message event type: ${body.type}`);
+          return;
+        }
+
+        if (!body?.key?.id) {
+          this.logger.warn(
+            `body.key.id is null or undefined in messages.edit. Full body object: ${JSON.stringify(body)}`,
+          );
+          return;
+        }
+
         const editedText = `${
           body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
         }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;
-        const message = await this.getMessageByKeyId(instance, body?.key?.id);
+        const message = await this.getMessageByKeyId(instance, body.key.id);
         const key = message.key as {
           id: string;
           fromMe: boolean;
