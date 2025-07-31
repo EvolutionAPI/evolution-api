@@ -3447,6 +3447,7 @@ export class BaileysStartupService extends ChannelStartupService {
               await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
             }
           } else {
+            if (!message) return response;
             await this.prismaRepository.message.deleteMany({ where: { id: message.id } });
           }
           this.sendDataWebhook(Events.MESSAGES_DELETE, {
