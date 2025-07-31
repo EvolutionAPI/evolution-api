@@ -11,13 +11,13 @@
     "dev:server": "tsx watch ./src/main.ts",
     "test": "tsx watch ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src",
-    "lint:check": "eslint --ext .ts src",
-    "db:generate": "node runWithProvider.js \"npx prisma generate --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
-    "db:deploy": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate deploy --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
-    "db:deploy:win": "node runWithProvider.js \"xcopy /E /I prisma\\DATABASE_PROVIDER-migrations prisma\\migrations && npx prisma migrate deploy --schema prisma\\DATABASE_PROVIDER-schema.prisma\"",
-    "db:studio": "node runWithProvider.js \"npx prisma studio --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
-    "db:migrate:dev": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate dev --schema ./prisma/DATABASE_PROVIDER-schema.prisma && cp -r ./prisma/migrations/* ./prisma/DATABASE_PROVIDER-migrations\"",
-    "db:migrate:dev:win": "node runWithProvider.js \"xcopy /E /I prisma\\DATABASE_PROVIDER-migrations prisma\\migrations && npx prisma migrate dev --schema prisma\\DATABASE_PROVIDER-schema.prisma\""
+    "lint:check": "eslint --ext .ts src",    
+    "db:generate": "npx prisma generate --schema=./prisma/postgresql-schema.prisma",
+    "db:deploy": "rm -rf ./prisma/migrations && cp -r ./prisma/postgresql-migrations ./prisma/migrations && npx prisma migrate deploy --schema=./prisma/postgresql-schema.prisma",
+    "db:deploy:win": "xcopy /E /I prisma\\postgresql-migrations prisma\\migrations && npx prisma migrate deploy --schema=prisma\\postgresql-schema.prisma",
+    "db:studio": "npx prisma studio --schema=./prisma/postgresql-schema.prisma",
+    "db:migrate:dev": "rm -rf ./prisma/migrations && cp -r ./prisma/postgresql-migrations ./prisma/migrations && npx prisma migrate dev --schema=./prisma/postgresql-schema.prisma && cp -r ./prisma/migrations/* ./prisma/postgresql-migrations",
+    "db:migrate:dev:win": "xcopy /E /I prisma\\postgresql-migrations prisma\\migrations && npx prisma migrate dev --schema=prisma\\postgresql-schema.prisma"
   },
   "repository": {
     "type": "git",
