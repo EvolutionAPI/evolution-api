@@ -647,22 +647,22 @@ model IsOnWhatsapp {
 
 model N8n {
   id              String           @id @default(cuid())
-  enabled         Boolean          @default(true) @db.Boolean
+  enabled         Boolean          @default(true) @db.TinyInt(1)
   description     String?          @db.VarChar(255)
   webhookUrl      String?          @db.VarChar(255)
   basicAuthUser   String?          @db.VarChar(255)
   basicAuthPass   String?          @db.VarChar(255)
   expire          Int?             @default(0) @db.Int
   keywordFinish   String?          @db.VarChar(100)
-  delayMessage    Int?             @db.Integer
+  delayMessage    Int?             @db.Int
   unknownMessage  String?          @db.VarChar(100)
   listeningFromMe Boolean?         @default(false)
   stopBotFromMe   Boolean?         @default(false)
   keepOpen        Boolean?         @default(false)
-  debounceTime    Int?             @db.Integer
+  debounceTime    Int?             @db.Int
   ignoreJids      Json?
   splitMessages   Boolean?         @default(false)
-  timePerChar     Int?             @default(50) @db.Integer
+  timePerChar     Int?             @default(50) @db.Int
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
@@ -677,15 +677,15 @@ model N8nSetting {
   id              String    @id @default(cuid())
   expire          Int?      @default(0) @db.Int
   keywordFinish   String?   @db.VarChar(100)
-  delayMessage    Int?      @db.Integer
+  delayMessage    Int?      @db.Int
   unknownMessage  String?   @db.VarChar(100)
   listeningFromMe Boolean?  @default(false)
   stopBotFromMe   Boolean?  @default(false)
   keepOpen        Boolean?  @default(false)
-  debounceTime    Int?      @db.Integer
+  debounceTime    Int?      @db.Int
   ignoreJids      Json?
   splitMessages   Boolean?  @default(false)
-  timePerChar     Int?      @default(50) @db.Integer
+  timePerChar     Int?      @default(50) @db.Int
   createdAt       DateTime? @default(now()) @db.Timestamp
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Fallback        N8n?      @relation(fields: [n8nIdFallback], references: [id])
@@ -696,21 +696,21 @@ model N8nSetting {
 
 model Evoai {
   id              String           @id @default(cuid())
-  enabled         Boolean          @default(true) @db.Boolean
+  enabled         Boolean          @default(true) @db.TinyInt(1)
   description     String?          @db.VarChar(255)
   agentUrl        String?          @db.VarChar(255)
   apiKey          String?          @db.VarChar(255)
   expire          Int?             @default(0) @db.Int
   keywordFinish   String?          @db.VarChar(100)
-  delayMessage    Int?             @db.Integer
+  delayMessage    Int?             @db.Int
   unknownMessage  String?          @db.VarChar(100)
   listeningFromMe Boolean?         @default(false)
   stopBotFromMe   Boolean?         @default(false)
   keepOpen        Boolean?         @default(false)
-  debounceTime    Int?             @db.Integer
+  debounceTime    Int?             @db.Int
   ignoreJids      Json?
   splitMessages   Boolean?         @default(false)
-  timePerChar     Int?             @default(50) @db.Integer
+  timePerChar     Int?             @default(50) @db.Int
   triggerType     TriggerType?
   triggerOperator TriggerOperator?
   triggerValue    String?
@@ -725,15 +725,15 @@ model EvoaiSetting {
   id              String    @id @default(cuid())
   expire          Int?      @default(0) @db.Int
   keywordFinish   String?   @db.VarChar(100)
-  delayMessage    Int?      @db.Integer
+  delayMessage    Int?      @db.Int
   unknownMessage  String?   @db.VarChar(100)
   listeningFromMe Boolean?  @default(false)
   stopBotFromMe   Boolean?  @default(false)
   keepOpen        Boolean?  @default(false)
-  debounceTime    Int?      @db.Integer
+  debounceTime    Int?      @db.Int
   ignoreJids      Json?
   splitMessages   Boolean?  @default(false)
-  timePerChar     Int?      @default(50) @db.Integer
+  timePerChar     Int?      @default(50) @db.Int
   createdAt       DateTime? @default(now()) @db.Timestamp
   updatedAt       DateTime  @updatedAt @db.Timestamp
   Fallback        Evoai?    @relation(fields: [evoaiIdFallback], references: [id])
