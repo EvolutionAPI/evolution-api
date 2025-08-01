@@ -549,17 +549,18 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.info(`Browser: ${browser}`);
     }
 
-    let version;
-    let log;
+    const baileysVersion = await fetchLatestWaWebVersion({});
+    const version = baileysVersion.version;
+    const log = `Baileys version: ${version.join('.')}`;
 
-    if (session.VERSION) {
-      version = session.VERSION.split('.');
-      log = `Baileys version env: ${version}`;
-    } else {
-      const baileysVersion = await fetchLatestWaWebVersion({});
-      version = baileysVersion.version;
-      log = `Baileys version: ${version}`;
-    }
+    // if (session.VERSION) {
+    //   version = session.VERSION.split('.');
+    //   log = `Baileys version env: ${version}`;
+    // } else {
+    //   const baileysVersion = await fetchLatestWaWebVersion({});
+    //   version = baileysVersion.version;
+    //   log = `Baileys version: ${version}`;
+    // }
 
     this.logger.info(log);
 
@@ -1059,6 +1060,8 @@ export class BaileysStartupService extends ChannelStartupService {
                 'failed to decrypt message',
                 'SessionError',
                 'Invalid PreKey ID',
+                'No session record',
+                'No session found to decrypt message',
               ].some((err) => param?.includes?.(err)),
             )
           ) {
@@ -2559,7 +2562,9 @@ export class BaileysStartupService extends ChannelStartupService {
         imageBuffer = Buffer.from(base64Data, 'base64');
       } else {
         const timestamp = new Date().getTime();
-        const url = `${image}?timestamp=${timestamp}`;
+        const parsedURL = new URL(image);
+        parsedURL.searchParams.set('timestamp', timestamp.toString());
+        const url = parsedURL.toString();
 
         let config: any = { responseType: 'arraybuffer' };
 
@@ -2780,7 +2785,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
       if (isURL(audio)) {
         const timestamp = new Date().getTime();
-        const url = `${audio}?timestamp=${timestamp}`;
+        const parsedURL = new URL(audio);
+        parsedURL.searchParams.set('timestamp', timestamp.toString());
+        const url = parsedURL.toString();
 
         const config: any = { responseType: 'stream' };
 
@@ -3709,7 +3716,9 @@ export class BaileysStartupService extends ChannelStartupService {
       let pic: WAMediaUpload;
       if (isURL(picture)) {
         const timestamp = new Date().getTime();
-        const url = `${picture}?timestamp=${timestamp}`;
+        const parsedURL = new URL(picture);
+        parsedURL.searchParams.set('timestamp', timestamp.toString());
+        const url = parsedURL.toString();
 
         let config: any = { responseType: 'arraybuffer' };
 
@@ -4001,7 +4010,9 @@ export class BaileysStartupService extends ChannelStartupService {
       let pic: WAMediaUpload;
       if (isURL(picture.image)) {
         const timestamp = new Date().getTime();
-        const url = `${picture.image}?timestamp=${timestamp}`;
+        const parsedURL = new URL(picture.image);
+        parsedURL.searchParams.set('timestamp', timestamp.toString());
+        const url = parsedURL.toString();
 
         let config: any = { responseType: 'arraybuffer' };
 
