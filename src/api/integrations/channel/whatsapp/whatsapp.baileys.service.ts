@@ -1482,7 +1482,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             continue;
           }
-          
+
           if (findMessage && update.status !== undefined && status[update.status] !== findMessage.status) {
             if (!key.fromMe && key.remoteJid) {
               readChatToUpdate[key.remoteJid] = true;
