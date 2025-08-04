@@ -28,10 +28,11 @@ export class WebsocketController extends EventController implements EventControl
       allowRequest: async (req, callback) => {
         try {
           const url = new URL(req.url || '', 'http://localhost');
+          const isInternalConnection = req.socket.remoteAddress === '127.0.0.1' || req.socket.remoteAddress === '::1';
           const params = new URLSearchParams(url.search);
 
           // Permite conexões internas do Socket.IO (EIO=4 é o Engine.IO v4)
-          if (params.has('EIO')) {
+          if (params.has('EIO') && isInternalConnection) {
             return callback(null, true);
           }
 
