@@ -1,11 +1,19 @@
 FROM node:20-alpine AS builder
 
+# --- Fix peer‑dependency conflict -------------------------------------------------
+# Setting this env var is equivalent to running every npm command with
+# "--legacy-peer-deps", which prevents the ERESOLVE error produced when
+# Baileys (peer‑requires jimp@^1.6.0) clashes with the jimp@0.16.x version
+# locked in EvolutionAPI's package.json.
+# -------------------------------------------------------------------------------
+ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
+
 RUN apk update && \
     apk add --no-cache git ffmpeg wget curl bash openssl
 
-LABEL version="2.3.1" description="Api to control whatsapp features through http requests." 
-LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
-LABEL contact="contato@evolution-api.com"
+LABEL version="2.3.1" description="Api to control whatsapp features through http requests." \
+      maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes" \
+      contact="contato@evolution-api.com"
 
 WORKDIR /evolution
 
@@ -13,6 +21,7 @@ COPY ./package*.json ./
 COPY ./tsconfig.json ./
 COPY ./tsup.config.ts ./
 
+# With the ENV set above, npm ci will now ignore peer‑dependency conflicts.
 RUN npm ci --silent
 
 COPY ./src ./src
