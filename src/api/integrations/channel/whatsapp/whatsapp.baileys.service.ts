@@ -4250,24 +4250,41 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private prepareMessage(message: proto.IWebMessageInfo): any {
-    const contentType = getContentType(message.message);
-    const contentMsg = message?.message[contentType] as any;
+  const contentType = getContentType(message.message);
+  const contentMsg = message?.message[contentType] as any;
 
-    const messageRaw = {
-      key: message.key,
-      pushName:
-        message.pushName ||
-        (message.key.fromMe
-          ? 'Você'
-          : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
-      status: status[message.status],
-      message: { ...message.message },
-      contextInfo: contentMsg?.contextInfo,
-      messageType: contentType || 'unknown',
-      messageTimestamp: message.messageTimestamp as number,
-      instanceId: this.instanceId,
-      source: getDevice(message.key.id),
-    };
+  // [ADD] Merge seguro de contextInfo
+  const mm = message.message as Record<string, any> | undefined;
+  const contentCtx =
+    contentType && mm && typeof mm[contentType] === 'object'
+      ? mm[contentType]?.contextInfo
+      : undefined;
+
+  const mergedContext: Record<string, any> = {
+    ...(contentCtx || {}),
+    ...(message.message?.contextInfo || {}),
+    ...(message.messageContextInfo || {}),
+  };
+
+  const contextInfoFinal = Object.keys(mergedContext).length > 0 ? mergedContext : undefined;
+
+  const messageRaw = {
+    key: message.key,
+    pushName:
+      message.pushName ||
+      (message.key.fromMe
+        ? 'Você'
+        : message?.participant ||
+          (message.key?.participant ? message.key.participant.split('@')[0] : null)),
+    status: status[message.status],
+    message: { ...message.message },
+    // [REPLACE] antes: contextInfo: contentMsg?.contextInfo,
+    contextInfo: contextInfoFinal,
+    messageType: contentType || 'unknown',
+    messageTimestamp: message.messageTimestamp as number,
+    instanceId: this.instanceId,
+    source: getDevice(message.key.id),
+  };
 
     if (!messageRaw.status && message.key.fromMe === false) {
       messageRaw.status = status[3]; // DELIVERED MESSAGE
