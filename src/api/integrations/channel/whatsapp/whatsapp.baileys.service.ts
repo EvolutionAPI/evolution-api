@@ -4251,9 +4251,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private prepareMessage(message: proto.IWebMessageInfo): any {
   const contentType = getContentType(message.message);
-  const contentMsg = message?.message[contentType] as any;
 
-  // [ADD] Merge seguro de contextInfo
   const mm = message.message as Record<string, any> | undefined;
   const contentCtx =
     contentType && mm && typeof mm[contentType] === 'object'
@@ -4278,7 +4276,6 @@ export class BaileysStartupService extends ChannelStartupService {
           (message.key?.participant ? message.key.participant.split('@')[0] : null)),
     status: status[message.status],
     message: { ...message.message },
-    // [REPLACE] antes: contextInfo: contentMsg?.contextInfo,
     contextInfo: contextInfoFinal,
     messageType: contentType || 'unknown',
     messageTimestamp: message.messageTimestamp as number,
