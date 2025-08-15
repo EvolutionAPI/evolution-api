@@ -1052,11 +1052,9 @@ export class BaileysStartupService extends ChannelStartupService {
         for (const received of messages) {
           if (received.key.remoteJid?.includes('@lid') && received.key.senderPn) {
             this.logger.verbose(`Processing @lid message: ${received.key.remoteJid} -> ${received.key.senderPn}`);
-            
-            (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
+            const previousRemoteJid = received.key.remoteJid;
             received.key.remoteJid = received.key.senderPn;
-
-            await this.updateContactFromLid(received.key.previousRemoteJid, received.key.remoteJid);
+            await this.updateContactFromLid(previousRemoteJid, received.key.remoteJid);
           }
           if (
             received?.messageStubParameters?.some?.((param) =>
@@ -4067,7 +4065,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.logger.info(`Successfully processed @lid update: ${lidJid} -> ${realJid}`);
     } catch (error) {
-      this.logger.error('Error updating contact from @lid:', error);
+      this.logger.error(`Error updating contact from @lid: ${lidJid}`);
     }
   }
 
@@ -4098,13 +4096,10 @@ export class BaileysStartupService extends ChannelStartupService {
             // Tentar resolver o JID real através do WhatsApp
             try {
               // Usar o cliente WhatsApp para verificar se o contato existe
-              const contactInfo = await this.client.contactsUpsert([
-                { id: contact.remoteJid, name: contact.pushName || 'Unknown' }
-              ]);
-
-              if (contactInfo && contactInfo[0] && !contactInfo[0].id.includes('@lid')) {
+              const contactInfo = await this.client.onWhatsApp(contact.remoteJid);
+              if (contactInfo && contactInfo.length > 0 && contactInfo[0].jid && !contactInfo[0].jid.includes('@lid')) {
                 // Contato foi resolvido, atualizar
-                await this.updateContactFromLid(contact.remoteJid, contactInfo[0].id);
+                await this.updateContactFromLid(contact.remoteJid, contactInfo[0].jid);
               } else {
                 // Contato não pode ser resolvido, remover
                 this.logger.warn(`Removing orphaned @lid contact: ${contact.remoteJid}`);
@@ -4139,12 +4134,10 @@ export class BaileysStartupService extends ChannelStartupService {
                     // Extrai o JID @lid da chave do cache
                     const lidJid = key.split(':').pop();
                     // Usa o Baileys para tentar resolver o JID real
-                    const contactInfo = await this.client.contactsUpsert([
-                      { id: lidJid, name: contactData.pushName || 'Unknown' }
-                    ]);
-                    if (contactInfo && contactInfo[0] && !contactInfo[0].id.includes('@lid')) {
+                    const contactInfo = await this.client.onWhatsApp(lidJid);
+                    if (contactInfo && contactInfo.length > 0 && contactInfo[0].jid && !contactInfo[0].jid.includes('@lid')) {
                       // Atualiza o cache para o JID real
-                      const realContactKey = `contact:${this.instanceId}:${contactInfo[0].id}`;
+                      const realContactKey = `contact:${this.instanceId}:${contactInfo[0].jid}`;
                       await this.cache.hSet(this.instanceId, realContactKey, contactData);
                       await this.cache.hDelete(this.instanceId, key);
                       this.logger.verbose(`Updated Redis cache contact from @lid: ${key} -> ${realContactKey}`);
@@ -4163,7 +4156,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       this.logger.info('Completed cleanup of orphaned @lid contacts');
     } catch (error) {
-      this.logger.error('Error during @lid cleanup:', error);
+      this.logger.error(`Error during @lid cleanup`);
     }
   }
 
