@@ -4050,7 +4050,7 @@ export class BaileysStartupService extends ChannelStartupService {
           const authState = this.instance.authState as any;
           if (authState.store && authState.store.contacts) {
             // Atualizar contatos no store local
-            const contacts = authState.store.contacts;
+            const {contacts} = authState.store;
             if (contacts[lidJid]) {
               contacts[realJid] = contacts[lidJid];
               delete contacts[lidJid];
