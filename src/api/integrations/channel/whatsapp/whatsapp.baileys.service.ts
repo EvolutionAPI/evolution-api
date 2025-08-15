@@ -670,6 +670,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.eventHandler();
 
+    this.startLidCleanupScheduler();
+
     this.client.ws.on('CB:call', (packet) => {
       console.log('CB:call', packet);
       const payload = { event: 'CB:call', packet: packet };
@@ -1049,8 +1051,12 @@ export class BaileysStartupService extends ChannelStartupService {
       try {
         for (const received of messages) {
           if (received.key.remoteJid?.includes('@lid') && received.key.senderPn) {
+            this.logger.verbose(`Processing @lid message: ${received.key.remoteJid} -> ${received.key.senderPn}`);
+            
             (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
             received.key.remoteJid = received.key.senderPn;
+
+            await this.updateContactFromLid(received.key.previousRemoteJid, received.key.remoteJid);
           }
           if (
             received?.messageStubParameters?.some?.((param) =>
@@ -1446,16 +1452,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          const findMessage = await this.prismaRepository.message.findFirst({
-            where: { instanceId: this.instanceId, key: { path: ['id'], equals: key.id } },
-          });
-
-          if (!findMessage) {
-            continue;
-          }
-
           const message: any = {
-            messageId: findMessage.id,
             keyId: key.id,
             remoteJid: key?.remoteJid,
             fromMe: key.fromMe,
@@ -1464,6 +1461,16 @@ export class BaileysStartupService extends ChannelStartupService {
             pollUpdates,
             instanceId: this.instanceId,
           };
+
+          let findMessage: any;
+          const configDatabaseData = this.configService.get<Database>('DATABASE').SAVE_DATA;
+          if (configDatabaseData.HISTORIC || configDatabaseData.NEW_MESSAGE) {
+            findMessage = await this.prismaRepository.message.findFirst({
+              where: { instanceId: this.instanceId, key: { path: ['id'], equals: key.id } },
+            });
+
+            if (findMessage) message.messageId = findMessage.id;
+          }
 
           if (update.message === null && update.status === undefined) {
             this.sendDataWebhook(Events.MESSAGES_DELETE, key);
@@ -1480,7 +1487,9 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             continue;
-          } else if (update.status !== undefined && status[update.status] !== findMessage.status) {
+          }
+
+          if (findMessage && update.status !== undefined && status[update.status] !== findMessage.status) {
             if (!key.fromMe && key.remoteJid) {
               readChatToUpdate[key.remoteJid] = true;
 
@@ -3438,17 +3447,20 @@ export class BaileysStartupService extends ChannelStartupService {
               where: { id: message.id },
               data: { key: { ...existingKey, deleted: true }, status: 'DELETED' },
             });
-            const messageUpdate: any = {
-              messageId: message.id,
-              keyId: messageId,
-              remoteJid: response.key.remoteJid,
-              fromMe: response.key.fromMe,
-              participant: response.key?.remoteJid,
-              status: 'DELETED',
-              instanceId: this.instanceId,
-            };
-            await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
+            if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
+              const messageUpdate: any = {
+                messageId: message.id,
+                keyId: messageId,
+                remoteJid: response.key.remoteJid,
+                fromMe: response.key.fromMe,
+                participant: response.key?.remoteJid,
+                status: 'DELETED',
+                instanceId: this.instanceId,
+              };
+              await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
+            }
           } else {
+            if (!message) return response;
             await this.prismaRepository.message.deleteMany({ where: { id: message.id } });
           }
           this.sendDataWebhook(Events.MESSAGES_DELETE, {
@@ -3780,6 +3792,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async formatUpdateMessage(data: UpdateMessageDto) {
     try {
+      if (!this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
+        return data;
+      }
+
       const msg: any = await this.getMessage(data.key, true);
 
       if (msg?.messageType === 'conversation' || msg?.messageType === 'extendedTextMessage') {
@@ -3813,13 +3829,15 @@ export class BaileysStartupService extends ChannelStartupService {
 
     try {
       const oldMessage: any = await this.getMessage(data.key, true);
-      if (!oldMessage) throw new NotFoundException('Message not found');
-      if (oldMessage?.key?.remoteJid !== jid) {
-        throw new BadRequestException('RemoteJid does not match');
-      }
-      if (oldMessage?.messageTimestamp > Date.now() + 900000) {
-        // 15 minutes in milliseconds
-        throw new BadRequestException('Message is older than 15 minutes');
+      if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
+        if (!oldMessage) throw new NotFoundException('Message not found');
+        if (oldMessage?.key?.remoteJid !== jid) {
+          throw new BadRequestException('RemoteJid does not match');
+        }
+        if (oldMessage?.messageTimestamp > Date.now() + 900000) {
+          // 15 minutes in milliseconds
+          throw new BadRequestException('Message is older than 15 minutes');
+        }
       }
 
       const messageSent = await this.client.sendMessage(jid, { ...(options as any), edit: data.key });
@@ -3837,7 +3855,7 @@ export class BaileysStartupService extends ChannelStartupService {
             );
 
           const messageId = messageSent.message?.protocolMessage?.key?.id;
-          if (messageId) {
+          if (messageId && this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
             let message = await this.prismaRepository.message.findFirst({
               where: { key: { path: ['id'], equals: messageId } },
             });
@@ -3849,6 +3867,7 @@ export class BaileysStartupService extends ChannelStartupService {
             if ((message.key.valueOf() as any)?.deleted) {
               new BadRequestException('You cannot edit deleted messages');
             }
+
             if (oldMessage.messageType === 'conversation' || oldMessage.messageType === 'extendedTextMessage') {
               oldMessage.message.conversation = data.text;
             } else {
@@ -3862,16 +3881,19 @@ export class BaileysStartupService extends ChannelStartupService {
                 messageTimestamp: Math.floor(Date.now() / 1000), // Convert to int32 by dividing by 1000 to get seconds
               },
             });
-            const messageUpdate: any = {
-              messageId: message.id,
-              keyId: messageId,
-              remoteJid: messageSent.key.remoteJid,
-              fromMe: messageSent.key.fromMe,
-              participant: messageSent.key?.remoteJid,
-              status: 'EDITED',
-              instanceId: this.instanceId,
-            };
-            await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
+
+            if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
+              const messageUpdate: any = {
+                messageId: message.id,
+                keyId: messageId,
+                remoteJid: messageSent.key.remoteJid,
+                fromMe: messageSent.key.fromMe,
+                participant: messageSent.key?.remoteJid,
+                status: 'EDITED',
+                instanceId: this.instanceId,
+              };
+              await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
+            }
           }
         }
       }
@@ -3939,6 +3961,226 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.error(error);
       return null;
     }
+  }
+
+  /**
+   * Atualiza contatos que foram criados com @lid para o JID real
+   * Isso resolve problemas de mensagens não chegando no iPhone
+   * Funciona com ou sem banco de dados
+   */
+  private async updateContactFromLid(lidJid: string, realJid: string) {
+    try {
+      // Verificar se o banco de dados está habilitado
+      const db = this.configService.get<Database>('DATABASE');
+      const cache = this.configService.get<CacheConf>('CACHE');
+      
+      if (db.SAVE_DATA.CONTACTS) {
+        // Com banco de dados - usar Prisma
+        try {
+          // Buscar contato com @lid
+          const lidContact = await this.prismaRepository.contact.findFirst({
+            where: {
+              remoteJid: lidJid,
+              instanceId: this.instanceId,
+            },
+          });
+
+          if (lidContact) {
+            // Atualizar para o JID real
+            await this.prismaRepository.contact.update({
+              where: { id: lidContact.id },
+              data: { remoteJid: realJid },
+            });
+
+            this.logger.verbose(`Updated contact from @lid: ${lidJid} -> ${realJid}`);
+          }
+
+          // Também atualizar mensagens com @lid
+          const lidMessages = await this.prismaRepository.message.findMany({
+            where: {
+              instanceId: this.instanceId,
+              key: {
+                path: ['remoteJid'],
+                equals: lidJid,
+              },
+            },
+          });
+
+          if (lidMessages.length > 0) {
+            for (const message of lidMessages) {
+              const key = message.key as any;
+              key.remoteJid = realJid;
+              
+              await this.prismaRepository.message.update({
+                where: { id: message.id },
+                data: { key: key },
+              });
+            }
+
+            this.logger.verbose(`Updated ${lidMessages.length} messages from @lid: ${lidJid} -> ${realJid}`);
+          }
+        } catch (dbError) {
+          this.logger.warn(`Database operation failed, falling back to cache: ${dbError.message}`);
+        }
+      }
+
+      // Sem banco de dados - usar cache e arquivos locais
+      if (cache?.REDIS?.ENABLED) {
+        // Atualizar no cache Redis
+        try {
+          const cacheKey = `contact:${this.instanceId}:${lidJid}`;
+          const realContactKey = `contact:${this.instanceId}:${realJid}`;
+          
+          // Buscar dados do contato @lid no cache
+          const lidContactData = await this.cache.hGet(this.instanceId, cacheKey);
+          if (lidContactData) {
+            // Atualizar para o JID real no cache
+            await this.cache.hSet(this.instanceId, realContactKey, lidContactData);
+            await this.cache.hDelete(this.instanceId, cacheKey);
+            
+            this.logger.verbose(`Updated Redis cache contact from @lid: ${lidJid} -> ${realJid}`);
+          }
+        } catch (cacheError) {
+          this.logger.warn(`Redis cache operation failed: ${cacheError.message}`);
+        }
+      }
+
+      // Atualizar arquivos locais se necessário
+      if (this.instance.authState) {
+        try {
+          // Atualizar o estado de autenticação local
+          const authState = this.instance.authState as any;
+          if (authState.store && authState.store.contacts) {
+            // Atualizar contatos no store local
+            const contacts = authState.store.contacts;
+            if (contacts[lidJid]) {
+              contacts[realJid] = contacts[lidJid];
+              delete contacts[lidJid];
+              
+              this.logger.verbose(`Updated local auth state contact from @lid: ${lidJid} -> ${realJid}`);
+            }
+          }
+        } catch (localError) {
+          this.logger.warn(`Local auth state update failed: ${localError.message}`);
+        }
+      }
+
+      this.logger.info(`Successfully processed @lid update: ${lidJid} -> ${realJid}`);
+    } catch (error) {
+      this.logger.error('Error updating contact from @lid:', error);
+    }
+  }
+
+  /**
+   * Limpa contatos @lid órfãos e faz manutenção periódica
+   * Executa automaticamente para resolver problemas de mensagens não chegando
+   */
+  private async cleanupOrphanedLidContacts() {
+    try {
+      this.logger.verbose('Starting cleanup of orphaned @lid contacts...');
+      
+      const db = this.configService.get<Database>('DATABASE');
+      const cache = this.configService.get<CacheConf>('CACHE');
+      
+      if (db.SAVE_DATA.CONTACTS) {
+        // Com banco: buscar todos os contatos @lid
+        try {
+          const lidContacts = await this.prismaRepository.contact.findMany({
+            where: {
+              remoteJid: { contains: '@lid' },
+              instanceId: this.instanceId,
+            },
+          });
+
+          this.logger.verbose(`Found ${lidContacts.length} @lid contacts to cleanup`);
+
+          for (const contact of lidContacts) {
+            // Tentar resolver o JID real através do WhatsApp
+            try {
+              // Usar o cliente WhatsApp para verificar se o contato existe
+              const contactInfo = await this.client.contactsUpsert([
+                { id: contact.remoteJid, name: contact.pushName || 'Unknown' }
+              ]);
+
+              if (contactInfo && contactInfo[0] && !contactInfo[0].id.includes('@lid')) {
+                // Contato foi resolvido, atualizar
+                await this.updateContactFromLid(contact.remoteJid, contactInfo[0].id);
+              } else {
+                // Contato não pode ser resolvido, remover
+                this.logger.warn(`Removing orphaned @lid contact: ${contact.remoteJid}`);
+                await this.prismaRepository.contact.delete({
+                  where: { id: contact.id }
+                });
+              }
+            } catch (contactError) {
+              this.logger.warn(`Could not resolve contact ${contact.remoteJid}: ${contactError.message}`);
+            }
+          }
+        } catch (dbError) {
+          this.logger.warn(`Database cleanup failed: ${dbError.message}`);
+        }
+      }
+
+      // Limpeza de cache Redis
+      if (cache?.REDIS?.ENABLED) {
+        try {
+          const keys = await this.cache.keys('*@lid*');
+          this.logger.verbose(`Found ${keys.length} @lid keys in Redis cache`);
+          
+          for (const key of keys) {
+            // Tentar resolver e atualizar
+            const contactData = await this.cache.hGet(this.instanceId, key);
+            if (contactData) {
+              this.logger.verbose(`Processing Redis cache key: ${key}`);
+              for (const key of keys) {
+                 const contactData = await this.cache.hGet(this.instanceId, key);
+                if (contactData) {
+                  try {
+                    // Extrai o JID @lid da chave do cache
+                    const lidJid = key.split(':').pop();
+                    // Usa o Baileys para tentar resolver o JID real
+                    const contactInfo = await this.client.contactsUpsert([
+                      { id: lidJid, name: contactData.pushName || 'Unknown' }
+                    ]);
+                    if (contactInfo && contactInfo[0] && !contactInfo[0].id.includes('@lid')) {
+                      // Atualiza o cache para o JID real
+                      const realContactKey = `contact:${this.instanceId}:${contactInfo[0].id}`;
+                      await this.cache.hSet(this.instanceId, realContactKey, contactData);
+                      await this.cache.hDelete(this.instanceId, key);
+                      this.logger.verbose(`Updated Redis cache contact from @lid: ${key} -> ${realContactKey}`);
+                    }
+                  } catch (resolveError) {
+                    this.logger.warn(`Could not resolve contact in cache: ${key} - ${resolveError.message}`);
+                  }
+                }
+              }
+            }
+          }
+        } catch (cacheError) {
+          this.logger.warn(`Redis cleanup failed: ${cacheError.message}`);
+        }
+      }
+
+      this.logger.info('Completed cleanup of orphaned @lid contacts');
+    } catch (error) {
+      this.logger.error('Error during @lid cleanup:', error);
+    }
+  }
+
+  /**
+   * Inicia o processo de limpeza periódica de @lid
+   * Executa a cada 5 minutos para manter o sistema limpo
+   */
+  private startLidCleanupScheduler() {
+    // Limpeza inicial
+    setTimeout(() => this.cleanupOrphanedLidContacts(), 30000); // 30 segundos após inicialização
+    
+    // Limpeza periódica a cada 5 minutos
+    setInterval(() => {
+      this.cleanupOrphanedLidContacts();
+    }, 5 * 60 * 1000); // 5 minutos
+    
+    this.logger.info('Started periodic @lid cleanup scheduler (every 5 minutes)');
   }
 
   private getGroupMetadataCache = async (groupJid: string) => {
