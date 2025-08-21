@@ -775,29 +775,46 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
 
   // Base implementation for emit
   public async emit({ instance, remoteJid, msg }: EmitData) {
-    if (!this.integrationEnabled) return;
+    this.logger.log(`🚀 [${this.integrationName}] EMIT STARTED - remoteJid: ${remoteJid}, instance: ${instance.instanceName}`);
+    
+    if (!this.integrationEnabled) {
+      this.logger.warn(`❌ [${this.integrationName}] Integration is DISABLED`);
+      return;
+    }
 
     try {
+      this.logger.log(`🔍 [${this.integrationName}] Looking for settings...`);
       const settings = await this.settingsRepository.findFirst({
         where: {
           instanceId: instance.instanceId,
         },
       });
+      
+      this.logger.log(`⚙️ [${this.integrationName}] Settings found: ${settings ? 'YES' : 'NO'}`);
 
-      if (this.checkIgnoreJids(settings?.ignoreJids, remoteJid)) return;
+      if (this.checkIgnoreJids(settings?.ignoreJids, remoteJid)) {
+        this.logger.warn(`🚫 [${this.integrationName}] Message ignored due to ignoreJids`);
+        return;
+      }
 
+      this.logger.log(`🔍 [${this.integrationName}] Looking for session...`);
       const session = await this.getSession(remoteJid, instance);
+      this.logger.log(`📱 [${this.integrationName}] Session found: ${session ? 'YES' : 'NO'}`);
 
       const content = getConversationMessage(msg);
+      this.logger.log(`💬 [${this.integrationName}] Content: ${content}`);
 
       // Get integration type
       // const integrationType = this.getIntegrationType();
 
       // Find a bot for this message
+      this.logger.log(`🤖 [${this.integrationName}] Looking for bot trigger...`);
       let findBot: any = await this.findBotTrigger(this.botRepository, content, instance, session);
+      this.logger.log(`🤖 [${this.integrationName}] Bot found: ${findBot ? 'YES' : 'NO'} - ID: ${findBot?.id || 'NONE'}`);
 
       // If no bot is found, try to use fallback
       if (!findBot) {
+        this.logger.warn(`⚠️ [${this.integrationName}] No bot found, trying fallback...`);
         const fallback = await this.settingsRepository.findFirst({
           where: {
             instanceId: instance.instanceId,
@@ -806,6 +823,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
 
         // Get the fallback ID for this integration type
         const fallbackId = this.getFallbackBotId(fallback);
+        this.logger.log(`🔄 [${this.integrationName}] Fallback ID: ${fallbackId || 'NONE'}`);
 
         if (fallbackId) {
           const findFallback = await this.botRepository.findFirst({
@@ -815,13 +833,16 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
           });
 
           findBot = findFallback;
+          this.logger.log(`🔄 [${this.integrationName}] Fallback bot found: ${findFallback ? 'YES' : 'NO'}`);
         } else {
+          this.logger.warn(`❌ [${this.integrationName}] No fallback bot available`);
           return;
         }
       }
 
       // If we still don't have a bot, return
       if (!findBot) {
+        this.logger.warn(`❌ [${this.integrationName}] Still no bot found, returning`);
         return;
       }
 
@@ -904,29 +925,42 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
 
       // Process with debounce if needed
       if (debounceTime && debounceTime > 0) {
+        this.logger.log(`⏱️ [${this.integrationName}] Processing with debounce (${debounceTime}s)...`);
         this.processDebounce(this.userMessageDebounce, content, remoteJid, debounceTime, async (debouncedContent) => {
+          this.logger.log(`🚀 [${this.integrationName}] Debounce complete! Calling processBot...`);
+          try {
+            await this.processBot(
+              this.waMonitor.waInstances[instance.instanceName],
+              remoteJid,
+              findBot,
+              session,
+              mergedSettings,
+              debouncedContent,
+              msg?.pushName,
+              msg,
+            );
+            this.logger.log(`✅ [${this.integrationName}] processBot completed successfully`);
+          } catch (error) {
+            this.logger.error(`❌ [${this.integrationName}] Error in processBot: ${error.message}`);
+          }
+        });
+      } else {
+        this.logger.log(`🚀 [${this.integrationName}] Processing without debounce...`);
+        try {
           await this.processBot(
             this.waMonitor.waInstances[instance.instanceName],
             remoteJid,
             findBot,
             session,
             mergedSettings,
-            debouncedContent,
+            content,
             msg?.pushName,
             msg,
           );
-        });
-      } else {
-        await this.processBot(
-          this.waMonitor.waInstances[instance.instanceName],
-          remoteJid,
-          findBot,
-          session,
-          mergedSettings,
-          content,
-          msg?.pushName,
-          msg,
-        );
+          this.logger.log(`✅ [${this.integrationName}] processBot completed successfully`);
+        } catch (error) {
+          this.logger.error(`❌ [${this.integrationName}] Error in processBot: ${error.message}`);
+        }
       }
     } catch (error) {
       this.logger.error(error);
