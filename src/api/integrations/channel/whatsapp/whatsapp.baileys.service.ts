@@ -1047,7 +1047,10 @@ export class BaileysStartupService extends ChannelStartupService {
       settings: any,
     ) => {
       try {
+        this.logger.log(`🚀 [Baileys] MESSAGES.UPSERT STARTED - type: ${type}, messages: ${messages.length}`);
+        
         for (const received of messages) {
+          this.logger.log(`📱 [Baileys] Processing message: ${received.key.id} from ${received.key.remoteJid} - text: "${received.message?.conversation || received.message?.extendedTextMessage?.text || 'NO_TEXT'}"`);
           if (received.key.remoteJid?.includes('@lid') && received.key.senderPn) {
             (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
             received.key.remoteJid = received.key.senderPn;
@@ -1336,12 +1339,19 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
-          await chatbotController.emit({
-            instance: { instanceName: this.instance.name, instanceId: this.instanceId },
-            remoteJid: messageRaw.key.remoteJid,
-            msg: messageRaw,
-            pushName: messageRaw.pushName,
-          });
+          this.logger.log(`🤖 [Baileys] Calling chatbotController.emit for remoteJid: ${messageRaw.key.remoteJid}`);
+          
+          try {
+            await chatbotController.emit({
+              instance: { instanceName: this.instance.name, instanceId: this.instanceId },
+              remoteJid: messageRaw.key.remoteJid,
+              msg: messageRaw,
+              pushName: messageRaw.pushName,
+            });
+            this.logger.log(`✅ [Baileys] chatbotController.emit completed successfully`);
+          } catch (error) {
+            this.logger.error(`❌ [Baileys] Error in chatbotController.emit: ${error.message}`);
+          }
 
           const contact = await this.prismaRepository.contact.findFirst({
             where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },

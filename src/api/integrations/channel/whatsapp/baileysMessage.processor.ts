@@ -22,7 +22,10 @@ export class BaileysMessageProcessor {
     this.subscription = this.messageSubject
       .pipe(
         tap(({ messages }) => {
-          this.processorLogs.log(`Processing batch of ${messages.length} messages`);
+          this.processorLogs.log(`🚀 [BaileysMessageProcessor] Processing batch of ${messages.length} messages`);
+          messages.forEach((msg, index) => {
+            this.processorLogs.log(`📱 [BaileysMessageProcessor] Message ${index + 1}: ${msg.key?.remoteJid} - ${msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'NO_TEXT'}`);
+          });
         }),
         concatMap(({ messages, type, requestId, settings }) =>
           from(onMessageReceive({ messages, type, requestId }, settings)).pipe(
