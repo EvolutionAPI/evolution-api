@@ -19,10 +19,15 @@ export class BaileysMessageProcessor {
   }>();
 
   mount({ onMessageReceive }: MountProps) {
+    this.processorLogs.log(`🧪 [TESTE] mount chamado - BaileysMessageProcessor inicializado`);
     this.subscription = this.messageSubject
       .pipe(
         tap(({ messages }) => {
-          this.processorLogs.log(`Processing batch of ${messages.length} messages`);
+          this.processorLogs.log(`🚀 [BaileysMessageProcessor] Processing batch of ${messages.length} messages`);
+          this.processorLogs.log(`🧪 [TESTE] LOG DE TESTE FUNCIONANDO - ${new Date().toISOString()}`);
+          messages.forEach((msg, index) => {
+            this.processorLogs.log(`📱 [BaileysMessageProcessor] Message ${index + 1}: ${msg.key?.remoteJid} - ${msg.message?.conversation || msg.message?.extendedTextMessage?.text || 'NO_TEXT'}`);
+          });
         }),
         concatMap(({ messages, type, requestId, settings }) =>
           from(onMessageReceive({ messages, type, requestId }, settings)).pipe(
@@ -49,6 +54,7 @@ export class BaileysMessageProcessor {
 
   processMessage(payload: MessageUpsertPayload, settings: any) {
     const { messages, type, requestId } = payload;
+    this.processorLogs.log(`🧪 [TESTE] processMessage chamado - messages: ${messages.length}, type: ${type}`);
     this.messageSubject.next({ messages, type, requestId, settings });
   }
 

@@ -52,7 +52,10 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
     msg?: any,
   ): Promise<void> {
     try {
-      this.logger.log(`Starting process for remoteJid: ${remoteJid}, bot type: ${openaiBot.botType}`);
+      this.logger.log(`🚀 [OpenaiService] PROCESS STARTED - remoteJid: ${remoteJid}, bot type: ${openaiBot.botType}`);
+      this.logger.log(`🤖 [OpenaiService] Bot ID: ${openaiBot.id}, enabled: ${openaiBot.enabled}`);
+      this.logger.log(`💬 [OpenaiService] Content: "${content}"`);
+      this.logger.log(`📱 [OpenaiService] Session: ${session ? 'EXISTS' : 'NEW'}`);
 
       // Handle audio message transcription
       if (content.startsWith('audioMessage|') && msg) {
