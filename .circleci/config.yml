@@ -1,0 +1,70 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5.2.0
+  cloudrun: circleci/gcp-cloud-run@1.0.2
+  gcp-cli: circleci/gcp-cli@3.3.1
+
+# parameters:
+#   run_deploy_evolution_api:
+#     type: boolean
+#     default: false
+
+commands:
+  setup_npmrc:
+    description: "Create .npmrc file with GitHub token"
+    steps:
+      - run:
+          name: Create .npmrc file
+          command: |
+            touch .npmrc;
+            echo @voxityai:registry=https://npm.pkg.github.com/ >> .npmrc;
+            echo //npm.pkg.github.com/:_authToken=$GITHUB_ACCESS_TOKEN >> .npmrc;
+
+  install_and_build:
+    description: "Install packages and build"
+    steps:
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Build application
+          command: npm run build
+
+jobs:
+  deploy_evolution_api:
+    docker:
+      - image: cimg/python:3.12.9-node
+    steps:
+      - checkout
+      # - setup_npmrc
+      - gcp-cli/setup
+      - setup_remote_docker
+      - install_and_build
+      - run:
+          name: Build and push Docker image
+          command: |
+            gcloud builds submit \
+              --config=./cloudbuild.yaml \
+              --substitutions=_CIRCLE_SHA1=${CIRCLE_SHA1},_GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID},_GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN}
+      - run:
+          name: Deploy to Cloud Run
+          command: |
+            gcloud run deploy evolution-api \
+              --image gcr.io/$GOOGLE_PROJECT_ID/evolution-api-$CIRCLE_SHA1 \
+              --region us-central1 \
+              --platform managed \
+              --allow-unauthenticated
+
+workflows:
+  deploy_evolution_api:
+    jobs:
+      - deploy_evolution_api:
+          context: evolution-api-dev
+          filters:
+            branches:
+              only: main
+      - deploy_evolution_api:
+          context: evolution-api-prod
+          filters:
+            branches:
+              only: production

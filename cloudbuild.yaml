@@ -1,0 +1,10 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'gcr.io/${_GOOGLE_PROJECT_ID}/evolution-api-${_CIRCLE_SHA1}',
+      '--build-arg', 'NPM_TOKEN=${_GITHUB_ACCESS_TOKEN}',
+      '.'
+    ]
+images:
+  - 'gcr.io/${_GOOGLE_PROJECT_ID}/voxity-auth-${_CIRCLE_SHA1}'
