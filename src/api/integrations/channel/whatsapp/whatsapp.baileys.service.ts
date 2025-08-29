@@ -2448,9 +2448,43 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const type = mediaMessage.mediatype === 'ptv' ? 'video' : mediaMessage.mediatype;
 
+      let mediaInput: any;
+      if (mediaMessage.mediatype === 'image') {
+        let imageBuffer: Buffer;
+        if (isURL(mediaMessage.media)) {
+          let config: any = { responseType: 'arraybuffer' };
+
+          if (this.localProxy?.enabled) {
+            config = {
+              ...config,
+              httpsAgent: makeProxyAgent({
+                host: this.localProxy.host,
+                port: this.localProxy.port,
+                protocol: this.localProxy.protocol,
+                username: this.localProxy.username,
+                password: this.localProxy.password,
+              }),
+            };
+          }
+
+          const response = await axios.get(mediaMessage.media, config);
+          imageBuffer = Buffer.from(response.data, 'binary');
+        } else {
+          imageBuffer = Buffer.from(mediaMessage.media, 'base64');
+        }
+
+        mediaInput = await sharp(imageBuffer).jpeg().toBuffer();
+        mediaMessage.fileName ??= 'image.jpg';
+        mediaMessage.mimetype = 'image/jpeg';
+      } else {
+        mediaInput = isURL(mediaMessage.media)
+          ? { url: mediaMessage.media }
+          : Buffer.from(mediaMessage.media, 'base64');
+      }
+
       const prepareMedia = await prepareWAMessageMedia(
         {
-          [type]: isURL(mediaMessage.media) ? { url: mediaMessage.media } : Buffer.from(mediaMessage.media, 'base64'),
+          [type]: mediaInput,
         } as any,
         { upload: this.client.waUploadToServer },
       );
@@ -2464,7 +2498,7 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       if (mediaMessage.mediatype === 'image' && !mediaMessage.fileName) {
-        mediaMessage.fileName = 'image.png';
+        mediaMessage.fileName = 'image.jpg';
       }
 
       if (mediaMessage.mediatype === 'video' && !mediaMessage.fileName) {
