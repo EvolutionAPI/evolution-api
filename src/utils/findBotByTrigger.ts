@@ -1,6 +1,8 @@
 import { advancedOperatorsSearch } from './advancedOperatorsSearch';
 
 export const findBotByTrigger = async (botRepository: any, content: string, instanceId: string) => {
+  console.log(`🔍 [findBotByTrigger] Searching for bot - content: "${content}", instanceId: ${instanceId}`);
+  
   // Check for triggerType 'all' or 'none' (both should match any message)
   const findTriggerAllOrNone = await botRepository.findFirst({
     where: {
@@ -12,7 +14,10 @@ export const findBotByTrigger = async (botRepository: any, content: string, inst
     },
   });
 
+  console.log(`🤖 [findBotByTrigger] All/None trigger found: ${findTriggerAllOrNone ? 'YES' : 'NO'} - ID: ${findTriggerAllOrNone?.id || 'NONE'}`);
+  
   if (findTriggerAllOrNone) {
+    console.log(`✅ [findBotByTrigger] Returning bot with triggerType: ${findTriggerAllOrNone.triggerType}`);
     return findTriggerAllOrNone;
   }
 
