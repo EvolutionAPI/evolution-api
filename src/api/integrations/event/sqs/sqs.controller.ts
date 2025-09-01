@@ -17,33 +17,29 @@ export class SqsController extends EventController implements EventControllerInt
     super(prismaRepository, waMonitor, configService.get<Sqs>('SQS')?.ENABLED, 'sqs');
   }
 
-  public init(): void {
+  public async init(): Promise<void> {
     if (!this.status) {
       return;
     }
 
-    new Promise<void>(async (resolve) => {
-      const awsConfig = configService.get<Sqs>('SQS');
+    const awsConfig = configService.get<Sqs>('SQS');
 
-      this.sqs = new SQS({
-        credentials: {
-          accessKeyId: awsConfig.ACCESS_KEY_ID,
-          secretAccessKey: awsConfig.SECRET_ACCESS_KEY,
-        },
+    this.sqs = new SQS({
+      credentials: {
+        accessKeyId: awsConfig.ACCESS_KEY_ID,
+        secretAccessKey: awsConfig.SECRET_ACCESS_KEY,
+      },
 
-        region: awsConfig.REGION,
-      });
-
-      this.logger.info('SQS initialized');
-
-      const sqsConfig = configService.get<Sqs>('SQS');
-      if (this.sqs && sqsConfig.GLOBAL_ENABLED) {
-        const sqsEvents = Object.keys(sqsConfig.EVENTS).filter(e => sqsConfig.EVENTS[e]);
-        await this.saveQueues(sqsConfig.GLOBAL_PREFIX_NAME, sqsEvents, true);
-      }
-
-      resolve();
+      region: awsConfig.REGION,
     });
+
+    this.logger.info('SQS initialized');
+
+    const sqsConfig = configService.get<Sqs>('SQS');
+    if (this.sqs && sqsConfig.GLOBAL_ENABLED) {
+      const sqsEvents = Object.keys(sqsConfig.EVENTS).filter(e => sqsConfig.EVENTS[e]);
+      await this.saveQueues(sqsConfig.GLOBAL_PREFIX_NAME, sqsEvents, true);
+    }
   }
 
   private set channel(sqs: SQS) {
