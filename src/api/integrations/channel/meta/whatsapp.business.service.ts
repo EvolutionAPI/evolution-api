@@ -460,7 +460,11 @@ export class BusinessStartupService extends ChannelStartupService {
                 }
 
                 if (mediaType == 'video' && !this.configService.get<S3>('S3').SAVE_VIDEO) {
-                  throw new Error('Video upload is disabled.');
+                  this.logger?.info?.('Video upload attempted but is disabled by configuration.');
+                  return {
+                    success: false,
+                    message: 'Video upload is currently disabled. Please contact support if you need this feature enabled.',
+                  };
                 }
 
                 const mimetype = result.data?.mime_type || result.headers['content-type'];
