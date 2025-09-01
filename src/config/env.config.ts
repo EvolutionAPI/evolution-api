@@ -505,7 +505,7 @@ export class ConfigService {
         SECRET_ACCESS_KEY: process.env.SQS_SECRET_ACCESS_KEY || '',
         ACCOUNT_ID: process.env.SQS_ACCOUNT_ID || '',
         REGION: process.env.SQS_REGION || '',
-        MAX_PAYLOAD_SIZE: Number.parseInt(process.env.SQS_MAX_PAYLOAD_SIZE) || 1048576,
+        MAX_PAYLOAD_SIZE: Number.parseInt(process.env.SQS_MAX_PAYLOAD_SIZE ?? '1048576'),
         EVENTS: {
           APPLICATION_STARTUP: process.env?.SQS_GLOBAL_APPLICATION_STARTUP === 'true',
           CALL: process.env?.SQS_GLOBAL_CALL === 'true',
