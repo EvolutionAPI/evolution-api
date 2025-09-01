@@ -186,15 +186,13 @@ export class SqsController extends EventController implements EventControllerInt
               url: queueName,
               server_url: serverUrl,
             });
-          } else {
-            if (configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
-              const logData = {
-                local: `${origin}.sendData-SQS`,
-                ...message,
-              };
+          } else if (configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS')) {
+            const logData = {
+              local: `${origin}.sendData-SQS`,
+              ...message,
+            };
 
-              this.logger.log(logData);
-            }
+            this.logger.log(logData);
           }
         });
       }
