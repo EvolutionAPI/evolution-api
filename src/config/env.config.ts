@@ -282,7 +282,7 @@ export type S3 = {
   USE_SSL?: boolean;
   REGION?: string;
   SKIP_POLICY?: boolean;
-  SAVE_VIDEO: boolean;
+  SAVE_VIDEO?: boolean;
 };
 
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
