@@ -37,7 +37,7 @@ export class SqsController extends EventController implements EventControllerInt
 
     const sqsConfig = configService.get<Sqs>('SQS');
     if (this.sqs && sqsConfig.GLOBAL_ENABLED) {
-      const sqsEvents = Object.keys(sqsConfig.EVENTS).filter(e => sqsConfig.EVENTS[e]);
+      const sqsEvents = Object.keys(sqsConfig.EVENTS).filter((e) => sqsConfig.EVENTS[e]);
       await this.saveQueues(sqsConfig.GLOBAL_PREFIX_NAME, sqsEvents, true);
     }
   }
