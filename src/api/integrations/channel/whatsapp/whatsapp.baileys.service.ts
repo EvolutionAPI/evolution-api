@@ -1261,7 +1261,9 @@ export class BaileysStartupService extends ChannelStartupService {
               if (this.configService.get<S3>('S3').ENABLE) {
                 try {
                   if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
-                    throw new Error('Video upload is disabled.');
+                    this.logger.warn('Video upload is disabled. Skipping video upload.');
+                    // Skip video upload by returning early from this block
+                    return;
                   }
 
                   const message: any = received;
