@@ -3,7 +3,13 @@ import { configService, S3 } from '@config/env.config';
 const getTypeMessage = (msg: any) => {
   let mediaId: string;
 
-  if (configService.get<S3>('S3').ENABLE) mediaId = msg.message?.mediaUrl;
+  if (
+    configService.get<S3>('S3').ENABLE &&
+    (configService.get<S3>('S3').SAVE_VIDEO ||
+      (msg?.message?.videoMessage === undefined &&
+        msg?.message?.viewOnceMessageV2?.message?.videoMessage === undefined))
+  )
+    mediaId = msg.message?.mediaUrl;
   else mediaId = msg.key?.id;
 
   const types = {
@@ -32,16 +38,14 @@ const getTypeMessage = (msg: any) => {
       ? `videoMessage|${mediaId}${msg?.message?.videoMessage?.caption ? `|${msg?.message?.videoMessage?.caption}` : ''}`
       : undefined,
     documentMessage: msg?.message?.documentMessage
-      ? `documentMessage|${mediaId}${
-          msg?.message?.documentMessage?.caption ? `|${msg?.message?.documentMessage?.caption}` : ''
-        }`
+      ? `documentMessage|${mediaId}${msg?.message?.documentMessage?.caption ? `|${msg?.message?.documentMessage?.caption}` : ''
+      }`
       : undefined,
     documentWithCaptionMessage: msg?.message?.documentWithCaptionMessage?.message?.documentMessage
-      ? `documentWithCaptionMessage|${mediaId}${
-          msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
-            ? `|${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption}`
-            : ''
-        }`
+      ? `documentWithCaptionMessage|${mediaId}${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
+        ? `|${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption}`
+        : ''
+      }`
       : undefined,
     externalAdReplyBody: msg?.contextInfo?.externalAdReply?.body
       ? `externalAdReplyBody|${msg.contextInfo.externalAdReply.body}`

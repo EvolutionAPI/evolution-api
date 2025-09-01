@@ -459,6 +459,10 @@ export class BusinessStartupService extends ChannelStartupService {
                   mediaType = 'video';
                 }
 
+                if (mediaType == 'video' && !this.configService.get<S3>('S3').SAVE_VIDEO) {
+                  throw new Error('Video upload is disabled.');
+                }
+
                 const mimetype = result.data?.mime_type || result.headers['content-type'];
 
                 const contentDisposition = result.headers['content-disposition'];
@@ -1205,9 +1209,8 @@ export class BusinessStartupService extends ChannelStartupService {
       const token = this.token;
 
       const headers = { Authorization: `Bearer ${token}` };
-      const url = `${this.configService.get<WaBusiness>('WA_BUSINESS').URL}/${
-        this.configService.get<WaBusiness>('WA_BUSINESS').VERSION
-      }/${this.number}/media`;
+      const url = `${this.configService.get<WaBusiness>('WA_BUSINESS').URL}/${this.configService.get<WaBusiness>('WA_BUSINESS').VERSION
+        }/${this.number}/media`;
 
       const res = await axios.post(url, formData, { headers });
       return res.data.id;
