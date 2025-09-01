@@ -1,9 +1,9 @@
+import * as s3Service from '@api/integrations/storage/s3/libs/minio.server';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { CreateQueueCommand, DeleteQueueCommand, ListQueuesCommand, SQS } from '@aws-sdk/client-sqs';
-import { configService, Log, HttpServer, Sqs, S3 } from '@config/env.config';
+import { configService, HttpServer, Log, S3, Sqs } from '@config/env.config';
 import { Logger } from '@config/logger.config';
-import * as s3Service from '@api/integrations/storage/s3/libs/minio.server';
 import { join } from 'path';
 
 import { EmitData, EventController, EventControllerInterface } from '../event.controller';
@@ -110,7 +110,7 @@ export class SqsController extends EventController implements EventControllerInt
 
       let sqsEvents = [];
       if (sqsConfig.GLOBAL_ENABLED) {
-        sqsEvents = Object.keys(sqsConfig.EVENTS).filter(e => sqsConfig.EVENTS[e]);
+        sqsEvents = Object.keys(sqsConfig.EVENTS).filter((e) => sqsConfig.EVENTS[e]);
       } else {
         const instanceSqs = await this.get(instanceName);
         if (instanceSqs?.enabled && Array.isArray(instanceSqs?.events)) {
@@ -141,20 +141,19 @@ export class SqsController extends EventController implements EventControllerInt
         const size = Buffer.byteLength(jsonStr, 'utf8');
         if (size > sqsConfig.MAX_PAYLOAD_SIZE) {
           if (!configService.get<S3>('S3').ENABLE) {
-            this.logger.error(`${instanceName} - ${eventFormatted} - SQS ignored: payload (${size} bytes) exceeds SQS size limit (${sqsConfig.MAX_PAYLOAD_SIZE} bytes) and S3 storage is not enabled.`);
+            this.logger.error(
+              `${instanceName} - ${eventFormatted} - SQS ignored: payload (${size} bytes) exceeds SQS size limit (${sqsConfig.MAX_PAYLOAD_SIZE} bytes) and S3 storage is not enabled.`,
+            );
             return;
           }
 
           const buffer = Buffer.from(jsonStr, 'utf8');
           const fileName = `${instanceName}_${eventFormatted}_${Date.now()}.json`;
-          const fullName = join(
-            'messages',
-            fileName
-          );
+          const fullName = join('messages', fileName);
 
           await s3Service.uploadFile(fullName, buffer, size, {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-store'
+            'Cache-Control': 'no-store',
           });
 
           const fileUrl = await s3Service.getObjectUrl(fullName);
@@ -239,7 +238,7 @@ export class SqsController extends EventController implements EventControllerInt
     let existingQueues: string[] = [];
 
     try {
-      let listCommand = new ListQueuesCommand({
+      const listCommand = new ListQueuesCommand({
         QueueNamePrefix: `${prefixName}_`,
       });
 
