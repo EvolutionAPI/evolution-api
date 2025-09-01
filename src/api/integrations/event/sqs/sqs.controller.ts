@@ -167,10 +167,14 @@ export class SqsController extends EventController implements EventControllerInt
           message.dataType = 's3';
         }
 
+        const isGlobalEnabled = configService.get<Sqs>('SQS').GLOBAL_ENABLED;
         const params = {
           MessageBody: JSON.stringify(message),
           MessageGroupId: 'evolution',
           QueueUrl: sqsUrl,
+          ...(!isGlobalEnabled && {
+            MessageDeduplicationId: `${instanceName}_${eventFormatted}_${Date.now()}`,
+          }),
         };
 
         this.sqs.sendMessage(params, (err) => {
@@ -217,13 +221,15 @@ export class SqsController extends EventController implements EventControllerInt
 
         const queueName = `${prefixName}_${normalizedEvent}.fifo`;
         try {
+          const isGlobalEnabled = configService.get<Sqs>('SQS').GLOBAL_ENABLED;
           const createCommand = new CreateQueueCommand({
             QueueName: queueName,
             Attributes: {
               FifoQueue: 'true',
-              ContentBasedDeduplication: 'true'
+              ...(isGlobalEnabled && { ContentBasedDeduplication: 'true' }),
             },
           });
+
           const data = await this.sqs.send(createCommand);
           this.logger.info(`Queue ${queueName} criada: ${data.QueueUrl}`);
         } catch (err: any) {
