@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Docker Image	(https://img.shields.io/badge/Docker-Image-blue)](https://hub.docker.com/r/evoapicloud/evolution-api)]
+[![Docker Image](https://img.shields.io/badge/Docker-image-blue)](https://hub.docker.com/r/evoapicloud/evolution-api)
 [![Whatsapp Group](https://img.shields.io/badge/Group-WhatsApp-%2322BC18)](https://evolution-api.com/whatsapp)
 [![Discord Community](https://img.shields.io/badge/Discord-Community-blue)](https://evolution-api.com/discord)
 [![Postman Collection](https://img.shields.io/badge/Postman-Collection-orange)](https://evolution-api.com/postman) 
