@@ -30,8 +30,12 @@ export class WebsocketController extends EventController implements EventControl
           const url = new URL(req.url || '', 'http://localhost');
           const params = new URLSearchParams(url.search);
 
+          const { remoteAddress } = req.socket;
+          const isLocalhost =
+            remoteAddress === '127.0.0.1' || remoteAddress === '::1' || remoteAddress === '::ffff:127.0.0.1';
+
           // Permite conexões internas do Socket.IO (EIO=4 é o Engine.IO v4)
-          if (params.has('EIO')) {
+          if (params.has('EIO') && isLocalhost) {
             return callback(null, true);
           }
 

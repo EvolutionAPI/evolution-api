@@ -1,4 +1,17 @@
-# 2.3.1 (develop)
+# 2.3.2 (2025-09-02)
+
+### Features
+
+* Add support to socks proxy
+
+### Fixed
+
+* Added key id into webhook payload in n8n service
+* Enhance RabbitMQ controller with improved connection management and shutdown procedures
+* Convert outgoing images to JPEG before sending with Chatwoot
+* Update baileys dependency to version 6.7.19
+
+# 2.3.1 (2025-07-29)
 
 ### Feature
 
