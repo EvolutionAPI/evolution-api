@@ -670,6 +670,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.eventHandler();
 
+    this.startLidCleanupScheduler();
+
     this.client.ws.on('CB:call', (packet) => {
       console.log('CB:call', packet);
       const payload = { event: 'CB:call', packet: packet };
@@ -1049,8 +1051,10 @@ export class BaileysStartupService extends ChannelStartupService {
       try {
         for (const received of messages) {
           if (received.key.remoteJid?.includes('@lid') && received.key.senderPn) {
-            (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
+            this.logger.verbose(`Processing @lid message: ${received.key.remoteJid} -> ${received.key.senderPn}`);
+            const previousRemoteJid = received.key.remoteJid;
             received.key.remoteJid = received.key.senderPn;
+            await this.updateContactFromLid(previousRemoteJid, received.key.remoteJid);
           }
           if (
             received?.messageStubParameters?.some?.((param) =>
@@ -3989,6 +3993,221 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.error(error);
       return null;
     }
+  }
+
+  /**
+   * Atualiza contatos que foram criados com @lid para o JID real
+   * Isso resolve problemas de mensagens não chegando no iPhone
+   * Funciona com ou sem banco de dados
+   */
+  private async updateContactFromLid(lidJid: string, realJid: string) {
+    try {
+      // Verificar se o banco de dados está habilitado
+      const db = this.configService.get<Database>('DATABASE');
+      const cache = this.configService.get<CacheConf>('CACHE');
+      
+      if (db.SAVE_DATA.CONTACTS) {
+        // Com banco de dados - usar Prisma
+        try {
+          // Buscar contato com @lid
+          const lidContact = await this.prismaRepository.contact.findFirst({
+            where: {
+              remoteJid: lidJid,
+              instanceId: this.instanceId,
+            },
+          });
+
+          if (lidContact) {
+            // Atualizar para o JID real
+            await this.prismaRepository.contact.update({
+              where: { id: lidContact.id },
+              data: { remoteJid: realJid },
+            });
+
+            this.logger.verbose(`Updated contact from @lid: ${lidJid} -> ${realJid}`);
+          }
+
+          // Também atualizar mensagens com @lid
+          const lidMessages = await this.prismaRepository.message.findMany({
+            where: {
+              instanceId: this.instanceId,
+              key: {
+                path: ['remoteJid'],
+                equals: lidJid,
+              },
+            },
+          });
+
+          if (lidMessages.length > 0) {
+            for (const message of lidMessages) {
+              const key = message.key as any;
+              key.remoteJid = realJid;
+              
+              await this.prismaRepository.message.update({
+                where: { id: message.id },
+                data: { key: key },
+              });
+            }
+
+            this.logger.verbose(`Updated ${lidMessages.length} messages from @lid: ${lidJid} -> ${realJid}`);
+          }
+        } catch (dbError) {
+          this.logger.warn(`Database operation failed, falling back to cache: ${dbError.message}`);
+        }
+      }
+
+      // Sem banco de dados - usar cache e arquivos locais
+      if (cache?.REDIS?.ENABLED) {
+        // Atualizar no cache Redis
+        try {
+          const cacheKey = `contact:${this.instanceId}:${lidJid}`;
+          const realContactKey = `contact:${this.instanceId}:${realJid}`;
+          
+          // Buscar dados do contato @lid no cache
+          const lidContactData = await this.cache.hGet(this.instanceId, cacheKey);
+          if (lidContactData) {
+            // Atualizar para o JID real no cache
+            await this.cache.hSet(this.instanceId, realContactKey, lidContactData);
+            await this.cache.hDelete(this.instanceId, cacheKey);
+            
+            this.logger.verbose(`Updated Redis cache contact from @lid: ${lidJid} -> ${realJid}`);
+          }
+        } catch (cacheError) {
+          this.logger.warn(`Redis cache operation failed: ${cacheError.message}`);
+        }
+      }
+
+      // Atualizar arquivos locais se necessário
+      if (this.instance.authState) {
+        try {
+          // Atualizar o estado de autenticação local
+          const authState = this.instance.authState as any;
+          if (authState.store && authState.store.contacts) {
+            // Atualizar contatos no store local
+            const {contacts} = authState.store;
+            if (contacts[lidJid]) {
+              contacts[realJid] = contacts[lidJid];
+              delete contacts[lidJid];
+              
+              this.logger.verbose(`Updated local auth state contact from @lid: ${lidJid} -> ${realJid}`);
+            }
+          }
+        } catch (localError) {
+          this.logger.warn(`Local auth state update failed: ${localError.message}`);
+        }
+      }
+
+      this.logger.info(`Successfully processed @lid update: ${lidJid} -> ${realJid}`);
+    } catch (error) {
+      this.logger.error(`Error updating contact from @lid: ${lidJid}`);
+    }
+  }
+
+  /**
+   * Limpa contatos @lid órfãos e faz manutenção periódica
+   * Executa automaticamente para resolver problemas de mensagens não chegando
+   */
+  private async cleanupOrphanedLidContacts() {
+    try {
+      this.logger.verbose('Starting cleanup of orphaned @lid contacts...');
+      
+      const db = this.configService.get<Database>('DATABASE');
+      const cache = this.configService.get<CacheConf>('CACHE');
+      
+      if (db.SAVE_DATA.CONTACTS) {
+        // Com banco: buscar todos os contatos @lid
+        try {
+          const lidContacts = await this.prismaRepository.contact.findMany({
+            where: {
+              remoteJid: { contains: '@lid' },
+              instanceId: this.instanceId,
+            },
+          });
+
+          this.logger.verbose(`Found ${lidContacts.length} @lid contacts to cleanup`);
+
+          for (const contact of lidContacts) {
+            // Tentar resolver o JID real através do WhatsApp
+            try {
+              // Usar o cliente WhatsApp para verificar se o contato existe
+              const contactInfo = await this.client.onWhatsApp(contact.remoteJid);
+              if (contactInfo && contactInfo.length > 0 && contactInfo[0].jid && !contactInfo[0].jid.includes('@lid')) {
+                // Contato foi resolvido, atualizar
+                await this.updateContactFromLid(contact.remoteJid, contactInfo[0].jid);
+              } else {
+                // Contato não pode ser resolvido, remover
+                this.logger.warn(`Removing orphaned @lid contact: ${contact.remoteJid}`);
+                await this.prismaRepository.contact.delete({
+                  where: { id: contact.id }
+                });
+              }
+            } catch (contactError) {
+              this.logger.warn(`Could not resolve contact ${contact.remoteJid}: ${contactError.message}`);
+            }
+          }
+        } catch (dbError) {
+          this.logger.warn(`Database cleanup failed: ${dbError.message}`);
+        }
+      }
+
+      // Limpeza de cache Redis
+      if (cache?.REDIS?.ENABLED) {
+        try {
+          const keys = await this.cache.keys('*@lid*');
+          this.logger.verbose(`Found ${keys.length} @lid keys in Redis cache`);
+          
+          for (const key of keys) {
+            // Tentar resolver e atualizar
+            const contactData = await this.cache.hGet(this.instanceId, key);
+            if (contactData) {
+              this.logger.verbose(`Processing Redis cache key: ${key}`);
+              for (const key of keys) {
+                 const contactData = await this.cache.hGet(this.instanceId, key);
+                if (contactData) {
+                  try {
+                    // Extrai o JID @lid da chave do cache
+                    const lidJid = key.split(':').pop();
+                    // Usa o Baileys para tentar resolver o JID real
+                    const contactInfo = await this.client.onWhatsApp(lidJid);
+                    if (contactInfo && contactInfo.length > 0 && contactInfo[0].jid && !contactInfo[0].jid.includes('@lid')) {
+                      // Atualiza o cache para o JID real
+                      const realContactKey = `contact:${this.instanceId}:${contactInfo[0].jid}`;
+                      await this.cache.hSet(this.instanceId, realContactKey, contactData);
+                      await this.cache.hDelete(this.instanceId, key);
+                      this.logger.verbose(`Updated Redis cache contact from @lid: ${key} -> ${realContactKey}`);
+                    }
+                  } catch (resolveError) {
+                    this.logger.warn(`Could not resolve contact in cache: ${key} - ${resolveError.message}`);
+                  }
+                }
+              }
+            }
+          }
+        } catch (cacheError) {
+          this.logger.warn(`Redis cleanup failed: ${cacheError.message}`);
+        }
+      }
+
+      this.logger.info('Completed cleanup of orphaned @lid contacts');
+    } catch (error) {
+      this.logger.error(`Error during @lid cleanup`);
+    }
+  }
+
+  /**
+   * Inicia o processo de limpeza periódica de @lid
+   * Executa a cada 5 minutos para manter o sistema limpo
+   */
+  private startLidCleanupScheduler() {
+    // Limpeza inicial
+    setTimeout(() => this.cleanupOrphanedLidContacts(), 30000); // 30 segundos após inicialização
+    
+    // Limpeza periódica a cada 5 minutos
+    setInterval(() => {
+      this.cleanupOrphanedLidContacts();
+    }, 5 * 60 * 1000); // 5 minutos
+    
+    this.logger.info('Started periodic @lid cleanup scheduler (every 5 minutes)');
   }
 
   private getGroupMetadataCache = async (groupJid: string) => {
