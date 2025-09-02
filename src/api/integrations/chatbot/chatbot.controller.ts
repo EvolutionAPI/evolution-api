@@ -84,6 +84,8 @@ export class ChatbotController {
     pushName?: string;
     isIntegration?: boolean;
   }): Promise<void> {
+    this.logger.log(`🚀 [ChatbotController] EMIT STARTED - remoteJid: ${remoteJid}, instance: ${instance.instanceName}`);
+    
     const emitData = {
       instance,
       remoteJid,
@@ -91,19 +93,40 @@ export class ChatbotController {
       pushName,
       isIntegration,
     };
-    await evolutionBotController.emit(emitData);
+    
+    try {
+      this.logger.log(`🤖 [ChatbotController] Calling evolutionBotController.emit...`);
+      await evolutionBotController.emit(emitData);
+      this.logger.log(`✅ [ChatbotController] evolutionBotController.emit completed`);
 
-    await typebotController.emit(emitData);
+      this.logger.log(`🤖 [ChatbotController] Calling typebotController.emit...`);
+      await typebotController.emit(emitData);
+      this.logger.log(`✅ [ChatbotController] typebotController.emit completed`);
 
-    await openaiController.emit(emitData);
+      this.logger.log(`🤖 [ChatbotController] Calling openaiController.emit...`);
+      await openaiController.emit(emitData);
+      this.logger.log(`✅ [ChatbotController] openaiController.emit completed`);
 
-    await difyController.emit(emitData);
+      this.logger.log(`🤖 [ChatbotController] Calling difyController.emit...`);
+      await difyController.emit(emitData);
+      this.logger.log(`✅ [ChatbotController] difyController.emit completed`);
 
-    await n8nController.emit(emitData);
+      this.logger.log(`🤖 [ChatbotController] Calling n8nController.emit...`);
+      await n8nController.emit(emitData);
+      this.logger.log(`✅ [ChatbotController] n8nController.emit completed`);
 
-    await evoaiController.emit(emitData);
+      this.logger.log(`🤖 [ChatbotController] Calling evoaiController.emit...`);
+      await evoaiController.emit(emitData);
+      this.logger.log(`✅ [ChatbotController] evoaiController.emit completed`);
 
-    await flowiseController.emit(emitData);
+      this.logger.log(`🤖 [ChatbotController] Calling flowiseController.emit...`);
+      await flowiseController.emit(emitData);
+      this.logger.log(`✅ [ChatbotController] flowiseController.emit completed`);
+      
+      this.logger.log(`🎉 [ChatbotController] All controllers completed successfully`);
+    } catch (error) {
+      this.logger.error(`❌ [ChatbotController] Error in emit: ${error.message}`);
+    }
   }
 
   public processDebounce(
