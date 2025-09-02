@@ -118,8 +118,11 @@ export class SqsController extends EventController implements EventControllerInt
       }
 
       if (Array.isArray(sqsEvents) && sqsEvents.includes(we)) {
-        const eventFormatted = `${event.replace('.', '_').toLowerCase()}`;
         const prefixName = sqsConfig.GLOBAL_ENABLED ? sqsConfig.GLOBAL_PREFIX_NAME : instanceName;
+        const eventFormatted =
+          sqsConfig.GLOBAL_ENABLED && sqsConfig.GLOBAL_FORCE_SINGLE_QUEUE
+            ? 'singlequeue'
+            : `${event.replace('.', '_').toLowerCase()}`;
         const queueName = `${prefixName}_${eventFormatted}.fifo`;
 
         const sqsUrl = `https://sqs.${sqsConfig.REGION}.amazonaws.com/${sqsConfig.ACCOUNT_ID}/${queueName}`;
@@ -199,12 +202,15 @@ export class SqsController extends EventController implements EventControllerInt
 
   private async saveQueues(prefixName: string, events: string[], enable: boolean) {
     if (enable) {
+      const sqsConfig = configService.get<Sqs>('SQS');
       const eventsFinded = await this.listQueues(prefixName);
       console.log('eventsFinded', eventsFinded);
 
       for (const event of events) {
-        const normalizedEvent = event.toLowerCase();
-
+        const normalizedEvent =
+          sqsConfig.GLOBAL_ENABLED && sqsConfig.GLOBAL_FORCE_SINGLE_QUEUE
+            ? 'singlequeue'
+            : event.toLowerCase();
         if (eventsFinded.includes(normalizedEvent)) {
           this.logger.info(`A queue para o evento "${normalizedEvent}" já existe. Ignorando criação.`);
           continue;
@@ -212,7 +218,7 @@ export class SqsController extends EventController implements EventControllerInt
 
         const queueName = `${prefixName}_${normalizedEvent}.fifo`;
         try {
-          const isGlobalEnabled = configService.get<Sqs>('SQS').GLOBAL_ENABLED;
+          const isGlobalEnabled = sqsConfig.GLOBAL_ENABLED;
           const createCommand = new CreateQueueCommand({
             QueueName: queueName,
             Attributes: {
@@ -225,6 +231,10 @@ export class SqsController extends EventController implements EventControllerInt
           this.logger.info(`Queue ${queueName} criada: ${data.QueueUrl}`);
         } catch (err: any) {
           this.logger.error(`Erro ao criar queue ${queueName}: ${err.message}`);
+        }
+
+        if (sqsConfig.GLOBAL_ENABLED && sqsConfig.GLOBAL_FORCE_SINGLE_QUEUE) {
+          break;
         }
       }
     }

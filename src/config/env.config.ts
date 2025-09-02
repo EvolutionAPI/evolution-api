@@ -115,6 +115,7 @@ export type Nats = {
 export type Sqs = {
   ENABLED: boolean;
   GLOBAL_ENABLED: boolean;
+  GLOBAL_FORCE_SINGLE_QUEUE: boolean;
   GLOBAL_PREFIX_NAME: string;
   ACCESS_KEY_ID: string;
   SECRET_ACCESS_KEY: string;
@@ -500,6 +501,7 @@ export class ConfigService {
       SQS: {
         ENABLED: process.env?.SQS_ENABLED === 'true',
         GLOBAL_ENABLED: process.env?.SQS_GLOBAL_ENABLED === 'true',
+        GLOBAL_FORCE_SINGLE_QUEUE: process.env?.SQS_GLOBAL_FORCE_SINGLE_QUEUE === 'true',
         GLOBAL_PREFIX_NAME: process.env?.SQS_GLOBAL_PREFIX_NAME || 'global',
         ACCESS_KEY_ID: process.env.SQS_ACCESS_KEY_ID || '',
         SECRET_ACCESS_KEY: process.env.SQS_SECRET_ACCESS_KEY || '',
