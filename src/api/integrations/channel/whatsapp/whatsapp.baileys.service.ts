@@ -368,7 +368,7 @@ export class BaileysStartupService extends ChannelStartupService {
       qrcodeTerminal.generate(qr, { small: true }, (qrcode) =>
         this.logger.log(
           `\n{ instance: ${this.instance.name} pairingCode: ${this.instance.qrcode.pairingCode}, qrcodeCount: ${this.instance.qrcode.count} }\n` +
-            qrcode,
+          qrcode,
         ),
       );
 
@@ -961,16 +961,16 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRepository: Set<string> = new Set(
           chatwootImport.getRepositoryMessagesCache(instance) ??
-            (
-              await this.prismaRepository.message.findMany({
-                select: { key: true },
-                where: { instanceId: this.instanceId },
-              })
-            ).map((message) => {
-              const key = message.key as { id: string };
+          (
+            await this.prismaRepository.message.findMany({
+              select: { key: true },
+              where: { instanceId: this.instanceId },
+            })
+          ).map((message) => {
+            const key = message.key as { id: string };
 
-              return key.id;
-            }),
+            return key.id;
+          }),
         );
 
         if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
@@ -1188,6 +1188,8 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.ptvMessage ||
             received?.message?.audioMessage;
 
+          const isVideo = received?.message?.videoMessage;
+
           if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
             await this.client.readMessages([received.key]);
           }
@@ -1258,6 +1260,12 @@ export class BaileysStartupService extends ChannelStartupService {
             if (isMedia) {
               if (this.configService.get<S3>('S3').ENABLE) {
                 try {
+                  if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
+                    this.logger.warn('Video upload is disabled. Skipping video upload.');
+                    // Skip video upload by returning early from this block
+                    return;
+                  }
+
                   const message: any = received;
 
                   // Verificação adicional para garantir que há conteúdo de mídia real
@@ -2146,6 +2154,8 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent?.message?.ptvMessage ||
         messageSent?.message?.audioMessage;
 
+      const isVideo = messageSent?.message?.videoMessage;
+
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && !isIntegration) {
         this.chatwootService.eventWhatsapp(
           Events.SEND_MESSAGE,
@@ -2170,6 +2180,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (isMedia && this.configService.get<S3>('S3').ENABLE) {
           try {
+            if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
+              throw new Error('Video upload is disabled.');
+            }
+
             const message: any = messageRaw;
 
             // Verificação adicional para garantir que há conteúdo de mídia real
