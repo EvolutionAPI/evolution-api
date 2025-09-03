@@ -118,13 +118,13 @@ export class SqsController extends EventController implements EventControllerInt
       }
 
       if (Array.isArray(sqsEvents) && sqsEvents.includes(we)) {
+        const serverName = sqsConfig.GLOBAL_ENABLED ? configService.get<HttpServer>('SERVER').NAME : 'evolution';
         const prefixName = sqsConfig.GLOBAL_ENABLED ? sqsConfig.GLOBAL_PREFIX_NAME : instanceName;
         const eventFormatted =
           sqsConfig.GLOBAL_ENABLED && sqsConfig.GLOBAL_FORCE_SINGLE_QUEUE
             ? 'singlequeue'
             : `${event.replace('.', '_').toLowerCase()}`;
         const queueName = `${prefixName}_${eventFormatted}.fifo`;
-
         const sqsUrl = `https://sqs.${sqsConfig.REGION}.amazonaws.com/${sqsConfig.ACCOUNT_ID}/${queueName}`;
 
         const message = {
@@ -132,7 +132,7 @@ export class SqsController extends EventController implements EventControllerInt
           instance: instanceName,
           dataType: 'json',
           data,
-          server: configService.get<HttpServer>('SERVER').NAME,
+          server: serverName,
           server_url: serverUrl,
           date_time: dateTime,
           sender,
@@ -166,7 +166,7 @@ export class SqsController extends EventController implements EventControllerInt
         const isGlobalEnabled = configService.get<Sqs>('SQS').GLOBAL_ENABLED;
         const params = {
           MessageBody: JSON.stringify(message),
-          MessageGroupId: 'evolution',
+          MessageGroupId: serverName,
           QueueUrl: sqsUrl,
           ...(!isGlobalEnabled && {
             MessageDeduplicationId: `${instanceName}_${eventFormatted}_${Date.now()}`,
