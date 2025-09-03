@@ -103,6 +103,7 @@ export class SqsController extends EventController implements EventControllerInt
     }
 
     if (this.sqs) {
+      const serverConfig = configService.get<HttpServer>('SERVER');
       const sqsConfig = configService.get<Sqs>('SQS');
 
       const we = event.replace(/[.-]/gm, '_').toUpperCase();
@@ -118,7 +119,6 @@ export class SqsController extends EventController implements EventControllerInt
       }
 
       if (Array.isArray(sqsEvents) && sqsEvents.includes(we)) {
-        const serverName = sqsConfig.GLOBAL_ENABLED ? configService.get<HttpServer>('SERVER').NAME : 'evolution';
         const prefixName = sqsConfig.GLOBAL_ENABLED ? sqsConfig.GLOBAL_PREFIX_NAME : instanceName;
         const eventFormatted =
           sqsConfig.GLOBAL_ENABLED && sqsConfig.GLOBAL_FORCE_SINGLE_QUEUE
@@ -132,7 +132,7 @@ export class SqsController extends EventController implements EventControllerInt
           instance: instanceName,
           dataType: 'json',
           data,
-          server: serverName,
+          server: serverConfig.NAME,
           server_url: serverUrl,
           date_time: dateTime,
           sender,
@@ -163,10 +163,11 @@ export class SqsController extends EventController implements EventControllerInt
           message.dataType = 's3';
         }
 
-        const isGlobalEnabled = configService.get<Sqs>('SQS').GLOBAL_ENABLED;
+        const messageGroupId = sqsConfig.GLOBAL_ENABLED ? `${serverConfig.NAME}-${instanceName}` : 'evolution';
+        const isGlobalEnabled = sqsConfig.GLOBAL_ENABLED;
         const params = {
           MessageBody: JSON.stringify(message),
-          MessageGroupId: serverName,
+          MessageGroupId: messageGroupId,
           QueueUrl: sqsUrl,
           ...(!isGlobalEnabled && {
             MessageDeduplicationId: `${instanceName}_${eventFormatted}_${Date.now()}`,
@@ -208,9 +209,7 @@ export class SqsController extends EventController implements EventControllerInt
 
       for (const event of events) {
         const normalizedEvent =
-          sqsConfig.GLOBAL_ENABLED && sqsConfig.GLOBAL_FORCE_SINGLE_QUEUE
-            ? 'singlequeue'
-            : event.toLowerCase();
+          sqsConfig.GLOBAL_ENABLED && sqsConfig.GLOBAL_FORCE_SINGLE_QUEUE ? 'singlequeue' : event.toLowerCase();
         if (eventsFinded.includes(normalizedEvent)) {
           this.logger.info(`A queue para o evento "${normalizedEvent}" já existe. Ignorando criação.`);
           continue;
