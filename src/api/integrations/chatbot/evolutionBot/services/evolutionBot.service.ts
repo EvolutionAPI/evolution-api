@@ -106,26 +106,51 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         };
       }
 
+      this.logger.debug(`[EvolutionBot] Sending request to endpoint: ${endpoint}`);
+      this.logger.debug(`[EvolutionBot] Payload being sent: ${JSON.stringify(payload, null, 2)}`);
+      this.logger.debug(`[EvolutionBot] Headers being sent: ${JSON.stringify(headers, null, 2)}`);
+
       const response = await axios.post(endpoint, payload, {
         headers,
       });
+
+      this.logger.debug(`[EvolutionBot] Received response status: ${response.status}`);
+      this.logger.debug(`[EvolutionBot] Received response data: ${JSON.stringify(response.data, null, 2)}`);
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
         await instance.client.sendPresenceUpdate('paused', remoteJid);
       }
 
       let message = response?.data?.message;
+      const linkPreview = response?.data?.linkPreview; // Extract linkPreview from n8n response
+
+      this.logger.debug(`[EvolutionBot] Raw message from response: ${JSON.stringify(message)}`);
+      this.logger.debug(`[EvolutionBot] LinkPreview setting from response: ${linkPreview}`);
 
       if (message && typeof message === 'string' && message.startsWith("'") && message.endsWith("'")) {
         const innerContent = message.slice(1, -1);
         if (!innerContent.includes("'")) {
           message = innerContent;
+          this.logger.debug(`[EvolutionBot] Message cleaned (removed quotes): ${message}`);
         }
       }
 
       if (message) {
-        // Use the base class method to send the message to WhatsApp
-        await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+        this.logger.debug(`[EvolutionBot] Sending message to WhatsApp: ${message}`);
+        this.logger.debug(`[EvolutionBot] Using linkPreview: ${linkPreview}`);
+        // Send message directly with linkPreview option
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: message,
+            linkPreview: linkPreview, // Use linkPreview from n8n response
+          },
+          false,
+        );
+        this.logger.debug(`[EvolutionBot] Message sent successfully to WhatsApp`);
+      } else {
+        this.logger.warn(`[EvolutionBot] No message content received from bot response`);
       }
 
       // Send telemetry
