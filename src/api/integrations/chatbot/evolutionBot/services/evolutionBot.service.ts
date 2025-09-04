@@ -106,15 +106,37 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         };
       }
 
+      // Sanitize payload for logging (remove sensitive data)
+      const sanitizedPayload = {
+        ...payload,
+        inputs: {
+          ...payload.inputs,
+          apiKey: payload.inputs.apiKey ? '[REDACTED]' : undefined,
+        },
+      };
+
+      this.logger.debug(`[EvolutionBot] Sending request to endpoint: ${endpoint}`);
+      this.logger.debug(`[EvolutionBot] Request payload: ${JSON.stringify(sanitizedPayload, null, 2)}`);
+
       const response = await axios.post(endpoint, payload, {
         headers,
       });
+
+      this.logger.debug(`[EvolutionBot] Response received - Status: ${response.status}`);
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
         await instance.client.sendPresenceUpdate('paused', remoteJid);
       }
 
       let message = response?.data?.message;
+      const rawLinkPreview = response?.data?.linkPreview;
+
+      // Validate linkPreview is boolean and default to true for backward compatibility
+      const linkPreview = typeof rawLinkPreview === 'boolean' ? rawLinkPreview : true;
+
+      this.logger.debug(
+        `[EvolutionBot] Processing response - Message length: ${message?.length || 0}, LinkPreview: ${linkPreview}`,
+      );
 
       if (message && typeof message === 'string' && message.startsWith("'") && message.endsWith("'")) {
         const innerContent = message.slice(1, -1);
@@ -124,8 +146,19 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
       }
 
       if (message) {
-        // Use the base class method to send the message to WhatsApp
-        await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+        // Send message directly with validated linkPreview option
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: message,
+            linkPreview, // Always boolean, defaults to true
+          },
+          false,
+        );
+        this.logger.debug(`[EvolutionBot] Message sent successfully with linkPreview: ${linkPreview}`);
+      } else {
+        this.logger.warn(`[EvolutionBot] No message content received from bot response`);
       }
 
       // Send telemetry
