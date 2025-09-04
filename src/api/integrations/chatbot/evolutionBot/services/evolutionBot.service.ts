@@ -130,7 +130,7 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
 
       let message = response?.data?.message;
       const rawLinkPreview = response?.data?.linkPreview;
-      
+
       // Validate linkPreview is boolean and default to true for backward compatibility
       const linkPreview = typeof rawLinkPreview === 'boolean' ? rawLinkPreview : true;
 
@@ -152,7 +152,7 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
             number: remoteJid.split('@')[0],
             delay: settings?.delayMessage || 1000,
             text: message,
-            linkPreview: linkPreview, // Always boolean, defaults to true
+            linkPreview, // Always boolean, defaults to true
           },
           false,
         );
