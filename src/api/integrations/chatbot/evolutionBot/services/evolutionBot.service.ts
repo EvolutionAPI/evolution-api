@@ -106,49 +106,57 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         };
       }
 
+      // Sanitize payload for logging (remove sensitive data)
+      const sanitizedPayload = {
+        ...payload,
+        inputs: {
+          ...payload.inputs,
+          apiKey: payload.inputs.apiKey ? '[REDACTED]' : undefined,
+        },
+      };
+
       this.logger.debug(`[EvolutionBot] Sending request to endpoint: ${endpoint}`);
-      this.logger.debug(`[EvolutionBot] Payload being sent: ${JSON.stringify(payload, null, 2)}`);
-      this.logger.debug(`[EvolutionBot] Headers being sent: ${JSON.stringify(headers, null, 2)}`);
+      this.logger.debug(`[EvolutionBot] Request payload: ${JSON.stringify(sanitizedPayload, null, 2)}`);
 
       const response = await axios.post(endpoint, payload, {
         headers,
       });
 
-      this.logger.debug(`[EvolutionBot] Received response status: ${response.status}`);
-      this.logger.debug(`[EvolutionBot] Received response data: ${JSON.stringify(response.data, null, 2)}`);
+      this.logger.debug(`[EvolutionBot] Response received - Status: ${response.status}`);
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
         await instance.client.sendPresenceUpdate('paused', remoteJid);
       }
 
       let message = response?.data?.message;
-      const linkPreview = response?.data?.linkPreview; // Extract linkPreview from n8n response
+      const rawLinkPreview = response?.data?.linkPreview;
+      
+      // Validate linkPreview is boolean and default to true for backward compatibility
+      const linkPreview = typeof rawLinkPreview === 'boolean' ? rawLinkPreview : true;
 
-      this.logger.debug(`[EvolutionBot] Raw message from response: ${JSON.stringify(message)}`);
-      this.logger.debug(`[EvolutionBot] LinkPreview setting from response: ${linkPreview}`);
+      this.logger.debug(
+        `[EvolutionBot] Processing response - Message length: ${message?.length || 0}, LinkPreview: ${linkPreview}`,
+      );
 
       if (message && typeof message === 'string' && message.startsWith("'") && message.endsWith("'")) {
         const innerContent = message.slice(1, -1);
         if (!innerContent.includes("'")) {
           message = innerContent;
-          this.logger.debug(`[EvolutionBot] Message cleaned (removed quotes): ${message}`);
         }
       }
 
       if (message) {
-        this.logger.debug(`[EvolutionBot] Sending message to WhatsApp: ${message}`);
-        this.logger.debug(`[EvolutionBot] Using linkPreview: ${linkPreview}`);
-        // Send message directly with linkPreview option
+        // Send message directly with validated linkPreview option
         await instance.textMessage(
           {
             number: remoteJid.split('@')[0],
             delay: settings?.delayMessage || 1000,
             text: message,
-            linkPreview: linkPreview, // Use linkPreview from n8n response
+            linkPreview: linkPreview, // Always boolean, defaults to true
           },
           false,
         );
-        this.logger.debug(`[EvolutionBot] Message sent successfully to WhatsApp`);
+        this.logger.debug(`[EvolutionBot] Message sent successfully with linkPreview: ${linkPreview}`);
       } else {
         this.logger.warn(`[EvolutionBot] No message content received from bot response`);
       }
