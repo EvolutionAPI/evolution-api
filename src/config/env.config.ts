@@ -134,7 +134,7 @@ export type Sqs = {
     CONTACTS_UPDATE: boolean;
     CONTACTS_UPSERT: boolean;
     GROUP_PARTICIPANTS_UPDATE: boolean;
-    GROUP_UPDATE: boolean;
+    GROUPS_UPDATE: boolean;
     GROUPS_UPSERT: boolean;
     LABELS_ASSOCIATION: boolean;
     LABELS_EDIT: boolean;
@@ -520,7 +520,7 @@ export class ConfigService {
           CONTACTS_UPDATE: process.env?.SQS_GLOBAL_CONTACTS_UPDATE === 'true',
           CONTACTS_UPSERT: process.env?.SQS_GLOBAL_CONTACTS_UPSERT === 'true',
           GROUP_PARTICIPANTS_UPDATE: process.env?.SQS_GLOBAL_GROUP_PARTICIPANTS_UPDATE === 'true',
-          GROUP_UPDATE: process.env?.SQS_GLOBAL_GROUP_UPDATE === 'true',
+          GROUPS_UPDATE: process.env?.SQS_GLOBAL_GROUPS_UPDATE === 'true',
           GROUPS_UPSERT: process.env?.SQS_GLOBAL_GROUPS_UPSERT === 'true',
           LABELS_ASSOCIATION: process.env?.SQS_GLOBAL_LABELS_ASSOCIATION === 'true',
           LABELS_EDIT: process.env?.SQS_GLOBAL_LABELS_EDIT === 'true',
