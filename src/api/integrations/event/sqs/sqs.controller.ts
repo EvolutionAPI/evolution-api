@@ -163,7 +163,7 @@ export class SqsController extends EventController implements EventControllerInt
           message.dataType = 's3';
         }
 
-        const messageGroupId = sqsConfig.GLOBAL_ENABLED ? `${serverConfig.NAME}-${instanceName}` : 'evolution';
+        const messageGroupId = sqsConfig.GLOBAL_ENABLED ? `${serverConfig.NAME}-${eventFormatted}-${instanceName}` : 'evolution';
         const isGlobalEnabled = sqsConfig.GLOBAL_ENABLED;
         const params = {
           MessageBody: JSON.stringify(message),
