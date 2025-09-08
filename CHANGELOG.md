@@ -1,3 +1,9 @@
+# 2.3.3 (develop)
+
+### Testing
+
+* Baileys Updates: Support LIDs in Baileys ([Commit 20693a5](https://github.com/WhiskeySockets/Baileys/commit/20693a59d0973fbf57b28de1b90c55484ce27f8e))
+
 # 2.3.2 (2025-09-02)
 
 ### Features
