@@ -1,9 +1,9 @@
 import { RouterBroker } from '@api/abstract/abstract.router';
 import { NumberDto } from '@api/dto/chat.dto';
 import { businessController } from '@api/server.module';
+import { createMetaErrorResponse } from '@utils/errorResponse';
 import { catalogSchema, collectionsSchema } from '@validate/validate.schema';
 import { RequestHandler, Router } from 'express';
-import { createMetaErrorResponse } from '@utils/errorResponse';
 
 import { HttpStatus } from './index.router';
 
@@ -24,7 +24,7 @@ export class BusinessRouter extends RouterBroker {
         } catch (error) {
           // Log error for debugging
           console.error('Business catalog error:', error);
-          
+
           // Use utility function to create standardized error response
           const errorResponse = createMetaErrorResponse(error, 'business_catalog');
           return res.status(errorResponse.status).json(errorResponse);
@@ -44,7 +44,7 @@ export class BusinessRouter extends RouterBroker {
         } catch (error) {
           // Log error for debugging
           console.error('Business collections error:', error);
-          
+
           // Use utility function to create standardized error response
           const errorResponse = createMetaErrorResponse(error, 'business_collections');
           return res.status(errorResponse.status).json(errorResponse);

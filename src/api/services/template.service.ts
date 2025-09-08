@@ -94,7 +94,7 @@ export class TemplateService {
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
       urlServer = `${urlServer}/${version}/${this.businessId}/message_templates`;
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
-      
+
       if (method === 'GET') {
         const result = await axios.get(urlServer, { headers });
         return result.data;
@@ -104,12 +104,12 @@ export class TemplateService {
       }
     } catch (e) {
       this.logger.error('WhatsApp API request error: ' + (e.response?.data || e.message));
-      
+
       // Return the complete error response from WhatsApp API
       if (e.response?.data) {
         return e.response.data;
       }
-      
+
       // If no response data, throw connection error
       throw new Error(`Connection error: ${e.message}`);
     }
