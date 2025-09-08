@@ -103,7 +103,7 @@ export class TemplateService {
         return result.data;
       }
     } catch (e) {
-      this.logger.error('WhatsApp API request error: ' + (e.response?.data || e.message));
+      this.logger.error('WhatsApp API request error: ' + ( e.response?.data ? JSON.stringify(e.response?.data) : e.message));
 
       // Return the complete error response from WhatsApp API
       if (e.response?.data) {
