@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
@@ -100,6 +100,7 @@
     "sharp": "^0.34.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "socks-proxy-agent": "^8.0.5",
     "swagger-ui-express": "^5.0.1",
     "tsup": "^8.3.5"
   },
