@@ -4299,6 +4299,32 @@ export class BaileysStartupService extends ChannelStartupService {
     throw new Error('Method not available in the Baileys service');
   }
 
+  private sanitizeMessageContent(messageContent: any): any {
+    if (!messageContent) return messageContent;
+
+    // Deep clone to avoid modifying original
+    const sanitized = JSON.parse(JSON.stringify(messageContent, (key, value) => {
+      // Convert Long objects to numbers
+      if (Long.isLong(value)) {
+        return value.toNumber();
+      }
+      
+      // Convert Uint8Array to regular arrays or remove them
+      if (value instanceof Uint8Array) {
+        return Array.from(value);
+      }
+      
+      // Remove functions and other non-serializable objects
+      if (typeof value === 'function') {
+        return undefined;
+      }
+      
+      return value;
+    }));
+
+    return sanitized;
+  }
+
   private prepareMessage(message: proto.IWebMessageInfo): any {
     const contentType = getContentType(message.message);
     const contentMsg = message?.message[contentType] as any;
@@ -4311,10 +4337,12 @@ export class BaileysStartupService extends ChannelStartupService {
           ? 'Você'
           : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
       status: status[message.status],
-      message: { ...message.message },
+      message: this.sanitizeMessageContent({ ...message.message }),
       contextInfo: contentMsg?.contextInfo,
       messageType: contentType || 'unknown',
-      messageTimestamp: message.messageTimestamp as number,
+      messageTimestamp: Long.isLong(message.messageTimestamp) 
+        ? (message.messageTimestamp as Long).toNumber() 
+        : (message.messageTimestamp as number),
       instanceId: this.instanceId,
       source: getDevice(message.key.id),
     };
