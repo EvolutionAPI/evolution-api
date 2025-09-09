@@ -4385,7 +4385,22 @@ export class BaileysStartupService extends ChannelStartupService {
       const prepare = (message: any) => this.prepareMessage(message);
       this.chatwootService.syncLostMessages({ instanceName: this.instance.name }, chatwootConfig, prepare);
 
+      // Generate ID for this cron task and store in cache
+      const cronId = cuid();
+      const cronKey = `chatwoot:syncLostMessages`;
+      await this.chatwootService.getCache()?.hSet(cronKey, this.instance.name, cronId);
+
       const task = cron.schedule('0,30 * * * *', async () => {
+        // Check ID before executing (only if cache is available)
+        const cache = this.chatwootService.getCache();
+        if (cache) {
+          const storedId = await cache.hGet(cronKey, this.instance.name);
+          if (storedId && storedId !== cronId) {
+            this.logger.info(`Stopping syncChatwootLostMessages cron - ID mismatch: ${cronId} vs ${storedId}`);
+            task.stop();
+            return;
+          }
+        }
         this.chatwootService.syncLostMessages({ instanceName: this.instance.name }, chatwootConfig, prepare);
       });
       task.start();
