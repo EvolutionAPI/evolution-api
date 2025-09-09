@@ -878,7 +878,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
       // Skip if session exists but not awaiting user input
       if (session && session.status === 'closed') {
         return;
-      }      
+      }
 
       // Merged settings
       const mergedSettings = {
