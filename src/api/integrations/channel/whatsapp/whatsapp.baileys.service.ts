@@ -4302,27 +4302,44 @@ export class BaileysStartupService extends ChannelStartupService {
   private sanitizeMessageContent(messageContent: any): any {
     if (!messageContent) return messageContent;
 
-    // Deep clone to avoid modifying original
-    const sanitized = JSON.parse(JSON.stringify(messageContent, (key, value) => {
-      // Convert Long objects to numbers
-      if (Long.isLong(value)) {
-        return value.toNumber();
-      }
-      
-      // Convert Uint8Array to regular arrays or remove them
-      if (value instanceof Uint8Array) {
-        return Array.from(value);
-      }
-      
-      // Remove functions and other non-serializable objects
-      if (typeof value === 'function') {
-        return undefined;
-      }
-      
-      return value;
-    }));
+    // Deep clone and sanitize to avoid modifying original
+    return JSON.parse(
+      JSON.stringify(messageContent, (key, value) => {
+        // Convert Long objects to numbers
+        if (Long.isLong(value)) {
+          return value.toNumber();
+        }
 
-    return sanitized;
+        // Convert Uint8Array to regular arrays
+        if (value instanceof Uint8Array) {
+          return Array.from(value);
+        }
+
+        // Remove functions and other non-serializable objects
+        if (typeof value === 'function') {
+          return undefined;
+        }
+
+        // Handle objects with toJSON method
+        if (value && typeof value === 'object' && typeof value.toJSON === 'function') {
+          return value.toJSON();
+        }
+
+        // Handle special objects that might not serialize properly
+        if (value && typeof value === 'object') {
+          // Check if it's a plain object or has prototype issues
+          try {
+            JSON.stringify(value);
+            return value;
+          } catch (e) {
+            // If it can't be stringified, return a safe representation
+            return '[Non-serializable object]';
+          }
+        }
+
+        return value;
+      }),
+    );
   }
 
   private prepareMessage(message: proto.IWebMessageInfo): any {
@@ -4330,7 +4347,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const contentMsg = message?.message[contentType] as any;
 
     const messageRaw = {
-      key: message.key,
+      key: message.key, // Save key exactly as it comes from Baileys
       pushName:
         message.pushName ||
         (message.key.fromMe
@@ -4338,10 +4355,10 @@ export class BaileysStartupService extends ChannelStartupService {
           : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
       status: status[message.status],
       message: this.sanitizeMessageContent({ ...message.message }),
-      contextInfo: contentMsg?.contextInfo,
+      contextInfo: this.sanitizeMessageContent(contentMsg?.contextInfo),
       messageType: contentType || 'unknown',
-      messageTimestamp: Long.isLong(message.messageTimestamp) 
-        ? (message.messageTimestamp as Long).toNumber() 
+      messageTimestamp: Long.isLong(message.messageTimestamp)
+        ? (message.messageTimestamp as Long).toNumber()
         : (message.messageTimestamp as number),
       instanceId: this.instanceId,
       source: getDevice(message.key.id),

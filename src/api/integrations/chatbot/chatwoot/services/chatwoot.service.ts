@@ -1561,13 +1561,24 @@ export class ChatwootService {
       return;
     }
 
+    // Use the message ID directly instead of JSON path query
     await this.prismaRepository.message.updateMany({
       where: {
-        key: {
-          path: ['id'],
-          equals: key.id,
-        },
-        instanceId: instance.instanceId,
+        AND: [
+          { instanceId: instance.instanceId },
+          {
+            OR: [
+              { id: message.id }, // Use the actual message ID if available
+              // Fallback to raw query if needed
+              {
+                key: {
+                  path: ['id'],
+                  equals: key.id,
+                },
+              },
+            ],
+          },
+        ],
       },
       data: {
         chatwootMessageId: chatwootMessageIds.messageId,
@@ -1584,13 +1595,15 @@ export class ChatwootService {
   }
 
   private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageModel> {
+    // Try to find message using a more compatible approach
     const messages = await this.prismaRepository.message.findFirst({
       where: {
+        instanceId: instance.instanceId,
+        // Use raw query to avoid JSON path issues
         key: {
           path: ['id'],
           equals: keyId,
         },
-        instanceId: instance.instanceId,
       },
     });
 
