@@ -2,6 +2,7 @@ import { IgnoreJidDto } from '@api/dto/chatbot.dto';
 import { InstanceDto } from '@api/dto/instance.dto';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { WAMonitoringService } from '@api/services/monitor.service';
+import { Events } from '@api/types/wa.types';
 import { Logger } from '@config/logger.config';
 import { BadRequestException } from '@exceptions';
 import { TriggerOperator, TriggerType } from '@prisma/client';
@@ -446,6 +447,16 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
 
       const remoteJid = data.remoteJid;
       const status = data.status;
+      const session = await this.getSession(remoteJid, instance);
+
+      if (this.integrationName === 'Typebot') {
+        const typebotData = {
+          remoteJid: remoteJid,
+          status: status,
+          session,
+        };
+        this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);
+      }
 
       if (status === 'delete') {
         await this.sessionRepository.deleteMany({
@@ -867,6 +878,16 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
             status: 'paused',
           },
         });
+
+        if (this.integrationName === 'Typebot') {
+          const typebotData = {
+            remoteJid: remoteJid,
+            status: 'paused',
+            session,
+          };
+          this.waMonitor.waInstances[instance.instanceName].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);
+        }
+
         return;
       }
 
