@@ -31,11 +31,12 @@ export class WebsocketController extends EventController implements EventControl
           const params = new URLSearchParams(url.search);
 
           const { remoteAddress } = req.socket;
-          const isLocalhost =
-            remoteAddress === '127.0.0.1' || remoteAddress === '::1' || remoteAddress === '::ffff:127.0.0.1';
+          const isAllowedHost = (process.env.WEBSOCKET_ALLOWED_HOSTS || '127.0.0.1,::1,::ffff:127.0.0.1')
+            .split(',')
+            .map(h => h.trim())
+            .includes(remoteAddress);
 
-          // Permite conexões internas do Socket.IO (EIO=4 é o Engine.IO v4)
-          if (params.has('EIO') && isLocalhost) {
+          if (params.has('EIO') && isAllowedHost) {
             return callback(null, true);
           }
 
