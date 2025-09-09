@@ -901,12 +901,6 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
         return;
       }
 
-      // Skip if session exists and status is paused
-      if (session && session.status === 'paused') {
-        this.logger.warn(`Session for ${remoteJid} is paused, skipping message processing`);
-        return;
-      }
-
       // Merged settings
       const mergedSettings = {
         ...settings,
