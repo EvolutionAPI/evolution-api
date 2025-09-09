@@ -1561,33 +1561,18 @@ export class ChatwootService {
       return;
     }
 
-    // Use the message ID directly instead of JSON path query
-    await this.prismaRepository.message.updateMany({
-      where: {
-        AND: [
-          { instanceId: instance.instanceId },
-          {
-            OR: [
-              { id: message.id }, // Use the actual message ID if available
-              // Fallback to raw query if needed
-              {
-                key: {
-                  path: ['id'],
-                  equals: key.id,
-                },
-              },
-            ],
-          },
-        ],
-      },
-      data: {
-        chatwootMessageId: chatwootMessageIds.messageId,
-        chatwootConversationId: chatwootMessageIds.conversationId,
-        chatwootInboxId: chatwootMessageIds.inboxId,
-        chatwootContactInboxSourceId: chatwootMessageIds.contactInboxSourceId,
-        chatwootIsRead: chatwootMessageIds.isRead,
-      },
-    });
+    // Use raw SQL to avoid JSON path issues
+    await this.prismaRepository.$executeRaw`
+      UPDATE "Message" 
+      SET 
+        "chatwootMessageId" = ${chatwootMessageIds.messageId},
+        "chatwootConversationId" = ${chatwootMessageIds.conversationId},
+        "chatwootInboxId" = ${chatwootMessageIds.inboxId},
+        "chatwootContactInboxSourceId" = ${chatwootMessageIds.contactInboxSourceId},
+        "chatwootIsRead" = ${chatwootMessageIds.isRead || false}
+      WHERE "instanceId" = ${instance.instanceId} 
+      AND "key"->>'id' = ${key.id}
+    `;
 
     if (this.isImportHistoryAvailable()) {
       chatwootImport.updateMessageSourceID(chatwootMessageIds.messageId, key.id);
@@ -1595,19 +1580,15 @@ export class ChatwootService {
   }
 
   private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageModel> {
-    // Try to find message using a more compatible approach
-    const messages = await this.prismaRepository.message.findFirst({
-      where: {
-        instanceId: instance.instanceId,
-        // Use raw query to avoid JSON path issues
-        key: {
-          path: ['id'],
-          equals: keyId,
-        },
-      },
-    });
+    // Use raw SQL query to avoid JSON path issues with Prisma
+    const messages = await this.prismaRepository.$queryRaw`
+      SELECT * FROM "Message" 
+      WHERE "instanceId" = ${instance.instanceId} 
+      AND "key"->>'id' = ${keyId}
+      LIMIT 1
+    `;
 
-    return messages || null;
+    return (messages as MessageModel[])[0] || null;
   }
 
   private async getReplyToIds(
