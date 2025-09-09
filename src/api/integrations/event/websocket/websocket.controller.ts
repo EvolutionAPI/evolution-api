@@ -33,7 +33,7 @@ export class WebsocketController extends EventController implements EventControl
           const { remoteAddress } = req.socket;
           const isAllowedHost = (process.env.WEBSOCKET_ALLOWED_HOSTS || '127.0.0.1,::1,::ffff:127.0.0.1')
             .split(',')
-            .map(h => h.trim())
+            .map((h) => h.trim())
             .includes(remoteAddress);
 
           if (params.has('EIO') && isAllowedHost) {
