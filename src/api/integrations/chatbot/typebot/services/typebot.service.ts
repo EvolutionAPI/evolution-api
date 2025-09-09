@@ -8,10 +8,11 @@ import axios from 'axios';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
 import { OpenaiService } from '../../openai/services/openai.service';
+import { Events } from '@api/types/wa.types';
 
 export class TypebotService extends BaseChatbotService<TypebotModel, any> {
-  private openaiService: OpenaiService;
-
+  private openaiService: OpenaiService;  
+  
   constructor(
     waMonitor: WAMonitoringService,
     configService: ConfigService,
@@ -19,7 +20,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
     openaiService: OpenaiService,
   ) {
     super(waMonitor, prismaRepository, 'TypebotService', configService);
-    this.openaiService = openaiService;
+    this.openaiService = openaiService;      
   }
 
   /**
@@ -151,6 +152,14 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           },
         });
       }
+
+      const typebotData = {
+          remoteJid: data.remoteJid,
+          status: 'opened',
+          session,
+      };
+      this.waMonitor.waInstances[instance.name].sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);        
+
       return { ...request.data, session };
     } catch (error) {
       this.logger.error(error);
@@ -399,12 +408,14 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         },
       });
     } else {
+      let statusChange = 'closed';
       if (!settings?.keepOpen) {
         await prismaRepository.integrationSession.deleteMany({
           where: {
             id: session.id,
           },
         });
+        statusChange = 'delete';
       } else {
         await prismaRepository.integrationSession.update({
           where: {
@@ -415,6 +426,14 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           },
         });
       }
+
+      const typebotData = {
+        remoteJid: session.remoteJid,
+        status: statusChange,
+        session,
+      };
+      instance.sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);
+      
     }
   }
 
@@ -639,6 +658,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           }
 
           if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
+            let statusChange = 'closed';
             if (keepOpen) {
               await this.prismaRepository.integrationSession.update({
                 where: {
@@ -649,6 +669,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
                 },
               });
             } else {
+              statusChange = 'delete';
               await this.prismaRepository.integrationSession.deleteMany({
                 where: {
                   botId: findTypebot.id,
@@ -656,6 +677,14 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
                 },
               });
             }
+             
+            const typebotData = {
+              remoteJid: remoteJid,
+              status: statusChange,
+              session,
+            };
+            waInstance.sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);            
+
             return;
           }
 
@@ -788,6 +817,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         }
 
         if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
+          let statusChange = 'closed';
           if (keepOpen) {
             await this.prismaRepository.integrationSession.update({
               where: {
@@ -798,6 +828,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
               },
             });
           } else {
+            statusChange = 'delete';
             await this.prismaRepository.integrationSession.deleteMany({
               where: {
                 botId: findTypebot.id,
@@ -805,6 +836,13 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
               },
             });
           }
+          
+          const typebotData = {
+              remoteJid: remoteJid,
+              status: statusChange,
+              session,
+            };
+          waInstance.sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);          
 
           return;
         }
@@ -881,6 +919,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
     }
 
     if (keywordFinish && content.toLowerCase() === keywordFinish.toLowerCase()) {
+      let statusChange = 'closed';
       if (keepOpen) {
         await this.prismaRepository.integrationSession.update({
           where: {
@@ -891,6 +930,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           },
         });
       } else {
+        statusChange = 'delete';
         await this.prismaRepository.integrationSession.deleteMany({
           where: {
             botId: findTypebot.id,
@@ -898,6 +938,15 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
           },
         });
       }
+
+      const typebotData = {
+        remoteJid: remoteJid,
+        status: statusChange,
+        session,
+      };
+
+      waInstance.sendDataWebhook(Events.TYPEBOT_CHANGE_STATUS, typebotData);      
+
       return;
     }
 
