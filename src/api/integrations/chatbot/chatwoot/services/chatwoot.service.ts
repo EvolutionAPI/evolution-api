@@ -2550,7 +2550,7 @@ export class ChatwootService {
       const savedMessages = await this.prismaRepository.message.findMany({
         where: {
           Instance: { name: instance.instanceName },
-          messageTimestamp: { gte: dayjs().subtract(6, 'hours').unix() },
+          messageTimestamp: { gte: Number(dayjs().subtract(6, 'hours').unix()) },
           AND: ids.map((id) => ({ key: { path: ['id'], not: id } })),
         },
       });

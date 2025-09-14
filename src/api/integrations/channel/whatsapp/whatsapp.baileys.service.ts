@@ -110,7 +110,6 @@ import makeWASocket, {
   isJidBroadcast,
   isJidGroup,
   isJidNewsletter,
-  isJidUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
   MessageUserReceiptUpdate,
@@ -127,6 +126,20 @@ import makeWASocket, {
   WAPresence,
   WASocket,
 } from 'baileys';
+
+// Extensão de tipos para propriedades customizadas
+interface ExtendedMessageKey extends WAMessageKey {
+  senderPn?: string;
+  previousRemoteJid?: string | null;
+}
+
+interface ExtendedIMessageKey extends proto.IMessageKey {
+  senderPn?: string;
+  remoteJidAlt?: string;
+  participantAlt?: string;
+  server_id?: string;
+  isViewOnce?: boolean;
+}
 import { Label } from 'baileys/lib/Types/Label';
 import { LabelAssociation } from 'baileys/lib/Types/LabelAssociation';
 import { spawn } from 'child_process';
@@ -974,8 +987,8 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          if (m.key.remoteJid?.includes('@lid') && m.key.senderPn) {
-            m.key.remoteJid = m.key.senderPn;
+          if (m.key.remoteJid?.includes('@lid') && (m.key as ExtendedIMessageKey).senderPn) {
+            m.key.remoteJid = (m.key as ExtendedIMessageKey).senderPn;
           }
 
           if (Long.isLong(m?.messageTimestamp)) {
@@ -1040,9 +1053,9 @@ export class BaileysStartupService extends ChannelStartupService {
     ) => {
       try {
         for (const received of messages) {
-          if (received.key.remoteJid?.includes('@lid') && received.key.senderPn) {
-            (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
-            received.key.remoteJid = received.key.senderPn;
+          if (received.key.remoteJid?.includes('@lid') && (received.key as ExtendedMessageKey).senderPn) {
+            (received.key as ExtendedMessageKey).previousRemoteJid = received.key.remoteJid;
+            received.key.remoteJid = (received.key as ExtendedMessageKey).senderPn;
           }
           if (
             received?.messageStubParameters?.some?.((param) =>
@@ -1397,8 +1410,8 @@ export class BaileysStartupService extends ChannelStartupService {
           continue;
         }
 
-        if (key.remoteJid?.includes('@lid') && key.senderPn) {
-          key.remoteJid = key.senderPn;
+        if (key.remoteJid?.includes('@lid') && (key as ExtendedMessageKey).senderPn) {
+          key.remoteJid = (key as ExtendedMessageKey).senderPn;
         }
 
         const updateKey = `${this.instance.id}_${key.id}_${update.status}`;
@@ -1895,7 +1908,7 @@ export class BaileysStartupService extends ChannelStartupService {
         quoted,
       });
       const id = await this.client.relayMessage(sender, message, { messageId });
-      m.key = { id: id, remoteJid: sender, participant: isJidUser(sender) ? sender : undefined, fromMe: true };
+      m.key = { id: id, remoteJid: sender, participant: sender.endsWith('@s.whatsapp.net') ? sender : undefined, fromMe: true };
       for (const [key, value] of Object.entries(m)) {
         if (!value || (isArray(value) && value.length) === 0) {
           delete m[key];
@@ -3314,7 +3327,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const keys: proto.IMessageKey[] = [];
       data.readMessages.forEach((read) => {
-        if (isJidGroup(read.remoteJid) || isJidUser(read.remoteJid)) {
+        if (isJidGroup(read.remoteJid) || read.remoteJid.endsWith('@s.whatsapp.net')) {
           keys.push({ remoteJid: read.remoteJid, fromMe: read.fromMe, id: read.id });
         }
       });
@@ -4208,6 +4221,32 @@ export class BaileysStartupService extends ChannelStartupService {
     throw new Error('Method not available in the Baileys service');
   }
 
+  private convertLongToNumber(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    
+    if (Long.isLong(obj)) {
+      return obj.toNumber();
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.convertLongToNumber(item));
+    }
+    
+    if (typeof obj === 'object') {
+      const converted: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          converted[key] = this.convertLongToNumber(obj[key]);
+        }
+      }
+      return converted;
+    }
+    
+    return obj;
+  }
+
   private prepareMessage(message: proto.IWebMessageInfo): any {
     const contentType = getContentType(message.message);
     const contentMsg = message?.message[contentType] as any;
@@ -4220,10 +4259,12 @@ export class BaileysStartupService extends ChannelStartupService {
           ? 'Você'
           : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
       status: status[message.status],
-      message: { ...message.message },
-      contextInfo: contentMsg?.contextInfo,
+      message: this.convertLongToNumber({ ...message.message }),
+      contextInfo: this.convertLongToNumber(contentMsg?.contextInfo),
       messageType: contentType || 'unknown',
-      messageTimestamp: message.messageTimestamp as number,
+      messageTimestamp: Long.isLong(message.messageTimestamp)
+        ? message.messageTimestamp.toNumber()
+        : (message.messageTimestamp as number),
       instanceId: this.instanceId,
       source: getDevice(message.key.id),
     };

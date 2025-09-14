@@ -28,7 +28,7 @@ export class RabbitmqController extends EventController implements EventControll
       const connectionOptions = {
         protocol: url.protocol.slice(0, -1),
         hostname: url.hostname,
-        port: url.port || 5672,
+        port: Number(url.port) || 5672,
         username: url.username || 'guest',
         password: url.password || 'guest',
         vhost: url.pathname.slice(1) || '/',
