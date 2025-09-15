@@ -29,6 +29,8 @@ export class WAMonitoringService {
 
     Object.assign(this.db, configService.get<Database>('DATABASE'));
     Object.assign(this.redis, configService.get<CacheConf>('CACHE'));
+
+    (this as any).providerSession = Object.freeze(configService.get<ProviderSession>('PROVIDER'));
   }
 
   private readonly db: Partial<Database> = {};
@@ -37,7 +39,7 @@ export class WAMonitoringService {
   private readonly logger = new Logger('WAMonitoringService');
   public readonly waInstances: Record<string, any> = {};
 
-  private readonly providerSession = Object.freeze(this.configService.get<ProviderSession>('PROVIDER'));
+  private readonly providerSession: ProviderSession;
 
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');

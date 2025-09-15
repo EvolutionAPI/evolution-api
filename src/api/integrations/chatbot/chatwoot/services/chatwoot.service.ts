@@ -1,5 +1,6 @@
 import { InstanceDto } from '@api/dto/instance.dto';
 import { Options, Quoted, SendAudioDto, SendMediaDto, SendTextDto } from '@api/dto/sendMessage.dto';
+import { ExtendedMessageKey } from '@api/integrations/channel/whatsapp/whatsapp.baileys.service';
 import { ChatwootDto } from '@api/integrations/chatbot/chatwoot/dto/chatwoot.dto';
 import { postgresClient } from '@api/integrations/chatbot/chatwoot/libs/postgres.client';
 import { chatwootImport } from '@api/integrations/chatbot/chatwoot/utils/chatwoot-import-helper';
@@ -1284,12 +1285,7 @@ export class ChatwootService {
         });
 
         if (message) {
-          const key = message.key as {
-            id: string;
-            remoteJid: string;
-            fromMe: boolean;
-            participant: string;
-          };
+          const key = message.key as ExtendedMessageKey;
 
           await waInstance?.client.sendMessage(key.remoteJid, { delete: key });
 
@@ -1487,12 +1483,7 @@ export class ChatwootService {
             },
           });
           if (lastMessage && !lastMessage.chatwootIsRead) {
-            const key = lastMessage.key as {
-              id: string;
-              fromMe: boolean;
-              remoteJid: string;
-              participant?: string;
-            };
+            const key = lastMessage.key as ExtendedMessageKey;
 
             waInstance?.markMessageAsRead({
               readMessages: [
@@ -1550,12 +1541,7 @@ export class ChatwootService {
     chatwootMessageIds: ChatwootMessage,
     instance: InstanceDto,
   ) {
-    const key = message.key as {
-      id: string;
-      fromMe: boolean;
-      remoteJid: string;
-      participant?: string;
-    };
+    const key = message.key as ExtendedMessageKey;
 
     if (!chatwootMessageIds.messageId || !key?.id) {
       return;
@@ -1623,12 +1609,7 @@ export class ChatwootService {
         },
       });
 
-      const key = message?.key as {
-        id: string;
-        fromMe: boolean;
-        remoteJid: string;
-        participant?: string;
-      };
+      const key = message?.key as ExtendedMessageKey;
 
       if (message && key?.id) {
         return {
@@ -2258,12 +2239,13 @@ export class ChatwootService {
           body?.editedMessage?.conversation || body?.editedMessage?.extendedTextMessage?.text
         }\n\n_\`${i18next.t('cw.message.edited')}.\`_`;
         const message = await this.getMessageByKeyId(instance, body?.key?.id);
-        const key = message.key as {
-          id: string;
-          fromMe: boolean;
-          remoteJid: string;
-          participant?: string;
-        };
+
+        if (!message) {
+          this.logger.warn('Message not found for edit event');
+          return;
+        }
+
+        const key = message.key as ExtendedMessageKey;
 
         const messageType = key?.fromMe ? 'outgoing' : 'incoming';
 
@@ -2541,7 +2523,7 @@ export class ChatwootService {
       const savedMessages = await this.prismaRepository.message.findMany({
         where: {
           Instance: { name: instance.instanceName },
-          messageTimestamp: { gte: dayjs().subtract(6, 'hours').unix() },
+          messageTimestamp: { gte: Number(dayjs().subtract(6, 'hours').unix()) },
           AND: ids.map((id) => ({ key: { path: ['id'], not: id } })),
         },
       });

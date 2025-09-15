@@ -151,6 +151,19 @@ import { v4 } from 'uuid';
 import { BaileysMessageProcessor } from './baileysMessage.processor';
 import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
 
+export interface ExtendedMessageKey extends WAMessageKey {
+  senderPn?: string;
+  previousRemoteJid?: string | null;
+}
+
+export interface ExtendedIMessageKey extends proto.IMessageKey {
+  senderPn?: string;
+  remoteJidAlt?: string;
+  participantAlt?: string;
+  server_id?: string;
+  isViewOnce?: boolean;
+}
+
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
 // Adicione a função getVideoDuration no início do arquivo
@@ -986,8 +999,8 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          if (m.key.remoteJid?.includes('@lid') && m.key.remoteJidAlt) {
-            m.key.remoteJid = m.key.remoteJidAlt;
+          if (m.key.remoteJid?.includes('@lid') && (m.key as ExtendedIMessageKey).senderPn) {
+            m.key.remoteJid = (m.key as ExtendedIMessageKey).senderPn;
           }
 
           if (Long.isLong(m?.messageTimestamp)) {
@@ -1052,9 +1065,9 @@ export class BaileysStartupService extends ChannelStartupService {
     ) => {
       try {
         for (const received of messages) {
-          if (received.key.remoteJid?.includes('@lid') && received.key.remoteJidAlt) {
-            (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
-            received.key.remoteJid = received.key.remoteJidAlt;
+          if (received.key.remoteJid?.includes('@lid') && (received.key as ExtendedMessageKey).senderPn) {
+            (received.key as ExtendedMessageKey).previousRemoteJid = received.key.remoteJid;
+            received.key.remoteJid = (received.key as ExtendedMessageKey).senderPn;
           }
           if (
             received?.messageStubParameters?.some?.((param) =>
@@ -4308,47 +4321,30 @@ export class BaileysStartupService extends ChannelStartupService {
     throw new Error('Method not available in the Baileys service');
   }
 
-  private sanitizeMessageContent(messageContent: any): any {
-    if (!messageContent) return messageContent;
+  private convertLongToNumber(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
 
-    // Deep clone and sanitize to avoid modifying original
-    return JSON.parse(
-      JSON.stringify(messageContent, (key, value) => {
-        // Convert Long objects to numbers
-        if (Long.isLong(value)) {
-          return value.toNumber();
+    if (Long.isLong(obj)) {
+      return obj.toNumber();
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.convertLongToNumber(item));
+    }
+
+    if (typeof obj === 'object') {
+      const converted: any = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          converted[key] = this.convertLongToNumber(obj[key]);
         }
+      }
+      return converted;
+    }
 
-        // Convert Uint8Array to regular arrays
-        if (value instanceof Uint8Array) {
-          return Array.from(value);
-        }
-
-        // Remove functions and other non-serializable objects
-        if (typeof value === 'function') {
-          return undefined;
-        }
-
-        // Handle objects with toJSON method
-        if (value && typeof value === 'object' && typeof value.toJSON === 'function') {
-          return value.toJSON();
-        }
-
-        // Handle special objects that might not serialize properly
-        if (value && typeof value === 'object') {
-          // Check if it's a plain object or has prototype issues
-          try {
-            JSON.stringify(value);
-            return value;
-          } catch (e) {
-            // If it can't be stringified, return a safe representation
-            return '[Non-serializable object]';
-          }
-        }
-
-        return value;
-      }),
-    );
+    return obj;
   }
 
   private prepareMessage(message: proto.IWebMessageInfo): any {
@@ -4363,11 +4359,11 @@ export class BaileysStartupService extends ChannelStartupService {
           ? 'Você'
           : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
       status: status[message.status],
-      message: this.sanitizeMessageContent({ ...message.message }),
-      contextInfo: this.sanitizeMessageContent(contentMsg?.contextInfo),
+      message: this.convertLongToNumber({ ...message.message }),
+      contextInfo: this.convertLongToNumber(contentMsg?.contextInfo),
       messageType: contentType || 'unknown',
       messageTimestamp: Long.isLong(message.messageTimestamp)
-        ? (message.messageTimestamp as Long).toNumber()
+        ? message.messageTimestamp.toNumber()
         : (message.messageTimestamp as number),
       instanceId: this.instanceId,
       source: getDevice(message.key.id),
