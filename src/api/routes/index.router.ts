@@ -6,6 +6,7 @@ import { ChatbotRouter } from '@api/integrations/chatbot/chatbot.router';
 import { EventRouter } from '@api/integrations/event/event.router';
 import { StorageRouter } from '@api/integrations/storage/storage.router';
 import { configService } from '@config/env.config';
+import { waMonitor } from '@api/server.module';
 import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
 import { Router } from 'express';
 import fs from 'fs';
@@ -41,6 +42,65 @@ const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard['apikey']];
 const telemetry = new Telemetry();
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+
+// Expose Prometheus metrics when enabled by env flag
+if (process.env.PROMETHEUS_METRICS === 'true') {
+  router.get('/metrics', async (req, res) => {
+    res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+    const escapeLabel = (value: unknown) =>
+      String(value ?? '')
+        .replace(/\\/g, '\\\\')
+        .replace(/\n/g, '\\n')
+        .replace(/"/g, '\\"');
+
+    const lines: string[] = [];
+
+    const clientName = process.env.DATABASE_CONNECTION_CLIENT_NAME || '';
+    const serverUrl = serverConfig.URL || '';
+
+    // environment info
+    lines.push('# HELP evolution_environment_info Environment information');
+    lines.push('# TYPE evolution_environment_info gauge');
+    lines.push(
+      `evolution_environment_info{version="${escapeLabel(packageJson.version)}",clientName="${escapeLabel(
+        clientName,
+      )}",serverUrl="${escapeLabel(serverUrl)}"} 1`,
+    );
+
+    const instances = (waMonitor && waMonitor.waInstances) || {};
+    const instanceEntries = Object.entries(instances);
+
+    // total instances
+    lines.push('# HELP evolution_instances_total Total number of instances');
+    lines.push('# TYPE evolution_instances_total gauge');
+    lines.push(`evolution_instances_total ${instanceEntries.length}`);
+
+    // per-instance status
+    lines.push('# HELP evolution_instance_up 1 if instance state is open, else 0');
+    lines.push('# TYPE evolution_instance_up gauge');
+    lines.push('# HELP evolution_instance_state Instance state as a labelled metric');
+    lines.push('# TYPE evolution_instance_state gauge');
+
+    for (const [name, instance] of instanceEntries) {
+      const state = instance?.connectionStatus?.state || 'unknown';
+      const integration = instance?.integration || '';
+      const up = state === 'open' ? 1 : 0;
+
+      lines.push(
+        `evolution_instance_up{instance="${escapeLabel(name)}",integration="${escapeLabel(integration)}"} ${up}`,
+      );
+      lines.push(
+        `evolution_instance_state{instance="${escapeLabel(name)}",integration="${escapeLabel(
+          integration,
+        )}",state="${escapeLabel(state)}"} 1`,
+      );
+    }
+
+    res.send(lines.join('\n') + '\n');
+  });
+}
 
 if (!serverConfig.DISABLE_MANAGER) router.use('/manager', new ViewsRouter().router);
 
