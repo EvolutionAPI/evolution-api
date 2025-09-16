@@ -57,7 +57,7 @@ if (process.env.PROMETHEUS_METRICS === 'true') {
 
     const lines: string[] = [];
 
-    const clientName = process.env.DATABASE_CONNECTION_CLIENT_NAME || '';
+    const clientName = process.env.DATABASE_CONNECTION_CLIENT_NAME || 'unknown';
     const serverUrl = serverConfig.URL || '';
 
     // environment info
