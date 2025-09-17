@@ -1,5 +1,9 @@
 # 2.3.3 (develop)
 
+### Security
+
+* **CRITICAL**: Fixed Path Traversal vulnerability in /assets endpoint that allowed unauthenticated local file read
+
 ### Testing
 
 * Baileys Updates: v7.0.0-rc.3 ([Link](https://github.com/WhiskeySockets/Baileys/releases/tag/v7.0.0-rc.3))

@@ -106,13 +106,27 @@ if (!serverConfig.DISABLE_MANAGER) router.use('/manager', new ViewsRouter().rout
 
 router.get('/assets/*', (req, res) => {
   const fileName = req.params[0];
+
+  // Security: Reject paths containing traversal patterns
+  if (!fileName || fileName.includes('..') || fileName.includes('\\') || path.isAbsolute(fileName)) {
+    return res.status(403).send('Forbidden');
+  }
+
   const basePath = path.join(process.cwd(), 'manager', 'dist');
+  const assetsPath = path.join(basePath, 'assets');
+  const filePath = path.join(assetsPath, fileName);
 
-  const filePath = path.join(basePath, 'assets/', fileName);
+  // Security: Ensure the resolved path is within the assets directory
+  const resolvedPath = path.resolve(filePath);
+  const resolvedAssetsPath = path.resolve(assetsPath);
 
-  if (fs.existsSync(filePath)) {
-    res.set('Content-Type', mimeTypes.lookup(filePath) || 'text/css');
-    res.send(fs.readFileSync(filePath));
+  if (!resolvedPath.startsWith(resolvedAssetsPath + path.sep) && resolvedPath !== resolvedAssetsPath) {
+    return res.status(403).send('Forbidden');
+  }
+
+  if (fs.existsSync(resolvedPath)) {
+    res.set('Content-Type', mimeTypes.lookup(resolvedPath) || 'text/css');
+    res.send(fs.readFileSync(resolvedPath));
   } else {
     res.status(404).send('File not found');
   }
