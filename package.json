@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
@@ -60,7 +60,7 @@
     "amqplib": "^0.10.5",
     "audio-decode": "^2.2.3",
     "axios": "^1.7.9",
-    "baileys": "github:WhiskeySockets/Baileys",
+    "baileys": "^7.0.0-rc.3",
     "class-validator": "^0.14.1",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
@@ -125,7 +125,7 @@
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "prettier": "^3.4.2",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.20.3",
+    "tsx": "^4.20.5",
     "typescript": "^5.7.2"
   }
 }

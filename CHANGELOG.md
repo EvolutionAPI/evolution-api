@@ -1,3 +1,9 @@
+# 2.3.3 (develop)
+
+### Testing
+
+* Baileys Updates: v7.0.0-rc.3 ([Link](https://github.com/WhiskeySockets/Baileys/releases/tag/v7.0.0-rc.3))
+
 # 2.3.2 (2025-09-02)
 
 ### Features
