@@ -536,7 +536,7 @@ export class ConfigService {
           REMOVE_INSTANCE: process.env?.SQS_GLOBAL_REMOVE_INSTANCE === 'true',
           SEND_MESSAGE: process.env?.SQS_GLOBAL_SEND_MESSAGE === 'true',
           TYPEBOT_CHANGE_STATUS: process.env?.SQS_GLOBAL_TYPEBOT_CHANGE_STATUS === 'true',
-          TYPEBOT_START: process.env?.SQS_GLOBAL_TYPEBOT_START === 'true'
+          TYPEBOT_START: process.env?.SQS_GLOBAL_TYPEBOT_START === 'true',
         },
       },
       WEBSOCKET: {
