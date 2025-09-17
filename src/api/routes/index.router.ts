@@ -6,9 +6,9 @@ import { ChatbotRouter } from '@api/integrations/chatbot/chatbot.router';
 import { EventRouter } from '@api/integrations/event/event.router';
 import { StorageRouter } from '@api/integrations/storage/storage.router';
 import { waMonitor } from '@api/server.module';
-import { configService } from '@config/env.config';
+import { configService, Database, Facebook } from '@config/env.config';
 import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import fs from 'fs';
 import mimeTypes from 'mime-types';
 import path from 'path';
@@ -37,15 +37,68 @@ enum HttpStatus {
 
 const router: Router = Router();
 const serverConfig = configService.get('SERVER');
+const databaseConfig = configService.get<Database>('DATABASE');
 const guards = [instanceExistsGuard, instanceLoggedGuard, authGuard['apikey']];
 
 const telemetry = new Telemetry();
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
+// Middleware for metrics IP whitelist
+const metricsIPWhitelist = (req: Request, res: Response, next: NextFunction) => {
+  const metricsConfig = configService.get('METRICS');
+  const allowedIPs = metricsConfig.ALLOWED_IPS?.split(',').map((ip) => ip.trim()) || ['127.0.0.1'];
+  const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+
+  if (!allowedIPs.includes(clientIP)) {
+    return res.status(403).send('Forbidden: IP not allowed');
+  }
+
+  next();
+};
+
+// Middleware for metrics Basic Authentication
+const metricsBasicAuth = (req: Request, res: Response, next: NextFunction) => {
+  const metricsConfig = configService.get('METRICS');
+  const metricsUser = metricsConfig.USER;
+  const metricsPass = metricsConfig.PASSWORD;
+
+  if (!metricsUser || !metricsPass) {
+    return res.status(500).send('Metrics authentication not configured');
+  }
+
+  const auth = req.get('Authorization');
+  if (!auth || !auth.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="Evolution API Metrics"');
+    return res.status(401).send('Authentication required');
+  }
+
+  const credentials = Buffer.from(auth.slice(6), 'base64').toString();
+  const [user, pass] = credentials.split(':');
+
+  if (user !== metricsUser || pass !== metricsPass) {
+    return res.status(401).send('Invalid credentials');
+  }
+
+  next();
+};
+
 // Expose Prometheus metrics when enabled by env flag
-if (process.env.PROMETHEUS_METRICS === 'true') {
-  router.get('/metrics', async (req, res) => {
+const metricsConfig = configService.get('METRICS');
+if (metricsConfig.ENABLED) {
+  const metricsMiddleware = [];
+
+  // Add IP whitelist if configured
+  if (metricsConfig.ALLOWED_IPS) {
+    metricsMiddleware.push(metricsIPWhitelist);
+  }
+
+  // Add Basic Auth if required
+  if (metricsConfig.AUTH_REQUIRED) {
+    metricsMiddleware.push(metricsBasicAuth);
+  }
+
+  router.get('/metrics', ...metricsMiddleware, async (req, res) => {
     res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
 
@@ -57,7 +110,7 @@ if (process.env.PROMETHEUS_METRICS === 'true') {
 
     const lines: string[] = [];
 
-    const clientName = process.env.DATABASE_CONNECTION_CLIENT_NAME || 'unknown';
+    const clientName = databaseConfig.CONNECTION.CLIENT_NAME || 'unknown';
     const serverUrl = serverConfig.URL || '';
 
     // environment info
@@ -140,19 +193,20 @@ router
       status: HttpStatus.OK,
       message: 'Welcome to the Evolution API, it is working!',
       version: packageJson.version,
-      clientName: process.env.DATABASE_CONNECTION_CLIENT_NAME,
+      clientName: databaseConfig.CONNECTION.CLIENT_NAME,
       manager: !serverConfig.DISABLE_MANAGER ? `${req.protocol}://${req.get('host')}/manager` : undefined,
       documentation: `https://doc.evolution-api.com`,
       whatsappWebVersion: (await fetchLatestWaWebVersion({})).version.join('.'),
     });
   })
   .post('/verify-creds', authGuard['apikey'], async (req, res) => {
+    const facebookConfig = configService.get<Facebook>('FACEBOOK');
     return res.status(HttpStatus.OK).json({
       status: HttpStatus.OK,
       message: 'Credentials are valid',
-      facebookAppId: process.env.FACEBOOK_APP_ID,
-      facebookConfigId: process.env.FACEBOOK_CONFIG_ID,
-      facebookUserToken: process.env.FACEBOOK_USER_TOKEN,
+      facebookAppId: facebookConfig.APP_ID,
+      facebookConfigId: facebookConfig.CONFIG_ID,
+      facebookUserToken: facebookConfig.USER_TOKEN,
     });
   })
   .use('/instance', new InstanceRouter(configService, ...guards).router)

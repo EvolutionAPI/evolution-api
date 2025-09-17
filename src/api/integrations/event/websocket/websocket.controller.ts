@@ -31,7 +31,9 @@ export class WebsocketController extends EventController implements EventControl
           const params = new URLSearchParams(url.search);
 
           const { remoteAddress } = req.socket;
-          const isAllowedHost = (process.env.WEBSOCKET_ALLOWED_HOSTS || '127.0.0.1,::1,::ffff:127.0.0.1')
+          const websocketConfig = configService.get<Websocket>('WEBSOCKET');
+          const allowedHosts = websocketConfig.ALLOWED_HOSTS || '127.0.0.1,::1,::ffff:127.0.0.1';
+          const isAllowedHost = allowedHosts
             .split(',')
             .map((h) => h.trim())
             .includes(remoteAddress);

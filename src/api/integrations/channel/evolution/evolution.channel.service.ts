@@ -13,7 +13,7 @@ import { chatbotController } from '@api/server.module';
 import { CacheService } from '@api/services/cache.service';
 import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, wa } from '@api/types/wa.types';
-import { Chatwoot, ConfigService, Openai, S3 } from '@config/env.config';
+import { AudioConverter, Chatwoot, ConfigService, Openai, S3 } from '@config/env.config';
 import { BadRequestException, InternalServerErrorException } from '@exceptions';
 import { createJid } from '@utils/createJid';
 import axios from 'axios';
@@ -622,7 +622,8 @@ export class EvolutionStartupService extends ChannelStartupService {
     number = number.replace(/\D/g, '');
     const hash = `${number}-${new Date().getTime()}`;
 
-    if (process.env.API_AUDIO_CONVERTER) {
+    const audioConverterConfig = this.configService.get<AudioConverter>('AUDIO_CONVERTER');
+    if (audioConverterConfig.API_URL) {
       try {
         this.logger.verbose('Using audio converter API');
         const formData = new FormData();
@@ -640,10 +641,10 @@ export class EvolutionStartupService extends ChannelStartupService {
 
         formData.append('format', 'mp4');
 
-        const response = await axios.post(process.env.API_AUDIO_CONVERTER, formData, {
+        const response = await axios.post(audioConverterConfig.API_URL, formData, {
           headers: {
             ...formData.getHeaders(),
-            apikey: process.env.API_AUDIO_CONVERTER_KEY,
+            apikey: audioConverterConfig.API_KEY,
           },
         });
 

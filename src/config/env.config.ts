@@ -156,6 +156,7 @@ export type Sqs = {
 export type Websocket = {
   ENABLED: boolean;
   GLOBAL_EVENTS: boolean;
+  ALLOWED_HOSTS?: string;
 };
 
 export type WaBusiness = {
@@ -320,6 +321,46 @@ export type S3 = {
 };
 
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
+export type Metrics = {
+  ENABLED: boolean;
+  AUTH_REQUIRED: boolean;
+  USER?: string;
+  PASSWORD?: string;
+  ALLOWED_IPS?: string;
+};
+
+export type Telemetry = {
+  ENABLED: boolean;
+  URL?: string;
+};
+
+export type Proxy = {
+  HOST?: string;
+  PORT?: string;
+  PROTOCOL?: string;
+  USERNAME?: string;
+  PASSWORD?: string;
+};
+
+export type AudioConverter = {
+  API_URL?: string;
+  API_KEY?: string;
+};
+
+export type Facebook = {
+  APP_ID?: string;
+  CONFIG_ID?: string;
+  USER_TOKEN?: string;
+};
+
+export type Sentry = {
+  DSN?: string;
+};
+
+export type EventEmitter = {
+  MAX_LISTENERS: number;
+};
+
 export type Production = boolean;
 
 export interface Env {
@@ -351,6 +392,13 @@ export interface Env {
   CACHE: CacheConf;
   S3?: S3;
   AUTHENTICATION: Auth;
+  METRICS: Metrics;
+  TELEMETRY: Telemetry;
+  PROXY: Proxy;
+  AUDIO_CONVERTER: AudioConverter;
+  FACEBOOK: Facebook;
+  SENTRY: Sentry;
+  EVENT_EMITTER: EventEmitter;
   PRODUCTION?: Production;
 }
 
@@ -542,6 +590,7 @@ export class ConfigService {
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
         GLOBAL_EVENTS: process.env?.WEBSOCKET_GLOBAL_EVENTS === 'true',
+        ALLOWED_HOSTS: process.env?.WEBSOCKET_ALLOWED_HOSTS,
       },
       PUSHER: {
         ENABLED: process.env?.PUSHER_ENABLED === 'true',
@@ -729,6 +778,39 @@ export class ConfigService {
           KEY: process.env.AUTHENTICATION_API_KEY || 'BQYHJGJHJ',
         },
         EXPOSE_IN_FETCH_INSTANCES: process.env?.AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES === 'true',
+      },
+      METRICS: {
+        ENABLED: process.env?.PROMETHEUS_METRICS === 'true',
+        AUTH_REQUIRED: process.env?.METRICS_AUTH_REQUIRED === 'true',
+        USER: process.env?.METRICS_USER,
+        PASSWORD: process.env?.METRICS_PASSWORD,
+        ALLOWED_IPS: process.env?.METRICS_ALLOWED_IPS,
+      },
+      TELEMETRY: {
+        ENABLED: process.env?.TELEMETRY_ENABLED === undefined || process.env?.TELEMETRY_ENABLED === 'true',
+        URL: process.env?.TELEMETRY_URL,
+      },
+      PROXY: {
+        HOST: process.env?.PROXY_HOST,
+        PORT: process.env?.PROXY_PORT,
+        PROTOCOL: process.env?.PROXY_PROTOCOL,
+        USERNAME: process.env?.PROXY_USERNAME,
+        PASSWORD: process.env?.PROXY_PASSWORD,
+      },
+      AUDIO_CONVERTER: {
+        API_URL: process.env?.API_AUDIO_CONVERTER,
+        API_KEY: process.env?.API_AUDIO_CONVERTER_KEY,
+      },
+      FACEBOOK: {
+        APP_ID: process.env?.FACEBOOK_APP_ID,
+        CONFIG_ID: process.env?.FACEBOOK_CONFIG_ID,
+        USER_TOKEN: process.env?.FACEBOOK_USER_TOKEN,
+      },
+      SENTRY: {
+        DSN: process.env?.SENTRY_DSN,
+      },
+      EVENT_EMITTER: {
+        MAX_LISTENERS: Number.parseInt(process.env?.EVENT_EMITTER_MAX_LISTENERS) || 50,
       },
     };
   }
