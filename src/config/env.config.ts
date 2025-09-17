@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export type HttpServer = {
+  NAME: string;
   TYPE: 'http' | 'https';
   PORT: number;
   URL: string;
@@ -113,10 +114,43 @@ export type Nats = {
 
 export type Sqs = {
   ENABLED: boolean;
+  GLOBAL_ENABLED: boolean;
+  GLOBAL_FORCE_SINGLE_QUEUE: boolean;
+  GLOBAL_PREFIX_NAME: string;
   ACCESS_KEY_ID: string;
   SECRET_ACCESS_KEY: string;
   ACCOUNT_ID: string;
   REGION: string;
+  MAX_PAYLOAD_SIZE: number;
+  EVENTS: {
+    APPLICATION_STARTUP: boolean;
+    CALL: boolean;
+    CHATS_DELETE: boolean;
+    CHATS_SET: boolean;
+    CHATS_UPDATE: boolean;
+    CHATS_UPSERT: boolean;
+    CONNECTION_UPDATE: boolean;
+    CONTACTS_SET: boolean;
+    CONTACTS_UPDATE: boolean;
+    CONTACTS_UPSERT: boolean;
+    GROUP_PARTICIPANTS_UPDATE: boolean;
+    GROUPS_UPDATE: boolean;
+    GROUPS_UPSERT: boolean;
+    LABELS_ASSOCIATION: boolean;
+    LABELS_EDIT: boolean;
+    LOGOUT_INSTANCE: boolean;
+    MESSAGES_DELETE: boolean;
+    MESSAGES_EDITED: boolean;
+    MESSAGES_SET: boolean;
+    MESSAGES_UPDATE: boolean;
+    MESSAGES_UPSERT: boolean;
+    PRESENCE_UPDATE: boolean;
+    QRCODE_UPDATED: boolean;
+    REMOVE_INSTANCE: boolean;
+    SEND_MESSAGE: boolean;
+    TYPEBOT_CHANGE_STATUS: boolean;
+    TYPEBOT_START: boolean;
+  };
 };
 
 export type Websocket = {
@@ -344,6 +378,7 @@ export class ConfigService {
   private envProcess(): Env {
     return {
       SERVER: {
+        NAME: process.env?.SERVER_NAME || 'evolution',
         TYPE: (process.env.SERVER_TYPE as 'http' | 'https') || 'http',
         PORT: Number.parseInt(process.env.SERVER_PORT) || 8080,
         URL: process.env.SERVER_URL,
@@ -465,10 +500,43 @@ export class ConfigService {
       },
       SQS: {
         ENABLED: process.env?.SQS_ENABLED === 'true',
+        GLOBAL_ENABLED: process.env?.SQS_GLOBAL_ENABLED === 'true',
+        GLOBAL_FORCE_SINGLE_QUEUE: process.env?.SQS_GLOBAL_FORCE_SINGLE_QUEUE === 'true',
+        GLOBAL_PREFIX_NAME: process.env?.SQS_GLOBAL_PREFIX_NAME || 'global',
         ACCESS_KEY_ID: process.env.SQS_ACCESS_KEY_ID || '',
         SECRET_ACCESS_KEY: process.env.SQS_SECRET_ACCESS_KEY || '',
         ACCOUNT_ID: process.env.SQS_ACCOUNT_ID || '',
         REGION: process.env.SQS_REGION || '',
+        MAX_PAYLOAD_SIZE: Number.parseInt(process.env.SQS_MAX_PAYLOAD_SIZE ?? '1048576'),
+        EVENTS: {
+          APPLICATION_STARTUP: process.env?.SQS_GLOBAL_APPLICATION_STARTUP === 'true',
+          CALL: process.env?.SQS_GLOBAL_CALL === 'true',
+          CHATS_DELETE: process.env?.SQS_GLOBAL_CHATS_DELETE === 'true',
+          CHATS_SET: process.env?.SQS_GLOBAL_CHATS_SET === 'true',
+          CHATS_UPDATE: process.env?.SQS_GLOBAL_CHATS_UPDATE === 'true',
+          CHATS_UPSERT: process.env?.SQS_GLOBAL_CHATS_UPSERT === 'true',
+          CONNECTION_UPDATE: process.env?.SQS_GLOBAL_CONNECTION_UPDATE === 'true',
+          CONTACTS_SET: process.env?.SQS_GLOBAL_CONTACTS_SET === 'true',
+          CONTACTS_UPDATE: process.env?.SQS_GLOBAL_CONTACTS_UPDATE === 'true',
+          CONTACTS_UPSERT: process.env?.SQS_GLOBAL_CONTACTS_UPSERT === 'true',
+          GROUP_PARTICIPANTS_UPDATE: process.env?.SQS_GLOBAL_GROUP_PARTICIPANTS_UPDATE === 'true',
+          GROUPS_UPDATE: process.env?.SQS_GLOBAL_GROUPS_UPDATE === 'true',
+          GROUPS_UPSERT: process.env?.SQS_GLOBAL_GROUPS_UPSERT === 'true',
+          LABELS_ASSOCIATION: process.env?.SQS_GLOBAL_LABELS_ASSOCIATION === 'true',
+          LABELS_EDIT: process.env?.SQS_GLOBAL_LABELS_EDIT === 'true',
+          LOGOUT_INSTANCE: process.env?.SQS_GLOBAL_LOGOUT_INSTANCE === 'true',
+          MESSAGES_DELETE: process.env?.SQS_GLOBAL_MESSAGES_DELETE === 'true',
+          MESSAGES_EDITED: process.env?.SQS_GLOBAL_MESSAGES_EDITED === 'true',
+          MESSAGES_SET: process.env?.SQS_GLOBAL_MESSAGES_SET === 'true',
+          MESSAGES_UPDATE: process.env?.SQS_GLOBAL_MESSAGES_UPDATE === 'true',
+          MESSAGES_UPSERT: process.env?.SQS_GLOBAL_MESSAGES_UPSERT === 'true',
+          PRESENCE_UPDATE: process.env?.SQS_GLOBAL_PRESENCE_UPDATE === 'true',
+          QRCODE_UPDATED: process.env?.SQS_GLOBAL_QRCODE_UPDATED === 'true',
+          REMOVE_INSTANCE: process.env?.SQS_GLOBAL_REMOVE_INSTANCE === 'true',
+          SEND_MESSAGE: process.env?.SQS_GLOBAL_SEND_MESSAGE === 'true',
+          TYPEBOT_CHANGE_STATUS: process.env?.SQS_GLOBAL_TYPEBOT_CHANGE_STATUS === 'true',
+          TYPEBOT_START: process.env?.SQS_GLOBAL_TYPEBOT_START === 'true'
+        },
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',
