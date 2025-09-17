@@ -57,6 +57,8 @@ export class FlowiseService extends BaseChatbotService<FlowiseModel> {
       overrideConfig: {
         sessionId: remoteJid,
         vars: {
+          messageId: msg?.key?.id,
+          fromMe: msg?.key?.fromMe,
           remoteJid: remoteJid,
           pushName: pushName,
           instanceName: instance.instanceName,
