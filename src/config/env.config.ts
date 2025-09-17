@@ -316,6 +316,7 @@ export type S3 = {
   USE_SSL?: boolean;
   REGION?: string;
   SKIP_POLICY?: boolean;
+  SAVE_VIDEO?: boolean;
 };
 
 export type CacheConf = { REDIS: CacheConfRedis; LOCAL: CacheConfLocal };
@@ -721,6 +722,7 @@ export class ConfigService {
         USE_SSL: process.env?.S3_USE_SSL === 'true',
         REGION: process.env?.S3_REGION,
         SKIP_POLICY: process.env?.S3_SKIP_POLICY === 'true',
+        SAVE_VIDEO: process.env?.S3_SAVE_VIDEO === 'true',
       },
       AUTHENTICATION: {
         API_KEY: {
