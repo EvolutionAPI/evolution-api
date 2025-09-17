@@ -9,6 +9,7 @@
 ### Fixed
 
 * Address Path Traversal vulnerability in /assets endpoint by implementing security checks
+* Configure Husky and lint-staged for automated code quality checks on commits and pushes
 * Convert mediaKey from media messages to avoid bad decrypt errors
 * Improve code formatting for better readability in WhatsApp service files
 * Format messageGroupId assignment for improved readability
@@ -18,6 +19,7 @@
 * Remove abort process when status is paused, allowing the chatbot return after the time expires and after being paused due to human interaction (stopBotFromMe)
 * Enhance message content sanitization in Baileys service and improve message retrieval logic in Chatwoot service
 * Integrate Typebot status change events for webhook in chatbot controller and service
+* Mimetype of videos video
 
 ### Security
 

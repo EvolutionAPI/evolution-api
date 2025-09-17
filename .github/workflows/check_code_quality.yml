@@ -8,20 +8,28 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Install Node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v4
       with:
         node-version: 20.x
 
+    - name: Cache node modules
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
     - name: Install packages
-      run: npm install
+      run: npm ci
     
     - name: Check linting
       run: npm run lint:check
 
-    - name: Check build
+    - name: Generate Prisma client
       run: npm run db:generate
 
     - name: Check build
