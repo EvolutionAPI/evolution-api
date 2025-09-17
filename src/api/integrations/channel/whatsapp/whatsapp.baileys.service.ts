@@ -3601,7 +3601,7 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       if (typeof mediaMessage['mediaKey'] === 'object') {
-        msg.message = JSON.parse(JSON.stringify(msg.message));
+        msg.message[mediaType].mediaKey = Uint8Array.from(Object.values(mediaMessage['mediaKey']));
       }
 
       let buffer: Buffer;
