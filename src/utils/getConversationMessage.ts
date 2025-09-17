@@ -38,14 +38,16 @@ const getTypeMessage = (msg: any) => {
       ? `videoMessage|${mediaId}${msg?.message?.videoMessage?.caption ? `|${msg?.message?.videoMessage?.caption}` : ''}`
       : undefined,
     documentMessage: msg?.message?.documentMessage
-      ? `documentMessage|${mediaId}${msg?.message?.documentMessage?.caption ? `|${msg?.message?.documentMessage?.caption}` : ''
-      }`
+      ? `documentMessage|${mediaId}${
+          msg?.message?.documentMessage?.caption ? `|${msg?.message?.documentMessage?.caption}` : ''
+        }`
       : undefined,
     documentWithCaptionMessage: msg?.message?.documentWithCaptionMessage?.message?.documentMessage
-      ? `documentWithCaptionMessage|${mediaId}${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
-        ? `|${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption}`
-        : ''
-      }`
+      ? `documentWithCaptionMessage|${mediaId}${
+          msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption
+            ? `|${msg?.message?.documentWithCaptionMessage?.message?.documentMessage?.caption}`
+            : ''
+        }`
       : undefined,
     externalAdReplyBody: msg?.contextInfo?.externalAdReply?.body
       ? `externalAdReplyBody|${msg.contextInfo.externalAdReply.body}`

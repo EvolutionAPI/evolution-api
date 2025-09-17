@@ -463,7 +463,8 @@ export class BusinessStartupService extends ChannelStartupService {
                   this.logger?.info?.('Video upload attempted but is disabled by configuration.');
                   return {
                     success: false,
-                    message: 'Video upload is currently disabled. Please contact support if you need this feature enabled.',
+                    message:
+                      'Video upload is currently disabled. Please contact support if you need this feature enabled.',
                   };
                 }
 
@@ -1213,8 +1214,9 @@ export class BusinessStartupService extends ChannelStartupService {
       const token = this.token;
 
       const headers = { Authorization: `Bearer ${token}` };
-      const url = `${this.configService.get<WaBusiness>('WA_BUSINESS').URL}/${this.configService.get<WaBusiness>('WA_BUSINESS').VERSION
-        }/${this.number}/media`;
+      const url = `${this.configService.get<WaBusiness>('WA_BUSINESS').URL}/${
+        this.configService.get<WaBusiness>('WA_BUSINESS').VERSION
+      }/${this.number}/media`;
 
       const res = await axios.post(url, formData, { headers });
       return res.data.id;
