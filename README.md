@@ -84,6 +84,10 @@ We value community input and feedback to continuously improve Evolution API:
 - **[Discord Community](https://evolution-api.com/discord)**: Real-time chat with developers and users
 - **[GitHub Issues](https://github.com/EvolutionAPI/evolution-api/issues)**: Report bugs and technical issues
 
+### 🔒 Security
+- **[Security Policy](./SECURITY.md)**: Guidelines for reporting security vulnerabilities
+- **Security Contact**: contato@evolution-api.com
+
 ## Telemetry Notice
 
 To continuously improve our services, we have implemented telemetry that collects data on the routes used, the most accessed routes, and the version of the API in use. We would like to assure you that no sensitive or personal data is collected during this process. The telemetry helps us identify improvements and provide a better experience for users.
