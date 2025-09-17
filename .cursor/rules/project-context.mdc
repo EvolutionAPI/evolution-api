@@ -32,7 +32,7 @@ alwaysApply: true
 - **Queue**: RabbitMQ + Amazon SQS for message processing
 - **Real-time**: Socket.io for WebSocket connections
 - **Storage**: AWS S3 + Minio for file storage
-- **Validation**: class-validator for input validation
+- **Validation**: JSONSchema7 for input validation
 - **Logging**: Pino for structured logging
 - **Architecture**: Multi-tenant API with WhatsApp integrations
 
@@ -133,7 +133,7 @@ alwaysApply: true
 ### Security Constraints
 - **AUTHENTICATION**: API key validation for all endpoints
 - **AUTHORIZATION**: Instance-based access control
-- **INPUT VALIDATION**: Validate all inputs with class-validator
+- **INPUT VALIDATION**: Validate all inputs with JSONSchema7
 - **RATE LIMITING**: Prevent abuse with rate limiting
 - **WEBHOOK SECURITY**: Validate webhook signatures
 
@@ -163,7 +163,7 @@ alwaysApply: true
 
 ### Integration Patterns
 - **SERVICE LAYER**: Business logic in service classes
-- **DTO VALIDATION**: Input validation with class-validator
+- **DTO VALIDATION**: Input validation with JSONSchema7
 - **ERROR HANDLING**: Consistent error responses
 - **LOGGING**: Structured logging with correlation IDs
 

@@ -51,7 +51,7 @@ alwaysApply: true
 ### File and Function Organization - Node.js/TypeScript Structure
 - **Services**: Keep services focused and under 200 lines
 - **Controllers**: Keep controllers thin - only routing and validation
-- **DTOs**: Use class-validator for all input validation
+- **DTOs**: Use JSONSchema7 for all input validation
 - **Integrations**: Follow `src/api/integrations/` structure for new integrations
 - **Utils**: Extract common functionality into well-named utilities
 - **Types**: Define clear TypeScript interfaces and types
@@ -78,7 +78,7 @@ alwaysApply: true
 - **Graceful Degradation**: Handle service failures gracefully
 
 ### Security Standards
-- **Input Validation**: Validate all inputs with class-validator
+- **Input Validation**: Validate all inputs with JSONSchema7
 - **Authentication**: Use API keys and JWT tokens
 - **Rate Limiting**: Implement rate limiting for APIs
 - **Data Sanitization**: Sanitize sensitive data in logs
@@ -116,6 +116,29 @@ alwaysApply: true
 - **Automated Checks**: ESLint, Prettier, TypeScript
 - **Security Review**: Check for security vulnerabilities
 - **Performance Review**: Check for performance issues
+
+### Commit Standards (Conventional Commits)
+- **Format**: `type(scope): subject` (max 100 characters)
+- **Types**: 
+  - `feat` - New feature
+  - `fix` - Bug fix
+  - `docs` - Documentation changes
+  - `style` - Code style changes (formatting, etc)
+  - `refactor` - Code refactoring
+  - `perf` - Performance improvements
+  - `test` - Adding or updating tests
+  - `chore` - Maintenance tasks
+  - `ci` - CI/CD changes
+  - `build` - Build system changes
+  - `revert` - Reverting changes
+  - `security` - Security fixes
+- **Examples**:
+  - `feat(api): add WhatsApp message status endpoint`
+  - `fix(baileys): resolve connection timeout issue`
+  - `docs(readme): update installation instructions`
+  - `refactor(service): extract common message validation logic`
+- **Tools**: Use `npm run commit` (Commitizen) for guided commits
+- **Validation**: Enforced by commitlint on commit-msg hook
 
 ## Evolution API Specific Patterns
 

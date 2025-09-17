@@ -50,6 +50,7 @@ Cada arquivo de regras contém:
 - **Exemplos práticos** - Código de exemplo
 - **Anti-padrões** - O que evitar
 - **Testes** - Como testar o código
+- **Padrões de Commit** - Conventional Commits com commitlint
 
 ## Configuração do Cursor
 
@@ -75,7 +76,7 @@ Para manter as regras atualizadas:
 - **Queue**: RabbitMQ + Amazon SQS
 - **Real-time**: Socket.io
 - **Storage**: AWS S3 + Minio
-- **Validation**: class-validator + Joi
+- **Validation**: JSONSchema7
 - **Logging**: Pino
 - **WhatsApp**: Baileys + Meta Business API
 - **Integrations**: Chatwoot, Typebot, OpenAI, Dify
