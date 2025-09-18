@@ -1,3 +1,35 @@
+# 2.3.3 (2025-09-18)
+
+### Features
+
+* Add extra fields to object sent to Flowise bot
+* Add Prometheus-compatible /metrics endpoint (gated by PROMETHEUS_METRICS)
+* Implement linkPreview support for Evolution Bot
+
+### Fixed
+
+* Address Path Traversal vulnerability in /assets endpoint by implementing security checks
+* Configure Husky and lint-staged for automated code quality checks on commits and pushes
+* Convert mediaKey from media messages to avoid bad decrypt errors
+* Improve code formatting for better readability in WhatsApp service files
+* Format messageGroupId assignment for improved readability
+* Improve linkPreview implementation based on PR feedback
+* Clean up code formatting for linkPreview implementation
+* Use 'unknown' as fallback for clientName label
+* Remove abort process when status is paused, allowing the chatbot return after the time expires and after being paused due to human interaction (stopBotFromMe)
+* Enhance message content sanitization in Baileys service and improve message retrieval logic in Chatwoot service
+* Integrate Typebot status change events for webhook in chatbot controller and service
+* Mimetype of videos video
+
+### Security
+
+* **CRITICAL**: Fixed Path Traversal vulnerability in /assets endpoint that allowed unauthenticated local file read
+* Customizable Websockets Security
+
+### Testing
+
+* Baileys Updates: v7.0.0-rc.3 ([Link](https://github.com/WhiskeySockets/Baileys/releases/tag/v7.0.0-rc.3))
+
 # 2.3.2 (2025-09-02)
 
 ### Features

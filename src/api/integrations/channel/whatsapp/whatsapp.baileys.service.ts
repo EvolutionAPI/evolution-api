@@ -62,6 +62,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '@api/types/wa.types';
 import { CacheEngine } from '@cache/cacheengine';
 import {
+  AudioConverter,
   CacheConf,
   Chatwoot,
   ConfigService,
@@ -110,7 +111,7 @@ import makeWASocket, {
   isJidBroadcast,
   isJidGroup,
   isJidNewsletter,
-  isJidUser,
+  isPnUser,
   makeCacheableSignalKeyStore,
   MessageUpsertType,
   MessageUserReceiptUpdate,
@@ -150,6 +151,19 @@ import { v4 } from 'uuid';
 
 import { BaileysMessageProcessor } from './baileysMessage.processor';
 import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
+
+export interface ExtendedMessageKey extends WAMessageKey {
+  senderPn?: string;
+  previousRemoteJid?: string | null;
+}
+
+export interface ExtendedIMessageKey extends proto.IMessageKey {
+  senderPn?: string;
+  remoteJidAlt?: string;
+  participantAlt?: string;
+  server_id?: string;
+  isViewOnce?: boolean;
+}
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
@@ -484,9 +498,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async getMessage(key: proto.IMessageKey, full = false) {
     try {
-      const webMessageInfo = (await this.prismaRepository.message.findMany({
-        where: { instanceId: this.instanceId, key: { path: ['id'], equals: key.id } },
-      })) as unknown as proto.IWebMessageInfo[];
+      // Use raw SQL to avoid JSON path issues
+      const webMessageInfo = (await this.prismaRepository.$queryRaw`
+        SELECT * FROM "Message" 
+        WHERE "instanceId" = ${this.instanceId} 
+        AND "key"->>'id' = ${key.id}
+      `) as proto.IWebMessageInfo[];
+
       if (full) {
         return webMessageInfo[0];
       }
@@ -982,8 +1000,8 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          if (m.key.remoteJid?.includes('@lid') && m.key.senderPn) {
-            m.key.remoteJid = m.key.senderPn;
+          if (m.key.remoteJid?.includes('@lid') && (m.key as ExtendedIMessageKey).senderPn) {
+            m.key.remoteJid = (m.key as ExtendedIMessageKey).senderPn;
           }
 
           if (Long.isLong(m?.messageTimestamp)) {
@@ -1048,9 +1066,9 @@ export class BaileysStartupService extends ChannelStartupService {
     ) => {
       try {
         for (const received of messages) {
-          if (received.key.remoteJid?.includes('@lid') && received.key.senderPn) {
-            (received.key as { previousRemoteJid?: string | null }).previousRemoteJid = received.key.remoteJid;
-            received.key.remoteJid = received.key.senderPn;
+          if (received.key.remoteJid?.includes('@lid') && (received.key as ExtendedMessageKey).senderPn) {
+            (received.key as ExtendedMessageKey).previousRemoteJid = received.key.remoteJid;
+            received.key.remoteJid = (received.key as ExtendedMessageKey).senderPn;
           }
           if (
             received?.messageStubParameters?.some?.((param) =>
@@ -1188,6 +1206,8 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.ptvMessage ||
             received?.message?.audioMessage;
 
+          const isVideo = received?.message?.videoMessage;
+
           if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
             await this.client.readMessages([received.key]);
           }
@@ -1258,6 +1278,12 @@ export class BaileysStartupService extends ChannelStartupService {
             if (isMedia) {
               if (this.configService.get<S3>('S3').ENABLE) {
                 try {
+                  if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
+                    this.logger.warn('Video upload is disabled. Skipping video upload.');
+                    // Skip video upload by returning early from this block
+                    return;
+                  }
+
                   const message: any = received;
 
                   // Verificação adicional para garantir que há conteúdo de mídia real
@@ -1330,6 +1356,10 @@ export class BaileysStartupService extends ChannelStartupService {
                 this.logger.error(['Error converting media to base64', error?.message]);
               }
             }
+          }
+
+          if (messageRaw.key.remoteJid?.includes('@lid') && messageRaw.key.remoteJidAlt) {
+            messageRaw.key.remoteJid = messageRaw.key.remoteJidAlt;
           }
 
           this.logger.log(messageRaw);
@@ -1407,8 +1437,8 @@ export class BaileysStartupService extends ChannelStartupService {
           continue;
         }
 
-        if (key.remoteJid?.includes('@lid') && key.senderPn) {
-          key.remoteJid = key.senderPn;
+        if (key.remoteJid?.includes('@lid') && key.remoteJidAlt) {
+          key.remoteJid = key.remoteJidAlt;
         }
 
         const updateKey = `${this.instance.id}_${key.id}_${update.status}`;
@@ -1459,9 +1489,14 @@ export class BaileysStartupService extends ChannelStartupService {
           let findMessage: any;
           const configDatabaseData = this.configService.get<Database>('DATABASE').SAVE_DATA;
           if (configDatabaseData.HISTORIC || configDatabaseData.NEW_MESSAGE) {
-            findMessage = await this.prismaRepository.message.findFirst({
-              where: { instanceId: this.instanceId, key: { path: ['id'], equals: key.id } },
-            });
+            // Use raw SQL to avoid JSON path issues
+            const messages = (await this.prismaRepository.$queryRaw`
+              SELECT * FROM "Message" 
+              WHERE "instanceId" = ${this.instanceId} 
+              AND "key"->>'id' = ${key.id}
+              LIMIT 1
+            `) as any[];
+            findMessage = messages[0] || null;
 
             if (findMessage) message.messageId = findMessage.id;
           }
@@ -1910,7 +1945,7 @@ export class BaileysStartupService extends ChannelStartupService {
         quoted,
       });
       const id = await this.client.relayMessage(sender, message, { messageId });
-      m.key = { id: id, remoteJid: sender, participant: isJidUser(sender) ? sender : undefined, fromMe: true };
+      m.key = { id: id, remoteJid: sender, participant: isPnUser(sender) ? sender : undefined, fromMe: true };
       for (const [key, value] of Object.entries(m)) {
         if (!value || (isArray(value) && value.length) === 0) {
           delete m[key];
@@ -2146,6 +2181,8 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent?.message?.ptvMessage ||
         messageSent?.message?.audioMessage;
 
+      const isVideo = messageSent?.message?.videoMessage;
+
       if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled && !isIntegration) {
         this.chatwootService.eventWhatsapp(
           Events.SEND_MESSAGE,
@@ -2170,6 +2207,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (isMedia && this.configService.get<S3>('S3').ENABLE) {
           try {
+            if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
+              throw new Error('Video upload is disabled.');
+            }
+
             const message: any = messageRaw;
 
             // Verificação adicional para garantir que há conteúdo de mídia real
@@ -2568,6 +2609,13 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
+      if (mediaMessage?.fileName) {
+        mimetype = mimeTypes.lookup(mediaMessage.fileName).toString();
+        if (mimetype === 'application/mp4') {
+          mimetype = 'video/mp4';
+        }
+      }
+
       prepareMedia[mediaType].caption = mediaMessage?.caption;
       prepareMedia[mediaType].mimetype = mimetype;
       prepareMedia[mediaType].fileName = mediaMessage.fileName;
@@ -2794,7 +2842,8 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async processAudio(audio: string): Promise<Buffer> {
-    if (process.env.API_AUDIO_CONVERTER) {
+    const audioConverterConfig = this.configService.get<AudioConverter>('AUDIO_CONVERTER');
+    if (audioConverterConfig.API_URL) {
       this.logger.verbose('Using audio converter API');
       const formData = new FormData();
 
@@ -2804,8 +2853,8 @@ export class BaileysStartupService extends ChannelStartupService {
         formData.append('base64', audio);
       }
 
-      const { data } = await axios.post(process.env.API_AUDIO_CONVERTER, formData, {
-        headers: { ...formData.getHeaders(), apikey: process.env.API_AUDIO_CONVERTER_KEY },
+      const { data } = await axios.post(audioConverterConfig.API_URL, formData, {
+        headers: { ...formData.getHeaders(), apikey: audioConverterConfig.API_KEY },
       });
 
       if (!data.audio) {
@@ -3367,7 +3416,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const keys: proto.IMessageKey[] = [];
       data.readMessages.forEach((read) => {
-        if (isJidGroup(read.remoteJid) || isJidUser(read.remoteJid)) {
+        if (isJidGroup(read.remoteJid) || isPnUser(read.remoteJid)) {
           keys.push({ remoteJid: read.remoteJid, fromMe: read.fromMe, id: read.id });
         }
       });
@@ -3579,7 +3628,7 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       if (typeof mediaMessage['mediaKey'] === 'object') {
-        msg.message = JSON.parse(JSON.stringify(msg.message));
+        msg.message[mediaType].mediaKey = Uint8Array.from(Object.values(mediaMessage['mediaKey']));
       }
 
       let buffer: Buffer;
@@ -4299,22 +4348,50 @@ export class BaileysStartupService extends ChannelStartupService {
     throw new Error('Method not available in the Baileys service');
   }
 
+  private convertLongToNumber(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+
+    if (Long.isLong(obj)) {
+      return obj.toNumber();
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.convertLongToNumber(item));
+    }
+
+    if (typeof obj === 'object') {
+      const converted: any = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          converted[key] = this.convertLongToNumber(obj[key]);
+        }
+      }
+      return converted;
+    }
+
+    return obj;
+  }
+
   private prepareMessage(message: proto.IWebMessageInfo): any {
     const contentType = getContentType(message.message);
     const contentMsg = message?.message[contentType] as any;
 
     const messageRaw = {
-      key: message.key,
+      key: message.key, // Save key exactly as it comes from Baileys
       pushName:
         message.pushName ||
         (message.key.fromMe
           ? 'Você'
           : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
       status: status[message.status],
-      message: { ...message.message },
-      contextInfo: contentMsg?.contextInfo,
+      message: this.convertLongToNumber({ ...message.message }),
+      contextInfo: this.convertLongToNumber(contentMsg?.contextInfo),
       messageType: contentType || 'unknown',
-      messageTimestamp: message.messageTimestamp as number,
+      messageTimestamp: Long.isLong(message.messageTimestamp)
+        ? message.messageTimestamp.toNumber()
+        : (message.messageTimestamp as number),
       instanceId: this.instanceId,
       source: getDevice(message.key.id),
     };
@@ -4357,7 +4434,22 @@ export class BaileysStartupService extends ChannelStartupService {
       const prepare = (message: any) => this.prepareMessage(message);
       this.chatwootService.syncLostMessages({ instanceName: this.instance.name }, chatwootConfig, prepare);
 
+      // Generate ID for this cron task and store in cache
+      const cronId = cuid();
+      const cronKey = `chatwoot:syncLostMessages`;
+      await this.chatwootService.getCache()?.hSet(cronKey, this.instance.name, cronId);
+
       const task = cron.schedule('0,30 * * * *', async () => {
+        // Check ID before executing (only if cache is available)
+        const cache = this.chatwootService.getCache();
+        if (cache) {
+          const storedId = await cache.hGet(cronKey, this.instance.name);
+          if (storedId && storedId !== cronId) {
+            this.logger.info(`Stopping syncChatwootLostMessages cron - ID mismatch: ${cronId} vs ${storedId}`);
+            task.stop();
+            return;
+          }
+        }
         this.chatwootService.syncLostMessages({ instanceName: this.instance.name }, chatwootConfig, prepare);
       });
       task.start();
@@ -4367,24 +4459,23 @@ export class BaileysStartupService extends ChannelStartupService {
   private async updateMessagesReadedByTimestamp(remoteJid: string, timestamp?: number): Promise<number> {
     if (timestamp === undefined || timestamp === null) return 0;
 
-    const result = await this.prismaRepository.message.updateMany({
-      where: {
-        AND: [
-          { key: { path: ['remoteJid'], equals: remoteJid } },
-          { key: { path: ['fromMe'], equals: false } },
-          { messageTimestamp: { lte: timestamp } },
-          { OR: [{ status: null }, { status: status[3] }] },
-        ],
-      },
-      data: { status: status[4] },
-    });
+    // Use raw SQL to avoid JSON path issues
+    const result = await this.prismaRepository.$executeRaw`
+      UPDATE "Message" 
+      SET "status" = ${status[4]}
+      WHERE "instanceId" = ${this.instanceId}
+      AND "key"->>'remoteJid' = ${remoteJid}
+      AND ("key"->>'fromMe')::boolean = false
+      AND "messageTimestamp" <= ${timestamp}
+      AND ("status" IS NULL OR "status" = ${status[3]})
+    `;
 
     if (result) {
-      if (result.count > 0) {
+      if (result > 0) {
         this.updateChatUnreadMessages(remoteJid);
       }
 
-      return result.count;
+      return result;
     }
 
     return 0;
@@ -4393,15 +4484,14 @@ export class BaileysStartupService extends ChannelStartupService {
   private async updateChatUnreadMessages(remoteJid: string): Promise<number> {
     const [chat, unreadMessages] = await Promise.all([
       this.prismaRepository.chat.findFirst({ where: { remoteJid } }),
-      this.prismaRepository.message.count({
-        where: {
-          AND: [
-            { key: { path: ['remoteJid'], equals: remoteJid } },
-            { key: { path: ['fromMe'], equals: false } },
-            { status: { equals: status[3] } },
-          ],
-        },
-      }),
+      // Use raw SQL to avoid JSON path issues
+      this.prismaRepository.$queryRaw`
+        SELECT COUNT(*)::int as count FROM "Message" 
+        WHERE "instanceId" = ${this.instanceId}
+        AND "key"->>'remoteJid' = ${remoteJid}
+        AND ("key"->>'fromMe')::boolean = false
+        AND "status" = ${status[3]}
+      `.then((result: any[]) => result[0]?.count || 0),
     ]);
 
     if (chat && chat.unreadMessages !== unreadMessages) {
@@ -4649,12 +4739,7 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async fetchMessages(query: Query<Message>) {
-    const keyFilters = query?.where?.key as {
-      id?: string;
-      fromMe?: boolean;
-      remoteJid?: string;
-      participants?: string;
-    };
+    const keyFilters = query?.where?.key as ExtendedIMessageKey;
 
     const timestampFilter = {};
     if (query?.where?.messageTimestamp) {
@@ -4677,7 +4762,13 @@ export class BaileysStartupService extends ChannelStartupService {
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
           keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
-          keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
+          keyFilters?.participant ? { key: { path: ['participant'], equals: keyFilters?.participant } } : {},
+          {
+            OR: [
+              keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
+              keyFilters?.senderPn ? { key: { path: ['senderPn'], equals: keyFilters?.senderPn } } : {},
+            ],
+          },
         ],
       },
     });
@@ -4701,7 +4792,13 @@ export class BaileysStartupService extends ChannelStartupService {
           keyFilters?.id ? { key: { path: ['id'], equals: keyFilters?.id } } : {},
           keyFilters?.fromMe ? { key: { path: ['fromMe'], equals: keyFilters?.fromMe } } : {},
           keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
-          keyFilters?.participants ? { key: { path: ['participants'], equals: keyFilters?.participants } } : {},
+          keyFilters?.participant ? { key: { path: ['participant'], equals: keyFilters?.participant } } : {},
+          {
+            OR: [
+              keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
+              keyFilters?.senderPn ? { key: { path: ['senderPn'], equals: keyFilters?.senderPn } } : {},
+            ],
+          },
         ],
       },
       orderBy: { messageTimestamp: 'desc' },

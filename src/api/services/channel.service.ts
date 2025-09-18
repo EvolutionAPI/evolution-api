@@ -9,7 +9,7 @@ import { TypebotService } from '@api/integrations/chatbot/typebot/services/typeb
 import { PrismaRepository, Query } from '@api/repository/repository.service';
 import { eventManager, waMonitor } from '@api/server.module';
 import { Events, wa } from '@api/types/wa.types';
-import { Auth, Chatwoot, ConfigService, HttpServer } from '@config/env.config';
+import { Auth, Chatwoot, ConfigService, HttpServer, Proxy } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import { Contact, Message, Prisma } from '@prisma/client';
@@ -364,13 +364,14 @@ export class ChannelStartupService {
   public async loadProxy() {
     this.localProxy.enabled = false;
 
-    if (process.env.PROXY_HOST) {
+    const proxyConfig = this.configService.get<Proxy>('PROXY');
+    if (proxyConfig.HOST) {
       this.localProxy.enabled = true;
-      this.localProxy.host = process.env.PROXY_HOST;
-      this.localProxy.port = process.env.PROXY_PORT || '80';
-      this.localProxy.protocol = process.env.PROXY_PROTOCOL || 'http';
-      this.localProxy.username = process.env.PROXY_USERNAME;
-      this.localProxy.password = process.env.PROXY_PASSWORD;
+      this.localProxy.host = proxyConfig.HOST;
+      this.localProxy.port = proxyConfig.PORT || '80';
+      this.localProxy.protocol = proxyConfig.PROTOCOL || 'http';
+      this.localProxy.username = proxyConfig.USERNAME;
+      this.localProxy.password = proxyConfig.PASSWORD;
     }
 
     const data = await this.prismaRepository.proxy.findUnique({

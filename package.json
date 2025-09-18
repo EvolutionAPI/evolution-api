@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
@@ -12,12 +12,15 @@
     "test": "tsx watch ./test/all.test.ts",
     "lint": "eslint --fix --ext .ts src",
     "lint:check": "eslint --ext .ts src",
+    "commit": "cz",
+    "commitlint": "commitlint --edit",
     "db:generate": "node runWithProvider.js \"npx prisma generate --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
     "db:deploy": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate deploy --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
     "db:deploy:win": "node runWithProvider.js \"xcopy /E /I prisma\\DATABASE_PROVIDER-migrations prisma\\migrations && npx prisma migrate deploy --schema prisma\\DATABASE_PROVIDER-schema.prisma\"",
     "db:studio": "node runWithProvider.js \"npx prisma studio --schema ./prisma/DATABASE_PROVIDER-schema.prisma\"",
     "db:migrate:dev": "node runWithProvider.js \"rm -rf ./prisma/migrations && cp -r ./prisma/DATABASE_PROVIDER-migrations ./prisma/migrations && npx prisma migrate dev --schema ./prisma/DATABASE_PROVIDER-schema.prisma && cp -r ./prisma/migrations/* ./prisma/DATABASE_PROVIDER-migrations\"",
-    "db:migrate:dev:win": "node runWithProvider.js \"xcopy /E /I prisma\\DATABASE_PROVIDER-migrations prisma\\migrations && npx prisma migrate dev --schema prisma\\DATABASE_PROVIDER-schema.prisma\""
+    "db:migrate:dev:win": "node runWithProvider.js \"xcopy /E /I prisma\\DATABASE_PROVIDER-migrations prisma\\migrations && npx prisma migrate dev --schema prisma\\DATABASE_PROVIDER-schema.prisma\"",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -48,6 +51,19 @@
     "url": "https://github.com/EvolutionAPI/evolution-api/issues"
   },
   "homepage": "https://github.com/EvolutionAPI/evolution-api#readme",
+  "lint-staged": {
+    "src/**/*.{ts,js}": [
+      "eslint --fix"
+    ],
+    "src/**/*.ts": [
+      "sh -c 'npm run build'"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
     "@aws-sdk/client-sqs": "^3.723.0",
@@ -60,7 +76,7 @@
     "amqplib": "^0.10.5",
     "audio-decode": "^2.2.3",
     "axios": "^1.7.9",
-    "baileys": "github:WhiskeySockets/Baileys",
+    "baileys": "^7.0.0-rc.3",
     "class-validator": "^0.14.1",
     "compression": "^1.7.5",
     "cors": "^2.8.5",
@@ -105,6 +121,8 @@
     "tsup": "^8.3.5"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.18",
@@ -118,14 +136,18 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^8.45.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-simple-import-sort": "^10.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
     "prettier": "^3.4.2",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.20.3",
+    "tsx": "^4.20.5",
     "typescript": "^5.7.2"
   }
 }
