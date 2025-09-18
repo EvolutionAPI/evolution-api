@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 RUN apk update && \
     apk add --no-cache git ffmpeg wget curl bash openssl
@@ -30,7 +30,7 @@ RUN ./Docker/scripts/generate_database.sh
 
 RUN npm run build
 
-FROM node:20-alpine AS final
+FROM node:24-alpine AS final
 
 RUN apk update && \
     apk add tzdata ffmpeg bash openssl
