@@ -27,6 +27,36 @@
   - Added missing relation fields (`N8n`, `N8nSetting`, `Evoai`, `EvoaiSetting`) in Instance model
   - Resolved Prisma schema validation errors for MySQL provider
 
+* **Prisma Schema Validation**: Fixed `instanceName` field error in message creation
+  - Removed invalid `instanceName` field from message objects before database insertion
+  - Resolved `Unknown argument 'instanceName'` Prisma validation error
+  - Streamlined message data structure to match Prisma schema requirements
+
+* **Media Message Processing**: Enhanced media handling across chatbot services
+  - Fixed base64 conversion in EvoAI service for proper image processing
+  - Converted ArrayBuffer to base64 string using `Buffer.from().toString('base64')`
+  - Improved media URL handling and base64 encoding for better chatbot integration
+  - Enhanced image message detection and processing workflow
+
+* **Evolution Manager v2 Linting**: Resolved ESLint configuration conflicts
+  - Disabled conflicting Prettier rules in ESLint configuration
+  - Added comprehensive rule overrides for TypeScript and React patterns
+  - Fixed import ordering and code formatting issues
+  - Updated security vulnerabilities in dependencies (Vite, esbuild)
+
+### Code Quality & Refactoring
+
+* **Chatbot Services**: Streamlined media message handling across all chatbot integrations
+  - Standardized base64 and mediaUrl processing patterns
+  - Improved code readability and maintainability in media handling logic
+  - Enhanced error handling for media download and conversion processes
+  - Unified image message detection across different chatbot services
+
+* **Database Operations**: Improved data consistency and validation
+  - Enhanced Prisma schema compliance across all message operations
+  - Removed redundant instance name references for better data integrity
+  - Optimized message creation workflow with proper field validation
+
 ### Environment Variables
 
 * Added comprehensive Kafka configuration options:
