@@ -1349,6 +1349,10 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
+          if (messageRaw.key.remoteJid?.includes('@lid') && messageRaw.key.remoteJidAlt) {
+            messageRaw.key.remoteJid = messageRaw.key.remoteJidAlt;
+          }
+
           this.logger.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
