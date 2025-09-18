@@ -331,7 +331,6 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
-          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message?.mediaType === 'video') {
@@ -346,7 +345,6 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
-          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message?.mediaType === 'audio') {
@@ -361,7 +359,6 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
-          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
 
@@ -383,7 +380,6 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
-          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message.buttonMessage) {
@@ -400,7 +396,6 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
-          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message.listMessage) {
@@ -414,7 +409,6 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
-          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else {
@@ -428,7 +422,6 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
-          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       }

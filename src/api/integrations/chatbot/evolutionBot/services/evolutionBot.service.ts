@@ -6,6 +6,7 @@ import { ConfigService, HttpServer } from '@config/env.config';
 import { EvolutionBot, EvolutionBotSetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
+import { isURL } from 'class-validator';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
 import { OpenaiService } from '../../openai/services/openai.service';
@@ -71,16 +72,26 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         }
       }
 
-      if (this.isImageMessage(content)) {
-        const contentSplit = content.split('|');
+      if (this.isImageMessage(content) && msg) {
+        const media = content.split('|');
 
-        payload.files = [
-          {
-            type: 'image',
-            url: contentSplit[1].split('?')[0],
-          },
-        ];
-        payload.query = contentSplit[2] || content;
+        if (msg.message.mediaUrl || msg.message.base64) {
+          payload.files = [
+            {
+              type: 'image',
+              url: msg.message.base64 || msg.message.mediaUrl,
+            },
+          ];
+        } else {
+          payload.files = [
+            {
+              type: 'image',
+              url: media[1].split('?')[0],
+            },
+          ];
+        }
+
+        payload.query = media[2] || content;
       }
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
