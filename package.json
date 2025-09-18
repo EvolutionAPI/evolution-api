@@ -114,7 +114,7 @@
     "qrcode-terminal": "^0.12.0",
     "redis": "^4.7.0",
     "rxjs": "^7.8.2",
-    "sharp": "^0.34.2",
+    "sharp": "^0.34.4",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "socks-proxy-agent": "^8.0.5",
