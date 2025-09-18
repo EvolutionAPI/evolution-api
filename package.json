@@ -133,7 +133,7 @@
     "@types/node-cron": "^3.0.11",
     "@types/qrcode": "^1.5.5",
     "@types/qrcode-terminal": "^0.12.2",
-    "@types/uuid": "^10.0.0",
+    "@types/uuid": "^11.0.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "commitizen": "^4.3.1",
