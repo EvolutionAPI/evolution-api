@@ -1,3 +1,31 @@
+# 2.3.4 (develop)
+
+### Features
+
+* **Kafka Integration**: Added Apache Kafka event integration for real-time event streaming
+  - New Kafka controller, router, and schema for event publishing
+  - Support for instance-specific and global event topics
+  - Configurable SASL/SSL authentication and connection settings
+  - Auto-creation of topics with configurable partitions and replication
+  - Consumer group management for reliable event processing
+  - Integration with existing event manager for seamless event distribution
+
+### Fixed
+
+* **MySQL Schema**: Fixed invalid default value errors for `createdAt` fields in `Evoai` and `EvoaiSetting` models
+  - Changed `@default(now())` to `@default(dbgenerated("CURRENT_TIMESTAMP"))` for MySQL compatibility
+  - Added missing relation fields (`N8n`, `N8nSetting`, `Evoai`, `EvoaiSetting`) in Instance model
+  - Resolved Prisma schema validation errors for MySQL provider
+
+### Environment Variables
+
+* Added comprehensive Kafka configuration options:
+  - `KAFKA_ENABLED`, `KAFKA_CLIENT_ID`, `KAFKA_BROKERS`
+  - `KAFKA_CONSUMER_GROUP_ID`, `KAFKA_TOPIC_PREFIX`
+  - `KAFKA_SASL_*` and `KAFKA_SSL_*` for authentication
+  - `KAFKA_EVENTS_*` for event type configuration
+
+
 # 2.3.3 (2025-09-18)
 
 ### Features
