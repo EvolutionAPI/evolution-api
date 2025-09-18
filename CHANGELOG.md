@@ -10,6 +10,16 @@
   - Consumer group management for reliable event processing
   - Integration with existing event manager for seamless event distribution
 
+* **Evolution Manager v2 Open Source**: Evolution Manager v2 is now available as open source
+  - Added as git submodule with HTTPS URL for easy access
+  - Complete open source setup with Apache 2.0 license + Evolution API custom conditions
+  - GitHub templates for issues, pull requests, and workflows
+  - Comprehensive documentation and contribution guidelines
+  - Docker support for development and production environments
+  - CI/CD workflows for code quality, security audits, and automated builds
+  - Multi-language support (English, Portuguese, Spanish, French)
+  - Modern React + TypeScript + Vite frontend with Tailwind CSS
+
 ### Fixed
 
 * **MySQL Schema**: Fixed invalid default value errors for `createdAt` fields in `Evoai` and `EvoaiSetting` models

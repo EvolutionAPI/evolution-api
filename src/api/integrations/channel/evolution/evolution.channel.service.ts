@@ -323,42 +323,45 @@ export class EvolutionStartupService extends ChannelStartupService {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'imageMessage',
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
+          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message?.mediaType === 'video') {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'videoMessage',
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
+          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message?.mediaType === 'audio') {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'audioMessage',
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
+          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
 
@@ -372,14 +375,15 @@ export class EvolutionStartupService extends ChannelStartupService {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'documentMessage',
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
+          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message.buttonMessage) {
@@ -396,6 +400,7 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
+          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else if (message.listMessage) {
@@ -409,6 +414,7 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
+          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       } else {
@@ -422,6 +428,7 @@ export class EvolutionStartupService extends ChannelStartupService {
           messageTimestamp: Math.round(new Date().getTime() / 1000),
           webhookUrl,
           source: 'unknown',
+          instanceName: this.instance.name,
           instanceId: this.instanceId,
         };
       }
@@ -449,7 +456,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         }
       }
 
-      const base64 = messageRaw.message.base64;
+      const { base64 } = messageRaw.message;
       delete messageRaw.message.base64;
 
       if (base64 || file || audioFile) {
