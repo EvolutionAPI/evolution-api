@@ -66,7 +66,7 @@
   },
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
-    "@aws-sdk/client-sqs": "^3.723.0",
+    "@aws-sdk/client-sqs": "^3.891.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@figuro/chatwoot-sdk": "^1.1.16",
     "@hapi/boom": "^10.0.1",
