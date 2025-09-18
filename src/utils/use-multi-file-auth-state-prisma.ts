@@ -19,7 +19,7 @@ export async function keyExists(sessionId: string): Promise<any> {
   try {
     const key = await prismaRepository.session.findUnique({ where: { sessionId: sessionId } });
     return !!key;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -38,7 +38,7 @@ export async function saveKey(sessionId: string, keyJson: any): Promise<any> {
       where: { sessionId: sessionId },
       data: { creds: JSON.stringify(keyJson) },
     });
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -49,7 +49,7 @@ export async function getAuthKey(sessionId: string): Promise<any> {
     if (!register) return null;
     const auth = await prismaRepository.session.findUnique({ where: { sessionId: sessionId } });
     return JSON.parse(auth?.creds);
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -59,7 +59,7 @@ async function deleteAuthKey(sessionId: string): Promise<any> {
     const register = await keyExists(sessionId);
     if (!register) return;
     await prismaRepository.session.delete({ where: { sessionId: sessionId } });
-  } catch (error) {
+  } catch {
     return;
   }
 }
@@ -68,7 +68,7 @@ async function fileExists(file: string): Promise<any> {
   try {
     const stat = await fs.stat(file);
     if (stat.isFile()) return true;
-  } catch (error) {
+  } catch {
     return;
   }
 }
@@ -119,7 +119,7 @@ export default async function useMultiFileAuthStatePrisma(
 
       const parsedData = JSON.parse(rawData, BufferJSON.reviver);
       return parsedData;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -137,7 +137,7 @@ export default async function useMultiFileAuthStatePrisma(
       } else {
         await deleteAuthKey(sessionId);
       }
-    } catch (error) {
+    } catch {
       return;
     }
   }

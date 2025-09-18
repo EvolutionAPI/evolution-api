@@ -49,7 +49,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     try {
       JSON.parse(str);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
