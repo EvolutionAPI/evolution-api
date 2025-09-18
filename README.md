@@ -55,6 +55,9 @@ Evolution API supports various integrations to enhance its functionality. Below 
 - [RabbitMQ](https://www.rabbitmq.com/):
   - Receive events from the Evolution API via RabbitMQ.
 
+- [Apache Kafka](https://kafka.apache.org/):
+  - Receive events from the Evolution API via Apache Kafka for real-time event streaming and processing.
+
 - [Amazon SQS](https://aws.amazon.com/pt/sqs/):
   - Receive events from the Evolution API via Amazon SQS.
 

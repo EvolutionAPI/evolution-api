@@ -95,6 +95,7 @@
     "json-schema": "^0.4.0",
     "jsonschema": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
     "link-preview-js": "^3.0.13",
     "long": "^5.2.3",
     "mediainfo.js": "^0.3.4",
