@@ -105,7 +105,7 @@ export class EventManager {
     instanceName: string;
     origin: string;
     event: string;
-    data: Object;
+    data: object;
     serverUrl: string;
     dateTime: string;
     sender: string;
