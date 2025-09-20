@@ -180,6 +180,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     remoteJid: string,
     message: string,
     settings: SettingsType,
+    linkPreview: boolean = true,
   ): Promise<void> {
     if (!message) return;
 
@@ -202,7 +203,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
       if (mediaType) {
         // Send accumulated text before sending media
         if (textBuffer.trim()) {
-          await this.sendFormattedText(instance, remoteJid, textBuffer.trim(), settings, splitMessages);
+          await this.sendFormattedText(instance, remoteJid, textBuffer.trim(), settings, splitMessages, linkPreview);
           textBuffer = '';
         }
 
@@ -252,7 +253,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
 
     // Send any remaining text
     if (textBuffer.trim()) {
-      await this.sendFormattedText(instance, remoteJid, textBuffer.trim(), settings, splitMessages);
+      await this.sendFormattedText(instance, remoteJid, textBuffer.trim(), settings, splitMessages, linkPreview);
     }
   }
 
@@ -265,6 +266,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     text: string,
     settings: any,
     splitMessages: boolean,
+    linkPreview: boolean = true,
   ): Promise<void> {
     const timePerChar = settings?.timePerChar ?? 0;
     const minDelay = 1000;
@@ -290,6 +292,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
                 number: remoteJid.split('@')[0],
                 delay: settings?.delayMessage || 1000,
                 text: message,
+                linkPreview,
               },
               false,
             );
@@ -316,6 +319,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
               number: remoteJid.split('@')[0],
               delay: settings?.delayMessage || 1000,
               text: text,
+              linkPreview,
             },
             false,
           );
