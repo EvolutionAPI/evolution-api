@@ -318,7 +318,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         } else if (formattedText.includes('[buttons]')) {
           await this.processButtonMessage(instance, formattedText, session.remoteJid);
         } else {
-          await this.sendMessageWhatsApp(instance, session.remoteJid, formattedText, settings);
+          await this.sendMessageWhatsApp(instance, session.remoteJid, formattedText, settings, true);
         }
 
         sendTelemetry('/message/sendText');
@@ -393,7 +393,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         } else if (formattedText.includes('[buttons]')) {
           await this.processButtonMessage(instance, formattedText, session.remoteJid);
         } else {
-          await this.sendMessageWhatsApp(instance, session.remoteJid, formattedText, settings);
+          await this.sendMessageWhatsApp(instance, session.remoteJid, formattedText, settings, true);
         }
 
         sendTelemetry('/message/sendText');
@@ -642,15 +642,21 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
 
           if (!content) {
             if (unknownMessage) {
-              await this.sendMessageWhatsApp(waInstance, remoteJid, unknownMessage, {
-                delayMessage,
-                expire,
-                keywordFinish,
-                listeningFromMe,
-                stopBotFromMe,
-                keepOpen,
+              await this.sendMessageWhatsApp(
+                waInstance,
+                remoteJid,
                 unknownMessage,
-              });
+                {
+                  delayMessage,
+                  expire,
+                  keywordFinish,
+                  listeningFromMe,
+                  stopBotFromMe,
+                  keepOpen,
+                  unknownMessage,
+                },
+                true,
+              );
               sendTelemetry('/message/sendText');
             }
             return;
@@ -801,15 +807,21 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       if (!data?.messages || data.messages.length === 0) {
         if (!content) {
           if (unknownMessage) {
-            await this.sendMessageWhatsApp(waInstance, remoteJid, unknownMessage, {
-              delayMessage,
-              expire,
-              keywordFinish,
-              listeningFromMe,
-              stopBotFromMe,
-              keepOpen,
+            await this.sendMessageWhatsApp(
+              waInstance,
+              remoteJid,
               unknownMessage,
-            });
+              {
+                delayMessage,
+                expire,
+                keywordFinish,
+                listeningFromMe,
+                stopBotFromMe,
+                keepOpen,
+                unknownMessage,
+              },
+              true,
+            );
             sendTelemetry('/message/sendText');
           }
           return;
@@ -903,15 +915,21 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
 
     if (!content) {
       if (unknownMessage) {
-        await this.sendMessageWhatsApp(waInstance, remoteJid, unknownMessage, {
-          delayMessage,
-          expire,
-          keywordFinish,
-          listeningFromMe,
-          stopBotFromMe,
-          keepOpen,
+        await this.sendMessageWhatsApp(
+          waInstance,
+          remoteJid,
           unknownMessage,
-        });
+          {
+            delayMessage,
+            expire,
+            keywordFinish,
+            listeningFromMe,
+            stopBotFromMe,
+            keepOpen,
+            unknownMessage,
+          },
+          true,
+        );
         sendTelemetry('/message/sendText');
       }
       return;
