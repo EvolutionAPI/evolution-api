@@ -85,6 +85,7 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
             remoteJid,
             "Sorry, I couldn't transcribe your audio message. Could you please type your message instead?",
             settings,
+            true,
           );
           return;
         }
@@ -233,7 +234,7 @@ export class OpenaiService extends BaseChatbotService<OpenaiBot, OpenaiSetting> 
       // Send the response
       if (message) {
         this.logger.log('Sending message to WhatsApp');
-        await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+        await this.sendMessageWhatsApp(instance, remoteJid, message, settings, true);
       } else {
         this.logger.error('No message to send to WhatsApp');
       }

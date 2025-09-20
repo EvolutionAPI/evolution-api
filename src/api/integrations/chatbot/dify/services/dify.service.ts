@@ -107,7 +107,7 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
         const conversationId = response?.data?.conversation_id;
 
         if (message) {
-          await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+          await this.sendMessageWhatsApp(instance, remoteJid, message, settings, true);
         }
 
         await this.prismaRepository.integrationSession.update({
@@ -169,7 +169,7 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
         const conversationId = response?.data?.conversation_id;
 
         if (message) {
-          await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+          await this.sendMessageWhatsApp(instance, remoteJid, message, settings, true);
         }
 
         await this.prismaRepository.integrationSession.update({
@@ -246,7 +246,7 @@ export class DifyService extends BaseChatbotService<Dify, DifySetting> {
           await instance.client.sendPresenceUpdate('paused', remoteJid);
 
         if (answer) {
-          await this.sendMessageWhatsApp(instance, remoteJid, answer, settings);
+          await this.sendMessageWhatsApp(instance, remoteJid, answer, settings, true);
         }
 
         await this.prismaRepository.integrationSession.update({

@@ -130,7 +130,7 @@ export class FlowiseService extends BaseChatbotService<FlowiseModel> {
 
     if (message) {
       // Use the base class method to send the message to WhatsApp
-      await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+      await this.sendMessageWhatsApp(instance, remoteJid, message, settings, true);
     }
   }
 

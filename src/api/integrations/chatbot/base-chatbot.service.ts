@@ -258,6 +258,55 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
   }
 
   /**
+   * Split message by double line breaks and return array of message parts
+   */
+  private splitMessageByDoubleLineBreaks(message: string): string[] {
+    return message.split('\n\n').filter((part) => part.trim().length > 0);
+  }
+
+  /**
+   * Send a single message with proper typing indicators and delays
+   */
+  private async sendSingleMessage(
+    instance: any,
+    remoteJid: string,
+    message: string,
+    settings: any,
+    linkPreview: boolean = true,
+  ): Promise<void> {
+    const timePerChar = settings?.timePerChar ?? 0;
+    const minDelay = 1000;
+    const maxDelay = 20000;
+    const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
+
+    this.logger.debug(`[BaseChatbot] Sending single message with linkPreview: ${linkPreview}`);
+
+    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+      await instance.client.presenceSubscribe(remoteJid);
+      await instance.client.sendPresenceUpdate('composing', remoteJid);
+    }
+
+    await new Promise<void>((resolve) => {
+      setTimeout(async () => {
+        await instance.textMessage(
+          {
+            number: remoteJid.split('@')[0],
+            delay: settings?.delayMessage || 1000,
+            text: message,
+            linkPreview,
+          },
+          false,
+        );
+        resolve();
+      }, delay);
+    });
+
+    if (instance.integration === Integration.WHATSAPP_BAILEYS) {
+      await instance.client.sendPresenceUpdate('paused', remoteJid);
+    }
+  }
+
+  /**
    * Helper method to send formatted text with proper typing indicators and delays
    */
   private async sendFormattedText(
@@ -268,68 +317,22 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
     splitMessages: boolean,
     linkPreview: boolean = true,
   ): Promise<void> {
-    const timePerChar = settings?.timePerChar ?? 0;
-    const minDelay = 1000;
-    const maxDelay = 20000;
-
     if (splitMessages) {
-      const multipleMessages = text.split('\n\n');
-      for (let index = 0; index < multipleMessages.length; index++) {
-        const message = multipleMessages[index];
-        if (!message.trim()) continue;
+      const messageParts = this.splitMessageByDoubleLineBreaks(text);
 
-        const delay = Math.min(Math.max(message.length * timePerChar, minDelay), maxDelay);
+      this.logger.debug(`[BaseChatbot] Splitting message into ${messageParts.length} parts`);
 
-        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-          await instance.client.presenceSubscribe(remoteJid);
-          await instance.client.sendPresenceUpdate('composing', remoteJid);
-        }
+      for (let index = 0; index < messageParts.length; index++) {
+        const message = messageParts[index];
 
-        await new Promise<void>((resolve) => {
-          setTimeout(async () => {
-            await instance.textMessage(
-              {
-                number: remoteJid.split('@')[0],
-                delay: settings?.delayMessage || 1000,
-                text: message,
-                linkPreview,
-              },
-              false,
-            );
-            resolve();
-          }, delay);
-        });
-
-        if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-          await instance.client.sendPresenceUpdate('paused', remoteJid);
-        }
+        this.logger.debug(`[BaseChatbot] Sending message part ${index + 1}/${messageParts.length}`);
+        await this.sendSingleMessage(instance, remoteJid, message, settings, linkPreview);
       }
+
+      this.logger.debug(`[BaseChatbot] All message parts sent successfully`);
     } else {
-      const delay = Math.min(Math.max(text.length * timePerChar, minDelay), maxDelay);
-
-      if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-        await instance.client.presenceSubscribe(remoteJid);
-        await instance.client.sendPresenceUpdate('composing', remoteJid);
-      }
-
-      await new Promise<void>((resolve) => {
-        setTimeout(async () => {
-          await instance.textMessage(
-            {
-              number: remoteJid.split('@')[0],
-              delay: settings?.delayMessage || 1000,
-              text: text,
-              linkPreview,
-            },
-            false,
-          );
-          resolve();
-        }, delay);
-      });
-
-      if (instance.integration === Integration.WHATSAPP_BAILEYS) {
-        await instance.client.sendPresenceUpdate('paused', remoteJid);
-      }
+      this.logger.debug(`[BaseChatbot] Sending single message`);
+      await this.sendSingleMessage(instance, remoteJid, text, settings, linkPreview);
     }
   }
 
