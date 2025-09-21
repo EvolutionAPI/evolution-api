@@ -3,7 +3,7 @@ version: "3.8"
 services:
   api:
     container_name: evolution_api
-    image: evolution/api:metrics
+    image: evoapicloud/evolution-api:latest
     restart: always
     depends_on:
       - redis
