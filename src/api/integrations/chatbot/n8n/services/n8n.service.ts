@@ -78,7 +78,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
       const message = response?.data?.output || response?.data?.answer;
 
       // Use base class method instead of custom implementation
-      await this.sendMessageWhatsApp(instance, remoteJid, message, settings);
+      await this.sendMessageWhatsApp(instance, remoteJid, message, settings, true);
 
       await this.prismaRepository.integrationSession.update({
         where: {
