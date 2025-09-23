@@ -323,8 +323,8 @@ export class EvolutionStartupService extends ChannelStartupService {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'imageMessage',
@@ -337,8 +337,8 @@ export class EvolutionStartupService extends ChannelStartupService {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'videoMessage',
@@ -351,8 +351,8 @@ export class EvolutionStartupService extends ChannelStartupService {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'audioMessage',
@@ -372,8 +372,8 @@ export class EvolutionStartupService extends ChannelStartupService {
         messageRaw = {
           key: { fromMe: true, id: messageId, remoteJid: number },
           message: {
-            base64: isBase64(message.media) ? message.media : undefined,
-            mediaUrl: isURL(message.media) ? message.media : undefined,
+            base64: isBase64(message.media) ? message.media : null,
+            mediaUrl: isURL(message.media) ? message.media : null,
             quoted,
           },
           messageType: 'documentMessage',
@@ -449,7 +449,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         }
       }
 
-      const base64 = messageRaw.message.base64;
+      const { base64 } = messageRaw.message;
       delete messageRaw.message.base64;
 
       if (base64 || file || audioFile) {

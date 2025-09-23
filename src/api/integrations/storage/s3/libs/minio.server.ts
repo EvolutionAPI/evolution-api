@@ -33,7 +33,7 @@ const bucketExists = async () => {
     try {
       const list = await minioClient.listBuckets();
       return list.find((bucket) => bucket.name === bucketName);
-    } catch (error) {
+    } catch {
       return false;
     }
   }

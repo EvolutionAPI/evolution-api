@@ -6,6 +6,7 @@ import { ConfigService, HttpServer } from '@config/env.config';
 import { EvolutionBot, EvolutionBotSetting, IntegrationSession } from '@prisma/client';
 import { sendTelemetry } from '@utils/sendTelemetry';
 import axios from 'axios';
+import { isURL } from 'class-validator';
 
 import { BaseChatbotService } from '../../base-chatbot.service';
 import { OpenaiService } from '../../openai/services/openai.service';
@@ -71,16 +72,26 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         }
       }
 
-      if (this.isImageMessage(content)) {
-        const contentSplit = content.split('|');
+      if (this.isImageMessage(content) && msg) {
+        const media = content.split('|');
 
-        payload.files = [
-          {
-            type: 'image',
-            url: contentSplit[1].split('?')[0],
-          },
-        ];
-        payload.query = contentSplit[2] || content;
+        if (msg.message.mediaUrl || msg.message.base64) {
+          payload.files = [
+            {
+              type: 'image',
+              url: msg.message.base64 || msg.message.mediaUrl,
+            },
+          ];
+        } else {
+          payload.files = [
+            {
+              type: 'image',
+              url: media[1].split('?')[0],
+            },
+          ];
+        }
+
+        payload.query = media[2] || content;
       }
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
@@ -115,14 +126,9 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
         },
       };
 
-      this.logger.debug(`[EvolutionBot] Sending request to endpoint: ${endpoint}`);
-      this.logger.debug(`[EvolutionBot] Request payload: ${JSON.stringify(sanitizedPayload, null, 2)}`);
-
       const response = await axios.post(endpoint, payload, {
         headers,
       });
-
-      this.logger.debug(`[EvolutionBot] Response received - Status: ${response.status}`);
 
       if (instance.integration === Integration.WHATSAPP_BAILEYS) {
         await instance.client.sendPresenceUpdate('paused', remoteJid);
@@ -134,10 +140,6 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
       // Validate linkPreview is boolean and default to true for backward compatibility
       const linkPreview = typeof rawLinkPreview === 'boolean' ? rawLinkPreview : true;
 
-      this.logger.debug(
-        `[EvolutionBot] Processing response - Message length: ${message?.length || 0}, LinkPreview: ${linkPreview}`,
-      );
-
       if (message && typeof message === 'string' && message.startsWith("'") && message.endsWith("'")) {
         const innerContent = message.slice(1, -1);
         if (!innerContent.includes("'")) {
@@ -146,17 +148,8 @@ export class EvolutionBotService extends BaseChatbotService<EvolutionBot, Evolut
       }
 
       if (message) {
-        // Send message directly with validated linkPreview option
-        await instance.textMessage(
-          {
-            number: remoteJid.split('@')[0],
-            delay: settings?.delayMessage || 1000,
-            text: message,
-            linkPreview, // Always boolean, defaults to true
-          },
-          false,
-        );
-        this.logger.debug(`[EvolutionBot] Message sent successfully with linkPreview: ${linkPreview}`);
+        // Use the base class method that handles splitMessages functionality
+        await this.sendMessageWhatsApp(instance, remoteJid, message, settings, linkPreview);
       } else {
         this.logger.warn(`[EvolutionBot] No message content received from bot response`);
       }

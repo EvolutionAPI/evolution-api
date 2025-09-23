@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
@@ -95,6 +95,7 @@
     "json-schema": "^0.4.0",
     "jsonschema": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
     "link-preview-js": "^3.0.13",
     "long": "^5.2.3",
     "mediainfo.js": "^0.3.4",

@@ -153,6 +153,34 @@ export type Sqs = {
   };
 };
 
+export type Kafka = {
+  ENABLED: boolean;
+  CLIENT_ID: string;
+  BROKERS: string[];
+  CONNECTION_TIMEOUT: number;
+  REQUEST_TIMEOUT: number;
+  GLOBAL_ENABLED: boolean;
+  CONSUMER_GROUP_ID: string;
+  TOPIC_PREFIX: string;
+  NUM_PARTITIONS: number;
+  REPLICATION_FACTOR: number;
+  AUTO_CREATE_TOPICS: boolean;
+  EVENTS: EventsRabbitmq;
+  SASL?: {
+    ENABLED: boolean;
+    MECHANISM: string;
+    USERNAME: string;
+    PASSWORD: string;
+  };
+  SSL?: {
+    ENABLED: boolean;
+    REJECT_UNAUTHORIZED: boolean;
+    CA?: string;
+    KEY?: string;
+    CERT?: string;
+  };
+};
+
 export type Websocket = {
   ENABLED: boolean;
   GLOBAL_EVENTS: boolean;
@@ -372,6 +400,7 @@ export interface Env {
   RABBITMQ: Rabbitmq;
   NATS: Nats;
   SQS: Sqs;
+  KAFKA: Kafka;
   WEBSOCKET: Websocket;
   WA_BUSINESS: WaBusiness;
   LOG: Log;
@@ -586,6 +615,68 @@ export class ConfigService {
           TYPEBOT_CHANGE_STATUS: process.env?.SQS_GLOBAL_TYPEBOT_CHANGE_STATUS === 'true',
           TYPEBOT_START: process.env?.SQS_GLOBAL_TYPEBOT_START === 'true',
         },
+      },
+      KAFKA: {
+        ENABLED: process.env?.KAFKA_ENABLED === 'true',
+        CLIENT_ID: process.env?.KAFKA_CLIENT_ID || 'evolution-api',
+        BROKERS: process.env?.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
+        CONNECTION_TIMEOUT: Number.parseInt(process.env?.KAFKA_CONNECTION_TIMEOUT || '3000'),
+        REQUEST_TIMEOUT: Number.parseInt(process.env?.KAFKA_REQUEST_TIMEOUT || '30000'),
+        GLOBAL_ENABLED: process.env?.KAFKA_GLOBAL_ENABLED === 'true',
+        CONSUMER_GROUP_ID: process.env?.KAFKA_CONSUMER_GROUP_ID || 'evolution-api-consumers',
+        TOPIC_PREFIX: process.env?.KAFKA_TOPIC_PREFIX || 'evolution',
+        NUM_PARTITIONS: Number.parseInt(process.env?.KAFKA_NUM_PARTITIONS || '1'),
+        REPLICATION_FACTOR: Number.parseInt(process.env?.KAFKA_REPLICATION_FACTOR || '1'),
+        AUTO_CREATE_TOPICS: process.env?.KAFKA_AUTO_CREATE_TOPICS === 'true',
+        EVENTS: {
+          APPLICATION_STARTUP: process.env?.KAFKA_EVENTS_APPLICATION_STARTUP === 'true',
+          INSTANCE_CREATE: process.env?.KAFKA_EVENTS_INSTANCE_CREATE === 'true',
+          INSTANCE_DELETE: process.env?.KAFKA_EVENTS_INSTANCE_DELETE === 'true',
+          QRCODE_UPDATED: process.env?.KAFKA_EVENTS_QRCODE_UPDATED === 'true',
+          MESSAGES_SET: process.env?.KAFKA_EVENTS_MESSAGES_SET === 'true',
+          MESSAGES_UPSERT: process.env?.KAFKA_EVENTS_MESSAGES_UPSERT === 'true',
+          MESSAGES_EDITED: process.env?.KAFKA_EVENTS_MESSAGES_EDITED === 'true',
+          MESSAGES_UPDATE: process.env?.KAFKA_EVENTS_MESSAGES_UPDATE === 'true',
+          MESSAGES_DELETE: process.env?.KAFKA_EVENTS_MESSAGES_DELETE === 'true',
+          SEND_MESSAGE: process.env?.KAFKA_EVENTS_SEND_MESSAGE === 'true',
+          SEND_MESSAGE_UPDATE: process.env?.KAFKA_EVENTS_SEND_MESSAGE_UPDATE === 'true',
+          CONTACTS_SET: process.env?.KAFKA_EVENTS_CONTACTS_SET === 'true',
+          CONTACTS_UPSERT: process.env?.KAFKA_EVENTS_CONTACTS_UPSERT === 'true',
+          CONTACTS_UPDATE: process.env?.KAFKA_EVENTS_CONTACTS_UPDATE === 'true',
+          PRESENCE_UPDATE: process.env?.KAFKA_EVENTS_PRESENCE_UPDATE === 'true',
+          CHATS_SET: process.env?.KAFKA_EVENTS_CHATS_SET === 'true',
+          CHATS_UPSERT: process.env?.KAFKA_EVENTS_CHATS_UPSERT === 'true',
+          CHATS_UPDATE: process.env?.KAFKA_EVENTS_CHATS_UPDATE === 'true',
+          CHATS_DELETE: process.env?.KAFKA_EVENTS_CHATS_DELETE === 'true',
+          CONNECTION_UPDATE: process.env?.KAFKA_EVENTS_CONNECTION_UPDATE === 'true',
+          LABELS_EDIT: process.env?.KAFKA_EVENTS_LABELS_EDIT === 'true',
+          LABELS_ASSOCIATION: process.env?.KAFKA_EVENTS_LABELS_ASSOCIATION === 'true',
+          GROUPS_UPSERT: process.env?.KAFKA_EVENTS_GROUPS_UPSERT === 'true',
+          GROUP_UPDATE: process.env?.KAFKA_EVENTS_GROUPS_UPDATE === 'true',
+          GROUP_PARTICIPANTS_UPDATE: process.env?.KAFKA_EVENTS_GROUP_PARTICIPANTS_UPDATE === 'true',
+          CALL: process.env?.KAFKA_EVENTS_CALL === 'true',
+          TYPEBOT_START: process.env?.KAFKA_EVENTS_TYPEBOT_START === 'true',
+          TYPEBOT_CHANGE_STATUS: process.env?.KAFKA_EVENTS_TYPEBOT_CHANGE_STATUS === 'true',
+        },
+        SASL:
+          process.env?.KAFKA_SASL_ENABLED === 'true'
+            ? {
+                ENABLED: true,
+                MECHANISM: process.env?.KAFKA_SASL_MECHANISM || 'plain',
+                USERNAME: process.env?.KAFKA_SASL_USERNAME || '',
+                PASSWORD: process.env?.KAFKA_SASL_PASSWORD || '',
+              }
+            : undefined,
+        SSL:
+          process.env?.KAFKA_SSL_ENABLED === 'true'
+            ? {
+                ENABLED: true,
+                REJECT_UNAUTHORIZED: process.env?.KAFKA_SSL_REJECT_UNAUTHORIZED !== 'false',
+                CA: process.env?.KAFKA_SSL_CA,
+                KEY: process.env?.KAFKA_SSL_KEY,
+                CERT: process.env?.KAFKA_SSL_CERT,
+              }
+            : undefined,
       },
       WEBSOCKET: {
         ENABLED: process.env?.WEBSOCKET_ENABLED === 'true',

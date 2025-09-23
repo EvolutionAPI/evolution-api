@@ -130,7 +130,7 @@ export class ChatwootService {
   public async find(instance: InstanceDto): Promise<ChatwootDto> {
     try {
       return await this.waMonitor.waInstances[instance.instanceName].findChatwoot();
-    } catch (error) {
+    } catch {
       this.logger.error('chatwoot not found');
       return { enabled: null, url: '' };
     }
@@ -370,7 +370,7 @@ export class ChatwootService {
       });
 
       return contact;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -407,7 +407,7 @@ export class ChatwootService {
       }
 
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -2552,7 +2552,7 @@ export class ChatwootService {
       await chatwootImport.importHistoryMessages(instance, this, inbox, this.provider);
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
       waInstance.clearCacheChatwoot();
-    } catch (error) {
+    } catch {
       return;
     }
   }

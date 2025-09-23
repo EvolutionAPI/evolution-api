@@ -1,3 +1,76 @@
+# 2.3.4 (2025-09-23)
+
+### Features
+
+* **Kafka Integration**: Added Apache Kafka event integration for real-time event streaming
+  - New Kafka controller, router, and schema for event publishing
+  - Support for instance-specific and global event topics
+  - Configurable SASL/SSL authentication and connection settings
+  - Auto-creation of topics with configurable partitions and replication
+  - Consumer group management for reliable event processing
+  - Integration with existing event manager for seamless event distribution
+
+* **Evolution Manager v2 Open Source**: Evolution Manager v2 is now available as open source
+  - Added as git submodule with HTTPS URL for easy access
+  - Complete open source setup with Apache 2.0 license + Evolution API custom conditions
+  - GitHub templates for issues, pull requests, and workflows
+  - Comprehensive documentation and contribution guidelines
+  - Docker support for development and production environments
+  - CI/CD workflows for code quality, security audits, and automated builds
+  - Multi-language support (English, Portuguese, Spanish, French)
+  - Modern React + TypeScript + Vite frontend with Tailwind CSS
+
+* **EvolutionBot Enhancements**: Improved EvolutionBot functionality and message handling
+  - Implemented splitMessages functionality for better message segmentation
+  - Added linkPreview support for enhanced message presentation
+  - Centralized split logic across chatbot services for consistency
+  - Enhanced message formatting and delivery capabilities
+
+### Fixed
+
+* **MySQL Schema**: Fixed invalid default value errors for `createdAt` fields in `Evoai` and `EvoaiSetting` models
+  - Changed `@default(now())` to `@default(dbgenerated("CURRENT_TIMESTAMP"))` for MySQL compatibility
+  - Added missing relation fields (`N8n`, `N8nSetting`, `Evoai`, `EvoaiSetting`) in Instance model
+  - Resolved Prisma schema validation errors for MySQL provider
+
+* **Prisma Schema Validation**: Fixed `instanceName` field error in message creation
+  - Removed invalid `instanceName` field from message objects before database insertion
+  - Resolved `Unknown argument 'instanceName'` Prisma validation error
+  - Streamlined message data structure to match Prisma schema requirements
+
+* **Media Message Processing**: Enhanced media handling across chatbot services
+  - Fixed base64 conversion in EvoAI service for proper image processing
+  - Converted ArrayBuffer to base64 string using `Buffer.from().toString('base64')`
+  - Improved media URL handling and base64 encoding for better chatbot integration
+  - Enhanced image message detection and processing workflow
+
+* **Evolution Manager v2 Linting**: Resolved ESLint configuration conflicts
+  - Disabled conflicting Prettier rules in ESLint configuration
+  - Added comprehensive rule overrides for TypeScript and React patterns
+  - Fixed import ordering and code formatting issues
+  - Updated security vulnerabilities in dependencies (Vite, esbuild)
+
+### Code Quality & Refactoring
+
+* **Chatbot Services**: Streamlined media message handling across all chatbot integrations
+  - Standardized base64 and mediaUrl processing patterns
+  - Improved code readability and maintainability in media handling logic
+  - Enhanced error handling for media download and conversion processes
+  - Unified image message detection across different chatbot services
+
+* **Database Operations**: Improved data consistency and validation
+  - Enhanced Prisma schema compliance across all message operations
+  - Removed redundant instance name references for better data integrity
+  - Optimized message creation workflow with proper field validation
+
+### Environment Variables
+
+* Added comprehensive Kafka configuration options:
+  - `KAFKA_ENABLED`, `KAFKA_CLIENT_ID`, `KAFKA_BROKERS`
+  - `KAFKA_CONSUMER_GROUP_ID`, `KAFKA_TOPIC_PREFIX`
+  - `KAFKA_SASL_*` and `KAFKA_SSL_*` for authentication
+  - `KAFKA_EVENTS_*` for event type configuration
+
 # 2.3.3 (2025-09-18)
 
 ### Features
