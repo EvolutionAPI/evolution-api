@@ -20,6 +20,15 @@ services:
     expose:
       - "8080"
 
+  frontend:
+    container_name: evolution_frontend
+    image: evoapicloud/evolution-manager:latest
+    restart: always
+    ports:
+      - "3000:80"
+    networks:
+      - evolution-net
+
   redis:
     container_name: evolution_redis
     image: redis:latest
