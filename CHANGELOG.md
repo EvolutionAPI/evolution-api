@@ -65,7 +65,6 @@
   - `KAFKA_SASL_*` and `KAFKA_SSL_*` for authentication
   - `KAFKA_EVENTS_*` for event type configuration
 
-
 # 2.3.3 (2025-09-18)
 
 ### Features
