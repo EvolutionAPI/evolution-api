@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "public"."Kafka" (
+CREATE TABLE "Kafka" (
     "id" TEXT NOT NULL,
     "enabled" BOOLEAN NOT NULL DEFAULT false,
     "events" JSONB NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE "public"."Kafka" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Kafka_instanceId_key" ON "public"."Kafka"("instanceId");
+CREATE UNIQUE INDEX "Kafka_instanceId_key" ON "Kafka"("instanceId");
 
 -- AddForeignKey
-ALTER TABLE "public"."Kafka" ADD CONSTRAINT "Kafka_instanceId_fkey" FOREIGN KEY ("instanceId") REFERENCES "public"."Instance"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Kafka" ADD CONSTRAINT "Kafka_instanceId_fkey" FOREIGN KEY ("instanceId") REFERENCES "Instance"("id") ON DELETE CASCADE ON UPDATE CASCADE;

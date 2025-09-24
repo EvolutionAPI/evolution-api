@@ -1,5 +1,13 @@
 # 2.3.5 (develop)
 
+### Fixed
+
+* **Kafka Migration**: Fixed PostgreSQL migration error for Kafka integration
+  - Corrected table reference from `"public"."Instance"` to `"Instance"` in foreign key constraint
+  - Fixed `ERROR: relation "public.Instance" does not exist` issue in migration `20250918182355_add_kafka_integration`
+  - Aligned table naming convention with other Evolution API migrations for consistency
+  - Resolved database migration failure that prevented Kafka integration setup
+
 ### 
 
 # 2.3.4 (2025-09-23)
