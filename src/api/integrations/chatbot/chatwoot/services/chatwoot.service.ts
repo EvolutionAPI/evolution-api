@@ -916,7 +916,7 @@ export class ChatwootService {
           return null;
         }
 
-        const remoteJid = bodyForRetry.key.remoteJid;
+        const {remoteJid} = bodyForRetry.key;
         const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
         await this.cache.delete(cacheKey);
 
