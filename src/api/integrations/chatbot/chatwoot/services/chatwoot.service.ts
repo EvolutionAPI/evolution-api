@@ -905,33 +905,53 @@ export class ChatwootService {
     try {
       return await doCreateMessage(conversationId);
     } catch (error) {
-      const errorMessage = error.toString().toLowerCase();
-      const status = error.response?.status;
-      if (errorMessage.includes('not found') || status === 404) {
-        this.logger.warn(`Conversation ${conversationId} not found. Retrying...`);
-        const bodyForRetry = messageBodyForRetry || messageBody;
+      return this.handleStaleConversationError(
+        error,
+        instance,
+        conversationId,
+        messageBody,
+        messageBodyForRetry,
+        'createMessage',
+        (newConvId) => doCreateMessage(newConvId),
+      );
+    }
+  }
 
-        if (!bodyForRetry) {
-          this.logger.error('Cannot retry createMessage without a message body for context.');
-          return null;
-        }
+  private async handleStaleConversationError(
+    error: any,
+    instance: InstanceDto,
+    conversationId: number,
+    messageBody: any,
+    messageBodyForRetry: any,
+    functionName: string,
+    originalFunction: (newConversationId: number) => Promise<any>,
+  ) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      this.logger.warn(
+        `Conversation ${conversationId} not found in Chatwoot. Retrying operation from ${functionName}...`,
+      );
+      const bodyForRetry = messageBodyForRetry || messageBody;
 
-        const {remoteJid} = bodyForRetry.key;
-        const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
-        await this.cache.delete(cacheKey);
-
-        const newConversationId = await this.createConversation(instance, bodyForRetry);
-        if (!newConversationId) {
-          this.logger.error(`Failed to create new conversation for ${remoteJid}`);
-          return null;
-        }
-
-        this.logger.log(`Retrying message creation for ${remoteJid} with new conversation ${newConversationId}`);
-        return await doCreateMessage(newConversationId);
-      } else {
-        this.logger.error(`Error creating message: ${error}`);
-        throw error;
+      if (!bodyForRetry || !bodyForRetry.key?.remoteJid) {
+        this.logger.error(`Cannot retry ${functionName} without a message body for context.`);
+        return null;
       }
+
+      const { remoteJid } = bodyForRetry.key;
+      const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
+      await this.cache.delete(cacheKey);
+
+      const newConversationId = await this.createConversation(instance, bodyForRetry);
+      if (!newConversationId) {
+        this.logger.error(`Failed to create new conversation for ${remoteJid} during retry.`);
+        return null;
+      }
+
+      this.logger.log(`Retrying ${functionName} for ${remoteJid} with new conversation ${newConversationId}`);
+      return await originalFunction(newConversationId);
+    } else {
+      this.logger.error(`Error in ${functionName}: ${error}`);
+      throw error;
     }
   }
 
@@ -1086,34 +1106,15 @@ export class ChatwootService {
     try {
       return await doSendData(conversationId);
     } catch (error) {
-      const errorMessage = error.toString().toLowerCase();
-      const status = error.response?.status;
-
-      if (errorMessage.includes('not found') || status === 404) {
-        this.logger.warn(`Conversation ${conversationId} not found. Retrying...`);
-        const bodyForRetry = messageBodyForRetry || messageBody;
-
-        if (!bodyForRetry) {
-          this.logger.error('Cannot retry sendData without a message body for context.');
-          return null;
-        }
-
-        const {remoteJid} = bodyForRetry.key;
-        const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
-        await this.cache.delete(cacheKey);
-
-        const newConversationId = await this.createConversation(instance, bodyForRetry);
-        if (!newConversationId) {
-          this.logger.error(`Failed to create new conversation for ${remoteJid}`);
-          return null;
-        }
-
-        this.logger.log(`Retrying sendData for ${remoteJid} with new conversation ${newConversationId}`);
-        return await doSendData(newConversationId);
-      } else {
-        this.logger.error(error);
-        return null;
-      }
+      return this.handleStaleConversationError(
+        error,
+        instance,
+        conversationId,
+        messageBody,
+        messageBodyForRetry,
+        'sendData',
+        (newConvId) => doSendData(newConvId),
+      );
     }
   }
 
