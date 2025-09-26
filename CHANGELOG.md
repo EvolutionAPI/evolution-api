@@ -7,6 +7,9 @@
   - Fixed `ERROR: relation "public.Instance" does not exist` issue in migration `20250918182355_add_kafka_integration`
   - Aligned table naming convention with other Evolution API migrations for consistency
   - Resolved database migration failure that prevented Kafka integration setup
+* **Update Baileys Version**: v7.0.0-rc.4
+* Refactor connection with PostgreSQL and improve message handling
+
 
 ### 
 
