@@ -1498,7 +1498,11 @@ export class BaileysStartupService extends ChannelStartupService {
             `) as any[];
             findMessage = messages[0] || null;
 
-            if (findMessage) message.messageId = findMessage.id;
+            if (!findMessage?.id) {
+              this.logger.warn(`Original message not found for update. Skipping. Key: ${JSON.stringify(key)}`);
+              continue;
+            }
+            message.messageId = findMessage.id;
           }
 
           if (update.message === null && update.status === undefined) {
