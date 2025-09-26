@@ -3,24 +3,37 @@ import fs from 'fs';
 import i18next from 'i18next';
 import path from 'path';
 
-const translationsPath = fs.existsSync(path.resolve(process.cwd(), 'dist'))
-  ? path.resolve(process.cwd(), 'dist', 'translations')
-  : path.resolve(process.cwd(), 'src', 'utils', 'translations');
+const distPath = path.resolve(process.cwd(), 'dist', 'translations');
+const srcPath = path.resolve(process.cwd(), 'src', 'utils', 'translations');
+
+let translationsPath;
+
+if (fs.existsSync(distPath)) {
+  translationsPath = distPath;
+} else if (fs.existsSync(srcPath)) {
+  translationsPath = srcPath;
+} else {
+  console.error('Translations directory not found in dist or src.');
+  // Fallback to a non-existent path or handle error appropriately
+  translationsPath = '';
+}
 
 const languages = ['en', 'pt-BR', 'es'];
 const configService: ConfigService = new ConfigService();
 
 const resources: any = {};
 
-languages.forEach((language) => {
-  const languagePath = path.join(translationsPath, `${language}.json`);
-  if (fs.existsSync(languagePath)) {
-    const translationContent = fs.readFileSync(languagePath, 'utf8');
-    resources[language] = {
-      translation: JSON.parse(translationContent),
-    };
-  }
-});
+if (translationsPath) {
+  languages.forEach((language) => {
+    const languagePath = path.join(translationsPath, `${language}.json`);
+    if (fs.existsSync(languagePath)) {
+      const translationContent = fs.readFileSync(languagePath, 'utf8');
+      resources[language] = {
+        translation: JSON.parse(translationContent),
+      };
+    }
+  });
+}
 
 i18next.init({
   resources,
