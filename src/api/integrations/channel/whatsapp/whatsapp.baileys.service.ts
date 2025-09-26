@@ -1498,7 +1498,10 @@ export class BaileysStartupService extends ChannelStartupService {
             `) as any[];
             findMessage = messages[0] || null;
 
-            if (findMessage) message.messageId = findMessage.id;
+            if (!findMessage?.id) {
+              continue;
+            }
+            message.messageId = findMessage.id;
           }
 
           if (update.message === null && update.status === undefined) {

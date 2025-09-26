@@ -3,10 +3,11 @@ import fs from 'fs';
 import i18next from 'i18next';
 import path from 'path';
 
-const __dirname = path.resolve(process.cwd(), 'src', 'utils');
+const translationsPath = fs.existsSync(path.resolve(process.cwd(), 'dist'))
+  ? path.resolve(process.cwd(), 'dist', 'translations')
+  : path.resolve(process.cwd(), 'src', 'utils', 'translations');
 
 const languages = ['en', 'pt-BR', 'es'];
-const translationsPath = path.join(__dirname, 'translations');
 const configService: ConfigService = new ConfigService();
 
 const resources: any = {};
