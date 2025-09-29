@@ -1591,12 +1591,38 @@ export class BaileysStartupService extends ChannelStartupService {
       });
     },
 
-    'group-participants.update': (participantsUpdate: {
+    'group-participants.update': async (participantsUpdate: {
       id: string;
       participants: string[];
       action: ParticipantAction;
     }) => {
-      this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
+      try {
+        // Usa o mesmo método que o endpoint /group/participants 
+        const groupParticipants = await this.findParticipants({ groupJid: participantsUpdate.id });
+        
+        // Filtra apenas os participantes que estão no evento
+        const resolvedParticipants = participantsUpdate.participants.map((participantId) => {
+          const participantData = groupParticipants.participants.find(p => p.id === participantId);
+          
+          return {
+            jid: participantId,
+            phoneNumber: participantData?.phoneNumber || participantId,
+            name: participantData?.name,
+            imgUrl: participantData?.imgUrl,
+          };
+        });
+
+        const enhancedParticipantsUpdate = {
+          ...participantsUpdate,
+          participants: resolvedParticipants
+        };
+        
+        this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, enhancedParticipantsUpdate);
+      } catch (error) {
+        console.log('Erro ao buscar dados dos participantes para webhook:', error);
+        // Fallback - envia sem conversão
+        this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
+      }
 
       this.updateGroupMetadataCache(participantsUpdate.id);
     },
