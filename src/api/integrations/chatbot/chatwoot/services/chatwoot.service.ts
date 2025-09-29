@@ -606,12 +606,7 @@ export class ChatwootService {
       this.logger.verbose(`--- Start createConversation ---`);
       this.logger.verbose(`Instance: ${JSON.stringify(instance)}`);
 
-      // If it already exists in the cache, return conversationId
-      if (await this.cache.has(cacheKey)) {
-        const conversationId = (await this.cache.get(cacheKey)) as number;
-        this.logger.verbose(`Found conversation to: ${remoteJid}, conversation ID: ${conversationId}`);
-        return conversationId;
-      }
+      // Always check Chatwoot first, cache only as fallback
 
       // If lock already exists, wait until release or timeout
       if (await this.cache.has(lockKey)) {
@@ -623,11 +618,7 @@ export class ChatwootService {
             break;
           }
           await new Promise((res) => setTimeout(res, 300));
-          if (await this.cache.has(cacheKey)) {
-            const conversationId = (await this.cache.get(cacheKey)) as number;
-            this.logger.verbose(`Resolves creation of: ${remoteJid}, conversation ID: ${conversationId}`);
-            return conversationId;
-          }
+          // Removed cache check here to ensure we always check Chatwoot
         }
       }
 
@@ -637,12 +628,9 @@ export class ChatwootService {
 
       try {
         /*
-        Double check after lock
-        Utilizei uma nova verificação para evitar que outra thread execute entre o terminio do while e o set lock
+        Double check after lock - REMOVED
+        This was causing the system to use cached conversations instead of checking Chatwoot
         */
-        if (await this.cache.has(cacheKey)) {
-          return (await this.cache.get(cacheKey)) as number;
-        }
 
         const client = await this.clientCw(instance);
         if (!client) return null;
@@ -749,20 +737,39 @@ export class ChatwootService {
           return null;
         }
 
-        let inboxConversation = this.findOpenConversation(contactConversations.payload, filterInbox.id);
+        let inboxConversation = null;
 
-        if (!inboxConversation && this.provider.reopenConversation) {
-          inboxConversation = await this.findAndReopenResolvedConversation(
-            client,
-            contactConversations.payload,
-            filterInbox.id,
-          );
+        if (this.provider.reopenConversation) {
+          inboxConversation = this.findOpenConversation(contactConversations.payload, filterInbox.id);
+
+          if (inboxConversation) {
+            this.logger.verbose(
+              `Found open conversation in reopenConversation mode: ${JSON.stringify(inboxConversation)}`,
+            );
+          } else {
+            inboxConversation = await this.findAndReopenResolvedConversation(
+              client,
+              contactConversations.payload,
+              filterInbox.id,
+            );
+          }
+        } else {
+          inboxConversation = this.findOpenConversation(contactConversations.payload, filterInbox.id);
+          this.logger.verbose(`Found conversation: ${JSON.stringify(inboxConversation)}`);
         }
 
         if (inboxConversation) {
           this.logger.verbose(`Returning existing conversation ID: ${inboxConversation.id}`);
           this.cache.set(cacheKey, inboxConversation.id);
           return inboxConversation.id;
+        }
+
+        if (await this.cache.has(cacheKey)) {
+          const conversationId = (await this.cache.get(cacheKey)) as number;
+          this.logger.warn(
+            `No active conversations found in Chatwoot, using cached conversation ID: ${conversationId} as fallback`,
+          );
+          return conversationId;
         }
 
         const data = {
