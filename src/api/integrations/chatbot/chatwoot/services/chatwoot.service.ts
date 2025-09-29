@@ -33,6 +33,8 @@ import mimeTypes from 'mime-types';
 import path from 'path';
 import { Readable } from 'stream';
 
+const MIN_CONNECTION_NOTIFICATION_INTERVAL_MS = 30000; // 30 seconds
+
 interface ChatwootMessage {
   messageId?: number;
   inboxId?: number;
@@ -604,12 +606,7 @@ export class ChatwootService {
       this.logger.verbose(`--- Start createConversation ---`);
       this.logger.verbose(`Instance: ${JSON.stringify(instance)}`);
 
-      // If it already exists in the cache, return conversationId
-      if (await this.cache.has(cacheKey)) {
-        const conversationId = (await this.cache.get(cacheKey)) as number;
-        this.logger.verbose(`Found conversation to: ${remoteJid}, conversation ID: ${conversationId}`);
-        return conversationId;
-      }
+      // Always check Chatwoot first, cache only as fallback
 
       // If lock already exists, wait until release or timeout
       if (await this.cache.has(lockKey)) {
@@ -621,11 +618,7 @@ export class ChatwootService {
             break;
           }
           await new Promise((res) => setTimeout(res, 300));
-          if (await this.cache.has(cacheKey)) {
-            const conversationId = (await this.cache.get(cacheKey)) as number;
-            this.logger.verbose(`Resolves creation of: ${remoteJid}, conversation ID: ${conversationId}`);
-            return conversationId;
-          }
+          // Removed cache check here to ensure we always check Chatwoot
         }
       }
 
@@ -635,12 +628,9 @@ export class ChatwootService {
 
       try {
         /*
-        Double check after lock
-        Utilizei uma nova verificação para evitar que outra thread execute entre o terminio do while e o set lock
+        Double check after lock - REMOVED
+        This was causing the system to use cached conversations instead of checking Chatwoot
         */
-        if (await this.cache.has(cacheKey)) {
-          return (await this.cache.get(cacheKey)) as number;
-        }
 
         const client = await this.clientCw(instance);
         if (!client) return null;
@@ -747,34 +737,39 @@ export class ChatwootService {
           return null;
         }
 
-        let inboxConversation = contactConversations.payload.find(
-          (conversation) => conversation.inbox_id == filterInbox.id,
-        );
-        if (inboxConversation) {
-          if (this.provider.reopenConversation) {
-            this.logger.verbose(`Found conversation in reopenConversation mode: ${JSON.stringify(inboxConversation)}`);
-            if (inboxConversation && this.provider.conversationPending && inboxConversation.status !== 'open') {
-              await client.conversations.toggleStatus({
-                accountId: this.provider.accountId,
-                conversationId: inboxConversation.id,
-                data: {
-                  status: 'pending',
-                },
-              });
-            }
-          } else {
-            inboxConversation = contactConversations.payload.find(
-              (conversation) =>
-                conversation && conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
-            );
-            this.logger.verbose(`Found conversation: ${JSON.stringify(inboxConversation)}`);
-          }
+        let inboxConversation = null;
+
+        if (this.provider.reopenConversation) {
+          inboxConversation = this.findOpenConversation(contactConversations.payload, filterInbox.id);
 
           if (inboxConversation) {
-            this.logger.verbose(`Returning existing conversation ID: ${inboxConversation.id}`);
-            this.cache.set(cacheKey, inboxConversation.id);
-            return inboxConversation.id;
+            this.logger.verbose(
+              `Found open conversation in reopenConversation mode: ${JSON.stringify(inboxConversation)}`,
+            );
+          } else {
+            inboxConversation = await this.findAndReopenResolvedConversation(
+              client,
+              contactConversations.payload,
+              filterInbox.id,
+            );
           }
+        } else {
+          inboxConversation = this.findOpenConversation(contactConversations.payload, filterInbox.id);
+          this.logger.verbose(`Found conversation: ${JSON.stringify(inboxConversation)}`);
+        }
+
+        if (inboxConversation) {
+          this.logger.verbose(`Returning existing conversation ID: ${inboxConversation.id}`);
+          this.cache.set(cacheKey, inboxConversation.id);
+          return inboxConversation.id;
+        }
+
+        if (await this.cache.has(cacheKey)) {
+          const conversationId = (await this.cache.get(cacheKey)) as number;
+          this.logger.warn(
+            `No active conversations found in Chatwoot, using cached conversation ID: ${conversationId} as fallback`,
+          );
+          return conversationId;
         }
 
         const data = {
@@ -815,6 +810,45 @@ export class ChatwootService {
       this.logger.error(`Error in createConversation: ${error}`);
       return null;
     }
+  }
+
+  private findOpenConversation(conversations: any[], inboxId: number): any | null {
+    const openConversation = conversations.find(
+      (conversation) => conversation && conversation.status !== 'resolved' && conversation.inbox_id == inboxId,
+    );
+
+    if (openConversation) {
+      this.logger.verbose(`Found open conversation: ${JSON.stringify(openConversation)}`);
+    }
+
+    return openConversation || null;
+  }
+
+  private async findAndReopenResolvedConversation(
+    client: any,
+    conversations: any[],
+    inboxId: number,
+  ): Promise<any | null> {
+    const resolvedConversation = conversations.find(
+      (conversation) => conversation && conversation.status === 'resolved' && conversation.inbox_id == inboxId,
+    );
+
+    if (resolvedConversation) {
+      this.logger.verbose(`Found resolved conversation to reopen: ${JSON.stringify(resolvedConversation)}`);
+      if (this.provider.conversationPending && resolvedConversation.status !== 'open') {
+        await client.conversations.toggleStatus({
+          accountId: this.provider.accountId,
+          conversationId: resolvedConversation.id,
+          data: {
+            status: 'pending',
+          },
+        });
+        this.logger.verbose(`Reopened resolved conversation ID: ${resolvedConversation.id}`);
+      }
+      return resolvedConversation;
+    }
+
+    return null;
   }
 
   public async getInbox(instance: InstanceDto): Promise<inbox | null> {
@@ -2405,15 +2439,30 @@ export class ChatwootService {
         await this.createBotMessage(instance, msgStatus, 'incoming');
       }
 
-      if (event === 'connection.update') {
-        if (body.status === 'open') {
-          // if we have qrcode count then we understand that a new connection was established
-          if (this.waMonitor.waInstances[instance.instanceName].qrCode.count > 0) {
-            const msgConnection = i18next.t('cw.inbox.connected');
-            await this.createBotMessage(instance, msgConnection, 'incoming');
-            this.waMonitor.waInstances[instance.instanceName].qrCode.count = 0;
-            chatwootImport.clearAll(instance);
-          }
+      if (event === 'connection.update' && body.status === 'open') {
+        const waInstance = this.waMonitor.waInstances[instance.instanceName];
+        if (!waInstance) return;
+
+        const now = Date.now();
+        const timeSinceLastNotification = now - (waInstance.lastConnectionNotification || 0);
+
+        // Se a conexão foi estabelecida via QR code, notifica imediatamente.
+        if (waInstance.qrCode && waInstance.qrCode.count > 0) {
+          const msgConnection = i18next.t('cw.inbox.connected');
+          await this.createBotMessage(instance, msgConnection, 'incoming');
+          waInstance.qrCode.count = 0;
+          waInstance.lastConnectionNotification = now;
+          chatwootImport.clearAll(instance);
+        }
+        // Se não foi via QR code, verifica o throttling.
+        else if (timeSinceLastNotification >= MIN_CONNECTION_NOTIFICATION_INTERVAL_MS) {
+          const msgConnection = i18next.t('cw.inbox.connected');
+          await this.createBotMessage(instance, msgConnection, 'incoming');
+          waInstance.lastConnectionNotification = now;
+        } else {
+          this.logger.warn(
+            `Connection notification skipped for ${instance.instanceName} - too frequent (${timeSinceLastNotification}ms since last)`,
+          );
         }
       }
 
