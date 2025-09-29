@@ -33,6 +33,8 @@ import mimeTypes from 'mime-types';
 import path from 'path';
 import { Readable } from 'stream';
 
+const MIN_CONNECTION_NOTIFICATION_INTERVAL_MS = 30000; // 30 seconds
+
 interface ChatwootMessage {
   messageId?: number;
   inboxId?: number;
@@ -747,43 +749,14 @@ export class ChatwootService {
           return null;
         }
 
-        let inboxConversation = null;
+        let inboxConversation = this.findOpenConversation(contactConversations.payload, filterInbox.id);
 
-        if (this.provider.reopenConversation) {
-          inboxConversation = contactConversations.payload.find(
-            (conversation) =>
-              conversation && conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
+        if (!inboxConversation && this.provider.reopenConversation) {
+          inboxConversation = await this.findAndReopenResolvedConversation(
+            client,
+            contactConversations.payload,
+            filterInbox.id,
           );
-
-          if (inboxConversation) {
-            this.logger.verbose(
-              `Found open conversation in reopenConversation mode: ${JSON.stringify(inboxConversation)}`,
-            );
-          } else {
-            inboxConversation = contactConversations.payload.find(
-              (conversation) => conversation.inbox_id == filterInbox.id,
-            );
-
-            if (inboxConversation) {
-              this.logger.verbose(`Found resolved conversation to reopen: ${JSON.stringify(inboxConversation)}`);
-              if (this.provider.conversationPending && inboxConversation.status !== 'open') {
-                await client.conversations.toggleStatus({
-                  accountId: this.provider.accountId,
-                  conversationId: inboxConversation.id,
-                  data: {
-                    status: 'pending',
-                  },
-                });
-                this.logger.verbose(`Reopened resolved conversation ID: ${inboxConversation.id}`);
-              }
-            }
-          }
-        } else {
-          inboxConversation = contactConversations.payload.find(
-            (conversation) =>
-              conversation && conversation.status !== 'resolved' && conversation.inbox_id == filterInbox.id,
-          );
-          this.logger.verbose(`Found conversation: ${JSON.stringify(inboxConversation)}`);
         }
 
         if (inboxConversation) {
@@ -830,6 +803,45 @@ export class ChatwootService {
       this.logger.error(`Error in createConversation: ${error}`);
       return null;
     }
+  }
+
+  private findOpenConversation(conversations: any[], inboxId: number): any | null {
+    const openConversation = conversations.find(
+      (conversation) => conversation && conversation.status !== 'resolved' && conversation.inbox_id == inboxId,
+    );
+
+    if (openConversation) {
+      this.logger.verbose(`Found open conversation: ${JSON.stringify(openConversation)}`);
+    }
+
+    return openConversation || null;
+  }
+
+  private async findAndReopenResolvedConversation(
+    client: any,
+    conversations: any[],
+    inboxId: number,
+  ): Promise<any | null> {
+    const resolvedConversation = conversations.find(
+      (conversation) => conversation && conversation.status === 'resolved' && conversation.inbox_id == inboxId,
+    );
+
+    if (resolvedConversation) {
+      this.logger.verbose(`Found resolved conversation to reopen: ${JSON.stringify(resolvedConversation)}`);
+      if (this.provider.conversationPending && resolvedConversation.status !== 'open') {
+        await client.conversations.toggleStatus({
+          accountId: this.provider.accountId,
+          conversationId: resolvedConversation.id,
+          data: {
+            status: 'pending',
+          },
+        });
+        this.logger.verbose(`Reopened resolved conversation ID: ${resolvedConversation.id}`);
+      }
+      return resolvedConversation;
+    }
+
+    return null;
   }
 
   public async getInbox(instance: InstanceDto): Promise<inbox | null> {
@@ -2420,28 +2432,30 @@ export class ChatwootService {
         await this.createBotMessage(instance, msgStatus, 'incoming');
       }
 
-      if (event === 'connection.update') {
-        if (body.status === 'open') {
-          const waInstance = this.waMonitor.waInstances[instance.instanceName];
-          // if we have qrcode count then we understand that a new connection was established
-          if (waInstance && waInstance.qrCode.count > 0) {
-            const msgConnection = i18next.t('cw.inbox.connected');
-            await this.createBotMessage(instance, msgConnection, 'incoming');
-            waInstance.qrCode.count = 0;
+      if (event === 'connection.update' && body.status === 'open') {
+        const waInstance = this.waMonitor.waInstances[instance.instanceName];
+        if (!waInstance) return;
 
-            waInstance.lastConnectionNotification = Date.now();
+        const now = Date.now();
+        const timeSinceLastNotification = now - (waInstance.lastConnectionNotification || 0);
 
-            chatwootImport.clearAll(instance);
-          } else if (waInstance) {
-            const timeSinceLastNotification = Date.now() - (waInstance.lastConnectionNotification || 0);
-            const minIntervalMs = 30000; // 30 seconds
-
-            if (timeSinceLastNotification < minIntervalMs) {
-              this.logger.warn(
-                `Connection notification skipped for ${instance.instanceName} - too frequent (${timeSinceLastNotification}ms since last)`,
-              );
-            }
-          }
+        // Se a conexão foi estabelecida via QR code, notifica imediatamente.
+        if (waInstance.qrCode && waInstance.qrCode.count > 0) {
+          const msgConnection = i18next.t('cw.inbox.connected');
+          await this.createBotMessage(instance, msgConnection, 'incoming');
+          waInstance.qrCode.count = 0;
+          waInstance.lastConnectionNotification = now;
+          chatwootImport.clearAll(instance);
+        }
+        // Se não foi via QR code, verifica o throttling.
+        else if (timeSinceLastNotification >= MIN_CONNECTION_NOTIFICATION_INTERVAL_MS) {
+          const msgConnection = i18next.t('cw.inbox.connected');
+          await this.createBotMessage(instance, msgConnection, 'incoming');
+          waInstance.lastConnectionNotification = now;
+        } else {
+          this.logger.warn(
+            `Connection notification skipped for ${instance.instanceName} - too frequent (${timeSinceLastNotification}ms since last)`,
+          );
         }
       }
 
