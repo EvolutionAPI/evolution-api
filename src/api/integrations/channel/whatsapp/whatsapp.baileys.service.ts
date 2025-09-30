@@ -1596,30 +1596,57 @@ export class BaileysStartupService extends ChannelStartupService {
       participants: string[];
       action: ParticipantAction;
     }) => {
+      // ENHANCEMENT: Adds participantsData field while maintaining backward compatibility
+      // MAINTAINS: participants: string[] (original JID strings)
+      // ADDS: participantsData: { jid: string, phoneNumber: string, name?: string, imgUrl?: string }[]
+      // This enables LID to phoneNumber conversion without breaking existing webhook consumers
+      
+      // Helper to normalize participantId as phone number
+      const normalizePhoneNumber = (id: string): string => {
+        // Remove @lid, @s.whatsapp.net suffixes and extract just the number part
+        return id.split('@')[0];
+      };
+      
       try {
         // Usa o mesmo método que o endpoint /group/participants 
         const groupParticipants = await this.findParticipants({ groupJid: participantsUpdate.id });
+        
+        // Validação para garantir que temos dados válidos
+        if (!groupParticipants?.participants || !Array.isArray(groupParticipants.participants)) {
+          throw new Error('Invalid participant data received from findParticipants');
+        }
         
         // Filtra apenas os participantes que estão no evento
         const resolvedParticipants = participantsUpdate.participants.map((participantId) => {
           const participantData = groupParticipants.participants.find(p => p.id === participantId);
           
+          let phoneNumber: string;
+          if (participantData?.phoneNumber) {
+            phoneNumber = participantData.phoneNumber;
+          } else {
+            phoneNumber = normalizePhoneNumber(participantId);
+          }
+          
           return {
             jid: participantId,
-            phoneNumber: participantData?.phoneNumber || participantId,
+            phoneNumber,
             name: participantData?.name,
             imgUrl: participantData?.imgUrl,
           };
         });
 
+        // Mantém formato original + adiciona dados resolvidos
         const enhancedParticipantsUpdate = {
           ...participantsUpdate,
-          participants: resolvedParticipants
+          participants: participantsUpdate.participants, // Mantém array original de strings
+          participantsData: resolvedParticipants // Adiciona dados resolvidos em campo separado
         };
         
         this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, enhancedParticipantsUpdate);
       } catch (error) {
-        console.log('Erro ao buscar dados dos participantes para webhook:', error);
+        this.logger.error(
+          `Failed to resolve participant data for GROUP_PARTICIPANTS_UPDATE webhook: ${error.message} | Group: ${participantsUpdate.id} | Participants: ${participantsUpdate.participants.length}`
+        );
         // Fallback - envia sem conversão
         this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
       }
