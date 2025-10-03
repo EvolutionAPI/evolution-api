@@ -1498,7 +1498,11 @@ export class BaileysStartupService extends ChannelStartupService {
             `) as any[];
             findMessage = messages[0] || null;
 
-            if (findMessage) message.messageId = findMessage.id;
+            if (!findMessage?.id) {
+              this.logger.warn(`Original message not found for update. Skipping. Key: ${JSON.stringify(key)}`);
+              continue;
+            }
+            message.messageId = findMessage.id;
           }
 
           if (update.message === null && update.status === undefined) {
@@ -4561,8 +4565,8 @@ export class BaileysStartupService extends ChannelStartupService {
     return response;
   }
 
-  public async baileysAssertSessions(jids: string[], force: boolean) {
-    const response = await this.client.assertSessions(jids, force);
+  public async baileysAssertSessions(jids: string[]) {
+    const response = await this.client.assertSessions(jids);
 
     return response;
   }
