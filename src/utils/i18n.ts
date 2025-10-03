@@ -3,10 +3,12 @@ import fs from 'fs';
 import i18next from 'i18next';
 import path from 'path';
 
-const __dirname = path.resolve(process.cwd(), 'src', 'utils');
+// Detect if running from dist/ (production) or src/ (development)
+const isProduction = fs.existsSync(path.join(process.cwd(), 'dist'));
+const baseDir = isProduction ? 'dist' : 'src/utils';
+const translationsPath = path.join(process.cwd(), baseDir, 'translations');
 
 const languages = ['en', 'pt-BR', 'es'];
-const translationsPath = path.join(__dirname, 'translations');
 const configService: ConfigService = new ConfigService();
 
 const resources: any = {};

@@ -1065,6 +1065,11 @@ export class BaileysStartupService extends ChannelStartupService {
       settings: any,
     ) => {
       try {
+        // Garantir que localChatwoot está carregado antes de processar mensagens
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && !this.localChatwoot?.enabled) {
+          await this.loadChatwoot();
+        }
+
         for (const received of messages) {
           if (received.key.remoteJid?.includes('@lid') && (received.key as ExtendedMessageKey).senderPn) {
             (received.key as ExtendedMessageKey).previousRemoteJid = received.key.remoteJid;
@@ -1445,12 +1450,17 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const cached = await this.baileysCache.get(updateKey);
 
-        if (cached) {
+        // Não ignorar mensagens deletadas (messageStubType === 1) mesmo que estejam em cache
+        const isDeletedMessage = update.messageStubType === 1;
+
+        if (cached && !isDeletedMessage) {
           this.logger.info(`Message duplicated ignored [avoid deadlock]: ${updateKey}`);
           continue;
         }
 
-        await this.baileysCache.set(updateKey, true, 30 * 60);
+        if (!isDeletedMessage) {
+          await this.baileysCache.set(updateKey, true, 30 * 60);
+        }
 
         if (status[update.status] === 'READ' && key.fromMe) {
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
@@ -1550,8 +1560,22 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
-          if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE)
-            await this.prismaRepository.messageUpdate.create({ data: message });
+          if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
+            // Verificar se a mensagem ainda existe antes de criar o update
+            const messageExists = await this.prismaRepository.message.findFirst({
+              where: {
+                instanceId: message.instanceId,
+                key: {
+                  path: ['id'],
+                  equals: message.keyId,
+                },
+              },
+            });
+
+            if (messageExists) {
+              await this.prismaRepository.messageUpdate.create({ data: message });
+            }
+          }
 
           const existingChat = await this.prismaRepository.chat.findFirst({
             where: { instanceId: this.instanceId, remoteJid: message.remoteJid },
