@@ -4593,8 +4593,10 @@ export class BaileysStartupService extends ChannelStartupService {
     return response;
   }
 
-  public async baileysAssertSessions(jids: string[], force?: boolean) {
-    const response = await this.client.assertSessions(jids, force as any);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async baileysAssertSessions(jids: string[], _force?: boolean) {
+    // Note: _force parameter kept for API compatibility but not used in Baileys 7.0.0-rc.5+
+    const response = await this.client.assertSessions(jids);
 
     return response;
   }
