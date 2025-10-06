@@ -1117,9 +1117,20 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
             const oldMessage = await this.getMessage(editedMessage.key, true);
             if ((oldMessage as any)?.id) {
-              const editedMessageTimestamp = Long.isLong(editedMessage?.timestampMs)
-                ? Math.floor(editedMessage.timestampMs.toNumber() / 1000)
-                : Math.floor((editedMessage.timestampMs as number) / 1000);
+              let editedMessageTimestamp: number;
+              if (Long.isLong(editedMessage?.timestampMs)) {
+                editedMessageTimestamp = Math.floor(editedMessage.timestampMs.toNumber() / 1000);
+              } else if (
+                editedMessage?.timestampMs &&
+                typeof editedMessage.timestampMs === 'object' &&
+                editedMessage.timestampMs &&
+                'low' in editedMessage.timestampMs &&
+                'high' in editedMessage.timestampMs
+              ) {
+                editedMessageTimestamp = Math.floor(Long.fromValue(editedMessage.timestampMs).toNumber() / 1000);
+              } else {
+                editedMessageTimestamp = Math.floor((editedMessage?.timestampMs as number) / 1000);
+              }
 
               await this.prismaRepository.message.update({
                 where: { id: (oldMessage as any).id },
@@ -4361,6 +4372,18 @@ export class BaileysStartupService extends ChannelStartupService {
       return obj.toNumber();
     }
 
+    // Handle Long-like objects that aren't detected by Long.isLong()
+    if (
+      obj &&
+      typeof obj === 'object' &&
+      'low' in obj &&
+      'high' in obj &&
+      typeof obj.low === 'number' &&
+      typeof obj.high === 'number'
+    ) {
+      return Long.fromValue(obj).toNumber();
+    }
+
     if (Array.isArray(obj)) {
       return obj.map((item) => this.convertLongToNumber(item));
     }
@@ -4382,6 +4405,23 @@ export class BaileysStartupService extends ChannelStartupService {
     const contentType = getContentType(message.message);
     const contentMsg = message?.message[contentType] as any;
 
+    // Convert messageTimestamp to number properly
+    let messageTimestamp: number;
+    if (Long.isLong(message.messageTimestamp)) {
+      messageTimestamp = message.messageTimestamp.toNumber();
+    } else if (
+      message.messageTimestamp &&
+      typeof message.messageTimestamp === 'object' &&
+      message.messageTimestamp &&
+      'low' in message.messageTimestamp &&
+      'high' in message.messageTimestamp
+    ) {
+      // Handle Long-like objects that aren't detected by Long.isLong()
+      messageTimestamp = Long.fromValue(message.messageTimestamp).toNumber();
+    } else {
+      messageTimestamp = (message.messageTimestamp as number) || Date.now();
+    }
+
     const messageRaw = {
       key: message.key, // Save key exactly as it comes from Baileys
       pushName:
@@ -4393,9 +4433,7 @@ export class BaileysStartupService extends ChannelStartupService {
       message: this.convertLongToNumber({ ...message.message }),
       contextInfo: this.convertLongToNumber(contentMsg?.contextInfo),
       messageType: contentType || 'unknown',
-      messageTimestamp: Long.isLong(message.messageTimestamp)
-        ? message.messageTimestamp.toNumber()
-        : (message.messageTimestamp as number),
+      messageTimestamp,
       instanceId: this.instanceId,
       source: getDevice(message.key.id),
     };
