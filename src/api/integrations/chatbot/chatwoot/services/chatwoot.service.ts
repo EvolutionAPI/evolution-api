@@ -1122,7 +1122,9 @@ export class ChatwootService {
 
       data.append('message_type', messageType);
 
-      data.append('attachments[]', fileStream, { filename: fileName });
+      if (fileData && fileName) {
+        data.append('attachments[]', fileData, { filename: fileName });
+      }
 
       const sourceReplyId = quotedMsg?.chatwootMessageId || null;
 
@@ -1487,6 +1489,59 @@ export class ChatwootService {
     });
   }
 
+  /**
+   * Processa deleção de mensagem em background
+   * Método assíncrono chamado via setImmediate para não bloquear resposta do webhook
+   */
+  private async processDeletion(instance: InstanceDto, body: any, deleteLockKey: string) {
+    this.logger.warn(`[DELETE] 🗑️ Processing deletion - messageId: ${body.id}`);
+    const waInstance = this.waMonitor.waInstances[instance.instanceName];
+
+    // Buscar TODAS as mensagens com esse chatwootMessageId (pode ser múltiplos anexos)
+    const messages = await this.prismaRepository.message.findMany({
+      where: {
+        chatwootMessageId: body.id,
+        instanceId: instance.instanceId,
+      },
+    });
+
+    if (messages && messages.length > 0) {
+      this.logger.warn(`[DELETE] Found ${messages.length} message(s) to delete from Chatwoot message ${body.id}`);
+      this.logger.verbose(`[DELETE] Messages keys: ${messages.map((m) => (m.key as any)?.id).join(', ')}`);
+
+      // Deletar cada mensagem no WhatsApp
+      for (const message of messages) {
+        const key = message.key as ExtendedMessageKey;
+        this.logger.warn(
+          `[DELETE] Attempting to delete WhatsApp message - keyId: ${key?.id}, remoteJid: ${key?.remoteJid}`,
+        );
+
+        try {
+          await waInstance?.client.sendMessage(key.remoteJid, { delete: key });
+          this.logger.warn(`[DELETE] ✅ Message ${key.id} deleted in WhatsApp successfully`);
+        } catch (error) {
+          this.logger.error(`[DELETE] ❌ Error deleting message ${key.id} in WhatsApp: ${error}`);
+          this.logger.error(`[DELETE] Error details: ${JSON.stringify(error, null, 2)}`);
+        }
+      }
+
+      // Remover todas as mensagens do banco de dados
+      await this.prismaRepository.message.deleteMany({
+        where: {
+          instanceId: instance.instanceId,
+          chatwootMessageId: body.id,
+        },
+      });
+      this.logger.warn(`[DELETE] ✅ SUCCESS: ${messages.length} message(s) deleted from WhatsApp and database`);
+    } else {
+      // Mensagem não encontrada - pode ser uma mensagem antiga que foi substituída por edição
+      this.logger.warn(`[DELETE] ⚠️ WARNING: Message not found in DB - chatwootMessageId: ${body.id}`);
+    }
+
+    // Liberar lock após processar
+    await this.cache.delete(deleteLockKey);
+  }
+
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
       // IMPORTANTE: Verificar lock de deleção ANTES do delay inicial
@@ -1545,55 +1600,25 @@ export class ChatwootService {
         // Lock já foi adquirido no início do método (antes do delay)
         const deleteLockKey = `${instance.instanceName}:deleteMessage-${body.id}`;
 
-        this.logger.warn(`[DELETE] 🗑️ Processing deletion - messageId: ${body.id}`);
-        const waInstance = this.waMonitor.waInstances[instance.instanceName];
+        // ESTRATÉGIA: Processar em background e responder IMEDIATAMENTE
+        // Isso evita timeout do Chatwoot (5s) quando há muitas imagens (> 5s de processamento)
+        this.logger.warn(`[DELETE] 🚀 Starting background deletion - messageId: ${body.id}`);
 
-        // Buscar TODAS as mensagens com esse chatwootMessageId (pode ser múltiplos anexos)
-        const messages = await this.prismaRepository.message.findMany({
-          where: {
-            chatwootMessageId: body.id,
-            instanceId: instance.instanceId,
-          },
+        // Executar em background (sem await) - não bloqueia resposta do webhook
+        setImmediate(async () => {
+          try {
+            await this.processDeletion(instance, body, deleteLockKey);
+          } catch (error) {
+            this.logger.error(`[DELETE] ❌ Background deletion failed for messageId ${body.id}: ${error}`);
+          }
         });
 
-        if (messages && messages.length > 0) {
-          this.logger.warn(`[DELETE] Found ${messages.length} message(s) to delete from Chatwoot message ${body.id}`);
-          this.logger.verbose(`[DELETE] Messages keys: ${messages.map((m) => (m.key as any)?.id).join(', ')}`);
-
-          // Deletar cada mensagem no WhatsApp
-          for (const message of messages) {
-            const key = message.key as ExtendedMessageKey;
-            this.logger.warn(
-              `[DELETE] Attempting to delete WhatsApp message - keyId: ${key?.id}, remoteJid: ${key?.remoteJid}`,
-            );
-
-            try {
-              await waInstance?.client.sendMessage(key.remoteJid, { delete: key });
-              this.logger.warn(`[DELETE] ✅ Message ${key.id} deleted in WhatsApp successfully`);
-            } catch (error) {
-              this.logger.error(`[DELETE] ❌ Error deleting message ${key.id} in WhatsApp: ${error}`);
-              this.logger.error(`[DELETE] Error details: ${JSON.stringify(error, null, 2)}`);
-            }
-          }
-
-          // Remover todas as mensagens do banco de dados
-          await this.prismaRepository.message.deleteMany({
-            where: {
-              instanceId: instance.instanceId,
-              chatwootMessageId: body.id,
-            },
-          });
-          this.logger.warn(`[DELETE] ✅ SUCCESS: ${messages.length} message(s) deleted from WhatsApp and database`);
-        } else {
-          // Mensagem não encontrada - pode ser uma mensagem antiga que foi substituída por edição
-          // Nesse caso, ignoramos silenciosamente pois o ID já foi atualizado no banco
-          this.logger.warn(`[DELETE] ⚠️ WARNING: Message not found in DB - chatwootMessageId: ${body.id}`);
-        }
-
-        // Liberar lock após processar
-        await this.cache.delete(deleteLockKey);
-
-        return { message: 'deleted' };
+        // RESPONDER IMEDIATAMENTE ao Chatwoot (< 50ms)
+        return {
+          message: 'deletion_accepted',
+          messageId: body.id,
+          note: 'Deletion is being processed in background',
+        };
       }
 
       if (
