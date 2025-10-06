@@ -59,7 +59,7 @@ body:
       value: |
         - OS: [e.g. Ubuntu 20.04, Windows 10, macOS 12.0]
         - Node.js version: [e.g. 18.17.0]
-        - Evolution API version: [e.g. 2.3.4]
+        - Evolution API version: [e.g. 2.3.5]
         - Database: [e.g. PostgreSQL 14, MySQL 8.0]
         - Connection type: [e.g. Baileys, WhatsApp Business API]
     validations:

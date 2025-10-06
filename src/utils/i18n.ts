@@ -23,15 +23,17 @@ const configService: ConfigService = new ConfigService();
 
 const resources: any = {};
 
-languages.forEach((language) => {
-  const languagePath = path.join(translationsPath, `${language}.json`);
-  if (fs.existsSync(languagePath)) {
-    const translationContent = fs.readFileSync(languagePath, 'utf8');
-    resources[language] = {
-      translation: JSON.parse(translationContent),
-    };
-  }
-});
+if (translationsPath) {
+  languages.forEach((language) => {
+    const languagePath = path.join(translationsPath, `${language}.json`);
+    if (fs.existsSync(languagePath)) {
+      const translationContent = fs.readFileSync(languagePath, 'utf8');
+      resources[language] = {
+        translation: JSON.parse(translationContent),
+      };
+    }
+  });
+}
 
 i18next.init({
   resources,

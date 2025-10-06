@@ -1512,7 +1512,11 @@ export class BaileysStartupService extends ChannelStartupService {
             `) as any[];
             findMessage = messages[0] || null;
 
-            if (findMessage) message.messageId = findMessage.id;
+            if (!findMessage?.id) {
+              this.logger.warn(`Original message not found for update. Skipping. Key: ${JSON.stringify(key)}`);
+              continue;
+            }
+            message.messageId = findMessage.id;
           }
 
           if (update.message === null && update.status === undefined) {
@@ -3395,18 +3399,18 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           const numberJid = numberVerified?.jid || user.jid;
-          const lid =
-            typeof numberVerified?.lid === 'string'
-              ? numberVerified.lid
-              : numberJid.includes('@lid')
-                ? numberJid.split('@')[1]
-                : undefined;
+          // const lid =
+          //   typeof numberVerified?.lid === 'string'
+          //     ? numberVerified.lid
+          //     : numberJid.includes('@lid')
+          //       ? numberJid.split('@')[1]
+          //       : undefined;
           return new OnWhatsAppDto(
             numberJid,
             !!numberVerified?.exists,
             user.number,
             contacts.find((c) => c.remoteJid === numberJid)?.pushName,
-            lid,
+            // lid,
           );
         }),
       );
@@ -4589,8 +4593,8 @@ export class BaileysStartupService extends ChannelStartupService {
     return response;
   }
 
-  public async baileysAssertSessions(jids: string[], force: boolean) {
-    const response = await this.client.assertSessions(jids, force);
+  public async baileysAssertSessions(jids: string[]) {
+    const response = await this.client.assertSessions(jids);
 
     return response;
   }
