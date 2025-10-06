@@ -3,9 +3,19 @@ import fs from 'fs';
 import i18next from 'i18next';
 import path from 'path';
 
-// Detect if running from dist/ (production) or src/ (development)
-const isProduction = fs.existsSync(path.join(process.cwd(), 'dist'));
-const baseDir = isProduction ? 'dist' : 'src/utils';
+// Make translations base directory configurable via environment variable
+const envBaseDir = process.env.TRANSLATIONS_BASE_DIR;
+let baseDir: string;
+
+if (envBaseDir) {
+  // Use explicitly configured base directory
+  baseDir = envBaseDir;
+} else {
+  // Fallback to auto-detection if env variable is not set
+  const isProduction = fs.existsSync(path.join(process.cwd(), 'dist'));
+  baseDir = isProduction ? 'dist' : 'src/utils';
+}
+
 const translationsPath = path.join(process.cwd(), baseDir, 'translations');
 
 const languages = ['en', 'pt-BR', 'es'];

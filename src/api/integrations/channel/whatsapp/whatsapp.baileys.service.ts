@@ -254,6 +254,10 @@ export class BaileysStartupService extends ChannelStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
+  // Cache TTL constants (in seconds)
+  private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
+  private readonly UPDATE_CACHE_TTL_SECONDS = 30 * 60; // 30 minutes - avoid duplicate status updates
+
   public stateConnection: wa.StateConnection = { state: 'close' };
 
   public phoneNumber: string;
@@ -1155,7 +1159,7 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          await this.baileysCache.set(messageKey, true, 5 * 60);
+          await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
 
           if (
             (type !== 'notify' && type !== 'append') ||
@@ -1275,7 +1279,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
               }
 
-              await this.baileysCache.set(messageKey, true, 5 * 60);
+              await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
             } else {
               this.logger.info(`Update readed messages duplicated ignored [avoid deadlock]: ${messageKey}`);
             }
@@ -1459,7 +1463,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         if (!isDeletedMessage) {
-          await this.baileysCache.set(updateKey, true, 30 * 60);
+          await this.baileysCache.set(updateKey, true, this.UPDATE_CACHE_TTL_SECONDS);
         }
 
         if (status[update.status] === 'READ' && key.fromMe) {
@@ -1543,7 +1547,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 if (status[update.status] === status[4]) {
                   this.logger.log(`Update as read in message.update ${remoteJid} - ${timestamp}`);
                   await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
-                  await this.baileysCache.set(messageKey, true, 5 * 60);
+                  await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
                 }
 
                 await this.prismaRepository.message.update({

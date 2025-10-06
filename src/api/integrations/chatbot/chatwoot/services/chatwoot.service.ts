@@ -44,6 +44,25 @@ interface ChatwootMessage {
 export class ChatwootService {
   private readonly logger = new Logger('ChatwootService');
 
+  // HTTP timeout constants
+  private readonly MEDIA_DOWNLOAD_TIMEOUT_MS = 60000; // 60 seconds for large files
+
+  // S3/MinIO retry configuration (external storage - longer delays, fewer retries)
+  private readonly S3_MAX_RETRIES = 3;
+  private readonly S3_BASE_DELAY_MS = 1000; // Base delay: 1 second
+  private readonly S3_MAX_DELAY_MS = 8000; // Max delay: 8 seconds
+
+  // Database polling retry configuration (internal DB - shorter delays, more retries)
+  private readonly DB_POLLING_MAX_RETRIES = 5;
+  private readonly DB_POLLING_BASE_DELAY_MS = 100; // Base delay: 100ms
+  private readonly DB_POLLING_MAX_DELAY_MS = 2000; // Max delay: 2 seconds
+
+  // Webhook processing delay
+  private readonly WEBHOOK_INITIAL_DELAY_MS = 500; // Initial delay before processing webhook
+
+  // Lock polling delay
+  private readonly LOCK_POLLING_DELAY_MS = 300; // Delay between lock status checks
+
   private provider: any;
 
   constructor(
@@ -617,7 +636,7 @@ export class ChatwootService {
             this.logger.warn(`Timeout aguardando lock para ${remoteJid}`);
             break;
           }
-          await new Promise((res) => setTimeout(res, 300));
+          await new Promise((res) => setTimeout(res, this.LOCK_POLLING_DELAY_MS));
           if (await this.cache.has(cacheKey)) {
             const conversationId = (await this.cache.get(cacheKey)) as number;
             this.logger.verbose(`Resolves creation of: ${remoteJid}, conversation ID: ${conversationId}`);
@@ -1136,7 +1155,7 @@ export class ChatwootService {
         // maxRedirects: 0 para não seguir redirects automaticamente
         const response = await axios.get(media, {
           responseType: 'arraybuffer',
-          timeout: 60000, // 60 segundos de timeout para arquivos grandes
+          timeout: this.MEDIA_DOWNLOAD_TIMEOUT_MS,
           headers: {
             api_access_token: this.provider.token,
           },
@@ -1154,18 +1173,19 @@ export class ChatwootService {
           if (redirectUrl) {
             // Fazer novo request para a URL do S3/MinIO (sem autenticação, pois é presigned URL)
             // IMPORTANTE: Chatwoot pode gerar a URL presigned ANTES de fazer upload
-            // Vamos tentar com retry se receber 404 (arquivo ainda não disponível)
+            // Vamos tentar com retry usando exponential backoff se receber 404 (arquivo ainda não disponível)
             this.logger.verbose('Downloading from S3/MinIO...');
 
             let s3Response;
             let retryCount = 0;
-            const maxRetries = 3;
-            const retryDelay = 2000; // 2 segundos entre tentativas
+            const maxRetries = this.S3_MAX_RETRIES;
+            const baseDelay = this.S3_BASE_DELAY_MS;
+            const maxDelay = this.S3_MAX_DELAY_MS;
 
             while (retryCount <= maxRetries) {
               s3Response = await axios.get(redirectUrl, {
                 responseType: 'arraybuffer',
-                timeout: 60000, // 60 segundos para arquivos grandes
+                timeout: this.MEDIA_DOWNLOAD_TIMEOUT_MS,
                 validateStatus: (status) => status < 500,
               });
 
@@ -1178,14 +1198,16 @@ export class ChatwootService {
                 break;
               }
 
-              // Se for 404 e ainda tem tentativas, aguardar e tentar novamente
+              // Se for 404 e ainda tem tentativas, aguardar com exponential backoff e tentar novamente
               if (retryCount < maxRetries) {
+                // Exponential backoff com max delay (seguindo padrão do webhook controller)
+                const backoffDelay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
                 const errorBody = s3Response.data?.toString ? s3Response.data.toString('utf-8') : s3Response.data;
                 this.logger.warn(
-                  `File not yet available in S3/MinIO (attempt ${retryCount + 1}/${maxRetries + 1}). Retrying in ${retryDelay}ms...`,
+                  `File not yet available in S3/MinIO (attempt ${retryCount + 1}/${maxRetries + 1}). Retrying in ${backoffDelay}ms with exponential backoff...`,
                 );
                 this.logger.verbose(`MinIO Response: ${errorBody}`);
-                await new Promise((resolve) => setTimeout(resolve, retryDelay));
+                await new Promise((resolve) => setTimeout(resolve, backoffDelay));
                 retryCount++;
               } else {
                 // Última tentativa falhou
@@ -1246,8 +1268,10 @@ export class ChatwootService {
 
         this.logger.verbose(`File name: ${fileName}, size: ${mediaBuffer.length} bytes`);
       } catch (downloadError) {
-        this.logger.error('Error downloading media from: ' + media);
-        this.logger.error(downloadError);
+        this.logger.error('[MEDIA DOWNLOAD] ❌ Error downloading media from: ' + media);
+        this.logger.error(`[MEDIA DOWNLOAD] Error message: ${downloadError.message}`);
+        this.logger.error(`[MEDIA DOWNLOAD] Error stack: ${downloadError.stack}`);
+        this.logger.error(`[MEDIA DOWNLOAD] Full error: ${JSON.stringify(downloadError, null, 2)}`);
         throw new Error(`Failed to download media: ${downloadError.message}`);
       }
 
@@ -1357,7 +1381,32 @@ export class ChatwootService {
 
   public async receiveWebhook(instance: InstanceDto, body: any) {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // IMPORTANTE: Verificar lock de deleção ANTES do delay inicial
+      // para evitar race condition com webhooks duplicados
+      let isDeletionEvent = false;
+      if (body.event === 'message_updated' && body.content_attributes?.deleted) {
+        isDeletionEvent = true;
+        const deleteLockKey = `${instance.instanceName}:deleteMessage-${body.id}`;
+
+        // Verificar se já está processando esta deleção
+        if (await this.cache.has(deleteLockKey)) {
+          this.logger.warn(`[DELETE] ⏭️ SKIPPING: Deletion already in progress for messageId: ${body.id}`);
+          return { message: 'already_processing' };
+        }
+
+        // Adquirir lock IMEDIATAMENTE por 30 segundos
+        await this.cache.set(deleteLockKey, true, 30);
+
+        this.logger.warn(
+          `[WEBHOOK-DELETE] Event: ${body.event}, messageId: ${body.id}, conversation: ${body.conversation?.id}`,
+        );
+      }
+
+      // Para deleções, processar IMEDIATAMENTE (sem delay)
+      // Para outros eventos, aguardar delay inicial
+      if (!isDeletionEvent) {
+        await new Promise((resolve) => setTimeout(resolve, this.WEBHOOK_INITIAL_DELAY_MS));
+      }
 
       const client = await this.clientCw(instance);
 
@@ -1385,7 +1434,10 @@ export class ChatwootService {
 
       // Processar deleção de mensagem ANTES das outras validações
       if (body.event === 'message_updated' && body.content_attributes?.deleted) {
-        this.logger.verbose(`Processing message deletion from Chatwoot - messageId: ${body.id}`);
+        // Lock já foi adquirido no início do método (antes do delay)
+        const deleteLockKey = `${instance.instanceName}:deleteMessage-${body.id}`;
+
+        this.logger.warn(`[DELETE] 🗑️ Processing deletion - messageId: ${body.id}`);
         const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
         // Buscar TODAS as mensagens com esse chatwootMessageId (pode ser múltiplos anexos)
@@ -1397,18 +1449,22 @@ export class ChatwootService {
         });
 
         if (messages && messages.length > 0) {
-          this.logger.verbose(`Found ${messages.length} message(s) to delete from Chatwoot message ${body.id}`);
+          this.logger.warn(`[DELETE] Found ${messages.length} message(s) to delete from Chatwoot message ${body.id}`);
+          this.logger.verbose(`[DELETE] Messages keys: ${messages.map((m) => (m.key as any)?.id).join(', ')}`);
 
           // Deletar cada mensagem no WhatsApp
           for (const message of messages) {
             const key = message.key as ExtendedMessageKey;
-            this.logger.verbose(`Deleting WhatsApp message - keyId: ${key?.id}`);
+            this.logger.warn(
+              `[DELETE] Attempting to delete WhatsApp message - keyId: ${key?.id}, remoteJid: ${key?.remoteJid}`,
+            );
 
             try {
               await waInstance?.client.sendMessage(key.remoteJid, { delete: key });
-              this.logger.verbose(`Message ${key.id} deleted in WhatsApp successfully`);
+              this.logger.warn(`[DELETE] ✅ Message ${key.id} deleted in WhatsApp successfully`);
             } catch (error) {
-              this.logger.error(`Error deleting message ${key.id} in WhatsApp: ${error}`);
+              this.logger.error(`[DELETE] ❌ Error deleting message ${key.id} in WhatsApp: ${error}`);
+              this.logger.error(`[DELETE] Error details: ${JSON.stringify(error, null, 2)}`);
             }
           }
 
@@ -1419,14 +1475,15 @@ export class ChatwootService {
               chatwootMessageId: body.id,
             },
           });
-          this.logger.verbose(`${messages.length} message(s) removed from database`);
+          this.logger.warn(`[DELETE] ✅ SUCCESS: ${messages.length} message(s) deleted from WhatsApp and database`);
         } else {
           // Mensagem não encontrada - pode ser uma mensagem antiga que foi substituída por edição
           // Nesse caso, ignoramos silenciosamente pois o ID já foi atualizado no banco
-          this.logger.verbose(
-            `Message not found for chatwootMessageId: ${body.id} - may have been replaced by an edited message`,
-          );
+          this.logger.warn(`[DELETE] ⚠️ WARNING: Message not found in DB - chatwootMessageId: ${body.id}`);
         }
+
+        // Liberar lock após processar
+        await this.cache.delete(deleteLockKey);
 
         return { message: 'deleted' };
       }
@@ -1726,12 +1783,11 @@ export class ChatwootService {
       `Updating message with chatwootMessageId: ${chatwootMessageIds.messageId}, keyId: ${key.id}, instanceId: ${instanceId}`,
     );
 
-    // Aguarda um pequeno delay para garantir que a mensagem foi criada no banco
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Verifica se a mensagem existe antes de atualizar
+    // Verifica se a mensagem existe antes de atualizar usando polling com exponential backoff
     let retries = 0;
-    const maxRetries = 5;
+    const maxRetries = this.DB_POLLING_MAX_RETRIES;
+    const baseDelay = this.DB_POLLING_BASE_DELAY_MS;
+    const maxDelay = this.DB_POLLING_MAX_DELAY_MS;
     let messageExists = false;
 
     while (retries < maxRetries && !messageExists) {
@@ -1750,8 +1806,14 @@ export class ChatwootService {
         this.logger.verbose(`Message found in database after ${retries} retries`);
       } else {
         retries++;
-        this.logger.verbose(`Message not found, retry ${retries}/${maxRetries}`);
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        if (retries < maxRetries) {
+          // Exponential backoff com max delay (seguindo padrão do sistema)
+          const backoffDelay = Math.min(baseDelay * Math.pow(2, retries - 1), maxDelay);
+          this.logger.verbose(`Message not found, retry ${retries}/${maxRetries} in ${backoffDelay}ms`);
+          await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+        } else {
+          this.logger.verbose(`Message not found after ${retries} attempts`);
+        }
       }
     }
 
