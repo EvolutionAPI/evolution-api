@@ -3371,18 +3371,18 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           const numberJid = numberVerified?.jid || user.jid;
-          const lid =
-            typeof numberVerified?.lid === 'string'
-              ? numberVerified.lid
-              : numberJid.includes('@lid')
-                ? numberJid.split('@')[1]
-                : undefined;
+          // const lid =
+          //   typeof numberVerified?.lid === 'string'
+          //     ? numberVerified.lid
+          //     : numberJid.includes('@lid')
+          //       ? numberJid.split('@')[1]
+          //       : undefined;
           return new OnWhatsAppDto(
             numberJid,
             !!numberVerified?.exists,
             user.number,
             contacts.find((c) => c.remoteJid === numberJid)?.pushName,
-            lid,
+            // lid,
           );
         }),
       );
