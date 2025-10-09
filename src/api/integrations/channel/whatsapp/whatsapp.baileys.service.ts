@@ -254,6 +254,10 @@ export class BaileysStartupService extends ChannelStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
 
+  // Cache TTL constants (in seconds)
+  private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
+  private readonly UPDATE_CACHE_TTL_SECONDS = 30 * 60; // 30 minutes - avoid duplicate status updates
+
   public stateConnection: wa.StateConnection = { state: 'close' };
 
   public phoneNumber: string;
@@ -1065,6 +1069,11 @@ export class BaileysStartupService extends ChannelStartupService {
       settings: any,
     ) => {
       try {
+        // Garantir que localChatwoot está carregado antes de processar mensagens
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && !this.localChatwoot?.enabled) {
+          await this.loadChatwoot();
+        }
+
         for (const received of messages) {
           if (received.key.remoteJid?.includes('@lid') && (received.key as ExtendedMessageKey).senderPn) {
             (received.key as ExtendedMessageKey).previousRemoteJid = received.key.remoteJid;
@@ -1150,7 +1159,7 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          await this.baileysCache.set(messageKey, true, 5 * 60);
+          await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
 
           if (
             (type !== 'notify' && type !== 'append') ||
@@ -1270,7 +1279,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
               }
 
-              await this.baileysCache.set(messageKey, true, 5 * 60);
+              await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
             } else {
               this.logger.info(`Update readed messages duplicated ignored [avoid deadlock]: ${messageKey}`);
             }
@@ -1445,12 +1454,17 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const cached = await this.baileysCache.get(updateKey);
 
-        if (cached) {
+        // Não ignorar mensagens deletadas (messageStubType === 1) mesmo que estejam em cache
+        const isDeletedMessage = update.messageStubType === 1;
+
+        if (cached && !isDeletedMessage) {
           this.logger.info(`Message duplicated ignored [avoid deadlock]: ${updateKey}`);
           continue;
         }
 
-        await this.baileysCache.set(updateKey, true, 30 * 60);
+        if (!isDeletedMessage) {
+          await this.baileysCache.set(updateKey, true, this.UPDATE_CACHE_TTL_SECONDS);
+        }
 
         if (status[update.status] === 'READ' && key.fromMe) {
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
@@ -1537,7 +1551,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 if (status[update.status] === status[4]) {
                   this.logger.log(`Update as read in message.update ${remoteJid} - ${timestamp}`);
                   await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
-                  await this.baileysCache.set(messageKey, true, 5 * 60);
+                  await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
                 }
 
                 await this.prismaRepository.message.update({
@@ -1554,8 +1568,22 @@ export class BaileysStartupService extends ChannelStartupService {
 
           this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
 
-          if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE)
-            await this.prismaRepository.messageUpdate.create({ data: message });
+          if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
+            // Verificar se a mensagem ainda existe antes de criar o update
+            const messageExists = await this.prismaRepository.message.findFirst({
+              where: {
+                instanceId: message.instanceId,
+                key: {
+                  path: ['id'],
+                  equals: message.keyId,
+                },
+              },
+            });
+
+            if (messageExists) {
+              await this.prismaRepository.messageUpdate.create({ data: message });
+            }
+          }
 
           const existingChat = await this.prismaRepository.chat.findFirst({
             where: { instanceId: this.instanceId, remoteJid: message.remoteJid },
@@ -4565,7 +4593,9 @@ export class BaileysStartupService extends ChannelStartupService {
     return response;
   }
 
-  public async baileysAssertSessions(jids: string[]) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async baileysAssertSessions(jids: string[], _force?: boolean) {
+    // Note: _force parameter kept for API compatibility but not used in Baileys 7.0.0-rc.5+
     const response = await this.client.assertSessions(jids);
 
     return response;

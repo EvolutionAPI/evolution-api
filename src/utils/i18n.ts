@@ -3,20 +3,20 @@ import fs from 'fs';
 import i18next from 'i18next';
 import path from 'path';
 
-const distPath = path.resolve(process.cwd(), 'dist', 'translations');
-const srcPath = path.resolve(process.cwd(), 'src', 'utils', 'translations');
+// Make translations base directory configurable via environment variable
+const envBaseDir = process.env.TRANSLATIONS_BASE_DIR;
+let baseDir: string;
 
-let translationsPath;
-
-if (fs.existsSync(distPath)) {
-  translationsPath = distPath;
-} else if (fs.existsSync(srcPath)) {
-  translationsPath = srcPath;
+if (envBaseDir) {
+  // Use explicitly configured base directory
+  baseDir = envBaseDir;
 } else {
-  console.error('Translations directory not found in dist or src.');
-  // Fallback to a non-existent path or handle error appropriately
-  translationsPath = '';
+  // Fallback to auto-detection if env variable is not set
+  const isProduction = fs.existsSync(path.join(process.cwd(), 'dist'));
+  baseDir = isProduction ? 'dist' : 'src/utils';
 }
+
+const translationsPath = path.join(process.cwd(), baseDir, 'translations');
 
 const languages = ['en', 'pt-BR', 'es'];
 const configService: ConfigService = new ConfigService();
