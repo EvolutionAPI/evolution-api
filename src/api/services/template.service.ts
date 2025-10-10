@@ -60,6 +60,13 @@ export class TemplateService {
       const response = await this.requestTemplate(postData, 'POST');
 
       if (!response || response.error) {
+        // If there's an error from WhatsApp API, throw it with the real error data
+        if (response && response.error) {
+          // Create an error object that includes the template field for Meta errors
+          const metaError = new Error(response.error.message || 'WhatsApp API Error');
+          (metaError as any).template = response.error;
+          throw metaError;
+        }
         throw new Error('Error to create template');
       }
 
@@ -75,8 +82,9 @@ export class TemplateService {
 
       return template;
     } catch (error) {
-      this.logger.error(error);
-      throw new Error('Error to create template');
+      this.logger.error('Error in create template: ' + error);
+      // Propagate the real error instead of "engolindo" it
+      throw error;
     }
   }
 
@@ -86,6 +94,7 @@ export class TemplateService {
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
       urlServer = `${urlServer}/${version}/${this.businessId}/message_templates`;
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+
       if (method === 'GET') {
         const result = await axios.get(urlServer, { headers });
         return result.data;
@@ -94,8 +103,17 @@ export class TemplateService {
         return result.data;
       }
     } catch (e) {
-      this.logger.error(e.response.data);
-      return e.response.data.error;
+      this.logger.error(
+        'WhatsApp API request error: ' + (e.response?.data ? JSON.stringify(e.response?.data) : e.message),
+      );
+
+      // Return the complete error response from WhatsApp API
+      if (e.response?.data) {
+        return e.response.data;
+      }
+
+      // If no response data, throw connection error
+      throw new Error(`Connection error: ${e.message}`);
     }
   }
 }

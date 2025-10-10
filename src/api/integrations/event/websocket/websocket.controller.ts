@@ -30,8 +30,15 @@ export class WebsocketController extends EventController implements EventControl
           const url = new URL(req.url || '', 'http://localhost');
           const params = new URLSearchParams(url.search);
 
-          // Permite conexões internas do Socket.IO (EIO=4 é o Engine.IO v4)
-          if (params.has('EIO')) {
+          const { remoteAddress } = req.socket;
+          const websocketConfig = configService.get<Websocket>('WEBSOCKET');
+          const allowedHosts = websocketConfig.ALLOWED_HOSTS || '127.0.0.1,::1,::ffff:127.0.0.1';
+          const isAllowedHost = allowedHosts
+            .split(',')
+            .map((h) => h.trim())
+            .includes(remoteAddress);
+
+          if (params.has('EIO') && isAllowedHost) {
             return callback(null, true);
           }
 
