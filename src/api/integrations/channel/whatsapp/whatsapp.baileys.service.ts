@@ -2149,20 +2149,7 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      let linkPreview: boolean | undefined;
-      let conversationText: string | undefined;
-
-      if (typeof message === 'object' && 'conversation' in message && typeof message['conversation'] === 'string') {
-        conversationText = message['conversation'];
-        if (conversationText.includes('[linkPreview=false]')) {
-          message['conversation'] = conversationText.replace('[linkPreview=false]', '').trim();
-          linkPreview = false;
-        }
-      }
-
-      if (linkPreview === undefined) {
-        linkPreview = options?.linkPreview != false ? undefined : false;
-      }
+      const linkPreview = options?.linkPreview != false ? undefined : false;
 
       let quoted: WAMessage;
 
