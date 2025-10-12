@@ -1465,7 +1465,7 @@ export class BaileysStartupService extends ChannelStartupService {
             remoteJid: key?.remoteJid,
             fromMe: key.fromMe,
             participant: key?.participant,
-            status: status[update.status],
+            status: status[update.status] ?? 'DELETED',
             pollUpdates,
             instanceId: this.instanceId,
           };
