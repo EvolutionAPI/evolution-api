@@ -112,12 +112,19 @@ class ChatwootImport {
         const bindInsert = [provider.accountId];
 
         for (const contact of contactsChunk) {
-          bindInsert.push(contact.pushName);
+          const isGroup = this.isIgnorePhoneNumber(contact.remoteJid);
+
+          const contactName = isGroup ? `${contact.pushName} (GROUP)` : contact.pushName;
+          bindInsert.push(contactName);
           const bindName = `$${bindInsert.length}`;
 
-          bindInsert.push(`+${contact.remoteJid.split('@')[0]}`);
-          const bindPhoneNumber = `$${bindInsert.length}`;
-
+          let bindPhoneNumber: string;
+          if (!isGroup) {
+            bindInsert.push(`+${contact.remoteJid.split('@')[0]}`);
+            bindPhoneNumber = `$${bindInsert.length}`;
+          } else {
+            bindPhoneNumber = 'NULL';
+          }
           bindInsert.push(contact.remoteJid);
           const bindIdentifier = `$${bindInsert.length}`;
 

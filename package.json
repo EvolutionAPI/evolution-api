@@ -56,7 +56,7 @@
       "eslint --fix"
     ],
     "src/**/*.ts": [
-      "sh -c 'npm run build'"
+      "sh -c 'tsc --noEmit'"
     ]
   },
   "config": {
