@@ -1720,6 +1720,9 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           if (settings?.msgCall?.trim().length > 0 && call.status == 'offer') {
+            if (call.from.endsWith('@lid')) {
+              call.from = await this.client.signalRepository.lidMapping.getPNForLID(call.from as string);
+            }
             const msg = await this.client.sendMessage(call.from, { text: settings.msgCall });
 
             this.client.ev.emit('messages.upsert', { messages: [msg], type: 'notify' });
