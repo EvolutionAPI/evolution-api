@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+      with:
+        submodules: recursive
 
     - name: Install Node
       uses: actions/setup-node@v5
