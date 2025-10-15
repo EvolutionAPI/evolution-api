@@ -85,6 +85,7 @@ import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
 import { status } from '@utils/renderStatus';
+import { sendTelemetry } from '@utils/sendTelemetry';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
@@ -1349,6 +1350,8 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           this.logger.log(messageRaw);
+
+          sendTelemetry(`received.message.${messageRaw.messageType ?? 'unknown'}`);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
