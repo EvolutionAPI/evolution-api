@@ -85,6 +85,7 @@ import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
 import { makeProxyAgent } from '@utils/makeProxyAgent';
 import { getOnWhatsappCache, saveOnWhatsappCache } from '@utils/onWhatsappCache';
 import { status } from '@utils/renderStatus';
+import { sendTelemetry } from '@utils/sendTelemetry';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
@@ -152,13 +153,7 @@ import { v4 } from 'uuid';
 import { BaileysMessageProcessor } from './baileysMessage.processor';
 import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
 
-export interface ExtendedMessageKey extends WAMessageKey {
-  senderPn?: string;
-  previousRemoteJid?: string | null;
-}
-
 export interface ExtendedIMessageKey extends proto.IMessageKey {
-  senderPn?: string;
   remoteJidAlt?: string;
   participantAlt?: string;
   server_id?: string;
@@ -253,6 +248,10 @@ export class BaileysStartupService extends ChannelStartupService {
   private readonly userDevicesCache: CacheStore = new NodeCache({ stdTTL: 300000, useClones: false });
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
+
+  // Cache TTL constants (in seconds)
+  private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
+  private readonly UPDATE_CACHE_TTL_SECONDS = 30 * 60; // 30 minutes - avoid duplicate status updates
 
   public stateConnection: wa.StateConnection = { state: 'close' };
 
@@ -500,8 +499,8 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       // Use raw SQL to avoid JSON path issues
       const webMessageInfo = (await this.prismaRepository.$queryRaw`
-        SELECT * FROM "Message" 
-        WHERE "instanceId" = ${this.instanceId} 
+        SELECT * FROM "Message"
+        WHERE "instanceId" = ${this.instanceId}
         AND "key"->>'id' = ${key.id}
       `) as proto.IWebMessageInfo[];
 
@@ -1000,10 +999,6 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          if (m.key.remoteJid?.includes('@lid') && (m.key as ExtendedIMessageKey).senderPn) {
-            m.key.remoteJid = (m.key as ExtendedIMessageKey).senderPn;
-          }
-
           if (Long.isLong(m?.messageTimestamp)) {
             m.messageTimestamp = m.messageTimestamp?.toNumber();
           }
@@ -1066,10 +1061,6 @@ export class BaileysStartupService extends ChannelStartupService {
     ) => {
       try {
         for (const received of messages) {
-          if (received.key.remoteJid?.includes('@lid') && (received.key as ExtendedMessageKey).senderPn) {
-            (received.key as ExtendedMessageKey).previousRemoteJid = received.key.remoteJid;
-            received.key.remoteJid = (received.key as ExtendedMessageKey).senderPn;
-          }
           if (
             received?.messageStubParameters?.some?.((param) =>
               [
@@ -1117,9 +1108,9 @@ export class BaileysStartupService extends ChannelStartupService {
             await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
             const oldMessage = await this.getMessage(editedMessage.key, true);
             if ((oldMessage as any)?.id) {
-              const editedMessageTimestamp = Long.isLong(editedMessage?.timestampMs)
-                ? Math.floor(editedMessage.timestampMs.toNumber() / 1000)
-                : Math.floor((editedMessage.timestampMs as number) / 1000);
+              const editedMessageTimestamp = Long.isLong(received?.messageTimestamp)
+                ? Math.floor(received?.messageTimestamp.toNumber())
+                : Math.floor(received?.messageTimestamp as number);
 
               await this.prismaRepository.message.update({
                 where: { id: (oldMessage as any).id },
@@ -1150,7 +1141,7 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          await this.baileysCache.set(messageKey, true, 5 * 60);
+          await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
 
           if (
             (type !== 'notify' && type !== 'append') ||
@@ -1270,7 +1261,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
               }
 
-              await this.baileysCache.set(messageKey, true, 5 * 60);
+              await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
             } else {
               this.logger.info(`Update readed messages duplicated ignored [avoid deadlock]: ${messageKey}`);
             }
@@ -1358,11 +1349,9 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (messageRaw.key.remoteJid?.includes('@lid') && messageRaw.key.remoteJidAlt) {
-            messageRaw.key.remoteJid = messageRaw.key.remoteJidAlt;
-          }
-
           this.logger.log(messageRaw);
+
+          sendTelemetry(`received.message.${messageRaw.messageType ?? 'unknown'}`);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
@@ -1437,9 +1426,7 @@ export class BaileysStartupService extends ChannelStartupService {
           continue;
         }
 
-        if (key.remoteJid?.includes('@lid') && key.remoteJidAlt) {
-          key.remoteJid = key.remoteJidAlt;
-        }
+        if (update.message !== null && update.status === undefined) continue;
 
         const updateKey = `${this.instance.id}_${key.id}_${update.status}`;
 
@@ -1480,7 +1467,7 @@ export class BaileysStartupService extends ChannelStartupService {
             keyId: key.id,
             remoteJid: key?.remoteJid,
             fromMe: key.fromMe,
-            participant: key?.remoteJid,
+            participant: key?.participant,
             status: status[update.status] ?? 'DELETED',
             pollUpdates,
             instanceId: this.instanceId,
@@ -1491,14 +1478,18 @@ export class BaileysStartupService extends ChannelStartupService {
           if (configDatabaseData.HISTORIC || configDatabaseData.NEW_MESSAGE) {
             // Use raw SQL to avoid JSON path issues
             const messages = (await this.prismaRepository.$queryRaw`
-              SELECT * FROM "Message" 
-              WHERE "instanceId" = ${this.instanceId} 
+              SELECT * FROM "Message"
+              WHERE "instanceId" = ${this.instanceId}
               AND "key"->>'id' = ${key.id}
               LIMIT 1
             `) as any[];
             findMessage = messages[0] || null;
 
-            if (findMessage) message.messageId = findMessage.id;
+            if (!findMessage?.id) {
+              this.logger.warn(`Original message not found for update. Skipping. Key: ${JSON.stringify(key)}`);
+              continue;
+            }
+            message.messageId = findMessage.id;
           }
 
           if (update.message === null && update.status === undefined) {
@@ -1533,7 +1524,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 if (status[update.status] === status[4]) {
                   this.logger.log(`Update as read in message.update ${remoteJid} - ${timestamp}`);
                   await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
-                  await this.baileysCache.set(messageKey, true, 5 * 60);
+                  await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
                 }
 
                 await this.prismaRepository.message.update({
@@ -1591,12 +1582,66 @@ export class BaileysStartupService extends ChannelStartupService {
       });
     },
 
-    'group-participants.update': (participantsUpdate: {
+    'group-participants.update': async (participantsUpdate: {
       id: string;
       participants: string[];
       action: ParticipantAction;
     }) => {
-      this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
+      // ENHANCEMENT: Adds participantsData field while maintaining backward compatibility
+      // MAINTAINS: participants: string[] (original JID strings)
+      // ADDS: participantsData: { jid: string, phoneNumber: string, name?: string, imgUrl?: string }[]
+      // This enables LID to phoneNumber conversion without breaking existing webhook consumers
+
+      // Helper to normalize participantId as phone number
+      const normalizePhoneNumber = (id: string): string => {
+        // Remove @lid, @s.whatsapp.net suffixes and extract just the number part
+        return id.split('@')[0];
+      };
+
+      try {
+        // Usa o mesmo método que o endpoint /group/participants
+        const groupParticipants = await this.findParticipants({ groupJid: participantsUpdate.id });
+
+        // Validação para garantir que temos dados válidos
+        if (!groupParticipants?.participants || !Array.isArray(groupParticipants.participants)) {
+          throw new Error('Invalid participant data received from findParticipants');
+        }
+
+        // Filtra apenas os participantes que estão no evento
+        const resolvedParticipants = participantsUpdate.participants.map((participantId) => {
+          const participantData = groupParticipants.participants.find((p) => p.id === participantId);
+
+          let phoneNumber: string;
+          if (participantData?.phoneNumber) {
+            phoneNumber = participantData.phoneNumber;
+          } else {
+            phoneNumber = normalizePhoneNumber(participantId);
+          }
+
+          return {
+            jid: participantId,
+            phoneNumber,
+            name: participantData?.name,
+            imgUrl: participantData?.imgUrl,
+          };
+        });
+
+        // Mantém formato original + adiciona dados resolvidos
+        const enhancedParticipantsUpdate = {
+          ...participantsUpdate,
+          participants: participantsUpdate.participants, // Mantém array original de strings
+          // Adiciona dados resolvidos em campo separado
+          participantsData: resolvedParticipants,
+        };
+
+        this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, enhancedParticipantsUpdate);
+      } catch (error) {
+        this.logger.error(
+          `Failed to resolve participant data for GROUP_PARTICIPANTS_UPDATE webhook: ${error.message} | Group: ${participantsUpdate.id} | Participants: ${participantsUpdate.participants.length}`,
+        );
+        // Fallback - envia sem conversão
+        this.sendDataWebhook(Events.GROUP_PARTICIPANTS_UPDATE, participantsUpdate);
+      }
 
       this.updateGroupMetadataCache(participantsUpdate.id);
     },
@@ -3367,18 +3412,13 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           const numberJid = numberVerified?.jid || user.jid;
-          const lid =
-            typeof numberVerified?.lid === 'string'
-              ? numberVerified.lid
-              : numberJid.includes('@lid')
-                ? numberJid.split('@')[1]
-                : undefined;
+
           return new OnWhatsAppDto(
             numberJid,
             !!numberVerified?.exists,
             user.number,
             contacts.find((c) => c.remoteJid === numberJid)?.pushName,
-            lid,
+            undefined,
           );
         }),
       );
@@ -3530,7 +3570,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 keyId: messageId,
                 remoteJid: response.key.remoteJid,
                 fromMe: response.key.fromMe,
-                participant: response.key?.remoteJid,
+                participant: response.key?.participant,
                 status: 'DELETED',
                 instanceId: this.instanceId,
               };
@@ -3590,7 +3630,10 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      if ('messageContextInfo' in msg.message && Object.keys(msg.message).length === 1) {
+      if (
+        Object.keys(msg.message).length === 1 &&
+        Object.prototype.hasOwnProperty.call(msg.message, 'messageContextInfo')
+      ) {
         throw 'The message is messageContextInfo';
       }
 
@@ -3965,7 +4008,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 keyId: messageId,
                 remoteJid: messageSent.key.remoteJid,
                 fromMe: messageSent.key.fromMe,
-                participant: messageSent.key?.remoteJid,
+                participant: messageSent.key?.participant,
                 status: 'EDITED',
                 instanceId: this.instanceId,
               };
@@ -4461,7 +4504,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     // Use raw SQL to avoid JSON path issues
     const result = await this.prismaRepository.$executeRaw`
-      UPDATE "Message" 
+      UPDATE "Message"
       SET "status" = ${status[4]}
       WHERE "instanceId" = ${this.instanceId}
       AND "key"->>'remoteJid' = ${remoteJid}
@@ -4486,7 +4529,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.prismaRepository.chat.findFirst({ where: { remoteJid } }),
       // Use raw SQL to avoid JSON path issues
       this.prismaRepository.$queryRaw`
-        SELECT COUNT(*)::int as count FROM "Message" 
+        SELECT COUNT(*)::int as count FROM "Message"
         WHERE "instanceId" = ${this.instanceId}
         AND "key"->>'remoteJid' = ${remoteJid}
         AND ("key"->>'fromMe')::boolean = false
@@ -4561,8 +4604,8 @@ export class BaileysStartupService extends ChannelStartupService {
     return response;
   }
 
-  public async baileysAssertSessions(jids: string[], force: boolean) {
-    const response = await this.client.assertSessions(jids, force);
+  public async baileysAssertSessions(jids: string[]) {
+    const response = await this.client.assertSessions(jids);
 
     return response;
   }
@@ -4766,7 +4809,7 @@ export class BaileysStartupService extends ChannelStartupService {
           {
             OR: [
               keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
-              keyFilters?.senderPn ? { key: { path: ['senderPn'], equals: keyFilters?.senderPn } } : {},
+              keyFilters?.remoteJidAlt ? { key: { path: ['remoteJidAlt'], equals: keyFilters?.remoteJidAlt } } : {},
             ],
           },
         ],
@@ -4796,7 +4839,7 @@ export class BaileysStartupService extends ChannelStartupService {
           {
             OR: [
               keyFilters?.remoteJid ? { key: { path: ['remoteJid'], equals: keyFilters?.remoteJid } } : {},
-              keyFilters?.senderPn ? { key: { path: ['senderPn'], equals: keyFilters?.senderPn } } : {},
+              keyFilters?.remoteJidAlt ? { key: { path: ['remoteJidAlt'], equals: keyFilters?.remoteJidAlt } } : {},
             ],
           },
         ],
