@@ -1,5 +1,12 @@
 # 2.3.5 (develop)
 
+### Features
+
+* **Chatwoot Enhancements**: Comprehensive improvements to message handling, editing, deletion and i18n
+* **Participants Data**: Add participantsData field maintaining backward compatibility for group participants
+* **LID to Phone Number**: Convert LID to phoneNumber on group participants
+* **Docker Configurations**: Add Kafka and frontend services to Docker configurations
+
 ### Fixed
 
 * **Kafka Migration**: Fixed PostgreSQL migration error for Kafka integration
@@ -7,9 +14,28 @@
   - Fixed `ERROR: relation "public.Instance" does not exist` issue in migration `20250918182355_add_kafka_integration`
   - Aligned table naming convention with other Evolution API migrations for consistency
   - Resolved database migration failure that prevented Kafka integration setup
-* **Update Baileys Version**: v7.0.0-rc.4
-* Refactor connection with PostgreSQL and improve message handling
+* **Update Baileys Version**: v7.0.0-rc.5 with compatibility fixes
+  - Fixed assertSessions signature compatibility using type assertion
+  - Fixed incompatibility in voice call (wavoip) with new Baileys version
+  - Handle undefined status in update by defaulting to 'DELETED'
+* **Chatwoot Improvements**: Multiple fixes for enhanced reliability
+  - Correct chatId extraction for non-group JIDs
+  - Resolve webhook timeout on deletion with 5+ images
+  - Improve error handling in Chatwoot messages
+  - Adjust conversation verification logic and cache
+  - Optimize conversation reopening logic and connection notification
+  - Fix conversation reopening and connection loop
+* **Baileys Message Handling**: Enhanced message processing
+  - Add warning log for messages not found
+  - Fix message verification in Baileys service
+  - Simplify linkPreview handling in BaileysStartupService
+* **Media Validation**: Fix media content validation
+* **PostgreSQL Connection**: Refactor connection with PostgreSQL and improve message handling
 
+### Code Quality & Refactoring
+
+* **Exponential Backoff**: Implement exponential backoff patterns and extract magic numbers to constants
+* **TypeScript Build**: Update TypeScript build process and dependencies
 
 ### 
 
