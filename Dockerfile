@@ -8,6 +8,7 @@ LABEL maintainer="Davidson Gomes" git="https://github.com/DavidsonGomes"
 LABEL contact="contato@evolution-api.com"
 
 WORKDIR /evolution
+RUN touch ./database.db
 
 COPY ./package*.json ./
 COPY ./tsconfig.json ./
