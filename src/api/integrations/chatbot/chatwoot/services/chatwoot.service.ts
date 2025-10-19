@@ -2051,7 +2051,7 @@ export class ChatwootService {
                 ? `**${formattedPhoneNumber} - ${participantName}:**\n\n${bodyMessage}`
                 : `**${formattedPhoneNumber} - ${participantName}:**`;
             } else {
-              content = bodyMessage ? bodyMessage : '';
+              content = bodyMessage || '';
             }
 
             const send = await this.sendData(
