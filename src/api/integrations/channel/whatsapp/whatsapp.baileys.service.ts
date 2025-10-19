@@ -3382,17 +3382,17 @@ export class BaileysStartupService extends ChannelStartupService {
       where: { instanceId: this.instanceId, remoteJid: { in: jids.users.map(({ jid }) => jid) } },
     });
 
-    // TODO: Unificar verificação de cache para todos os números (normais e LID)
+    // Unified cache verification for all numbers (normal and LID)
     const numbersToVerify = jids.users.map(({ jid }) => jid.replace('+', ''));
 
-    // TODO: Busca TODOS os números no cache
+    // Get all numbers from cache
     const cachedNumbers = await getOnWhatsappCache(numbersToVerify);
 
-    // Separa números que estão e não estão no cache
+    // Separate numbers that are and are not in cache
     const cachedJids = new Set(cachedNumbers.flatMap((cached) => cached.jidOptions));
     const numbersNotInCache = numbersToVerify.filter((jid) => !cachedJids.has(jid));
 
-    // TODO: Só chama Baileys para números normais (@s.whatsapp.net) que não estão no cache
+    // Only call Baileys for normal numbers (@s.whatsapp.net) that are not in cache
     let verify: { jid: string; exists: boolean }[] = [];
     const normalNumbersNotInCache = numbersNotInCache.filter((jid) => !jid.includes('@lid'));
 
@@ -3403,7 +3403,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     const verifiedUsers = await Promise.all(
       jids.users.map(async (user) => {
-        // TODO: Tenta pegar do cache primeiro (funciona para todos: normais e LID)
+        // Try to get from cache first (works for all: normal and LID)
         const cached = cachedNumbers.find((cached) => cached.jidOptions.includes(user.jid.replace('+', '')));
 
         if (cached) {
@@ -3417,7 +3417,7 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
 
-        // TODO: Se é número LID e não está no cache, considerar como válido
+        // If it's a LID number and not in cache, consider it valid
         if (user.jid.includes('@lid')) {
           return new OnWhatsAppDto(
             user.jid,
@@ -3428,7 +3428,7 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
 
-        // TODO: Se não está no cache e é número normal, usa a verificação do Baileys
+        // If not in cache and is a normal number, use Baileys verification
         let numberVerified: (typeof verify)[0] | null = null;
 
         // Brazilian numbers
