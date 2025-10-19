@@ -4444,24 +4444,37 @@ export class BaileysStartupService extends ChannelStartupService {
     throw new Error('Method not available in the Baileys service');
   }
 
-  private convertLongToNumber(obj: any): any {
+  private deserializeMessageBuffers(obj: any): any {
     if (obj === null || obj === undefined) {
       return obj;
     }
 
-    if (Long.isLong(obj)) {
-      return obj.toNumber();
+    if (typeof obj === 'object' && !Array.isArray(obj) && !Buffer.isBuffer(obj)) {
+      const keys = Object.keys(obj);
+      const isIndexedObject = keys.every((key) => !isNaN(Number(key)));
+
+      if (isIndexedObject && keys.length > 0) {
+        const values = keys.sort((a, b) => Number(a) - Number(b)).map((key) => obj[key]);
+        return new Uint8Array(values);
+      }
     }
 
+    // Is Buffer?, converter to Uint8Array
+    if (Buffer.isBuffer(obj)) {
+      return new Uint8Array(obj);
+    }
+
+    // Process arrays recursively
     if (Array.isArray(obj)) {
-      return obj.map((item) => this.convertLongToNumber(item));
+      return obj.map((item) => this.deserializeMessageBuffers(item));
     }
 
+    // Process objects recursively
     if (typeof obj === 'object') {
       const converted: any = {};
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          converted[key] = this.convertLongToNumber(obj[key]);
+          converted[key] = this.deserializeMessageBuffers(obj[key]);
         }
       }
       return converted;
@@ -4482,8 +4495,8 @@ export class BaileysStartupService extends ChannelStartupService {
           ? 'Você'
           : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
       status: status[message.status],
-      message: this.convertLongToNumber({ ...message.message }),
-      contextInfo: this.convertLongToNumber(contentMsg?.contextInfo),
+      message: this.deserializeMessageBuffers({ ...message.message }),
+      contextInfo: this.deserializeMessageBuffers(contentMsg?.contextInfo),
       messageType: contentType || 'unknown',
       messageTimestamp: Long.isLong(message.messageTimestamp)
         ? message.messageTimestamp.toNumber()
