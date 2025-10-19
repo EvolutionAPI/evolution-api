@@ -1,5 +1,5 @@
 import { Logger } from '@config/logger.config';
-import { BaileysEventMap, MessageUpsertType, proto } from 'baileys';
+import { BaileysEventMap, MessageUpsertType, WAMessage } from 'baileys';
 import { catchError, concatMap, delay, EMPTY, from, retryWhen, Subject, Subscription, take, tap } from 'rxjs';
 
 type MessageUpsertPayload = BaileysEventMap['messages.upsert'];
@@ -12,7 +12,7 @@ export class BaileysMessageProcessor {
   private subscription?: Subscription;
 
   protected messageSubject = new Subject<{
-    messages: proto.IWebMessageInfo[];
+    messages: WAMessage[];
     type: MessageUpsertType;
     requestId?: string;
     settings: any;
