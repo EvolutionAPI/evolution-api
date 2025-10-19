@@ -108,9 +108,8 @@ export async function saveOnWhatsappCache(data: ISaveOnWhatsappCacheParams[]) {
 
       // TODO: Se tiver remoteJidAlt com @lid novo, adicionar
       if (altJid && !finalJidOptions.includes(altJid)) {
-            finalJidOptions.push(altJid);
+        finalJidOptions.push(altJid);
       }
-
 
       const uniqueNumbers = Array.from(new Set(finalJidOptions));
 

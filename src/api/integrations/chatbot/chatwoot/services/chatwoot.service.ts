@@ -573,7 +573,7 @@ export class ChatwootService {
     const isLid = body.key.addressingMode === 'lid';
     const isGroup = body.key.remoteJid.endsWith('@g.us');
     const phoneNumber = isLid && !isGroup ? body.key.remoteJidAlt : body.key.remoteJid;
-    const {remoteJid} = body.key;
+    const { remoteJid } = body.key;
     const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
     const lockKey = `${instance.instanceName}:lock:createConversation-${remoteJid}`;
     const maxWaitTime = 5000; // 5 seconds
