@@ -1,3 +1,31 @@
+# 2.3.6 (2025-10-21)
+
+### Features
+
+* **Baileys, Chatwoot, OnWhatsapp Cache**: Multiple implementations and fixes
+  - Fixed cache for PN, LID and g.us numbers to send correct number
+  - Fixed audio and document sending via Chatwoot in Baileys channel
+  - Multiple fixes in Chatwoot integration
+  - Fixed ignored messages when receiving leads
+
+### Fixed
+
+* **Baileys**: Fix buffer storage in database
+  - Correctly save Uint8Array values to database
+* **Baileys**: Simplify logging of messageSent object
+  - Fixed "this.isZero not is function" error
+
+### Chore
+
+* **Version**: Bump version to 2.3.6 and update Baileys dependency to 7.0.0-rc.6
+* **Workflows**: Update checkout step to include submodules
+  - Added 'submodules: recursive' option to checkout step in multiple workflow files to ensure submodules are properly initialized during CI/CD processes
+* **Manager**: Update asset files and install process
+  - Updated subproject reference in evolution-manager-v2 to the latest commit
+  - Enhanced the manager_install.sh script to include npm install and build steps
+  - Replaced old JavaScript asset file with a new version for improved performance
+  - Added a new CSS file for consistent styling across the application
+
 # 2.3.5 (2025-10-15)
 
 ### Features
