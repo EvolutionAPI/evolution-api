@@ -490,18 +490,21 @@ export class ChannelStartupService {
   }
 
   public async fetchContacts(query: Query<Contact>) {
-    const remoteJid = query?.where?.remoteJid
-      ? query?.where?.remoteJid.includes('@')
-        ? query.where?.remoteJid
-        : createJid(query.where?.remoteJid)
-      : null;
-
-    const where = {
+    const where: any = {
       instanceId: this.instanceId,
     };
 
-    if (remoteJid) {
+    if (query?.where?.remoteJid) {
+      const remoteJid = query.where.remoteJid.includes('@') ? query.where.remoteJid : createJid(query.where.remoteJid);
       where['remoteJid'] = remoteJid;
+    }
+
+    if (query?.where?.id) {
+      where['id'] = query.where.id;
+    }
+
+    if (query?.where?.pushName) {
+      where['pushName'] = query.where.pushName;
     }
 
     const contactFindManyArgs: Prisma.ContactFindManyArgs = {
