@@ -1048,12 +1048,12 @@ export class ChatwootService {
       data.append('source_id', sourceId);
     }
 
-    const config = {
+        const config = {
       method: 'post',
       maxBodyLength: Infinity,
       url: `${this.provider.url}/api/v1/accounts/${this.provider.accountId}/conversations/${conversationId}/messages`,
       headers: {
-        api_access_token: this.provider.token,
+        'api-access-token': this.provider.token,
         ...data.getHeaders(),
       },
       data: data,
@@ -1121,12 +1121,12 @@ export class ChatwootService {
       data.append('attachments[]', fileStream, { filename: fileName });
     }
 
-    const config = {
+        const config = {
       method: 'post',
       maxBodyLength: Infinity,
       url: `${this.provider.url}/api/v1/accounts/${this.provider.accountId}/conversations/${conversation.id}/messages`,
       headers: {
-        api_access_token: this.provider.token,
+        'api-access-token': this.provider.token,
         ...data.getHeaders(),
       },
       data: data,
