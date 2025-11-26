@@ -4684,6 +4684,14 @@ export class BaileysStartupService extends ChannelStartupService {
     return response;
   }
 
+  public async getJidForLid(lid: string) {
+    const response = {
+      jid: await this.client.signalRepository.lidMapping.getPNForLID(lid)
+    };
+
+    return response;
+  }
+
   public async baileysProfilePictureUrl(jid: string, type: 'image' | 'preview', timeoutMs: number) {
     const response = await this.client.profilePictureUrl(jid, type, timeoutMs);
 

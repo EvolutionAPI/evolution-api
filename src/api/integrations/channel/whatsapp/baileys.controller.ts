@@ -16,6 +16,12 @@ export class BaileysController {
     return instance.getLidForJid(body?.jid);
   }
 
+  public async getJidForLid({ instanceName }: InstanceDto, body: any) {
+    const instance = this.waMonitor.waInstances[instanceName];
+
+    return instance.getJidForLid(body?.lid);
+  }
+
   public async profilePictureUrl({ instanceName }: InstanceDto, body: any) {
     const instance = this.waMonitor.waInstances[instanceName];
 
