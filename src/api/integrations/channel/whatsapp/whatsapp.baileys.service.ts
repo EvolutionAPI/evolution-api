@@ -4607,7 +4607,7 @@ export class BaileysStartupService extends ChannelStartupService {
       this.prismaRepository.chat.findFirst({ where: { remoteJid } }),
       // Use raw SQL to avoid JSON path issues
       this.prismaRepository.$queryRaw`
-        SELECT COUNT(*)::int as count FROM "Message"
+        SELECT COUNT(*)::int as count FROM evolution_api."Message"
         WHERE "instanceId" = ${this.instanceId}
         AND "key"->>'remoteJid' = ${remoteJid}
         AND ("key"->>'fromMe')::boolean = false

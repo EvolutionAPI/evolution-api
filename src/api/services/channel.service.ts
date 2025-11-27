@@ -768,7 +768,7 @@ export class ChannelStartupService {
           "Message"."instanceId" AS "lastMessageInstanceId",
           "Message"."sessionId" AS "lastMessageSessionId",
           "Message"."status" AS "lastMessageStatus"
-        FROM "Message"
+        FROM evolution_api."Message"
         LEFT JOIN "Contact" ON "Contact"."remoteJid" = "Message"."key"->>'remoteJid' AND "Contact"."instanceId" = "Message"."instanceId"
         LEFT JOIN "Chat" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid' AND "Chat"."instanceId" = "Message"."instanceId"
         WHERE "Message"."instanceId" = ${this.instanceId}
