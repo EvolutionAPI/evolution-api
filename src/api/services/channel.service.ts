@@ -771,7 +771,7 @@ export class ChannelStartupService {
         FROM evolution_api."Message"
         LEFT JOIN evolution_api."Contact" ON "Contact"."remoteJid" = "Message"."key"->>'remoteJid' AND "Contact"."instanceId" = "Message"."instanceId"
         LEFT JOIN evolution_api."Chat" ON "Chat"."remoteJid" = "Message"."key"->>'remoteJid' AND "Chat"."instanceId" = "Message"."instanceId"
-        WHERE "Message"."instanceId" = ${this.instanceId}
+        WHERE   "Message"."instanceId" = ${this.instanceId}
         ${remoteJid ? Prisma.sql`AND "Message"."key"->>'remoteJid' = ${remoteJid}` : Prisma.sql``}
         ${timestampFilter}
         ORDER BY "Message"."key"->>'remoteJid', "Message"."messageTimestamp" DESC

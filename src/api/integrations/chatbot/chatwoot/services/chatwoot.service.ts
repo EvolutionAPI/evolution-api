@@ -1560,7 +1560,7 @@ export class ChatwootService {
 
     // Use raw SQL to avoid JSON path issues
     const result = await this.prismaRepository.$executeRaw`
-      UPDATE "Message" 
+      UPDATE evolution_api."Message" 
       SET 
         "chatwootMessageId" = ${chatwootMessageIds.messageId},
         "chatwootConversationId" = ${chatwootMessageIds.conversationId},

@@ -4582,7 +4582,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     // Use raw SQL to avoid JSON path issues
     const result = await this.prismaRepository.$executeRaw`
-      UPDATE "Message"
+      UPDATE evolution_api."Message"
       SET "status" = ${status[4]}
       WHERE "instanceId" = ${this.instanceId}
       AND "key"->>'remoteJid' = ${remoteJid}
@@ -4626,7 +4626,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const id = cuid();
 
     await this.prismaRepository.$executeRawUnsafe(
-      `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
+      `INSERT INTO evolution_api."Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
        VALUES ($4, $2, $3, to_jsonb(ARRAY[$1]::text[]), NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
      DO
       UPDATE
@@ -4650,7 +4650,7 @@ export class BaileysStartupService extends ChannelStartupService {
     const id = cuid();
 
     await this.prismaRepository.$executeRawUnsafe(
-      `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
+      `INSERT INTO evolution_api."Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
        VALUES ($4, $2, $3, '[]'::jsonb, NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
      DO
       UPDATE
