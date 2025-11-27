@@ -1581,7 +1581,7 @@ export class ChatwootService {
   private async getMessageByKeyId(instance: InstanceDto, keyId: string): Promise<MessageModel> {
     // Use raw SQL query to avoid JSON path issues with Prisma
     const messages = await this.prismaRepository.$queryRaw`
-      SELECT * FROM "Message" 
+      SELECT * FROM evolution_api."Message" 
       WHERE "instanceId" = ${instance.instanceId} 
       AND "key"->>'id' = ${keyId}
       LIMIT 1

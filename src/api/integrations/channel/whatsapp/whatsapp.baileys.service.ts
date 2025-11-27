@@ -520,7 +520,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       // Use raw SQL to avoid JSON path issues
       const webMessageInfo = (await this.prismaRepository.$queryRaw`
-        SELECT * FROM "Message"
+        SELECT * FROM evolution_api."Message"
         WHERE "instanceId" = ${this.instanceId}
         AND "key"->>'id' = ${key.id}
       `) as proto.IWebMessageInfo[];
@@ -1499,7 +1499,7 @@ export class BaileysStartupService extends ChannelStartupService {
           if (configDatabaseData.HISTORIC || configDatabaseData.NEW_MESSAGE) {
             // Use raw SQL to avoid JSON path issues
             const messages = (await this.prismaRepository.$queryRaw`
-              SELECT * FROM "Message"
+              SELECT * FROM evolution_api."Message"
               WHERE "instanceId" = ${this.instanceId}
               AND "key"->>'id' = ${key.id}
               LIMIT 1
