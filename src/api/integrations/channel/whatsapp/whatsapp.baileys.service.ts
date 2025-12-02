@@ -631,10 +631,25 @@ export class BaileysStartupService extends ChannelStartupService {
       }
     }
 
+    const fs = await import('fs');
+
+    fs.mkdirSync(`./logs/${this.instance.name}`, { recursive: true })
+
+    const baileysLogger = P({
+      level: this.logBaileys,
+      transport: {
+        target: 'pino/file',
+        options: {
+          destination: `./logs/${this.instance.name}/baileys-logs.log`,
+          mkdir: true
+        }
+      }
+    })
+
     const socketConfig: UserFacingSocketConfig = {
       ...options,
       version,
-      logger: P({ level: this.logBaileys }),
+      logger: baileysLogger,
       printQRInTerminal: false,
       auth: {
         creds: this.instance.authState.state.creds,
