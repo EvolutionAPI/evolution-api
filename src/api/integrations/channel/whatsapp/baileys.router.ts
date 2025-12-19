@@ -34,7 +34,7 @@ export class BaileysRouter extends RouterBroker {
           request: req,
           schema: instanceSchema,
           ClassRef: InstanceDto,
-          execute: (instance) => baileysController.getLidForJid(instance, req.body),
+          execute: (instance) => baileysController.getJidForLid(instance, req.body),
         });
 
         res.status(HttpStatus.OK).json(response);
