@@ -132,6 +132,7 @@ model Chat {
   instanceId     String
   unreadMessages Int       @default(0)
 
+  @@unique([instanceId, remoteJid])
   @@index([instanceId])
   @@index([remoteJid])
 }

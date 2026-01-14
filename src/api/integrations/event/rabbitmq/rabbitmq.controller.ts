@@ -209,6 +209,7 @@ export class RabbitmqController extends EventController implements EventControll
     sender,
     apiKey,
     integration,
+    extra,
   }: EmitData): Promise<void> {
     if (integration && !integration.includes('rabbitmq')) {
       return;
@@ -233,6 +234,7 @@ export class RabbitmqController extends EventController implements EventControll
     const logEnabled = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
 
     const message = {
+      ...(extra ?? {}),
       event,
       instance: instanceName,
       data,

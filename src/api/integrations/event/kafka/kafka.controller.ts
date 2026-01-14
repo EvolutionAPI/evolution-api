@@ -262,6 +262,7 @@ export class KafkaController extends EventController implements EventControllerI
     sender,
     apiKey,
     integration,
+    extra,
   }: EmitData): Promise<void> {
     if (integration && !integration.includes('kafka')) {
       return;
@@ -284,6 +285,7 @@ export class KafkaController extends EventController implements EventControllerI
     const logEnabled = configService.get<Log>('LOG').LEVEL.includes('WEBHOOKS');
 
     const message = {
+      ...(extra ?? {}),
       event,
       instance: instanceName,
       data,

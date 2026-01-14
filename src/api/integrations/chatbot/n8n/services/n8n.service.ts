@@ -51,6 +51,7 @@ export class N8nService extends BaseChatbotService<N8n, N8nSetting> {
         pushName: pushName,
         keyId: msg?.key?.id,
         fromMe: msg?.key?.fromMe,
+        quotedMessage: msg?.contextInfo?.quotedMessage,
         instanceName: instance.instanceName,
         serverUrl: this.configService.get<HttpServer>('SERVER').URL,
         apiKey: instance.token,

@@ -327,7 +327,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       if (message.type === 'image') {
         await instance.mediaMessage(
           {
-            number: session.remoteJid.split('@')[0],
+            number: session.remoteJid,
             delay: settings?.delayMessage || 1000,
             mediatype: 'image',
             media: message.content.url,
@@ -342,7 +342,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       if (message.type === 'video') {
         await instance.mediaMessage(
           {
-            number: session.remoteJid.split('@')[0],
+            number: session.remoteJid,
             delay: settings?.delayMessage || 1000,
             mediatype: 'video',
             media: message.content.url,
@@ -357,7 +357,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
       if (message.type === 'audio') {
         await instance.audioWhatsapp(
           {
-            number: session.remoteJid.split('@')[0],
+            number: session.remoteJid,
             delay: settings?.delayMessage || 1000,
             encoding: true,
             audio: message.content.url,
@@ -441,7 +441,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
    */
   private async processListMessage(instance: any, formattedText: string, remoteJid: string) {
     const listJson = {
-      number: remoteJid.split('@')[0],
+      number: remoteJid,
       title: '',
       description: '',
       buttonText: '',
@@ -490,7 +490,7 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
    */
   private async processButtonMessage(instance: any, formattedText: string, remoteJid: string) {
     const buttonJson = {
-      number: remoteJid.split('@')[0],
+      number: remoteJid,
       thumbnailUrl: undefined,
       title: '',
       description: '',

@@ -211,7 +211,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
         try {
           if (mediaType === 'audio') {
             await instance.audioWhatsapp({
-              number: remoteJid.split('@')[0],
+              number: remoteJid.includes('@lid') ? remoteJid : remoteJid.split('@')[0],
               delay: (settings as any)?.delayMessage || 1000,
               audio: url,
               caption: altText,
@@ -219,7 +219,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
           } else {
             await instance.mediaMessage(
               {
-                number: remoteJid.split('@')[0],
+                number: remoteJid.includes('@lid') ? remoteJid : remoteJid.split('@')[0],
                 delay: (settings as any)?.delayMessage || 1000,
                 mediatype: mediaType,
                 media: url,
@@ -290,7 +290,7 @@ export abstract class BaseChatbotService<BotType = any, SettingsType = any> {
       setTimeout(async () => {
         await instance.textMessage(
           {
-            number: remoteJid.split('@')[0],
+            number: remoteJid.includes('@lid') ? remoteJid : remoteJid.split('@')[0],
             delay: settings?.delayMessage || 1000,
             text: message,
             linkPreview,

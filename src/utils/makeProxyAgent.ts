@@ -56,7 +56,7 @@ export function makeProxyAgent(proxy: Proxy | string): HttpsProxyAgent<string> |
   return selectProxyAgent(proxyUrl);
 }
 
-export function makeProxyAgentUndici(proxy: Proxy | string) {
+export function makeProxyAgentUndici(proxy: Proxy | string): ProxyAgent {
   let proxyUrl: string;
   let protocol: string;
 
@@ -67,7 +67,10 @@ export function makeProxyAgentUndici(proxy: Proxy | string) {
   } else {
     const { host, password, port, protocol: proto, username } = proxy;
     protocol = (proto || 'http').replace(':', '');
-    if (protocol === 'socks') protocol = 'socks5';
+
+    if (protocol === 'socks') {
+      protocol = 'socks5';
+    }
 
     const auth = username && password ? `${username}:${password}@` : '';
     proxyUrl = `${protocol}://${auth}${host}:${port}`;

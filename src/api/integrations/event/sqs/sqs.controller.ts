@@ -93,6 +93,7 @@ export class SqsController extends EventController implements EventControllerInt
     sender,
     apiKey,
     integration,
+    extra,
   }: EmitData): Promise<void> {
     if (integration && !integration.includes('sqs')) {
       return;
@@ -128,6 +129,7 @@ export class SqsController extends EventController implements EventControllerInt
         const sqsUrl = `https://sqs.${sqsConfig.REGION}.amazonaws.com/${sqsConfig.ACCOUNT_ID}/${queueName}`;
 
         const message = {
+          ...(extra ?? {}),
           event,
           instance: instanceName,
           dataType: 'json',

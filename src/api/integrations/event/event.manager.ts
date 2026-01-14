@@ -123,6 +123,7 @@ export class EventManager {
     apiKey?: string;
     local?: boolean;
     integration?: string[];
+    extra?: Record<string, any>;
   }): Promise<void> {
     await this.websocket.emit(eventData);
     await this.rabbitmq.emit(eventData);
