@@ -318,7 +318,7 @@ export class EvolutionStartupService extends ChannelStartupService {
 
       let audioFile;
 
-      const messageId = v4();
+      const messageId = options?.messageId ?? v4();
 
       let messageRaw: any;
 
@@ -548,6 +548,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         linkPreview: data?.linkPreview,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
       null,
       isIntegration,
@@ -613,6 +614,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         linkPreview: data?.linkPreview,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
       file,
       isIntegration,
@@ -711,6 +713,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         linkPreview: data?.linkPreview,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
       file,
       isIntegration,
@@ -736,6 +739,7 @@ export class EvolutionStartupService extends ChannelStartupService {
         quoted: data?.quoted,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
       null,
       isIntegration,

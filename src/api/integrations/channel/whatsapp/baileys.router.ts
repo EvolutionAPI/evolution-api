@@ -39,6 +39,16 @@ export class BaileysRouter extends RouterBroker {
 
         res.status(HttpStatus.OK).json(response);
       })
+      .get(this.routerPath('generateMessageID'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: instanceSchema,
+          ClassRef: InstanceDto,
+          execute: (instance) => baileysController.generateMessageID(instance),
+        });
+
+        res.status(HttpStatus.OK).json(response);
+      })
       .post(this.routerPath('profilePictureUrl'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
