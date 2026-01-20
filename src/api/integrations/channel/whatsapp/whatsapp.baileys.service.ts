@@ -955,6 +955,14 @@ export class BaileysStartupService extends ChannelStartupService {
       progress?: number;
       syncType?: proto.HistorySync.HistorySyncType;
     }) => {
+      //These logs are crucial; when something changes in Baileys/WhatsApp, we can more easily understand what changed!
+      this.logger.debug('Messages abaixo');
+      this.logger.debug(messages);
+      this.logger.debug('Chats abaixo');
+      this.logger.debug(chats);
+      this.logger.debug('Contatos abaixo');
+      this.logger.debug(contacts);
+
       try {
         if (syncType === proto.HistorySync.HistorySyncType.ON_DEMAND) {
           console.log('received on-demand history sync, messages=', messages);
@@ -983,14 +991,29 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         const contactsMap = new Map();
+        const contactsMapLidJid = new Map();
 
         for (const contact of contacts) {
-          if (contact.id && (contact.notify || contact.name)) {
-            contactsMap.set(contact.id, { name: contact.name ?? contact.notify, jid: contact.id });
+          let jid = null;
+
+          if (contact?.id?.search('@lid') !== -1) {
+            if (contact.phoneNumber) {
+              jid = contact.phoneNumber;
+            }
           }
+
+          if (!jid) {
+            jid = contact?.id;
+          }
+
+          if (contact.id && (contact.notify || contact.name)) {
+            contactsMap.set(contact.id, { name: contact.name ?? contact.notify, jid });
+          }
+
+          contactsMapLidJid.set(contact.id, { jid });
         }
 
-        const chatsRaw: { remoteJid: string; instanceId: string; name?: string }[] = [];
+        const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string }[] = [];
         const chatsRepository = new Set(
           (await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } })).map(
             (chat) => chat.remoteJid,
@@ -1002,7 +1025,24 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          chatsRaw.push({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name });
+          let remoteJid = null;
+          let remoteLid = null;
+
+          if (chat.id.search('@lid') !== -1) {
+            const contact = contactsMapLidJid.get(chat.id);
+
+            remoteLid = chat.id;
+
+            if (contact && contact.jid) {
+              remoteJid = contact.jid;
+            }
+          }
+
+          if (!remoteJid) {
+            remoteJid = chat.id;
+          }
+
+          chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name });
         }
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
