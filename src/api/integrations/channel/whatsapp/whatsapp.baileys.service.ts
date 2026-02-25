@@ -5119,6 +5119,10 @@ export class BaileysStartupService extends ChannelStartupService {
     if (timestamp === undefined || timestamp === null) return 0;
 
     const provider = this.configService.get<Database>('DATABASE').PROVIDER;
+    const unread = this.configService.get<Database>('DATABASE').SAVE_DATA.UNREAD;
+
+    if(unread === false) return 0;
+
     let result: number;
 
     if (provider === 'mysql') {
@@ -5157,6 +5161,11 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async updateChatUnreadMessages(remoteJid: string): Promise<number> {
+
+    const unread = this.configService.get<Database>('DATABASE').SAVE_DATA.UNREAD;
+
+    if(unread === false) return 0;
+
     const provider = this.configService.get<Database>('DATABASE').PROVIDER;
 
     let unreadMessagesPromise: Promise<number>;

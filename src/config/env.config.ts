@@ -42,6 +42,7 @@ export type SaveData = {
   NEW_MESSAGE: boolean;
   MESSAGE_UPDATE: boolean;
   CONTACTS: boolean;
+  UNREAD: boolean;
   CHATS: boolean;
   LABELS: boolean;
   IS_ON_WHATSAPP: boolean;
@@ -498,6 +499,7 @@ export class ConfigService {
           NEW_MESSAGE: process.env?.DATABASE_SAVE_DATA_NEW_MESSAGE === 'true',
           MESSAGE_UPDATE: process.env?.DATABASE_SAVE_MESSAGE_UPDATE === 'true',
           CONTACTS: process.env?.DATABASE_SAVE_DATA_CONTACTS === 'true',
+          UNREAD: process.env?.DATABASE_SAVE_UNREAD === 'true',
           CHATS: process.env?.DATABASE_SAVE_DATA_CHATS === 'true',
           HISTORIC: process.env?.DATABASE_SAVE_DATA_HISTORIC === 'true',
           LABELS: process.env?.DATABASE_SAVE_DATA_LABELS === 'true',
