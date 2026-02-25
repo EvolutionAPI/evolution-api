@@ -1841,7 +1841,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             if (!findMessage?.id) {
               this.logger.verbose(
-                `Original message not found for update after ${maxRetries} retries. Skipping. This is expected for protocol messages or ephemeral events not saved to the database. Key: ${JSON.stringify(key)}`,
+                `Original message not found for update. Skipping. This is expected for protocol messages or ephemeral events not saved to the database. Key: ${JSON.stringify(key)}`,
               );
               continue;
             }
