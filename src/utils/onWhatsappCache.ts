@@ -1,6 +1,7 @@
 import { prismaRepository } from '@api/server.module';
 import { configService, Database } from '@config/env.config';
 import { Logger } from '@config/logger.config';
+import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 
 const logger = new Logger('OnWhatsappCache');
@@ -164,9 +165,28 @@ export async function saveOnWhatsappCache(data: ISaveOnWhatsappCacheParams[]) {
         logger.verbose(
           `[saveOnWhatsappCache] Register does not exist, creating: remoteJid=${remoteJid}, jidOptions=${dataPayload.jidOptions}, lid=${dataPayload.lid}`,
         );
-        await prismaRepository.isOnWhatsapp.create({
-          data: dataPayload,
-        });
+        try {
+          await prismaRepository.isOnWhatsapp.create({
+            data: dataPayload,
+          });
+        } catch (error: any) {
+          // Check for unique constraint violation (Prisma error code P2002)
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002' &&
+            (error.meta?.target as string[])?.includes('remoteJid')
+          ) {
+            logger.verbose(
+              `[saveOnWhatsappCache] Race condition detected for ${remoteJid}, updating existing record instead.`,
+            );
+            await prismaRepository.isOnWhatsapp.update({
+              where: { remoteJid: remoteJid },
+              data: dataPayload,
+            });
+          } else {
+            throw error;
+          }
+        }
       }
     } catch (e) {
       // Loga o erro mas não para a execução dos outros promises

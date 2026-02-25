@@ -2,6 +2,7 @@ import { RouterBroker } from '@api/abstract/abstract.router';
 import {
   ArchiveChatDto,
   BlockUserDto,
+  DecryptPollVoteDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
   MarkChatUnreadDto,
@@ -23,6 +24,7 @@ import {
   archiveChatSchema,
   blockUserSchema,
   contactValidateSchema,
+  decryptPollVoteSchema,
   deleteMessageSchema,
   markChatUnreadSchema,
   messageUpSchema,
@@ -281,6 +283,26 @@ export class ChatRouter extends RouterBroker {
         });
 
         return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('getPollVote'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<DecryptPollVoteDto>({
+          request: req,
+          schema: decryptPollVoteSchema,
+          ClassRef: DecryptPollVoteDto,
+          execute: (instance, data) => chatController.decryptPollVote(instance, data),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
+      .post(this.routerPath('findChannels'), ...guards, async (req, res) => {
+        const response = await this.dataValidate({
+          request: req,
+          schema: contactValidateSchema,
+          ClassRef: Query<Contact>,
+          execute: (instance, query) => chatController.fetchChannels(instance, query as any),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
       });
   }
 

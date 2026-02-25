@@ -16,7 +16,7 @@ const getTypeMessage = (msg: any) => {
     conversation: msg?.message?.conversation,
     extendedTextMessage: msg?.message?.extendedTextMessage?.text,
     contactMessage: msg?.message?.contactMessage?.displayName,
-    locationMessage: msg?.message?.locationMessage?.degreesLatitude.toString(),
+    locationMessage: msg?.message?.locationMessage?.degreesLatitude?.toString(),
     viewOnceMessageV2:
       msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
       msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
@@ -49,9 +49,18 @@ const getTypeMessage = (msg: any) => {
             : ''
         }`
       : undefined,
-    externalAdReplyBody: msg?.contextInfo?.externalAdReply?.body
-      ? `externalAdReplyBody|${msg.contextInfo.externalAdReply.body}`
-      : undefined,
+
+    // --- FIX FACEBOOK ADS START ---
+    externalAdReplyBody: msg?.message?.extendedTextMessage?.contextInfo?.externalAdReply?.body
+      ? `externalAdReplyBody|${msg.message.extendedTextMessage.contextInfo.externalAdReply.body}`
+      : msg?.message?.extendedTextMessage?.contextInfo?.externalAdReply?.title
+        ? `externalAdReplyBody|${msg.message.extendedTextMessage.contextInfo.externalAdReply.title}`
+        : msg?.contextInfo?.externalAdReply?.body
+          ? `externalAdReplyBody|${msg.contextInfo.externalAdReply.body}`
+          : msg?.contextInfo?.externalAdReply?.title
+            ? `externalAdReplyBody|${msg.contextInfo.externalAdReply.title}`
+            : undefined,
+    // --- FIX FACEBOOK ADS END ---
   };
 
   const messageType = Object.keys(types).find((key) => types[key] !== undefined) || 'unknown';
@@ -60,7 +69,9 @@ const getTypeMessage = (msg: any) => {
 };
 
 const getMessageContent = (types: any) => {
-  const typeKey = Object.keys(types).find((key) => key !== 'externalAdReplyBody' && types[key] !== undefined);
+  const typeKey = Object.keys(types).find(
+    (key) => key !== 'externalAdReplyBody' && key !== 'messageType' && types[key] !== undefined,
+  );
 
   let result = typeKey ? types[typeKey] : undefined;
 
@@ -73,8 +84,7 @@ const getMessageContent = (types: any) => {
 
 export const getConversationMessage = (msg: any) => {
   const types = getTypeMessage(msg);
-
   const messageContent = getMessageContent(types);
 
-  return messageContent;
+  return messageContent ?? '';
 };

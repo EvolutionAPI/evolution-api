@@ -368,6 +368,60 @@ export class TypebotService extends BaseChatbotService<TypebotModel, any> {
         sendTelemetry('/message/sendWhatsAppAudio');
       }
 
+      if (message.type === 'file' || message.type === 'embed') {
+        const content = message.content as { url?: string; name?: string } | undefined;
+        if (!content?.url) {
+          sendTelemetry('/message/sendMediaMissingUrl');
+          return;
+        }
+
+        const mediaUrl = content.url;
+        const mediaType = this.getMediaType(mediaUrl);
+
+        let fileName = content.name;
+        if (!fileName) {
+          try {
+            const urlObj = new URL(mediaUrl);
+            const path = urlObj.pathname || '';
+            const candidate = path.split('/').pop() || '';
+            if (candidate && candidate.includes('.')) {
+              fileName = candidate;
+            }
+          } catch {
+            // Ignore URL parsing failures
+          }
+
+          if (!fileName) {
+            fileName = mediaType && mediaType !== 'document' ? `media.${mediaType}` : 'attachment';
+          }
+        }
+
+        if (mediaType === 'audio') {
+          await instance.audioWhatsapp(
+            {
+              number: session.remoteJid,
+              delay: settings?.delayMessage || 1000,
+              encoding: true,
+              audio: mediaUrl,
+            },
+            false,
+          );
+        } else {
+          await instance.mediaMessage(
+            {
+              number: session.remoteJid,
+              delay: settings?.delayMessage || 1000,
+              mediatype: mediaType || 'document',
+              media: mediaUrl,
+              fileName,
+            },
+            null,
+            false,
+          );
+        }
+        sendTelemetry('/message/sendMedia');
+      }
+
       const wait = findItemAndGetSecondsToWait(clientSideActions, message.id);
 
       if (wait) {

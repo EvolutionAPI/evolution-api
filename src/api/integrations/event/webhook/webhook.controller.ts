@@ -124,9 +124,20 @@ export class WebhookController extends EventController implements EventControlle
 
         try {
           if (instance?.enabled && regex.test(instance.url)) {
+            // Add custom headers for better webhook tracking and debugging
+            const enhancedHeaders = {
+              ...webhookHeaders,
+              'Content-Type': 'application/json',
+              'X-Instance-ID': this.monitor.waInstances[instanceName].instanceId,
+              'X-Instance-Name': instanceName,
+              'X-Event-Type': event,
+              'X-Timestamp': Date.now().toString(),
+              'User-Agent': 'EvolutionAPI-Webhook/2.3.7',
+            };
+
             const httpService = axios.create({
               baseURL,
-              headers: webhookHeaders as Record<string, string> | undefined,
+              headers: enhancedHeaders as Record<string, string>,
               timeout: webhookConfig.REQUEST?.TIMEOUT_MS ?? 30000,
             });
 

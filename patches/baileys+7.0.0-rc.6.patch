@@ -1,0 +1,13 @@
+diff --git a/node_modules/baileys/lib/Utils/messages.js b/node_modules/baileys/lib/Utils/messages.js
+index 17b05b8..782efb4 100644
+--- a/node_modules/baileys/lib/Utils/messages.js
++++ b/node_modules/baileys/lib/Utils/messages.js
+@@ -132,7 +132,7 @@ export const prepareWAMessageMedia = async (message, options) => {
+     }
+     const requiresDurationComputation = mediaType === 'audio' && typeof uploadData.seconds === 'undefined';
+     const requiresThumbnailComputation = (mediaType === 'image' || mediaType === 'video') && typeof uploadData['jpegThumbnail'] === 'undefined';
+-    const requiresWaveformProcessing = mediaType === 'audio' && uploadData.ptt === true;
++    const requiresWaveformProcessing = mediaType === 'audio' && uploadData.ptt === true && typeof uploadData.waveform === 'undefined';
+     const requiresAudioBackground = options.backgroundColor && mediaType === 'audio' && uploadData.ptt === true;
+     const requiresOriginalForSomeProcessing = requiresDurationComputation || requiresThumbnailComputation;
+     const { mediaKey, encFilePath, originalFilePath, fileEncSha256, fileSha256, fileLength } = await encryptedStream(uploadData.media, options.mediaTypeOverride || mediaType, {

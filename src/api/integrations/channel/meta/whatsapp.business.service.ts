@@ -668,6 +668,21 @@ export class BusinessStartupService extends ChannelStartupService {
 
         sendTelemetry(`received.message.${messageRaw.messageType ?? 'unknown'}`);
 
+        // Normalized order: Chatwoot first, then bot (consistent with Baileys channel)
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
+          const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
+            Events.MESSAGES_UPSERT,
+            { instanceName: this.instance.name, instanceId: this.instanceId },
+            messageRaw,
+          );
+
+          if (chatwootSentMessage) {
+            messageRaw.chatwootMessageId = chatwootSentMessage.id;
+            messageRaw.chatwootInboxId = chatwootSentMessage.inbox_id;
+            messageRaw.chatwootConversationId = chatwootSentMessage.conversation_id;
+          }
+        }
+
         this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
 
         await chatbotController.emit({
@@ -676,20 +691,6 @@ export class BusinessStartupService extends ChannelStartupService {
           msg: messageRaw,
           pushName: messageRaw.pushName,
         });
-
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-          const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
-            Events.MESSAGES_UPSERT,
-            { instanceName: this.instance.name, instanceId: this.instanceId },
-            messageRaw,
-          );
-
-          if (chatwootSentMessage?.id) {
-            messageRaw.chatwootMessageId = chatwootSentMessage.id;
-            messageRaw.chatwootInboxId = chatwootSentMessage.id;
-            messageRaw.chatwootConversationId = chatwootSentMessage.id;
-          }
-        }
 
         if (!this.isMediaMessage(message) && message.type !== 'sticker') {
           await this.prismaRepository.message.create({

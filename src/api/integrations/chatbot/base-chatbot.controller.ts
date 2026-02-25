@@ -797,7 +797,7 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
 
       if (this.checkIgnoreJids(settings?.ignoreJids, remoteJid)) return;
 
-      const session = await this.getSession(remoteJid, instance);
+      let session = await this.getSession(remoteJid, instance);
 
       const content = getConversationMessage(msg);
 
@@ -896,9 +896,9 @@ export abstract class BaseChatbotController<BotType = any, BotData extends BaseC
         return;
       }
 
-      // Skip if session exists but not awaiting user input
+      // If session is closed, nullify it so processBot creates a new conversation
       if (session && session.status === 'closed') {
-        return;
+        session = null;
       }
 
       // Merged settings
