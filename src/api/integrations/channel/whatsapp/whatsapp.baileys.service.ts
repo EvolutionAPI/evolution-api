@@ -1142,22 +1142,26 @@ export class BaileysStartupService extends ChannelStartupService {
 
         const messagesRaw: any[] = [];
 
-        const messagesRepository: Set<string> = new Set(
-          chatwootImport.getRepositoryMessagesCache(instance) ??
-          (
-            await this.prismaRepository.message.findMany({
-              select: { key: true },
-              where: { instanceId: this.instanceId },
-            })
-          ).map((message) => {
-            const key = message.key as { id: string };
+        let messagesRepository: Set<string>|null = null
 
-            return key.id;
-          }),
-        );
+        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
+          messagesRepository = new Set(
+            chatwootImport.getRepositoryMessagesCache(instance) ??
+            (
+              await this.prismaRepository.message.findMany({
+                select: { key: true },
+                where: { instanceId: this.instanceId },
+              })
+            ).map((message) => {
+              const key = message.key as { id: string };
 
-        if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
-          chatwootImport.setRepositoryMessagesCache(instance, messagesRepository);
+              return key.id;
+            }),
+          );
+
+          if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
+            chatwootImport.setRepositoryMessagesCache(instance, messagesRepository);
+          }
         }
 
         for (const m of messages) {
@@ -1175,8 +1179,10 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          if (messagesRepository?.has(m.key.id)) {
-            continue;
+          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && messagesRepository) {
+            if (messagesRepository?.has(m.key.id)) {
+              continue;
+            }
           }
 
           if (!m.pushName && !m.key.fromMe) {

@@ -56,10 +56,15 @@ enum Background {
   VERBOSE = '\x1b[47m',
 }
 
+const MAX_LOG_LENGTH = 1000;
+
 export class Logger {
   private readonly configService = configService;
   private context: string;
 
+  // Cache estático dos níveis permitidos — evita alocar array a cada log
+  private static allowedTypes: Set<Type> | null = null;
+ou
   constructor(context = 'Logger') {
     this.context = context;
   }
@@ -74,53 +79,82 @@ export class Logger {
     this.instance = value;
   }
 
-  private console(value: any, type: Type) {
-    const types: Type[] = [];
+  private static getAllowedTypes(): Set<Type> {
+    if (!Logger.allowedTypes) {
+      Logger.allowedTypes = new Set<Type>();
+      configService.get<Log>('LOG').LEVEL.forEach((level) => {
+        Logger.allowedTypes.add(Type[level]);
+      });
+    }
+    return Logger.allowedTypes;
+  }
 
-    this.configService.get<Log>('LOG').LEVEL.forEach((level) => types.push(Type[level]));
+  /**
+   * Serializa objeto para string com limite de tamanho.
+   * Garante que console.log receba uma STRING (primitiva) e não
+   * uma REFERÊNCIA ao objeto original — evitando retenção de memória
+   * no buffer do stdout.
+   */
+  private static safeStringify(value: any): string {
+    try {
+      const str = JSON.stringify(value);
+      if (str.length > MAX_LOG_LENGTH) {
+        return str.substring(0, MAX_LOG_LENGTH) + `...[truncated ${str.length - MAX_LOG_LENGTH} chars]`;
+      }
+      return str;
+    } catch {
+      return '[Circular or unserializable object]';
+    }
+  }
+
+  private console(value: any, type: Type) {
+
+    if (!Logger.getAllowedTypes().has(type)) return;
 
     const typeValue = typeof value;
-    if (types.includes(type)) {
-      if (configService.get<Log>('LOG').COLOR) {
-        console.log(
-          /*Command.UNDERSCORE +*/ Command.BRIGHT + Level[type],
-          '[Evolution API]',
-          Command.BRIGHT + Color[type],
-          this.instance ? `[${this.instance}]` : '',
-          Command.BRIGHT + Color[type],
-          `v${packageJson.version}`,
-          Command.BRIGHT + Color[type],
-          process.pid.toString(),
-          Command.RESET,
-          Command.BRIGHT + Color[type],
-          '-',
-          Command.BRIGHT + Color.VERBOSE,
-          `${formatDateLog(Date.now())}  `,
-          Command.RESET,
-          Color[type] + Background[type] + Command.BRIGHT,
-          `${type} ` + Command.RESET,
-          Color.WARN + Command.BRIGHT,
-          `[${this.context}]` + Command.RESET,
-          Color[type] + Command.BRIGHT,
-          `[${typeValue}]` + Command.RESET,
-          Color[type],
-          typeValue !== 'object' ? value : '',
-          Command.RESET,
-        );
-        typeValue === 'object' ? console.log(/*Level.DARK,*/ value, '\n') : '';
-      } else {
-        console.log(
-          '[Evolution API]',
-          this.instance ? `[${this.instance}]` : '',
-          process.pid.toString(),
-          '-',
-          `${formatDateLog(Date.now())}  `,
-          `${type} `,
-          `[${this.context}]`,
-          `[${typeValue}]`,
-          value,
-        );
-      }
+
+    // Converter objeto para string ANTES de passar ao console.log
+    // para não reter referência ao objeto original no buffer do stdout
+    const logOutput = typeValue === 'object' ? Logger.safeStringify(value) : value;
+
+    if (configService.get<Log>('LOG').COLOR) {
+      console.log(
+        Command.BRIGHT + Level[type],
+        '[Evolution API]',
+        Command.BRIGHT + Color[type],
+        this.instance ? `[${this.instance}]` : '',
+        Command.BRIGHT + Color[type],
+        `v${packageJson.version}`,
+        Command.BRIGHT + Color[type],
+        process.pid.toString(),
+        Command.RESET,
+        Command.BRIGHT + Color[type],
+        '-',
+        Command.BRIGHT + Color.VERBOSE,
+        `${formatDateLog(Date.now())}  `,
+        Command.RESET,
+        Color[type] + Background[type] + Command.BRIGHT,
+        `${type} ` + Command.RESET,
+        Color.WARN + Command.BRIGHT,
+        `[${this.context}]` + Command.RESET,
+        Color[type] + Command.BRIGHT,
+        `[${typeValue}]` + Command.RESET,
+        Color[type],
+        logOutput,
+        Command.RESET,
+      );
+    } else {
+      console.log(
+        '[Evolution API]',
+        this.instance ? `[${this.instance}]` : '',
+        process.pid.toString(),
+        '-',
+        `${formatDateLog(Date.now())}  `,
+        `${type} `,
+        `[${this.context}]`,
+        `[${typeValue}]`,
+        logOutput,
+      );
     }
   }
 
