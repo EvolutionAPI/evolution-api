@@ -67,6 +67,7 @@ import {
   Chatwoot,
   ConfigService,
   configService,
+  ConfigSessionPhone,
   Database,
   Log,
   Openai,
@@ -125,6 +126,7 @@ import makeWASocket, {
   Product,
   proto,
   UserFacingSocketConfig,
+  WABrowserDescription,
   WAMediaUpload,
   WAMessage,
   WAMessageKey,
@@ -144,6 +146,7 @@ import Long from 'long';
 import mimeTypes from 'mime-types';
 import NodeCache from 'node-cache';
 import cron from 'node-cron';
+import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
@@ -658,9 +661,19 @@ export class BaileysStartupService extends ChannelStartupService {
   private async createClient(number?: string): Promise<WASocket> {
     this.instance.authState = await this.defineAuthState();
 
-    if (number) {
+    const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+
+    let browserOptions = {};
+
+    if (number || this.phoneNumber) {
       this.phoneNumber = number;
+
       this.logger.info(`Phone number: ${number}`);
+    } else {
+      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+      browserOptions = { browser };
+
+      this.logger.info(`Browser: ${browser}`);
     }
 
     // Fetch latest WhatsApp Web version automatically
@@ -741,7 +754,7 @@ export class BaileysStartupService extends ChannelStartupService {
       msgRetryCounterCache: this.msgRetryCounterCache,
       generateHighQualityLinkPreview: true,
       getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-      // Removido browserOptions para usar Multi-Device nativo (não WebClient)
+      ...browserOptions,
       markOnlineOnConnect: this.localSettings.alwaysOnline,
       retryRequestDelayMs: 350,
       maxMsgRetryCount: 4,
