@@ -263,8 +263,6 @@ export class BaileysStartupService extends ChannelStartupService {
   private historySyncLastProgress = -1;
 
   // Cache TTL constants (in seconds)
-  private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
-  private readonly UPDATE_CACHE_TTL_SECONDS = 30 * 60; // 30 minutes - avoid duplicate status updates
 
   public stateConnection: wa.StateConnection = { state: 'close' };
 
@@ -857,15 +855,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[]) => {
-      const existingChatIds = await this.prismaRepository.chat.findMany({
-        where: { instanceId: this.instanceId },
-        select: { remoteJid: true },
-      });
-
-      const existingChatIdSet = new Set(existingChatIds.map((chat) => chat.remoteJid));
-
       const chatsToInsert = chats
-        .filter((chat) => !existingChatIdSet?.has(chat.id))
         .map((chat) => ({
           remoteJid: chat.id,
           instanceId: this.instanceId,
@@ -874,11 +864,6 @@ export class BaileysStartupService extends ChannelStartupService {
         }));
 
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
-
-      if (chatsToInsert.length > 0) {
-        if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS)
-          await this.prismaRepository.chat.createMany({ data: chatsToInsert, skipDuplicates: true });
-      }
     },
 
     'chats.update': async (
@@ -903,11 +888,6 @@ export class BaileysStartupService extends ChannelStartupService {
     },
 
     'chats.delete': async (chats: string[]) => {
-      chats.forEach(
-        async (chat) =>
-          await this.prismaRepository.chat.deleteMany({ where: { instanceId: this.instanceId, remoteJid: chat } }),
-      );
-
       this.sendDataWebhook(Events.CHATS_DELETE, [...chats]);
     },
   };
@@ -924,30 +904,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
         if (contactsRaw.length > 0) {
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
-
-          if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
-            await this.prismaRepository.contact.createMany({ data: contactsRaw, skipDuplicates: true });
-
-          const usersContacts = contactsRaw.filter((c) => c.remoteJid.includes('@s.whatsapp'));
-          if (usersContacts) {
-            await saveOnWhatsappCache(usersContacts.map((c) => ({ remoteJid: c.remoteJid })));
-          }
-        }
-
-        if (
-          this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-          this.localChatwoot?.enabled &&
-          this.localChatwoot.importContacts &&
-          contactsRaw.length
-        ) {
-          this.chatwootService.addHistoryContacts(
-            { instanceName: this.instance.name, instanceId: this.instance.id },
-            contactsRaw,
-          );
-          chatwootImport.importHistoryContacts(
-            { instanceName: this.instance.name, instanceId: this.instance.id },
-            this.localChatwoot,
-          );
         }
 
         const updatedContacts = await Promise.all(
@@ -960,51 +916,21 @@ export class BaileysStartupService extends ChannelStartupService {
         );
 
         if (updatedContacts.length > 0) {
-          const usersContacts = updatedContacts.filter((c) => c.remoteJid.includes('@s.whatsapp'));
-          if (usersContacts) {
-            await saveOnWhatsappCache(usersContacts.map((c) => ({ remoteJid: c.remoteJid })));
-          }
-
           this.sendDataWebhook(Events.CONTACTS_UPDATE, updatedContacts);
-          await Promise.all(
-            updatedContacts.map(async (contact) => {
-              if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS) {
-                await this.prismaRepository.contact.updateMany({
-                  where: { remoteJid: contact.remoteJid, instanceId: this.instanceId },
-                  data: { profilePicUrl: contact.profilePicUrl },
-                });
-              }
-
-              if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-                const instance = { instanceName: this.instance.name, instanceId: this.instance.id };
-
-                const findParticipant = await this.chatwootService.findContact(
-                  instance,
-                  contact.remoteJid.split('@')[0],
-                );
-
-                if (!findParticipant) {
-                  return;
-                }
-
-                this.chatwootService.updateContact(instance, findParticipant.id, {
-                  name: contact.pushName,
-                  avatar_url: contact.profilePicUrl,
-                });
-              }
-            }),
-          );
         }
       } catch (error) {
-        console.error(error);
         this.logger.error(`Error: ${error.message}`);
       }
     },
 
     'contacts.update': async (contacts: Partial<Contact>[]) => {
+
       const contactsRaw: { remoteJid: string; pushName?: string; profilePicUrl?: string; instanceId: string }[] = [];
+
       for await (const contact of contacts) {
+
         this.logger.debug(`Updating contact: ${JSON.stringify(contact, null, 2)}`);
+
         contactsRaw.push({
           remoteJid: contact.id,
           pushName: contact?.name ?? contact?.verifiedName,
@@ -1014,19 +940,6 @@ export class BaileysStartupService extends ChannelStartupService {
       }
 
       this.sendDataWebhook(Events.CONTACTS_UPDATE, contactsRaw);
-
-      if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS) {
-        const updateTransactions = contactsRaw.map((contact) =>
-          this.prismaRepository.contact.upsert({
-            where: { remoteJid_instanceId: { remoteJid: contact.remoteJid, instanceId: contact.instanceId } },
-            create: contact,
-            update: contact,
-          }),
-        );
-        await this.prismaRepository.$transaction(updateTransactions);
-      }
-
-      //const usersContacts = contactsRaw.filter((c) => c.remoteJid.includes('@s.whatsapp'));
     },
   };
 
@@ -1105,16 +1018,8 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string }[] = [];
-        const chatsRepository = new Set(
-          (await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } })).map(
-            (chat) => chat.remoteJid,
-          ),
-        );
 
         for (const chat of chats) {
-          if (chatsRepository?.has(chat.id)) {
-            continue;
-          }
 
           let remoteJid = null;
           let remoteLid = null;
@@ -1140,15 +1045,6 @@ export class BaileysStartupService extends ChannelStartupService {
           chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name });
         }
 
-        if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          const chatsToCreateMany = JSON.parse(JSON.stringify(chatsRaw)).map((chat) => {
-            delete chat.remoteLid;
-            return chat;
-          });
-
-          await this.prismaRepository.chat.createMany({ data: chatsToCreateMany, skipDuplicates: true });
-        }
-
         this.historySyncChatCount += chatsRaw.length;
 
         this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
@@ -1156,26 +1052,6 @@ export class BaileysStartupService extends ChannelStartupService {
         const messagesRaw: any[] = [];
 
         let messagesRepository: Set<string>|null = null
-
-        if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
-          messagesRepository = new Set(
-            chatwootImport.getRepositoryMessagesCache(instance) ??
-            (
-              await this.prismaRepository.message.findMany({
-                select: { key: true },
-                where: { instanceId: this.instanceId },
-              })
-            ).map((message) => {
-              const key = message.key as { id: string };
-
-              return key.id;
-            }),
-          );
-
-          if (chatwootImport.getRepositoryMessagesCache(instance) === null) {
-            chatwootImport.setRepositoryMessagesCache(instance, messagesRepository);
-          }
-        }
 
         for (const m of messages) {
           if (!m.message || !m.key || !m.messageTimestamp) {
@@ -1212,26 +1088,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
         this.historySyncMessageCount += messagesRaw.length;
 
-        if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          await this.prismaRepository.message.createMany({ data: messagesRaw, skipDuplicates: true });
-        }
-
         this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw], true, undefined, {
           isLatest,
           progress,
         });
-
-        if (
-          this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-          this.localChatwoot?.enabled &&
-          this.localChatwoot.importMessages &&
-          messagesRaw.length > 0
-        ) {
-          this.chatwootService.addHistoryMessages(
-            instance,
-            messagesRaw.filter((msg) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid)),
-          );
-        }
 
         const filteredContacts = contacts.filter((c) => !!c.notify || !!c.name);
         this.historySyncContactCount += filteredContacts.length;
@@ -1305,43 +1165,11 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.protocolMessage || received?.message?.editedMessage?.message?.protocolMessage;
 
           if (editedMessage) {
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled)
-              this.chatwootService.eventWhatsapp(
-                'messages.edit',
-                { instanceName: this.instance.name, instanceId: this.instance.id },
-                editedMessage,
-              );
 
             await this.sendDataWebhook(Events.MESSAGES_EDITED, editedMessage);
 
             if (received.key?.id && editedMessage.key?.id) {
               await this.baileysCache.set(`protocol_${received.key.id}`, editedMessage.key.id, 60 * 60 * 24);
-            }
-
-            const oldMessage = await this.getMessage(editedMessage.key, true);
-            if ((oldMessage as any)?.id) {
-              const editedMessageTimestamp = Long.isLong(received?.messageTimestamp)
-                ? Math.floor(received?.messageTimestamp.toNumber())
-                : Math.floor(received?.messageTimestamp as number);
-
-              await this.prismaRepository.message.update({
-                where: { id: (oldMessage as any).id },
-                data: {
-                  message: editedMessage.editedMessage as any,
-                  messageTimestamp: editedMessageTimestamp,
-                  status: 'EDITED',
-                },
-              });
-              await this.prismaRepository.messageUpdate.create({
-                data: {
-                  fromMe: editedMessage.key.fromMe,
-                  keyId: editedMessage.key.id,
-                  remoteJid: editedMessage.key.remoteJid,
-                  status: 'EDITED',
-                  instanceId: this.instanceId,
-                  messageId: (oldMessage as any).id,
-                },
-              });
             }
           }
 
@@ -1355,32 +1183,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (settings?.groupsIgnore && received.key.remoteJid.includes('@g.us')) {
             continue;
-          }
-
-          const existingChat = await this.prismaRepository.chat.findFirst({
-            where: { instanceId: this.instanceId, remoteJid: received.key.remoteJid },
-            select: { id: true, name: true },
-          });
-
-          if (
-            existingChat &&
-            received.pushName &&
-            existingChat.name !== received.pushName &&
-            received.pushName.trim().length > 0 &&
-            !received.key.fromMe &&
-            !received.key.remoteJid.includes('@g.us')
-          ) {
-            this.sendDataWebhook(Events.CHATS_UPSERT, [{ ...existingChat, name: received.pushName }]);
-            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
-              try {
-                await this.prismaRepository.chat.update({
-                  where: { id: existingChat.id },
-                  data: { name: received.pushName },
-                });
-              } catch {
-                console.log(`Chat insert record ignored: ${received.key.remoteJid} - ${this.instanceId}`);
-              }
-            }
           }
 
           const messageRaw = this.prepareMessage(received) as any;
@@ -1486,173 +1288,12 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          const isMedia =
-            received?.message?.imageMessage ||
-            received?.message?.videoMessage ||
-            received?.message?.stickerMessage ||
-            received?.message?.documentMessage ||
-            received?.message?.documentWithCaptionMessage ||
-            received?.message?.ptvMessage ||
-            received?.message?.audioMessage;
-
-          const isVideo = received?.message?.videoMessage;
-
           if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
             await this.client.readMessages([received.key]);
           }
 
           if (this.localSettings.readStatus && received.key.id === 'status@broadcast') {
             await this.client.readMessages([received.key]);
-          }
-
-          if (
-            this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
-            this.localChatwoot?.enabled &&
-            !received.key.id.includes('@broadcast')
-          ) {
-            const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
-              Events.MESSAGES_UPSERT,
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              messageRaw,
-            );
-
-            if (chatwootSentMessage?.id) {
-              messageRaw.chatwootMessageId = chatwootSentMessage.id;
-              messageRaw.chatwootInboxId = chatwootSentMessage.inbox_id;
-              messageRaw.chatwootConversationId = chatwootSentMessage.conversation_id;
-            }
-          }
-
-          if (this.configService.get<Openai>('OPENAI').ENABLED && received?.message?.audioMessage) {
-            const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
-              where: { instanceId: this.instanceId },
-              include: { OpenaiCreds: true },
-            });
-
-            if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
-              (messageRaw.message as any).speechToText =
-                `[audio] ${await this.openaiService.speechToText(received, this)}`;
-            }
-          }
-
-          if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { pollUpdates, ...messageData } = messageRaw as any;
-            const msg = await this.prismaRepository.message.create({ data: messageData });
-
-            const { remoteJid } = received.key;
-            const timestamp = msg.messageTimestamp;
-            const fromMe = received.key.fromMe.toString();
-            const messageKey = `${remoteJid}_${timestamp}_${fromMe}`;
-
-            const cachedTimestamp = await this.baileysCache.get(messageKey);
-
-            if (!cachedTimestamp) {
-              if (!received.key.fromMe) {
-                if (msg.status === status[3]) {
-                  this.logger.log(`Update not read messages ${remoteJid}`);
-                  await this.updateChatUnreadMessages(remoteJid);
-                } else if (msg.status === status[4]) {
-                  this.logger.log(`Update readed messages ${remoteJid} - ${timestamp}`);
-                  await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
-                }
-              } else {
-                // is send message by me
-                this.logger.log(`Update readed messages ${remoteJid} - ${timestamp}`);
-                await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
-              }
-
-              await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
-            } else {
-              this.logger.info(`Update readed messages duplicated ignored [avoid deadlock]: ${messageKey}`);
-            }
-
-            if (isMedia) {
-              if (this.configService.get<S3>('S3').ENABLE) {
-                try {
-                  if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
-                    this.logger.warn('Video upload is disabled. Skipping video upload.');
-                    // Skip video upload by returning early from this block
-                    return;
-                  }
-
-                  const message: any = received;
-
-                  // Verificação adicional para garantir que há conteúdo de mídia real
-                  const hasRealMedia = this.hasValidMediaContent(message);
-
-                  if (!hasRealMedia) {
-                    this.logger.warn('Message detected as media but contains no valid media content');
-                  } else {
-                    const media = await this.getBase64FromMediaMessage({ message }, true);
-
-                    if (!media) {
-                      this.logger.verbose('No valid media to upload (messageContextInfo only), skipping MinIO');
-                      return;
-                    }
-
-                    const { buffer, mediaType, fileName, size } = media;
-                    const mimetype = mimeTypes.lookup(fileName).toString();
-                    const fullName = join(
-                      `${this.instance.id}`,
-                      received.key.remoteJid,
-                      mediaType,
-                      `${Date.now()}_${fileName}`,
-                    );
-                    await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, { 'Content-Type': mimetype });
-
-                    await this.prismaRepository.media.create({
-                      data: {
-                        messageId: msg.id,
-                        instanceId: this.instanceId,
-                        type: mediaType,
-                        fileName: fullName,
-                        mimetype,
-                      },
-                    });
-
-                    const mediaUrl = await s3Service.getObjectUrl(fullName);
-
-                    (messageRaw.message as any).mediaUrl = mediaUrl;
-
-                    await this.prismaRepository.message.update({ where: { id: msg.id }, data: messageRaw });
-                  }
-                } catch (error) {
-                  this.logger.error(['Error on upload file to minio', error?.message, error?.stack]);
-                }
-              }
-            }
-          }
-
-          if (this.localWebhook.enabled) {
-            if (isMedia && this.localWebhook.webhookBase64) {
-              try {
-                const buffer = await downloadMediaMessage(
-                  { key: received.key, message: received?.message },
-                  'buffer',
-                  {},
-                  { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
-                );
-
-                if (buffer) {
-                  (messageRaw.message as any).base64 = buffer.toString('base64');
-                } else {
-                  // retry to download media
-                  const buffer = await downloadMediaMessage(
-                    { key: received.key, message: received?.message },
-                    'buffer',
-                    {},
-                    { logger: P({ level: 'error' }) as any, reuploadRequest: this.client.updateMediaMessage },
-                  );
-
-                  if (buffer) {
-                    (messageRaw.message as any).base64 = buffer.toString('base64');
-                  }
-                }
-              } catch (error) {
-                this.logger.error(['Error converting media to base64', error?.message]);
-              }
-            }
           }
 
           this.logger.verbose(messageRaw);
@@ -1667,20 +1308,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
             messageRaw.key.addressingMode = 'pn';
           }
-          console.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
-
-          await chatbotController.emit({
-            instance: { instanceName: this.instance.name, instanceId: this.instanceId },
-            remoteJid: (messageRaw.key as any).remoteJid,
-            msg: messageRaw,
-            pushName: messageRaw.pushName,
-          });
-
-          const contact = await this.prismaRepository.contact.findFirst({
-            where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
-          });
 
           const contactRaw: {
             remoteJid: string;
@@ -1698,48 +1327,7 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          if (contactRaw.remoteJid.includes('@s.whatsapp') || contactRaw.remoteJid.includes('@lid')) {
-            await saveOnWhatsappCache([
-              {
-                remoteJid:
-                  (messageRaw.key as any).addressingMode === 'lid'
-                    ? (messageRaw.key as any).remoteJidAlt
-                    : (messageRaw.key as any).remoteJid,
-                remoteJidAlt: (messageRaw.key as any).remoteJidAlt,
-                lid: (messageRaw.key as any).addressingMode === 'lid' ? 'lid' : null,
-              },
-            ]);
-          }
-
-          if (contact) {
-            this.sendDataWebhook(Events.CONTACTS_UPDATE, contactRaw);
-
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-              await this.chatwootService.eventWhatsapp(
-                Events.CONTACTS_UPDATE,
-                { instanceName: this.instance.name, instanceId: this.instanceId },
-                contactRaw,
-              );
-            }
-
-            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
-              await this.prismaRepository.contact.upsert({
-                where: { remoteJid_instanceId: { remoteJid: contactRaw.remoteJid, instanceId: contactRaw.instanceId } },
-                create: contactRaw,
-                update: contactRaw,
-              });
-
-            continue;
-          }
-
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactRaw);
-
-          if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS)
-            await this.prismaRepository.contact.upsert({
-              where: { remoteJid_instanceId: { remoteJid: contactRaw.remoteJid, instanceId: contactRaw.instanceId } },
-              update: contactRaw,
-              create: contactRaw,
-            });
         }
       } catch (error) {
         this.logger.error(error);
@@ -1772,6 +1360,7 @@ export class BaileysStartupService extends ChannelStartupService {
         const cached = await this.baileysCache.get(updateKey);
 
         const secondsSinceEpoch = Math.floor(Date.now() / 1000);
+
         console.log('CACHE:', { cached, updateKey, messageTimestamp: update.messageTimestamp, secondsSinceEpoch });
 
         if (
@@ -1786,16 +1375,6 @@ export class BaileysStartupService extends ChannelStartupService {
           await this.baileysCache.set(updateKey, update.messageTimestamp, 30 * 60);
         } else {
           await this.baileysCache.set(updateKey, secondsSinceEpoch, 30 * 60);
-        }
-
-        if (status[update.status] === 'READ' && key.fromMe) {
-          if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-            this.chatwootService.eventWhatsapp(
-              'messages.read',
-              { instanceName: this.instance.name, instanceId: this.instanceId },
-              { key: key },
-            );
-          }
         }
 
         if (key.remoteJid !== 'status@broadcast' && key.id !== undefined) {
@@ -1826,7 +1405,6 @@ export class BaileysStartupService extends ChannelStartupService {
             message.message = update.message;
           }
 
-          let findMessage: any;
           const configDatabaseData = this.configService.get<Database>('DATABASE').SAVE_DATA;
           if (configDatabaseData.HISTORIC || configDatabaseData.NEW_MESSAGE) {
             // Use raw SQL to avoid JSON path issues
@@ -1836,125 +1414,17 @@ export class BaileysStartupService extends ChannelStartupService {
             if (originalMessageId) {
               message.keyId = originalMessageId;
             }
-
-            const searchId = originalMessageId || key.id;
-            const dbProvider = this.configService.get<Database>('DATABASE').PROVIDER;
-
-            let messages: any[];
-            if (dbProvider === 'mysql') {
-              messages = (await this.prismaRepository.$queryRaw`
-                SELECT * FROM Message
-                WHERE instanceId = ${this.instanceId}
-                AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.id')) = ${searchId}
-                LIMIT 1
-              `) as any[];
-            } else {
-              messages = (await this.prismaRepository.$queryRaw`
-                SELECT * FROM evolution_api."Message"
-                WHERE "instanceId" = ${this.instanceId}
-                AND "key"->>'id' = ${searchId}
-                LIMIT 1
-              `) as any[];
-            }
-            findMessage = messages[0] || null;
-
-            if (!findMessage?.id) {
-              this.logger.verbose(
-                `Original message not found for update. Skipping. This is expected for protocol messages or ephemeral events not saved to the database. Key: ${JSON.stringify(key)}`,
-              );
-              continue;
-            }
-
-            // Sync the incoming key.remoteJid with the stored one.
-            // This mutation is safe and necessary because Baileys events might use LIDs while we store Phone JIDs (or vice versa).
-            // Normalizing ensuring downstream logic uses the identifier that exists in our database.
-            if (findMessage?.key?.remoteJid && key.remoteJid !== findMessage.key.remoteJid) {
-              key.remoteJid = findMessage.key.remoteJid;
-            }
-            if (findMessage?.key?.remoteJid && findMessage.key.remoteJid !== key.remoteJid) {
-              this.logger.verbose(
-                `Updating key.remoteJid from ${key.remoteJid} to ${findMessage.key.remoteJid} based on stored message`,
-              );
-              key.remoteJid = findMessage.key.remoteJid;
-            }
-            message.messageId = findMessage.id;
           }
 
           if (update.message === null && update.status === undefined) {
             this.sendDataWebhook(Events.MESSAGES_DELETE, { ...key, status: 'DELETED' });
 
-            if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE)
-              await this.prismaRepository.messageUpdate.create({ data: message });
-
-            if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED && this.localChatwoot?.enabled) {
-              this.chatwootService.eventWhatsapp(
-                Events.MESSAGES_DELETE,
-                { instanceName: this.instance.name, instanceId: this.instanceId },
-                { key: key },
-              );
-            }
-
             continue;
           }
 
-          if (findMessage && update.status !== undefined && status[update.status] !== findMessage.status) {
-            if (!key.fromMe && key.remoteJid) {
-              readChatToUpdate[key.remoteJid] = true;
-
-              const { remoteJid } = key;
-              const timestamp = findMessage.messageTimestamp;
-              const fromMe = key.fromMe.toString();
-              const messageKey = `${remoteJid}_${timestamp}_${fromMe}`;
-
-              const cachedTimestamp = await this.baileysCache.get(messageKey);
-
-              if (!cachedTimestamp) {
-                if (status[update.status] === status[4]) {
-                  this.logger.log(`Update as read in message.update ${remoteJid} - ${timestamp}`);
-                  await this.updateMessagesReadedByTimestamp(remoteJid, timestamp);
-                  await this.baileysCache.set(messageKey, true, this.MESSAGE_CACHE_TTL_SECONDS);
-                }
-
-                await this.prismaRepository.message.update({
-                  where: { id: findMessage.id },
-                  data: { status: status[update.status] },
-                });
-              } else {
-                this.logger.info(
-                  `Update readed messages duplicated ignored in message.update [avoid deadlock]: ${messageKey}`,
-                );
-              }
-            }
-          }
-
           this.sendDataWebhook(Events.MESSAGES_UPDATE, message);
-
-          if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { message: _msg, ...messageData } = message;
-            await this.prismaRepository.messageUpdate.create({ data: messageData });
-          }
-
-          const existingChat = await this.prismaRepository.chat.findFirst({
-            where: { instanceId: this.instanceId, remoteJid: message.remoteJid },
-          });
-
-          if (existingChat) {
-            const chatToInsert = { remoteJid: message.remoteJid, instanceId: this.instanceId, unreadMessages: 0 };
-
-            this.sendDataWebhook(Events.CHATS_UPSERT, [chatToInsert]);
-            if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
-              try {
-                await this.prismaRepository.chat.update({ where: { id: existingChat.id }, data: chatToInsert });
-              } catch {
-                console.log(`Chat insert record ignored: ${chatToInsert.remoteJid} - ${chatToInsert.instanceId}`);
-              }
-            }
-          }
         }
       }
-
-      await Promise.all(Object.keys(readChatToUpdate).map((remoteJid) => this.updateChatUnreadMessages(remoteJid)));
     },
   };
 
