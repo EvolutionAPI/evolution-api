@@ -659,6 +659,18 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async createClient(number?: string): Promise<WASocket> {
+
+    if (this.client) {
+      try {
+        this.client.ws?.removeAllListeners();
+        this.client.ws?.close();
+        this.client?.end(new Error('Reconnecting'));
+      } catch (error) {
+        this.logger.error({ message: 'Error cleaning up previous client', error });
+      }
+      this.client = undefined;
+    }
+
     this.instance.authState = await this.defineAuthState();
 
     const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
