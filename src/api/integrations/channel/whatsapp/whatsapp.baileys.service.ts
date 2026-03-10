@@ -880,13 +880,6 @@ export class BaileysStartupService extends ChannelStartupService {
       });
 
       this.sendDataWebhook(Events.CHATS_UPDATE, chatsRaw);
-
-      for (const chat of chats) {
-        await this.prismaRepository.chat.updateMany({
-          where: { instanceId: this.instanceId, remoteJid: chat.id, name: chat.name },
-          data: { remoteJid: chat.id },
-        });
-      }
     },
 
     'chats.delete': async (chats: string[]) => {
@@ -1450,6 +1443,7 @@ export class BaileysStartupService extends ChannelStartupService {
       participants: string[];
       action: ParticipantAction;
     }) => {
+      return;
       // ENHANCEMENT: Adds participantsData field while maintaining backward compatibility
       // MAINTAINS: participants: string[] (original JID strings)
       // ADDS: participantsData: { jid: string, phoneNumber: string, name?: string, imgUrl?: string }[]
@@ -1633,12 +1627,6 @@ export class BaileysStartupService extends ChannelStartupService {
                   remotesJidMap[event.key.remoteJid] = event.receipt.readTimestamp;
                 }
               }
-
-              await Promise.all(
-                Object.keys(remotesJidMap).map(async (remoteJid) =>
-                  this.updateMessagesReadedByTimestamp(remoteJid, remotesJidMap[remoteJid]),
-                ),
-              );
             }
 
             if (events['presence.update']) {
@@ -4061,48 +4049,6 @@ export class BaileysStartupService extends ChannelStartupService {
               { instanceName: this.instance.name, instanceId: this.instance.id },
               editedMessage,
             );
-
-          const messageId = messageSent.message?.protocolMessage?.key?.id;
-          if (messageId && this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
-            let message = await this.prismaRepository.message.findFirst({
-              where: { key: { path: ['id'], equals: messageId } },
-            });
-            if (!message) throw new NotFoundException('Message not found');
-
-            if (!(message.key.valueOf() as any).fromMe) {
-              new BadRequestException('You cannot edit others messages');
-            }
-            if ((message.key.valueOf() as any)?.deleted) {
-              new BadRequestException('You cannot edit deleted messages');
-            }
-
-            if (oldMessage.messageType === 'conversation' || oldMessage.messageType === 'extendedTextMessage') {
-              oldMessage.message.conversation = data.text;
-            } else {
-              oldMessage.message[oldMessage.messageType].caption = data.text;
-            }
-            message = await this.prismaRepository.message.update({
-              where: { id: message.id },
-              data: {
-                message: oldMessage.message,
-                status: 'EDITED',
-                messageTimestamp: Math.floor(Date.now() / 1000), // Convert to int32 by dividing by 1000 to get seconds
-              },
-            });
-
-            if (this.configService.get<Database>('DATABASE').SAVE_DATA.MESSAGE_UPDATE) {
-              const messageUpdate: any = {
-                messageId: message.id,
-                keyId: messageId,
-                remoteJid: messageSent.key.remoteJid,
-                fromMe: messageSent.key.fromMe,
-                participant: messageSent.key?.participant,
-                status: 'EDITED',
-                instanceId: this.instanceId,
-              };
-              await this.prismaRepository.messageUpdate.create({ data: messageUpdate });
-            }
-          }
         }
       }
 
@@ -4604,93 +4550,6 @@ export class BaileysStartupService extends ChannelStartupService {
       });
       task.start();
     }
-  }
-
-  private async updateMessagesReadedByTimestamp(remoteJid: string, timestamp?: number): Promise<number> {
-    if (timestamp === undefined || timestamp === null) return 0;
-
-    const provider = this.configService.get<Database>('DATABASE').PROVIDER;
-    const unread = this.configService.get<Database>('DATABASE').SAVE_DATA.UNREAD;
-
-    if(unread === false) return 0;
-
-    let result: number;
-
-    if (provider === 'mysql') {
-      // MySQL version
-      result = await this.prismaRepository.$executeRaw`
-        UPDATE Message
-        SET status = ${status[4]}
-        WHERE instanceId = ${this.instanceId}
-        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.remoteJid')) = ${remoteJid}
-        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.fromMe')) = 'false'
-        AND messageTimestamp <= ${timestamp}
-        AND (status IS NULL OR status = ${status[3]})
-      `;
-    } else {
-      // PostgreSQL version
-      result = await this.prismaRepository.$executeRaw`
-        UPDATE evolution_api."Message"
-        SET "status" = ${status[4]}
-        WHERE "instanceId" = ${this.instanceId}
-        AND "key"->>'remoteJid' = ${remoteJid}
-        AND ("key"->>'fromMe')::boolean = false
-        AND "messageTimestamp" <= ${timestamp}
-        AND ("status" IS NULL OR "status" = ${status[3]})
-      `;
-    }
-
-    if (result) {
-      if (result > 0) {
-        this.updateChatUnreadMessages(remoteJid);
-      }
-
-      return result;
-    }
-
-    return 0;
-  }
-
-  private async updateChatUnreadMessages(remoteJid: string): Promise<number> {
-
-    const unread = this.configService.get<Database>('DATABASE').SAVE_DATA.UNREAD;
-
-    if(unread === false) return 0;
-
-    const provider = this.configService.get<Database>('DATABASE').PROVIDER;
-
-    let unreadMessagesPromise: Promise<number>;
-
-    if (provider === 'mysql') {
-      // MySQL version
-      unreadMessagesPromise = this.prismaRepository.$queryRaw`
-        SELECT COUNT(*) as count FROM Message
-        WHERE instanceId = ${this.instanceId}
-        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.remoteJid')) = ${remoteJid}
-        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.fromMe')) = 'false'
-        AND status = ${status[3]}
-      `.then((result: any[]) => Number(result[0]?.count) || 0);
-    } else {
-      // PostgreSQL version
-      unreadMessagesPromise = this.prismaRepository.$queryRaw`
-        SELECT COUNT(*)::int as count FROM evolution_api."Message"
-        WHERE "instanceId" = ${this.instanceId}
-        AND "key"->>'remoteJid' = ${remoteJid}
-        AND ("key"->>'fromMe')::boolean = false
-        AND "status" = ${status[3]}
-      `.then((result: any[]) => result[0]?.count || 0);
-    }
-
-    const [chat, unreadMessages] = await Promise.all([
-      this.prismaRepository.chat.findFirst({ where: { remoteJid } }),
-      unreadMessagesPromise,
-    ]);
-
-    if (chat && chat.unreadMessages !== unreadMessages) {
-      await this.prismaRepository.chat.update({ where: { id: chat.id }, data: { unreadMessages } });
-    }
-
-    return unreadMessages;
   }
 
   private async addLabel(labelId: string, instanceId: string, chatId: string) {
