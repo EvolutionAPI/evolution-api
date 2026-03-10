@@ -391,6 +391,9 @@ export class InstanceController {
   }
 
   public async connectionState({ instanceName }: InstanceDto) {
+
+    this.logger.error(this.waMonitor.waInstances[instanceName]?.connectionStatus);
+
     return {
       instance: {
         instanceName: instanceName,
