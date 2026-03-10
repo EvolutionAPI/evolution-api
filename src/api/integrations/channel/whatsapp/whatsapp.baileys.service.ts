@@ -295,6 +295,8 @@ export class BaileysStartupService extends ChannelStartupService {
       }
     }
 
+    this.stateConnection.state = 'close';
+
     const db = this.configService.get<Database>('DATABASE');
     const cache = this.configService.get<CacheConf>('CACHE');
     const provider = this.configService.get<ProviderSession>('PROVIDER');
