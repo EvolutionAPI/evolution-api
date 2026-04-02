@@ -904,6 +904,7 @@ export class BaileysStartupService extends ChannelStartupService {
       try {
         const contactsRaw: any = contacts.map((contact) => ({
           remoteJid: contact.id,
+          remoteLid: contact.lid,
           pushName: contact?.name || contact?.verifiedName || contact.id.split('@')[0],
           profilePicUrl: null,
           instanceId: this.instanceId,
@@ -959,9 +960,9 @@ export class BaileysStartupService extends ChannelStartupService {
       progress,
       syncType,
     }: {
+      messages: WAMessage[];
       chats: Chat[];
       contacts: Contact[];
-      messages: WAMessage[];
       isLatest?: boolean;
       progress?: number;
       syncType?: proto.HistorySync.HistorySyncType;
@@ -1024,7 +1025,7 @@ export class BaileysStartupService extends ChannelStartupService {
           contactsMapLidJid.set(contact.id, { jid });
         }
 
-        const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string }[] = [];
+        let chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string }[] = [];
 
         for (const chat of chats) {
 
@@ -1047,6 +1048,21 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (!remoteJid) {
             remoteJid = chat.id;
+          }
+
+          if (chat.messages && chat.messages.length > 0) {
+            const m = chat.messages[0].message;
+
+            if (m.messageStubType === proto.WebMessageInfo.StubType.BIZ_PRIVACY_MODE_TO_FB) {
+              if (
+                m.messageStubParameters &&
+                m.messageStubParameters.length > 0
+              ) {
+                if (!chat.name || chat.name.length === 0) {
+                  chat.name = m.messageStubParameters[0];
+                }
+              }
+            }
           }
 
           chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name });
@@ -1615,6 +1631,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             if (events['messaging-history.set']) {
               const payload = events['messaging-history.set'];
+              // @ts-ignore
               await this.messageHandle['messaging-history.set'](payload);
             }
 
