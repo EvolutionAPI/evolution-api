@@ -2748,6 +2748,9 @@ export class BaileysStartupService extends ChannelStartupService {
       const type = mediaMessage.mediatype === 'ptv' ? 'video' : mediaMessage.mediatype;
 
       let mediaInput: any;
+      let imageThumbnail: Buffer | undefined;
+      let imageWidth: number | undefined;
+      let imageHeight: number | undefined;
       if (mediaMessage.mediatype === 'image') {
         let imageBuffer: Buffer;
         if (isURL(mediaMessage.media)) {
@@ -2772,7 +2775,23 @@ export class BaileysStartupService extends ChannelStartupService {
           imageBuffer = Buffer.from(mediaMessage.media, 'base64');
         }
 
-        mediaInput = await sharp(imageBuffer).jpeg().toBuffer();
+        const imageProcessor = sharp(imageBuffer, { failOn: 'none' }).rotate();
+        const metadata = await imageProcessor.metadata();
+
+        imageWidth = metadata.width;
+        imageHeight = metadata.height;
+
+        mediaInput = await imageProcessor.jpeg({ quality: 95, mozjpeg: true }).toBuffer();
+
+        try {
+          imageThumbnail = await sharp(mediaInput)
+            .resize(72, 72, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 60, mozjpeg: true })
+            .toBuffer();
+        } catch (thumbnailError) {
+          this.logger.warn(`Failed to generate jpegThumbnail: ${String(thumbnailError)}`);
+        }
+
         mediaMessage.fileName ??= 'image.jpg';
         mediaMessage.mimetype = 'image/jpeg';
       } else {
@@ -2877,6 +2896,17 @@ export class BaileysStartupService extends ChannelStartupService {
       prepareMedia[mediaType].caption = mediaMessage?.caption;
       prepareMedia[mediaType].mimetype = mimetype;
       prepareMedia[mediaType].fileName = mediaMessage.fileName;
+      if (mediaMessage.mediatype === 'image') {
+        if (imageThumbnail) {
+          prepareMedia[mediaType].jpegThumbnail = imageThumbnail;
+        }
+        if (imageWidth) {
+          prepareMedia[mediaType].width = imageWidth;
+        }
+        if (imageHeight) {
+          prepareMedia[mediaType].height = imageHeight;
+        }
+      }
 
       if (mediaMessage.mediatype === 'video') {
         prepareMedia[mediaType].gifPlayback = false;
