@@ -529,27 +529,53 @@ export class BaileysStartupService extends ChannelStartupService {
         AND "key"->>'id' = ${key.id}
       `) as proto.IWebMessageInfo[];
 
+      // IMPORTANT: returning a stub like { conversation: '' } causes Baileys to re-encrypt
+      // and re-send an EMPTY message on every retry-receipt, producing the random empty
+      // bubbles reported in https://github.com/EvolutionAPI/evolution-api/issues/721.
+      // When the original message cannot be located, return undefined so Baileys aborts
+      // the retry gracefully instead of broadcasting an empty payload.
+      if (!webMessageInfo?.length) {
+        this.logger.warn(`getMessage not found for retry-receipt (key.id=${key.id}); skipping retry`);
+        return undefined;
+      }
+
       if (full) {
         return webMessageInfo[0];
       }
-      if (webMessageInfo[0].message?.pollCreationMessage) {
-        const messageSecretBase64 = webMessageInfo[0].message?.messageContextInfo?.messageSecret;
+
+      const message = webMessageInfo[0].message;
+
+      if (!message) {
+        this.logger.warn(`getMessage found row without payload (key.id=${key.id}); skipping retry`);
+        return undefined;
+      }
+
+      // Envelopes that carry only context info should not be re-sent as content.
+      const meaningfulKeys = Object.keys(message).filter((k) => k !== 'messageContextInfo');
+      if (meaningfulKeys.length === 0) {
+        this.logger.warn(`getMessage payload has no meaningful content (key.id=${key.id}); skipping retry`);
+        return undefined;
+      }
+
+      if (message.pollCreationMessage) {
+        const messageSecretBase64 = message.messageContextInfo?.messageSecret;
 
         if (typeof messageSecretBase64 === 'string') {
           const messageSecret = Buffer.from(messageSecretBase64, 'base64');
 
           const msg = {
             messageContextInfo: { messageSecret },
-            pollCreationMessage: webMessageInfo[0].message?.pollCreationMessage,
+            pollCreationMessage: message.pollCreationMessage,
           };
 
           return msg;
         }
       }
 
-      return webMessageInfo[0].message;
-    } catch {
-      return { conversation: '' };
+      return message;
+    } catch (error) {
+      this.logger.warn(`getMessage failed for key.id=${key?.id}: ${error?.message ?? error}; skipping retry`);
+      return undefined;
     }
   }
 
@@ -2194,7 +2220,7 @@ export class BaileysStartupService extends ChannelStartupService {
       message['contextInfo'] = contextInfo;
     }
 
-    if (message['conversation']) {
+    if (typeof message['conversation'] === 'string' && message['conversation'].trim().length > 0) {
       return await this.client.sendMessage(
         sender,
         {
@@ -2208,6 +2234,12 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (!message['audio'] && !message['poll'] && !message['sticker'] && sender != 'status@broadcast') {
+      // Defensive guard: never `forward` an empty envelope (would broadcast blank bubbles).
+      if (this.isEmptyOutgoingContent(message)) {
+        this.logger.warn(`Refusing to forward empty message envelope to ${sender}`);
+        throw new BadRequestException('Empty message content; refusing to forward.');
+      }
+
       return await this.client.sendMessage(
         sender,
         {
@@ -2292,6 +2324,11 @@ export class BaileysStartupService extends ChannelStartupService {
     options?: Options,
     isIntegration = false,
   ) {
+    if (this.isEmptyOutgoingContent(message)) {
+      this.logger.warn(`Refusing to send empty message to ${number}; payload=${JSON.stringify(message)}`);
+      throw new BadRequestException('Empty message content; refusing to send.');
+    }
+
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
     if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
