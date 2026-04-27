@@ -2325,7 +2325,9 @@ export class BaileysStartupService extends ChannelStartupService {
     isIntegration = false,
   ) {
     if (this.isEmptyOutgoingContent(message)) {
-      this.logger.warn(`Refusing to send empty message to ${number}; payload=${JSON.stringify(message)}`);
+      const payloadKeys =
+        message && typeof message === 'object' ? Object.keys(message as any).join(',') : typeof message;
+      this.logger.warn(`Refusing to send empty message to ${number}; payloadKeys=${payloadKeys}`);
       throw new BadRequestException('Empty message content; refusing to send.');
     }
 
