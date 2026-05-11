@@ -256,6 +256,15 @@ export class BaileysStartupService extends ChannelStartupService {
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
   private eventProcessingQueue: Promise<void> = Promise.resolve();
 
+  // Reconnection control — prevents parallel reconnect timers from piling up
+  private reconnectTimer?: NodeJS.Timeout;
+  private isReconnecting = false;
+  private reconnectAttempts = 0;
+  private lastConnectionOpenAt?: number;
+  private static readonly RECONNECT_BACKOFF_BASE_MS = 3000;
+  private static readonly RECONNECT_BACKOFF_CAP_MS = 60000;
+  private static readonly RECONNECT_STABLE_RESET_MS = 30000;
+
   // Cumulative history sync counters (reset on new sync or completion)
   private historySyncMessageCount = 0;
   private historySyncChatCount = 0;
@@ -491,11 +500,7 @@ export class BaileysStartupService extends ChannelStartupService {
       });
 
       if (shouldReconnect) {
-        // Add 3 second delay before reconnection to prevent rapid reconnection loops
-        this.logger.info('Reconnecting in 3 seconds...');
-        setTimeout(async () => {
-          await this.connectToWhatsapp(this.phoneNumber);
-        }, 3000);
+        this.scheduleReconnect();
       } else {
         this.logger.info(
           `Skipping reconnection for status code ${statusCode} (code is in codesToNotReconnect list)`,
@@ -535,6 +540,8 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'open') {
+      this.reconnectAttempts = 0;
+      this.lastConnectionOpenAt = Date.now();
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       try {
         const profilePic = await this.profilePicture(this.instance.wuid);
@@ -658,17 +665,67 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
+  private scheduleReconnect(): void {
+    if (this.isReconnecting) {
+      this.logger.info('Reconnect already scheduled, skipping duplicate');
+      return;
+    }
+
+    // Reset attempt counter if the previous connection stayed up long enough
+    if (
+      this.lastConnectionOpenAt &&
+      Date.now() - this.lastConnectionOpenAt > BaileysStartupService.RECONNECT_STABLE_RESET_MS
+    ) {
+      this.reconnectAttempts = 0;
+    }
+
+    const delay = Math.min(
+      BaileysStartupService.RECONNECT_BACKOFF_BASE_MS * 2 ** this.reconnectAttempts,
+      BaileysStartupService.RECONNECT_BACKOFF_CAP_MS,
+    );
+    this.reconnectAttempts += 1;
+    this.isReconnecting = true;
+
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+
+    this.logger.info(
+      `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`,
+    );
+
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = undefined;
+      try {
+        await this.connectToWhatsapp(this.phoneNumber);
+      } catch (error) {
+        this.logger.error({ message: 'Reconnect attempt failed', error });
+      } finally {
+        this.isReconnecting = false;
+      }
+    }, delay);
+  }
+
   private async createClient(number?: string): Promise<WASocket> {
 
     if (this.client) {
       try {
+        (this.client.ev as any)?.removeAllListeners();
         this.client.ws?.removeAllListeners();
-        this.client.ws?.close();
-        this.client?.end(new Error('Reconnecting'));
+        try {
+          this.client.ws?.close();
+        } catch {}
+        try {
+          this.client.end(new Error('Reconnecting'));
+        } catch {}
       } catch (error) {
         this.logger.error({ message: 'Error cleaning up previous client', error });
       }
       this.client = undefined;
+      // Drop any events still queued from the dead client so they don't
+      // serialize behind the new socket's events.
+      this.eventProcessingQueue = Promise.resolve();
+      // Give the server a moment to acknowledge the close before opening
+      // a new socket — avoids the new socket triggering 428 connectionReplaced.
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     this.instance.authState = await this.defineAuthState();

@@ -157,30 +157,11 @@ async function bootstrap() {
     Sentry.setupExpressErrorHandler(app);
   }
 
-  process.setMaxListeners(500);
-
   server.listen(httpServer.PORT, () => logger.log(httpServer.TYPE.toUpperCase() + ' - ON: ' + httpServer.PORT));
 
   initWA().catch((error) => {
     logger.error('Error loading instances: ' + error);
   });
-
-  setInterval(() => {
-    const usage = process.memoryUsage();
-    const exitListeners = process.listenerCount('exit');
-    const sigintListeners = process.listenerCount('SIGINT');
-    const maxListeners = process.getMaxListeners();
-
-    console.log(`--- [MONITOR DE SAÚDE] ---`);
-    console.log(`RAM: ${Math.round(usage.heapUsed / 1024 / 1024)}MB / ${Math.round(usage.rss / 1024 / 1024)}MB (RSS)`);
-    console.log(`Listeners 'exit': ${exitListeners}`);
-    console.log(`Listeners 'SIGINT': ${sigintListeners}`);
-    console.log(`Max Listeners: ${maxListeners}`);
-
-    if (exitListeners > 15) {
-      console.warn(`🚨 ALERTA: Vazamento de listeners detectado! Total: ${exitListeners}`);
-    }
-  }, 15000); // Roda a cada 30 segundos
 
   onUnexpectedError();
 }
