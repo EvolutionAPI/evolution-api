@@ -330,6 +330,7 @@ export type Chatwoot = {
   };
 };
 export type Openai = { ENABLED: boolean; API_KEY_GLOBAL?: string };
+export type Astraflow = { ENABLED: boolean; API_KEY_GLOBAL?: string; API_KEY_CN_GLOBAL?: string };
 export type Dify = { ENABLED: boolean };
 export type N8n = { ENABLED: boolean };
 export type Evoai = { ENABLED: boolean };
@@ -418,6 +419,7 @@ export interface Env {
   N8N: N8n;
   EVOAI: Evoai;
   FLOWISE: Flowise;
+  ASTRAFLOW: Astraflow;
   CACHE: CacheConf;
   S3?: S3;
   AUTHENTICATION: Auth;
@@ -838,6 +840,11 @@ export class ConfigService {
       },
       FLOWISE: {
         ENABLED: process.env?.FLOWISE_ENABLED === 'true',
+      },
+      ASTRAFLOW: {
+        ENABLED: process.env?.ASTRAFLOW_ENABLED === 'true',
+        API_KEY_GLOBAL: process.env?.ASTRAFLOW_API_KEY,
+        API_KEY_CN_GLOBAL: process.env?.ASTRAFLOW_CN_API_KEY,
       },
       CACHE: {
         REDIS: {
