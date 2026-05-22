@@ -24,7 +24,7 @@ export class EvolutionBotController extends BaseChatbotController<EvolutionBot, 
   public readonly logger = new Logger('EvolutionBotController');
   protected readonly integrationName = 'EvolutionBot';
 
-  integrationEnabled = configService.get<EvolutionBotConfig>('EVOLUTIONBOT').ENABLED;
+  integrationEnabled = configService.get<EvolutionBotConfig>('EVOLUTIONBOT').ENABLED ?? true;
   botRepository: any;
   settingsRepository: any;
   sessionRepository: any;
