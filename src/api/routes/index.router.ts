@@ -7,11 +7,13 @@ import { EventRouter } from '@api/integrations/event/event.router';
 import { StorageRouter } from '@api/integrations/storage/storage.router';
 import { waMonitor } from '@api/server.module';
 import { configService, Database, Facebook } from '@config/env.config';
+import { getSwaggerDocument } from '@config/swagger.config';
 import { fetchLatestWaWebVersion } from '@utils/fetchLatestWaWebVersion';
 import { NextFunction, Request, Response, Router } from 'express';
 import fs from 'fs';
 import mimeTypes from 'mime-types';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 
 import { BusinessRouter } from './business.router';
 import { CallRouter } from './call.router';
@@ -162,6 +164,22 @@ if (metricsConfig.ENABLED) {
 
 if (!serverConfig.DISABLE_MANAGER) router.use('/manager', new ViewsRouter().router);
 
+if (!serverConfig.DISABLE_DOCS) {
+  router.get('/openapi.json', (req, res) => {
+    res.status(HttpStatus.OK).json(getSwaggerDocument(req));
+  });
+
+  router.use('/docs', swaggerUi.serve, (req, res) => {
+    const swaggerDocument = getSwaggerDocument(req);
+    return swaggerUi.setup(swaggerDocument, {
+      explorer: true,
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    })(req, res);
+  });
+}
+
 router.get('/assets/*', (req, res) => {
   const fileName = req.params[0];
 
@@ -200,6 +218,7 @@ router
       version: packageJson.version,
       clientName: databaseConfig.CONNECTION.CLIENT_NAME,
       manager: !serverConfig.DISABLE_MANAGER ? `${req.protocol}://${req.get('host')}/manager` : undefined,
+      swagger: !serverConfig.DISABLE_DOCS ? `${req.protocol}://${req.get('host')}/docs` : undefined,
       documentation: `https://doc.evolution-api.com`,
       whatsappWebVersion: (await fetchLatestWaWebVersion({})).version.join('.'),
     });
