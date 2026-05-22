@@ -3,13 +3,13 @@ version: "3.8"
 services:
   api:
     container_name: evolution_api
-    image: evoapicloud/evolution-api:latest
+    image: docker.io/evoapicloud/evolution-api:latest
     restart: always
     depends_on:
       - redis
       - evolution-postgres
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080"
     volumes:
       - evolution_instances:/evolution/instances
     networks:
@@ -20,9 +20,28 @@ services:
     expose:
       - "8080"
 
+  caddy:
+    container_name: evolution_caddy
+    image: docker.io/library/caddy:2
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - evolution-net
+      - dokploy-network
+
   frontend:
     container_name: evolution_frontend
-    image: evoapicloud/evolution-manager:latest
+    image: docker.io/evoapicloud/evolution-manager:latest
     restart: always
     ports:
       - "3000:80"
@@ -31,7 +50,7 @@ services:
 
   redis:
     container_name: evolution_redis
-    image: redis:latest
+    image: docker.io/library/redis:latest
     restart: always
     command: >
       redis-server --port 6379 --appendonly yes
@@ -49,7 +68,7 @@ services:
 
   evolution-postgres:
     container_name: evolution_postgres
-    image: postgres:15
+    image: docker.io/library/postgres:15
     restart: always
     env_file:
       - .env
@@ -75,6 +94,8 @@ volumes:
   evolution_instances:
   evolution_redis:
   postgres_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   evolution-net:
