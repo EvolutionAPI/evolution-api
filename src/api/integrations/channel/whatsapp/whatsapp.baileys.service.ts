@@ -1116,7 +1116,7 @@ export class BaileysStartupService extends ChannelStartupService {
           contactsMapLidJid.set(contact.id, { jid });
         }
 
-        const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string }[] = [];
+        const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string; unreadMessages?: number }[] = [];
         const chatsRepository = new Set(
           (await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } })).map(
             (chat) => chat.remoteJid,
@@ -1149,7 +1149,7 @@ export class BaileysStartupService extends ChannelStartupService {
             remoteJid = chat.id;
           }
 
-          chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name });
+          chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name, unreadMessages: chat.unreadCount ?? 0 });
         }
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
