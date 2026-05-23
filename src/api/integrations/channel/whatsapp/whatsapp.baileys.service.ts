@@ -168,6 +168,13 @@ export interface ExtendedIMessageKey extends proto.IMessageKey {
   isViewOnce?: boolean;
 }
 
+export type ChatRaw = {
+  remoteJid: string;
+  instanceId: string;
+  name?: string;
+  unreadMessages?: number;
+};
+
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
 
 // Adicione a função getVideoDuration no início do arquivo
@@ -874,13 +881,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const existingChatIdSet = new Set(existingChatIds.map((chat) => chat.remoteJid));
 
-      const chatsToInsert = chats
+      const chatsToInsert: ChatRaw[] = chats
         .filter((chat) => !existingChatIdSet?.has(chat.id))
         .map((chat) => ({
           remoteJid: chat.id,
           instanceId: this.instanceId,
           name: chat.name,
-          unreadMessages: chat.unreadCount !== undefined ? chat.unreadCount : 0,
+          unreadMessages: chat.unreadCount,
         }));
 
       this.sendDataWebhook(Events.CHATS_UPSERT, chatsToInsert);
@@ -1116,7 +1123,7 @@ export class BaileysStartupService extends ChannelStartupService {
           contactsMapLidJid.set(contact.id, { jid });
         }
 
-        const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string; unreadMessages?: number }[] = [];
+        const chatsRaw: (ChatRaw & { remoteLid: string })[] = [];
         const chatsRepository = new Set(
           (await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } })).map(
             (chat) => chat.remoteJid,
@@ -1149,7 +1156,7 @@ export class BaileysStartupService extends ChannelStartupService {
             remoteJid = chat.id;
           }
 
-          chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name, unreadMessages: chat.unreadCount ?? 0 });
+          chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name, unreadMessages: chat.unreadCount });
         }
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
