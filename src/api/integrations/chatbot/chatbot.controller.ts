@@ -11,8 +11,8 @@ import {
 } from '@api/server.module';
 import { WAMonitoringService } from '@api/services/monitor.service';
 import { Logger } from '@config/logger.config';
-import { IntegrationSession } from '@prisma/client';
 import { findBotByTrigger } from '@utils/findBotByTrigger';
+type IntegrationSession = any;
 
 export type EmitData = {
   instance: InstanceDto;

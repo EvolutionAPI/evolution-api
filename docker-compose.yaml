@@ -1,23 +1,21 @@
-version: "3.8"
-
 services:
   api:
     container_name: evolution_api
-    image: evoapicloud/evolution-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     depends_on:
       - redis
       - evolution-postgres
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8082:8080"
     volumes:
       - evolution_instances:/evolution/instances
     networks:
-      - evolution-net
+      - delivery-net
     env_file:
       - .env
-    expose:
-      - "8080"
 
   frontend:
     container_name: evolution_frontend
@@ -28,22 +26,18 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/nginx.conf:ro
     networks:
-      - evolution-net
+      - delivery-net
 
   redis:
     container_name: evolution_redis
     image: redis:latest
     restart: always
     command: >
-      redis-server --port 6379 --appendonly yes
+      redis-server --appendonly yes
     volumes:
       - evolution_redis:/data
     networks:
-      evolution-net:
-        aliases:
-          - evolution-redis
-    expose:
-      - "6379"
+      - delivery-net
 
   evolution-postgres:
     container_name: evolution_postgres
@@ -58,15 +52,13 @@ services:
       - -c
       - listen_addresses=*
     environment:
-      - POSTGRES_DB=${POSTGRES_DATABASE}
-      - POSTGRES_USER=${POSTGRES_USERNAME}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - evolution-net
-    expose:
-      - "5432"
+      - delivery-net
 
 volumes:
   evolution_instances:
@@ -74,6 +66,5 @@ volumes:
   postgres_data:
 
 networks:
-  evolution-net:
-    name: evolution-net
-    driver: bridge
+  delivery-net:
+    external: true
