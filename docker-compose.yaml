@@ -19,7 +19,6 @@ services:
       - .env
     expose:
       - "8080"
-
   caddy:
     container_name: evolution_caddy
     image: docker.io/library/caddy:2
@@ -47,6 +46,8 @@ services:
       - "3000:80"
     networks:
       - evolution-net
+    volumes:
+      - ./nginx.frontend.conf:/etc/nginx/conf.d/nginx.conf:ro
 
   redis:
     container_name: evolution_redis
@@ -87,8 +88,8 @@ services:
     networks:
       - evolution-net
       - dokploy-network
-    expose:
-      - "5432"
+    ports:
+      - "127.0.0.1:5432:5432"
 
 volumes:
   evolution_instances:

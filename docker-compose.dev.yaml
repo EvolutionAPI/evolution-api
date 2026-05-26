@@ -14,6 +14,25 @@ services:
       - .env
     expose:
       - 8080
+  
+  caddy:
+    container_name: evolution_caddy
+    image: docker.io/library/caddy:2
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - evolution-net
+      - dokploy-network
 
   frontend:
     container_name: evolution_frontend
@@ -33,3 +52,4 @@ networks:
   evolution-net:
     name: evolution-net
     driver: bridge
+

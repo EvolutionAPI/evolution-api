@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  middleware-api:
+    build: .
+    container_name: middleware-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://middleware_user:middleware_pass@host.containers.internal:5435/middleware_db
+      RABBITMQ_URL: amqp://middleware_user:middleware_pass@rabbitmq:5672/
+      EVOLUTION_API_BASE_URL: http://host.containers.internal:8080
+    depends_on:
+      - postgres
+      - rabbitmq
+    ports:
+      - '8090:8090'
+
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: middleware-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: middleware_user
+      POSTGRES_PASSWORD: middleware_pass
+      POSTGRES_DB: middleware_db
+    ports:
+      - '5435:5432'
+    volumes:
+      - middleware_postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: docker.io/library/rabbitmq:3-management-alpine
+    container_name: middleware-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: middleware_user
+      RABBITMQ_DEFAULT_PASS: middleware_pass
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+
+volumes:
+  middleware_postgres_data:
