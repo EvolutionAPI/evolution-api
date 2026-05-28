@@ -1542,7 +1542,7 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          let msg: any = null;
+          let msg: Message | null = null;
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { pollUpdates, ...messageData } = messageRaw as any;
@@ -1581,53 +1581,50 @@ export class BaileysStartupService extends ChannelStartupService {
               try {
                 if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
                   this.logger.warn('Video upload is disabled. Skipping video upload.');
-                  // Skip video upload by returning early from this block
-                  return;
-                }
-
-                const message: any = received;
-
-                // Verificação adicional para garantir que há conteúdo de mídia real
-                const hasRealMedia = this.hasValidMediaContent(message);
-
-                if (!hasRealMedia) {
-                  this.logger.warn('Message detected as media but contains no valid media content');
                 } else {
-                  const media = await this.getBase64FromMediaMessage({ message }, true);
+                  const message: any = received;
 
-                  if (!media) {
-                    this.logger.verbose('No valid media to upload (messageContextInfo only), skipping MinIO');
-                    return;
-                  }
+                  // Verificação adicional para garantir que há conteúdo de mídia real
+                  const hasRealMedia = this.hasValidMediaContent(message);
 
-                  const { buffer, mediaType, fileName, size } = media;
-                  const mimetype = mimeTypes.lookup(fileName).toString();
-                  const fullName = join(
-                    `${this.instance.id}`,
-                    received.key.remoteJid,
-                    mediaType,
-                    `${Date.now()}_${fileName}`,
-                  );
-                  await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, { 'Content-Type': mimetype });
+                  if (!hasRealMedia) {
+                    this.logger.warn('Message detected as media but contains no valid media content');
+                  } else {
+                    const media = await this.getBase64FromMediaMessage({ message }, true);
 
-                  if (msg?.id) {
-                    await this.prismaRepository.media.create({
-                      data: {
-                        messageId: msg.id,
-                        instanceId: this.instanceId,
-                        type: mediaType,
-                        fileName: fullName,
-                        mimetype,
-                      },
-                    });
-                  }
+                    if (!media) {
+                      this.logger.verbose('No valid media to upload (messageContextInfo only), skipping MinIO');
+                    } else {
+                      const { buffer, mediaType, fileName, size } = media;
+                      const mimetype = mimeTypes.lookup(fileName).toString();
+                      const fullName = join(
+                        `${this.instance.id}`,
+                        received.key.remoteJid,
+                        mediaType,
+                        `${Date.now()}_${fileName}`,
+                      );
+                      await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, { 'Content-Type': mimetype });
 
-                  const mediaUrl = await s3Service.getObjectUrl(fullName);
+                      if (msg?.id) {
+                        await this.prismaRepository.media.create({
+                          data: {
+                            messageId: msg.id,
+                            instanceId: this.instanceId,
+                            type: mediaType,
+                            fileName: fullName,
+                            mimetype,
+                          },
+                        });
+                      }
 
-                  (messageRaw.message as any).mediaUrl = mediaUrl;
+                      const mediaUrl = await s3Service.getObjectUrl(fullName);
 
-                  if (msg?.id) {
-                    await this.prismaRepository.message.update({ where: { id: msg.id }, data: messageRaw });
+                      (messageRaw.message as any).mediaUrl = mediaUrl;
+
+                      if (msg?.id) {
+                        await this.prismaRepository.message.update({ where: { id: msg.id }, data: messageRaw });
+                      }
+                    }
                   }
                 }
               } catch (error) {
