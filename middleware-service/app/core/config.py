@@ -22,5 +22,7 @@ class Settings(BaseSettings):
     evolution_api_key: str = ''
     evolution_api_timeout: int = 20
 
+    support_whatsapp_number: str = ''
+
 
 settings = Settings()

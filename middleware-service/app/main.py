@@ -5,6 +5,11 @@ from fastapi import FastAPI
 from app.api.routes import get_router
 from app.core.config import settings
 from app.db.session import Base, engine
+from app.models.command_log import CommandLog  # noqa: F401
+from app.models.customer import Customer  # noqa: F401
+from app.models.event_log import EventLog  # noqa: F401
+from app.models.ticket import Ticket  # noqa: F401
+from app.models.ticket_comment import TicketComment  # noqa: F401
 from app.services.consumer import start_consumer
 from app.services.rabbitmq import RabbitMQService
 

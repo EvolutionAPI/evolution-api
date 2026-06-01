@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api.comments import router as comments_router
+from app.api.customers import router as customers_router
+from app.api.tickets import router as tickets_router
 from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.events import IncomingEvent, PublishMessage
@@ -8,11 +11,18 @@ from app.schemas.evolution import RabbitMQInstanceConfig
 from app.services.evolution_api import EvolutionAPIService
 from app.services.rabbitmq import RabbitMQService
 from app.services.repository import EventLogRepository
+from app.services.ticket_event_publisher import TicketEventPublisher
+from app.services.ticket_pipeline import publish_ticket_result, summarize_ticket_result
+from app.services.ticket_service import TicketService
 
 
 def get_router(rabbitmq: RabbitMQService) -> APIRouter:
     router = APIRouter()
     evolution_api = EvolutionAPIService()
+
+    router.include_router(tickets_router)
+    router.include_router(comments_router)
+    router.include_router(customers_router)
 
     @router.get('/health')
     async def health_check():
@@ -38,12 +48,20 @@ def get_router(rabbitmq: RabbitMQService) -> APIRouter:
         repo = EventLogRepository(db)
         event = repo.create(source='evolution', event_type=data.event_type, payload=data.payload)
 
+        ticket_result = TicketService(db).process_evolution_payload(data.payload)
+        if ticket_result:
+            await publish_ticket_result(TicketEventPublisher(rabbitmq), ticket_result)
+
         await rabbitmq.publish(
             payload={'source': 'evolution', 'event_type': data.event_type, 'payload': data.payload, 'event_id': event.id},
             routing_key=settings.rabbitmq_routing_key_out,
         )
 
-        return {'message': 'Event received and sent to queue', 'event_id': event.id}
+        return {
+            'message': 'Event received and processed',
+            'event_id': event.id,
+            'ticket_result': summarize_ticket_result(ticket_result),
+        }
 
     @router.post('/events/helpdesk')
     async def receive_helpdesk_event(data: IncomingEvent, db: Session = Depends(get_db)):
