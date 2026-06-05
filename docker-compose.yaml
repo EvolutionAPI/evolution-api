@@ -10,6 +10,7 @@ services:
       - postgres
     ports:
       - 8080:8080
+      - 9229:9229
     volumes:
       - evolution_instances:/evolution/instances
     networks:
@@ -18,6 +19,7 @@ services:
       - .env
     expose:
       - 8080
+      - 9229
     environment:
       - NODE_OPTIONS=--dns-result-order=ipv4first
 
