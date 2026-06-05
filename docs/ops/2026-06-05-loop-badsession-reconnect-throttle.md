@@ -1,20 +1,19 @@
-# 2026-06-05 — Cliente não mantém conexão (loop de reconexão `badSession`/500)
+# 2026-06-05 — Loop de reconexão `badSession`/500 (throttle não-destrutivo)
 
 Servidor envolvido: **whatsapp-1** (`whatsapp-evolution-01` / `whatsapp-in-1.einov.com`).
 
-- **WhatsApp account** (CRM): `channel_id 5488` — "New Way Máquinas".
 - **Instância** (Evolution / instanceName): `062aaee3-97c9-4d25-826d-06cdd1b7dd6a`.
 - **instanceId**: `39d0521a-e0af-4bba-a788-12315fd622f1`.
-- **Número dono aparente** (sender nos webhooks): `554832069277`.
+- **Número dono** (sender nos webhooks): `554832069277`.
+
+> ⚠️ **Correção de atribuição:** esta instância (`062aaee3`) **NÃO é** o channel 5488 / "New Way Máquinas".
+> Na investigação inicial ela foi achada por busca pelo nome "New Way Máquinas", mas ali esse nome era de um **contato** dessa conta — não a conta dela. O `instanceId` (`39d0521a`) não bate com o `external_id` do 5488 (`b9c12947`). O caso real do channel 5488 está em [2026-06-05-cliente-5488-newway-reconnect-fantasma.md](2026-06-05-cliente-5488-newway-reconnect-fantasma.md). Este doc trata **apenas** do loop `badSession`/500 da instância `062aaee3` (channel desconhecido) e da correção de código que ele motivou.
 
 > Horários abaixo em **UTC** (timezone dos servidores = `Etc/UTC`, igual ao timestamp do PM2).
 > Atenção ao **off-by-one da rotação do PM2**: o arquivo `evolution-api-out__2026-06-05_00-00-00.log` contém os logs de **04/06** (foi rotacionado à 00:00 de 05/06).
 
-## Sintoma relatado
-"Lead com problema para conectar o WhatsApp desde quarta (03/06). Sempre que conecta, desconecta da plataforma logo em seguida." O CRM registrava a conta oscilando `open`/`close` repetidamente.
-
-## A pegadinha: o `close` do CRM NÃO era logout
-O audit do CRM (`crm.audits`, channel 5488) mostra pares `open → close` a partir de 03/06, o que **parece** logout/`device_removed` (como no [caso 5463](2026-06-01-cliente-5463-envios-error-device-removed.md)). **Não era.** Cada `close` do CRM era uma **queda transitória** seguida de reconexão automática — o CRM só registra a transição de estado, não o motivo.
+## Sintoma
+Instância oscilando `open`/`close` repetidamente (~1600 closes em 3h em 04/06), martelando o host — o `close` aqui era **queda transitória** com reconexão automática, não logout.
 
 ## Diagnóstico real (logs do servidor)
 
@@ -98,7 +97,7 @@ Agravantes no `baileys-logs.log`: `stream:error code 503`, `error in sending kee
 Uma versão inicial fazia `shouldReconnect = false` no badSession, mas isso foi **descartado** por risco a outras contas:
 - **`500` é o *default* do Baileys** para um `stream:error` sem `code` (`getErrorCodeFromStreamError` em `generics.js`), **não** um sinal confiável de "sessão corrompida".
 - O caminho de não-reconectar emite `logout.instance` → `monitor.service.ts::cleaningUp()`, que faz `rmSync` do diretório da instância (**apaga as credenciais**) + `session.deleteMany`.
-- Logo, parar no badSession **apagaria a sessão e forçaria novo QR** de qualquer conta que caísse num loop de 500 transitório — inclusive contas que se recuperariam sozinhas (como esta 5488, que voltou a `open` às 08:31 sem intervenção).
+- Logo, parar no badSession **apagaria a sessão e forçaria novo QR** de qualquer conta que caísse num loop de 500 transitório — inclusive contas que se recuperariam sozinhas (como a própria `062aaee3`, que voltou a `open` às 08:31 sem intervenção).
 
 Por isso a correção é só **throttle** (reduz a taxa de retry), nunca teardown. O estado é **por-instância** (campos não-`static`), então não há efeito cruzado entre contas.
 
