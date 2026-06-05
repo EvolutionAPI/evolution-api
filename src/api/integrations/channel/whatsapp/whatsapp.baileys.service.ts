@@ -260,10 +260,17 @@ export class BaileysStartupService extends ChannelStartupService {
   private reconnectTimer?: NodeJS.Timeout;
   private isReconnecting = false;
   private reconnectAttempts = 0;
+  private consecutiveBadSessionCloses = 0;
   private lastConnectionOpenAt?: number;
   private static readonly RECONNECT_BACKOFF_BASE_MS = 3000;
   private static readonly RECONNECT_BACKOFF_CAP_MS = 60000;
   private static readonly RECONNECT_STABLE_RESET_MS = 30000;
+  // After this many consecutive badSession (500) closes, throttle reconnects to
+  // the backoff cap so a tight open→close loop stops hammering the server.
+  // Non-destructive: it keeps retrying slowly (never wipes credentials), so the
+  // instance can still recover on its own. statusCode 500 is Baileys' default
+  // for unmapped stream errors, so it must NOT be treated as a hard logout.
+  private static readonly BAD_SESSION_MAX_RECONNECTS = 5;
 
   // Cumulative history sync counters (reset on new sync or completion)
   private historySyncMessageCount = 0;
@@ -490,12 +497,26 @@ export class BaileysStartupService extends ChannelStartupService {
         return;
       }
 
+      // Track consecutive badSession (500) closes. statusCode 500 is Baileys'
+      // *default* for an unmapped stream:error (see getErrorCodeFromStreamError),
+      // not a reliable "session is corrupt" signal — so we must NOT treat it as a
+      // logout (that path wipes credentials via cleaningUp). We only COUNT them
+      // here; scheduleReconnect() uses the counter to throttle the retry rate so
+      // a 500 loop stops hammering the server while still being able to recover
+      // on its own. The reconnect decision itself is unchanged from before.
+      if (statusCode === DisconnectReason.badSession) {
+        this.consecutiveBadSessionCloses += 1;
+      } else {
+        this.consecutiveBadSessionCloses = 0;
+      }
+
       const shouldReconnect = !codesToNotReconnect.includes(statusCode);
 
       this.logger.info({
         message: 'Connection closed, evaluating reconnection',
         statusCode,
         shouldReconnect,
+        consecutiveBadSessionCloses: this.consecutiveBadSessionCloses,
         instanceName: this.instance.name,
       });
 
@@ -540,7 +561,12 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'open') {
-      this.reconnectAttempts = 0;
+      // reconnectAttempts / consecutiveBadSessionCloses are intentionally NOT
+      // reset here. Resetting on every 'open' defeated the exponential backoff
+      // and the badSession-loop detection during open→close flap storms: the
+      // socket reaches 'open' for a few seconds (resetting the counters), then
+      // dies again. Both counters are reset only after the connection stays
+      // stable for RECONNECT_STABLE_RESET_MS — see scheduleReconnect().
       this.lastConnectionOpenAt = Date.now();
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       try {
@@ -677,12 +703,30 @@ export class BaileysStartupService extends ChannelStartupService {
       Date.now() - this.lastConnectionOpenAt > BaileysStartupService.RECONNECT_STABLE_RESET_MS
     ) {
       this.reconnectAttempts = 0;
+      this.consecutiveBadSessionCloses = 0;
     }
 
-    const delay = Math.min(
+    let delay = Math.min(
       BaileysStartupService.RECONNECT_BACKOFF_BASE_MS * 2 ** this.reconnectAttempts,
       BaileysStartupService.RECONNECT_BACKOFF_CAP_MS,
     );
+
+    // After repeated badSession (500) closes, floor the delay at the cap so a
+    // tight open→close loop stops hammering the server (observed: ~800/h for a
+    // single instance). Non-destructive: we keep reconnecting at the slow rate,
+    // so the instance can still recover on its own and credentials are never
+    // wiped. The counter resets once a connection stays stable (see above).
+    const inBadSessionLoop =
+      this.consecutiveBadSessionCloses >= BaileysStartupService.BAD_SESSION_MAX_RECONNECTS;
+    if (inBadSessionLoop) {
+      delay = BaileysStartupService.RECONNECT_BACKOFF_CAP_MS;
+      this.logger.warn({
+        message: 'badSession (500) reconnect loop — throttling retries to cap; may need manual re-pair',
+        consecutiveBadSessionCloses: this.consecutiveBadSessionCloses,
+        instanceName: this.instance.name,
+      });
+    }
+
     this.reconnectAttempts += 1;
     this.isReconnecting = true;
 
@@ -889,6 +933,26 @@ export class BaileysStartupService extends ChannelStartupService {
       console.log('CB:ack,class:call', packet);
       const payload = { event: 'CB:ack,class:call', packet: packet };
       this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
+    });
+
+    // Captura acks de ERRO de envio: quando o WhatsApp rejeita uma mensagem
+    // enviada, responde com <ack ... error="<code>" />. Logamos apenas esses
+    // (acks de sucesso não têm o atributo `error`), para expor o motivo real
+    // da falha (spam/rate-limit/bloqueio) sem precisar de LOG_BAILEYS=debug.
+    this.client.ws.on('CB:ack', (node: any) => {
+      const errorCode = node?.attrs?.error;
+      if (!errorCode) return;
+
+      this.logger.warn({
+        message: 'Message send rejected by WhatsApp (error ack)',
+        instanceName: this.instance.name,
+        instanceId: this.instanceId,
+        messageId: node?.attrs?.id,
+        from: node?.attrs?.from,
+        ackClass: node?.attrs?.class,
+        errorCode,
+        attrs: node?.attrs,
+      });
     });
 
     this.phoneNumber = number;
