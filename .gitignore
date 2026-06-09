@@ -46,3 +46,5 @@ lerna-debug.log*
 .tool-versions
 
 /prisma/migrations/*
+
+_evo*
