@@ -197,6 +197,14 @@ export type WaBusiness = {
   LANGUAGE: string;
 };
 
+export type EvolutionHub = {
+  URL: string;
+  API_KEY: string;
+  WEBHOOK_SECRET: string;
+  TOKEN_WEBHOOK: string;
+  FRONTEND_URL: string;
+};
+
 export type EventsWebhook = {
   APPLICATION_STARTUP: boolean;
   INSTANCE_CREATE: boolean;
@@ -409,6 +417,7 @@ export interface Env {
   KAFKA: Kafka;
   WEBSOCKET: Websocket;
   WA_BUSINESS: WaBusiness;
+  EVOLUTION_HUB: EvolutionHub;
   LOG: Log;
   DEL_INSTANCE: DelInstance;
   DEL_TEMP_INSTANCES: boolean;
@@ -742,6 +751,13 @@ export class ConfigService {
         URL: process.env.WA_BUSINESS_URL || 'https://graph.facebook.com',
         VERSION: process.env.WA_BUSINESS_VERSION || 'v18.0',
         LANGUAGE: process.env.WA_BUSINESS_LANGUAGE || 'en',
+      },
+      EVOLUTION_HUB: {
+        URL: process.env.EVOLUTION_HUB_URL || 'https://api.evohub.ai',
+        API_KEY: process.env.EVOLUTION_HUB_API_KEY || '',
+        WEBHOOK_SECRET: process.env.EVOLUTION_HUB_WEBHOOK_SECRET || '',
+        TOKEN_WEBHOOK: process.env.EVOLUTION_HUB_TOKEN_WEBHOOK || 'evolution',
+        FRONTEND_URL: process.env.EVOLUTION_HUB_FRONTEND_URL || 'https://app.evohub.ai',
       },
       LOG: {
         LEVEL:

@@ -14,6 +14,8 @@ import { SendMessageController } from './controllers/sendMessage.controller';
 import { SettingsController } from './controllers/settings.controller';
 import { TemplateController } from './controllers/template.controller';
 import { ChannelController } from './integrations/channel/channel.controller';
+import { EvoHubClient } from './integrations/channel/evohub/evohub.client';
+import { EvoHubController } from './integrations/channel/evohub/evohub.controller';
 import { EvolutionController } from './integrations/channel/evolution/evolution.controller';
 import { MetaController } from './integrations/channel/meta/meta.controller';
 import { BaileysController } from './integrations/channel/whatsapp/baileys.controller';
@@ -114,6 +116,8 @@ export const channelController = new ChannelController(prismaRepository, waMonit
 // channels
 export const evolutionController = new EvolutionController(prismaRepository, waMonitor);
 export const metaController = new MetaController(prismaRepository, waMonitor);
+export const evoHubController = new EvoHubController(prismaRepository, waMonitor, configService);
+export const evoHubClient = new EvoHubClient(configService);
 export const baileysController = new BaileysController(waMonitor);
 
 const openaiService = new OpenaiService(waMonitor, prismaRepository, configService);

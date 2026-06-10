@@ -75,7 +75,7 @@ export class BusinessStartupService extends ChannelStartupService {
     return message.document || message.image || message.audio || message.video;
   }
 
-  private async post(message: any, params: string) {
+  protected async post(message: any, params: string) {
     try {
       let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
       const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
@@ -220,7 +220,7 @@ export class BusinessStartupService extends ChannelStartupService {
     return recipient !== displayPhone && recipient !== phoneNumberId;
   }
 
-  private async downloadMediaMessage(message: any) {
+  protected async downloadMediaMessage(message: any) {
     try {
       const id = message[message.type].id;
       let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
@@ -242,6 +242,24 @@ export class BusinessStartupService extends ChannelStartupService {
       this.logger.error(`Error downloading media: ${e}`);
       throw e;
     }
+  }
+
+  // Transporte de download de mídia (metadata + binário) isolado num único ponto.
+  // A subclass EvoHub sobrescreve este helper para apontar a {HUB}/meta/${id}.
+  // Retorna `result` (metadata/headers da 1ª chamada) e `buffer` (arraybuffer da 2ª).
+  protected async fetchMediaFromGraph(id: string): Promise<{ result: any; buffer: any }> {
+    let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
+    const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
+    urlServer = `${urlServer}/${version}/${id}`;
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
+
+    const result = await axios.get(urlServer, { headers });
+    const buffer = await axios.get(result.data.url, {
+      headers: { Authorization: `Bearer ${this.token}` },
+      responseType: 'arraybuffer',
+    });
+
+    return { result, buffer };
   }
 
   private messageMediaJson(received: any) {
@@ -531,16 +549,7 @@ export class BusinessStartupService extends ChannelStartupService {
                 this.logger.warn('Message detected as media but contains no valid media content');
               } else {
                 const id = message.messages[0][message.messages[0].type].id;
-                let urlServer = this.configService.get<WaBusiness>('WA_BUSINESS').URL;
-                const version = this.configService.get<WaBusiness>('WA_BUSINESS').VERSION;
-                urlServer = `${urlServer}/${version}/${id}`;
-                const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token}` };
-                const result = await axios.get(urlServer, { headers });
-
-                const buffer = await axios.get(result.data.url, {
-                  headers: { Authorization: `Bearer ${this.token}` }, // Use apenas o token de autorização para download
-                  responseType: 'arraybuffer',
-                });
+                const { result, buffer } = await this.fetchMediaFromGraph(id);
 
                 let mediaType;
 
@@ -1294,7 +1303,7 @@ export class BusinessStartupService extends ChannelStartupService {
     return res;
   }
 
-  private async getIdMedia(mediaMessage: any, isFile = false) {
+  protected async getIdMedia(mediaMessage: any, isFile = false) {
     try {
       const formData = new FormData();
 

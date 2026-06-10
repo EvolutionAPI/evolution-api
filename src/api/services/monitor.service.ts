@@ -296,7 +296,8 @@ export class WAMonitoringService {
     if (
       instanceData.connectionStatus === 'open' ||
       instanceData.connectionStatus === 'connecting' ||
-      instanceData.integration === Integration.EVOLUTION
+      instanceData.integration === Integration.EVOLUTION ||
+      instanceData.integration === Integration.EVOHUB
     ) {
       this.logger.info(
         `Auto-connecting instance "${instanceData.instanceName}" (status: ${instanceData.connectionStatus})`,
