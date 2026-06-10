@@ -2,7 +2,7 @@ import { RouterBroker } from '@api/abstract/abstract.router';
 import { authGuard } from '@api/guards/auth.guard';
 import { evoHubClient, instanceController, prismaRepository } from '@api/server.module';
 import { Integration } from '@api/types/wa.types';
-import { ConfigService } from '@config/env.config';
+import { ConfigService, HttpServer } from '@config/env.config';
 import { RequestHandler, Router } from 'express';
 
 /**
@@ -40,9 +40,13 @@ export class EvoHubControlPlaneRouter extends RouterBroker {
       res.json(await evoHubClient.getChannel(req.params.id));
     });
 
-    this.router.get('/evohub/available-channels', guard, async (req, res) => {
-      const type = req.query.type as 'whatsapp' | 'facebook' | 'instagram' | undefined;
-      const channels = await evoHubClient.getAvailableChannels(type);
+    this.router.get('/evohub/available-channels', guard, async (_req, res) => {
+      const channels = await evoHubClient.getAvailableChannels();
+
+      // O evolution-api é uma API de WhatsApp — o hub (GetChannels) NÃO filtra por type
+      // e devolve todos os canais do usuário (whatsapp + facebook + instagram). Expomos
+      // SÓ os canais WhatsApp.
+      const byType = channels.filter((c) => c.type === 'whatsapp');
 
       // Filtro best-effort de já-vinculados (contrato §2). A garantia DURA de
       // "um phone_number_id => no máx. uma Instance" vive na CRIAÇÃO da Instance
@@ -53,7 +57,7 @@ export class EvoHubControlPlaneRouter extends RouterBroker {
       });
       const linkedNumbers = new Set(linked.map((i) => i.number));
       res.json(
-        channels.filter((c) => {
+        byType.filter((c) => {
           const pn = c.meta_connection?.phone_number_id;
           return pn ? !linkedNumbers.has(pn) : true;
         }),
@@ -84,10 +88,29 @@ export class EvoHubControlPlaneRouter extends RouterBroker {
       return res.status(201).json(created);
     });
 
-    // ---- FASE 2 ----
+    // POST /evohub/provision — cria canal novo no hub. Mapeia o payload do front
+    // { instanceName, channel_type, meta_app_mode } para o contrato do hub { name, type,
+    // channel_credentials_id?, webhook_url }. Registra o webhook do evolution-api
+    // (single-shot) para receber mensagens. Devolve { channel_token, public_link,
+    // hub_channel_id } — o front abre o public_link para o OAuth Meta.
     this.router.post('/evohub/provision', guard, async (req, res) => {
-      // devolve { channel_token, public_link, hub_channel_id } — public_link client-constructed
-      res.json(await evoHubClient.provisionChannel(req.body));
+      const { instanceName, meta_app_mode } = req.body as {
+        instanceName: string;
+        meta_app_mode?: string; // "shared" | byo_credential_id
+      };
+
+      const serverUrl = configService.get<HttpServer>('SERVER').URL;
+      // "shared" => sem channel_credentials_id; qualquer outro valor => BYO credential id.
+      const channelCredentialsId = meta_app_mode && meta_app_mode !== 'shared' ? meta_app_mode : undefined;
+
+      const result = await evoHubClient.provisionChannel({
+        name: instanceName,
+        type: 'whatsapp', // evolution-api é uma API de WhatsApp — sempre whatsapp
+        channel_credentials_id: channelCredentialsId,
+        webhook_url: serverUrl ? `${serverUrl}/webhook/evohub` : undefined,
+      });
+
+      res.json(result);
     });
 
     this.router.post('/evohub/channels/:id/meta-connect', guard, async (req, res) => {

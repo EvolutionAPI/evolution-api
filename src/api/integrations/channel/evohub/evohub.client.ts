@@ -52,11 +52,12 @@ export interface HubChannel {
   meta_connection?: HubMetaConnection | null;
 }
 
-// ---- Fase 2: criar-novo (POST /api/v1/channels) ----
+// ---- Criar-novo (POST /api/v1/channels) ----
 export interface HubProvisionRequest {
   name: string;
   type: 'whatsapp' | 'facebook' | 'instagram';
   channel_credentials_id?: string | null; // set => byo; omitido => shared
+  webhook_url?: string; // se setado, o hub registra o webhook (single-shot)
 }
 
 export interface HubProvisionResponse {
@@ -157,18 +158,42 @@ export class EvoHubClient {
   // ---- Fase 2 ----
 
   /**
-   * (FASE 2) Cria um canal novo no hub (POST /api/v1/channels) e CONSTRÓI o
-   * public_link a partir do channel.token devolvido (contrato §3 — NÃO é campo do
-   * hub): `${FRONTEND_URL}/connect/${channel_token}`.
+   * Cria um canal novo no hub (POST /api/v1/channels) e CONSTRÓI o public_link a
+   * partir do channel.token devolvido (contrato §3 — NÃO é campo do hub):
+   * `${FRONTEND_URL}/connect/${channel_token}`.
+   *
+   * Request real do hub (CreateChannelRequest): { name, type, webhook_url?,
+   * webhook_secret? }. Quando webhook_url é enviado, o hub registra o webhook
+   * E retorna a resposta ENVELOPADA em { channel, webhook_id }; sem webhook a
+   * resposta é o ChannelResponse plano. Normalizamos os dois.
+   *
+   * Webhook = recipe register-with-own-secret (contrato §7): registramos com o
+   * nosso EVOLUTION_HUB_WEBHOOK_SECRET, então o hub assina os webhooks com ele e
+   * a validação HMAC no inbound bate.
    */
   async provisionChannel(req: HubProvisionRequest): Promise<HubProvisionResponse> {
-    const { data } = await this.http.post('/channels', req);
-    const channelToken: string = data.token;
-    const hubChannelId: string = data.id;
-    const frontendUrl = this.configService.get<EvolutionHub>('EVOLUTION_HUB').FRONTEND_URL;
+    const cfg = this.configService.get<EvolutionHub>('EVOLUTION_HUB');
+    const body: Record<string, any> = {
+      name: req.name,
+      type: req.type,
+    };
+    if (req.channel_credentials_id) body.channel_credentials_id = req.channel_credentials_id;
+    // Registra o webhook do evolution-api junto da criação (single-shot) para
+    // receber mensagens inbound. webhook_secret = nosso secret (register-with-own-secret).
+    if (req.webhook_url) {
+      body.webhook_url = req.webhook_url;
+      if (cfg.WEBHOOK_SECRET) body.webhook_secret = cfg.WEBHOOK_SECRET;
+    }
+
+    const { data } = await this.http.post('/channels', body);
+    // Normaliza: { channel: {...}, webhook_id } (com webhook) OU ChannelResponse plano.
+    const channel = data?.channel ?? data;
+    const channelToken: string = channel.token;
+    const hubChannelId: string = channel.id;
+
     return {
       channel_token: channelToken,
-      public_link: `${frontendUrl}/connect/${channelToken}`,
+      public_link: `${cfg.FRONTEND_URL}/connect/${channelToken}`,
       hub_channel_id: hubChannelId,
     };
   }

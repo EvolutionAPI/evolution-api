@@ -757,7 +757,7 @@ export class ConfigService {
         API_KEY: process.env.EVOLUTION_HUB_API_KEY || '',
         WEBHOOK_SECRET: process.env.EVOLUTION_HUB_WEBHOOK_SECRET || '',
         TOKEN_WEBHOOK: process.env.EVOLUTION_HUB_TOKEN_WEBHOOK || 'evolution',
-        FRONTEND_URL: process.env.EVOLUTION_HUB_FRONTEND_URL || 'https://app.evohub.ai',
+        FRONTEND_URL: process.env.EVOLUTION_HUB_FRONTEND_URL || 'https://app.evohub.evolutionfoundation.com.br',
       },
       LOG: {
         LEVEL:
