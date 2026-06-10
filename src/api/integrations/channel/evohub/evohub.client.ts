@@ -108,18 +108,31 @@ export class EvoHubClient {
   }
 
   async getPlan(): Promise<HubPlan> {
-    const { data } = await this.http.get('/plan');
+    // Endpoint self-service do hub: GET /api/v1/me/plan (GetMyPlan). NÃO usar /plan
+    // (esse é o admin GET por id e exige UUID param).
+    const { data } = await this.http.get('/me/plan');
     return data;
   }
 
   async getMetaAppOptions(): Promise<MetaAppOptions> {
-    const { data } = await this.http.get('/meta-app-options');
+    // GET /api/v1/me/meta-app-options (credentials/handler.go:37).
+    const { data } = await this.http.get('/me/meta-app-options');
     return data;
   }
 
   async listChannels(type?: 'whatsapp' | 'facebook' | 'instagram'): Promise<HubChannel[]> {
     const { data } = await this.http.get('/channels', { params: type ? { type } : {} });
-    return data;
+    // O hub devolve { channels: [...], count } (channel_handler.go GetChannels).
+    // Tolera também array nu ou { data: [...] } por robustez.
+    return this.normalizeChannelList(data);
+  }
+
+  // Normaliza a resposta de lista do hub para HubChannel[] (channels|data|array nu).
+  private normalizeChannelList(data: any): HubChannel[] {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.channels)) return data.channels;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
   }
 
   /**
