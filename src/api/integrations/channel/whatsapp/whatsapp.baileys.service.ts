@@ -66,6 +66,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '@api/types/wa.types';
 import { CacheEngine } from '@cache/cacheengine';
 import {
+  AbuseSafety,
   AudioConverter,
   CacheConf,
   Chatwoot,
@@ -78,7 +79,12 @@ import {
   QrCode,
   S3,
 } from '@config/env.config';
-import { BadRequestException, InternalServerErrorException, NotFoundException } from '@exceptions';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+  TooManyRequestsException,
+} from '@exceptions';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
 import { createId as cuid } from '@paralleldrive/cuid2';
@@ -92,6 +98,11 @@ import { sendTelemetry } from '@utils/sendTelemetry';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
+import {
+  buildWhatsappNumbersObservation,
+  resolveWhatsappNumbersGuardrails,
+  validateWhatsappNumbersBatch,
+} from '@utils/whatsappNumbersGuardrails';
 import audioDecode from 'audio-decode';
 import axios from 'axios';
 import makeWASocket, {
@@ -4027,8 +4038,72 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
+  private getWhatsappNumbersGuardrails() {
+    const config = this.configService.get<AbuseSafety>('ABUSE_SAFETY')?.WHATSAPP_NUMBERS;
+
+    return resolveWhatsappNumbersGuardrails(config);
+  }
+
+  private async queryOnWhatsappInChunks(numbers: string[], batchSize: number, intervalMs: number) {
+    const results: { jid: string; exists: boolean }[] = [];
+
+    for (let index = 0; index < numbers.length; index += batchSize) {
+      const chunk = numbers.slice(index, index + batchSize);
+      const currentBatch = Math.floor(index / batchSize) + 1;
+      const totalBatches = Math.ceil(numbers.length / batchSize);
+
+      this.logger.verbose(`Checking ${chunk.length} numbers via Baileys (${currentBatch}/${totalBatches})`);
+      results.push(...(await this.client.onWhatsApp(...chunk)));
+
+      const hasMoreChunks = index + batchSize < numbers.length;
+      if (hasMoreChunks && intervalMs > 0) {
+        await delay(intervalMs);
+      }
+    }
+
+    return results;
+  }
+
   // Chat Controller
   public async whatsappNumber(data: WhatsAppNumberDto) {
+    const startedAt = Date.now();
+    const guardrails = this.getWhatsappNumbersGuardrails();
+    const validation = validateWhatsappNumbersBatch(data?.numbers, guardrails);
+
+    if (validation.ok === false) {
+      this.logger.warn(
+        buildWhatsappNumbersObservation({
+          requestedNumbers: validation.type === 'too_many_requests' ? validation.received : 0,
+          userJids: 0,
+          groupJids: 0,
+          broadcastJids: 0,
+          newsletterJids: 0,
+          cacheHits: 0,
+          cacheMisses: 0,
+          baileysQueries: 0,
+          cacheWrites: 0,
+          guardrails,
+          durationMs: Date.now() - startedAt,
+          rejected: true,
+          rejectionReason: validation.type,
+        }),
+      );
+
+      if (validation.type === 'too_many_requests') {
+        throw new TooManyRequestsException(validation.retryAfter, {
+          message: validation.message,
+          received: validation.received,
+          maxBatchSize: validation.maxBatchSize,
+          retryAfter: validation.retryAfter,
+          docs: validation.docs,
+          reference: validation.reference,
+        });
+      }
+
+      throw new BadRequestException(validation.message);
+    }
+
+    const numbers = validation.numbers;
     const jids: {
       groups: { number: string; jid: string }[];
       broadcast: { number: string; jid: string }[];
@@ -4036,11 +4111,13 @@ export class BaileysStartupService extends ChannelStartupService {
     } = { groups: [], broadcast: [], users: [] };
 
     const onWhatsapp: OnWhatsAppDto[] = [];
+    let newsletterJids = 0;
 
-    data.numbers.forEach((number) => {
+    numbers.forEach((number) => {
       const jid = createJid(number);
 
       if (isJidNewsletter(jid)) {
+        newsletterJids += 1;
         onWhatsapp.push(
           new OnWhatsAppDto(
             jid,
@@ -4093,14 +4170,18 @@ export class BaileysStartupService extends ChannelStartupService {
     // Separate numbers that are and are not in cache
     const cachedJids = new Set(cachedNumbers.flatMap((cached) => cached.jidOptions));
     const numbersNotInCache = numbersToVerify.filter((jid) => !cachedJids.has(jid));
+    const cacheHits = numbersToVerify.length - numbersNotInCache.length;
 
     // Only call Baileys for normal numbers (@s.whatsapp.net) that are not in cache
     let verify: { jid: string; exists: boolean }[] = [];
     const normalNumbersNotInCache = numbersNotInCache.filter((jid) => !jid.includes('@lid'));
 
     if (normalNumbersNotInCache.length > 0) {
-      this.logger.verbose(`Checking ${normalNumbersNotInCache.length} numbers via Baileys (not found in cache)`);
-      verify = await this.client.onWhatsApp(...normalNumbersNotInCache);
+      verify = await this.queryOnWhatsappInChunks(
+        normalNumbersNotInCache,
+        guardrails.queryBatchSize,
+        guardrails.queryBatchIntervalMs,
+      );
     }
 
     const verifiedUsers = await Promise.all(
@@ -4206,6 +4287,22 @@ export class BaileysStartupService extends ChannelStartupService {
         })),
       );
     }
+
+    this.logger.verbose(
+      buildWhatsappNumbersObservation({
+        requestedNumbers: numbers.length,
+        userJids: jids.users.length,
+        groupJids: jids.groups.length,
+        broadcastJids: jids.broadcast.length,
+        newsletterJids,
+        cacheHits,
+        cacheMisses: numbersNotInCache.length,
+        baileysQueries: normalNumbersNotInCache.length,
+        cacheWrites: numbersToCache.length,
+        guardrails,
+        durationMs: Date.now() - startedAt,
+      }),
+    );
 
     return onWhatsapp;
   }

@@ -3,6 +3,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const positiveIntFromEnv = (value: string | undefined, fallback: number) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const nonNegativeIntFromEnv = (value: string | undefined, fallback: number) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
 export type HttpServer = {
   NAME: string;
   TYPE: 'http' | 'https';
@@ -328,6 +338,13 @@ export type Pusher = { ENABLED: boolean; GLOBAL?: GlobalPusher; EVENTS: EventsPu
 export type ConfigSessionPhone = { CLIENT: string; NAME: string };
 export type Baileys = { VERSION?: string };
 export type QrCode = { LIMIT: number; COLOR: string };
+export type AbuseSafety = {
+  WHATSAPP_NUMBERS: {
+    MAX_BATCH_SIZE: number;
+    QUERY_BATCH_SIZE: number;
+    QUERY_BATCH_INTERVAL_MS: number;
+  };
+};
 export type Typebot = { ENABLED: boolean; API_VERSION: string; SEND_MEDIA_BASE64: boolean };
 export type Chatwoot = {
   ENABLED: boolean;
@@ -427,6 +444,7 @@ export interface Env {
   CONFIG_SESSION_PHONE: ConfigSessionPhone;
   BAILEYS: Baileys;
   QRCODE: QrCode;
+  ABUSE_SAFETY: AbuseSafety;
   TYPEBOT: Typebot;
   CHATWOOT: Chatwoot;
   OPENAI: Openai;
@@ -836,6 +854,16 @@ export class ConfigService {
       QRCODE: {
         LIMIT: Number.parseInt(process.env.QRCODE_LIMIT) || 30,
         COLOR: process.env.QRCODE_COLOR || '#198754',
+      },
+      ABUSE_SAFETY: {
+        WHATSAPP_NUMBERS: {
+          MAX_BATCH_SIZE: positiveIntFromEnv(process.env.ABUSE_SAFETY_WHATSAPP_NUMBERS_MAX_BATCH_SIZE, 50),
+          QUERY_BATCH_SIZE: positiveIntFromEnv(process.env.ABUSE_SAFETY_WHATSAPP_NUMBERS_QUERY_BATCH_SIZE, 10),
+          QUERY_BATCH_INTERVAL_MS: nonNegativeIntFromEnv(
+            process.env.ABUSE_SAFETY_WHATSAPP_NUMBERS_QUERY_BATCH_INTERVAL_MS,
+            1000,
+          ),
+        },
       },
       TYPEBOT: {
         ENABLED: process.env?.TYPEBOT_ENABLED === 'true',
