@@ -181,6 +181,14 @@ RabbitMQ, Amazon SQS, NATS, Pusher and WebSocket for events. Configurable per in
 ### Media handling
 Local storage or S3/MinIO. Automatic media download from WhatsApp. Optional audio transcription via OpenAI.
 
+### Responsible messaging
+Evolution API includes abuse-safety guardrails to reduce accidental bursts on
+sensitive endpoints such as `/chat/whatsappNumbers`. These controls are not an
+anti-ban feature and do not guarantee delivery or account safety.
+
+See [Responsible messaging and deliverability](./docs/responsible-messaging.md)
+for configuration details, known limitations, and related community reports.
+
 ---
 
 ## Documentation

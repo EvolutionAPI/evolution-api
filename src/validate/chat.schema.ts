@@ -39,6 +39,7 @@ export const whatsappNumberSchema: JSONSchema7 = {
       },
     },
   },
+  required: ['numbers'],
 };
 
 export const readMessageSchema: JSONSchema7 = {

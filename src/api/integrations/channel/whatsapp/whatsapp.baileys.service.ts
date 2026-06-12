@@ -66,6 +66,7 @@ import { ChannelStartupService } from '@api/services/channel.service';
 import { Events, MessageSubtype, TypeMediaMessage, wa } from '@api/types/wa.types';
 import { CacheEngine } from '@cache/cacheengine';
 import {
+  AbuseSafety,
   AudioConverter,
   CacheConf,
   Chatwoot,
@@ -78,7 +79,12 @@ import {
   QrCode,
   S3,
 } from '@config/env.config';
-import { BadRequestException, InternalServerErrorException, NotFoundException } from '@exceptions';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+  TooManyRequestsException,
+} from '@exceptions';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import { Boom } from '@hapi/boom';
 import { createId as cuid } from '@paralleldrive/cuid2';
@@ -4027,8 +4033,62 @@ export class BaileysStartupService extends ChannelStartupService {
     });
   }
 
+  private getWhatsappNumbersGuardrails() {
+    const config = this.configService.get<AbuseSafety>('ABUSE_SAFETY')?.WHATSAPP_NUMBERS;
+
+    return {
+      maxBatchSize: Math.max(1, config?.MAX_BATCH_SIZE ?? 50),
+      queryBatchSize: Math.max(1, config?.QUERY_BATCH_SIZE ?? 10),
+      queryBatchIntervalMs: Math.max(0, config?.QUERY_BATCH_INTERVAL_MS ?? 1000),
+    };
+  }
+
+  private async queryOnWhatsappInChunks(numbers: string[], batchSize: number, intervalMs: number) {
+    const results: { jid: string; exists: boolean }[] = [];
+
+    for (let index = 0; index < numbers.length; index += batchSize) {
+      const chunk = numbers.slice(index, index + batchSize);
+      const currentBatch = Math.floor(index / batchSize) + 1;
+      const totalBatches = Math.ceil(numbers.length / batchSize);
+
+      this.logger.verbose(`Checking ${chunk.length} numbers via Baileys (${currentBatch}/${totalBatches})`);
+      results.push(...(await this.client.onWhatsApp(...chunk)));
+
+      const hasMoreChunks = index + batchSize < numbers.length;
+      if (hasMoreChunks && intervalMs > 0) {
+        await delay(intervalMs);
+      }
+    }
+
+    return results;
+  }
+
   // Chat Controller
   public async whatsappNumber(data: WhatsAppNumberDto) {
+    const guardrails = this.getWhatsappNumbersGuardrails();
+    const numbers = Array.isArray(data?.numbers) ? data.numbers : [];
+
+    if (numbers.length === 0) {
+      throw new BadRequestException('At least one WhatsApp number must be provided.');
+    }
+
+    if (numbers.length > guardrails.maxBatchSize) {
+      const retryAfter = Math.max(1, Math.ceil(guardrails.queryBatchIntervalMs / 1000));
+
+      this.logger.warn(
+        `Rejected whatsappNumbers batch with ${numbers.length} numbers. Maximum allowed: ${guardrails.maxBatchSize}.`,
+      );
+
+      throw new TooManyRequestsException(retryAfter, {
+        message: `whatsappNumbers accepts up to ${guardrails.maxBatchSize} numbers per request.`,
+        received: numbers.length,
+        maxBatchSize: guardrails.maxBatchSize,
+        retryAfter,
+        docs: 'docs/responsible-messaging.md',
+        reference: 'https://github.com/evolution-foundation/evolution-api/issues/2228',
+      });
+    }
+
     const jids: {
       groups: { number: string; jid: string }[];
       broadcast: { number: string; jid: string }[];
@@ -4037,7 +4097,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     const onWhatsapp: OnWhatsAppDto[] = [];
 
-    data.numbers.forEach((number) => {
+    numbers.forEach((number) => {
       const jid = createJid(number);
 
       if (isJidNewsletter(jid)) {
@@ -4099,8 +4159,11 @@ export class BaileysStartupService extends ChannelStartupService {
     const normalNumbersNotInCache = numbersNotInCache.filter((jid) => !jid.includes('@lid'));
 
     if (normalNumbersNotInCache.length > 0) {
-      this.logger.verbose(`Checking ${normalNumbersNotInCache.length} numbers via Baileys (not found in cache)`);
-      verify = await this.client.onWhatsApp(...normalNumbersNotInCache);
+      verify = await this.queryOnWhatsappInChunks(
+        normalNumbersNotInCache,
+        guardrails.queryBatchSize,
+        guardrails.queryBatchIntervalMs,
+      );
     }
 
     const verifiedUsers = await Promise.all(

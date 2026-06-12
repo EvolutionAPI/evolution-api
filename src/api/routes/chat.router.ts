@@ -62,7 +62,11 @@ export class ChatRouter extends RouterBroker {
           return res.status(HttpStatus.OK).json(response);
         } catch (error) {
           console.log(error);
-          return res.status(HttpStatus.BAD_REQUEST).json(error);
+          if (error?.retryAfter) {
+            res.set('Retry-After', String(error.retryAfter));
+          }
+
+          return res.status(error?.status || HttpStatus.BAD_REQUEST).json(error);
         }
       })
       .post(this.routerPath('markMessageAsRead'), ...guards, async (req, res) => {
