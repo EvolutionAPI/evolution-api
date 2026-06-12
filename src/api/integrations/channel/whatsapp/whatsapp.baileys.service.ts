@@ -4066,7 +4066,11 @@ export class BaileysStartupService extends ChannelStartupService {
   // Chat Controller
   public async whatsappNumber(data: WhatsAppNumberDto) {
     const guardrails = this.getWhatsappNumbersGuardrails();
-    const numbers = Array.isArray(data?.numbers) ? data.numbers : [];
+    if (!Array.isArray(data?.numbers)) {
+      throw new BadRequestException('numbers must be an array of WhatsApp identifiers.');
+    }
+
+    const numbers = data.numbers;
 
     if (numbers.length === 0) {
       throw new BadRequestException('At least one WhatsApp number must be provided.');
