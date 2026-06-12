@@ -30,6 +30,12 @@ The chunk interval only adds backpressure between direct Baileys checks. Cached
 numbers, groups, broadcasts, and newsletters do not require the same Baileys
 lookup path.
 
+The endpoint also emits aggregate operational logs for accepted and rejected
+checks, including requested count, cache hits/misses, Baileys query count, cache
+writes, configured limits, elapsed time, and rejection reason. These logs avoid
+raw phone numbers so operators can monitor risky usage patterns without leaking
+contact data.
+
 ## Responsible Operation
 
 - Use WhatsApp Business Platform / Cloud API for production business messaging

@@ -98,6 +98,11 @@ import { sendTelemetry } from '@utils/sendTelemetry';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
+import {
+  buildWhatsappNumbersObservation,
+  resolveWhatsappNumbersGuardrails,
+  validateWhatsappNumbersBatch,
+} from '@utils/whatsappNumbersGuardrails';
 import audioDecode from 'audio-decode';
 import axios from 'axios';
 import makeWASocket, {
@@ -4036,11 +4041,7 @@ export class BaileysStartupService extends ChannelStartupService {
   private getWhatsappNumbersGuardrails() {
     const config = this.configService.get<AbuseSafety>('ABUSE_SAFETY')?.WHATSAPP_NUMBERS;
 
-    return {
-      maxBatchSize: Math.max(1, config?.MAX_BATCH_SIZE ?? 50),
-      queryBatchSize: Math.max(1, config?.QUERY_BATCH_SIZE ?? 10),
-      queryBatchIntervalMs: Math.max(0, config?.QUERY_BATCH_INTERVAL_MS ?? 1000),
-    };
+    return resolveWhatsappNumbersGuardrails(config);
   }
 
   private async queryOnWhatsappInChunks(numbers: string[], batchSize: number, intervalMs: number) {
@@ -4065,34 +4066,44 @@ export class BaileysStartupService extends ChannelStartupService {
 
   // Chat Controller
   public async whatsappNumber(data: WhatsAppNumberDto) {
+    const startedAt = Date.now();
     const guardrails = this.getWhatsappNumbersGuardrails();
-    if (!Array.isArray(data?.numbers)) {
-      throw new BadRequestException('numbers must be an array of WhatsApp identifiers.');
-    }
+    const validation = validateWhatsappNumbersBatch(data?.numbers, guardrails);
 
-    const numbers = data.numbers;
-
-    if (numbers.length === 0) {
-      throw new BadRequestException('At least one WhatsApp number must be provided.');
-    }
-
-    if (numbers.length > guardrails.maxBatchSize) {
-      const retryAfter = Math.max(1, Math.ceil(guardrails.queryBatchIntervalMs / 1000));
-
+    if (validation.ok === false) {
       this.logger.warn(
-        `Rejected whatsappNumbers batch with ${numbers.length} numbers. Maximum allowed: ${guardrails.maxBatchSize}.`,
+        buildWhatsappNumbersObservation({
+          requestedNumbers: validation.type === 'too_many_requests' ? validation.received : 0,
+          userJids: 0,
+          groupJids: 0,
+          broadcastJids: 0,
+          newsletterJids: 0,
+          cacheHits: 0,
+          cacheMisses: 0,
+          baileysQueries: 0,
+          cacheWrites: 0,
+          guardrails,
+          durationMs: Date.now() - startedAt,
+          rejected: true,
+          rejectionReason: validation.type,
+        }),
       );
 
-      throw new TooManyRequestsException(retryAfter, {
-        message: `whatsappNumbers accepts up to ${guardrails.maxBatchSize} numbers per request.`,
-        received: numbers.length,
-        maxBatchSize: guardrails.maxBatchSize,
-        retryAfter,
-        docs: 'docs/responsible-messaging.md',
-        reference: 'https://github.com/evolution-foundation/evolution-api/issues/2228',
-      });
+      if (validation.type === 'too_many_requests') {
+        throw new TooManyRequestsException(validation.retryAfter, {
+          message: validation.message,
+          received: validation.received,
+          maxBatchSize: validation.maxBatchSize,
+          retryAfter: validation.retryAfter,
+          docs: validation.docs,
+          reference: validation.reference,
+        });
+      }
+
+      throw new BadRequestException(validation.message);
     }
 
+    const numbers = validation.numbers;
     const jids: {
       groups: { number: string; jid: string }[];
       broadcast: { number: string; jid: string }[];
@@ -4100,11 +4111,13 @@ export class BaileysStartupService extends ChannelStartupService {
     } = { groups: [], broadcast: [], users: [] };
 
     const onWhatsapp: OnWhatsAppDto[] = [];
+    let newsletterJids = 0;
 
     numbers.forEach((number) => {
       const jid = createJid(number);
 
       if (isJidNewsletter(jid)) {
+        newsletterJids += 1;
         onWhatsapp.push(
           new OnWhatsAppDto(
             jid,
@@ -4157,6 +4170,7 @@ export class BaileysStartupService extends ChannelStartupService {
     // Separate numbers that are and are not in cache
     const cachedJids = new Set(cachedNumbers.flatMap((cached) => cached.jidOptions));
     const numbersNotInCache = numbersToVerify.filter((jid) => !cachedJids.has(jid));
+    const cacheHits = numbersToVerify.length - numbersNotInCache.length;
 
     // Only call Baileys for normal numbers (@s.whatsapp.net) that are not in cache
     let verify: { jid: string; exists: boolean }[] = [];
@@ -4273,6 +4287,22 @@ export class BaileysStartupService extends ChannelStartupService {
         })),
       );
     }
+
+    this.logger.verbose(
+      buildWhatsappNumbersObservation({
+        requestedNumbers: numbers.length,
+        userJids: jids.users.length,
+        groupJids: jids.groups.length,
+        broadcastJids: jids.broadcast.length,
+        newsletterJids,
+        cacheHits,
+        cacheMisses: numbersNotInCache.length,
+        baileysQueries: normalNumbersNotInCache.length,
+        cacheWrites: numbersToCache.length,
+        guardrails,
+        durationMs: Date.now() - startedAt,
+      }),
+    );
 
     return onWhatsapp;
   }
