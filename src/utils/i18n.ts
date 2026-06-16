@@ -3,7 +3,7 @@ import fs from 'fs';
 import i18next from 'i18next';
 import path from 'path';
 
-const languages = ['en', 'pt-BR', 'es'];
+const languages = ['en', 'pt-BR', 'es', 'it'];
 const translationsPath = path.join(__dirname, 'translations');
 const configService: ConfigService = new ConfigService();
 
