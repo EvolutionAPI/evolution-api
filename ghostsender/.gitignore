@@ -1,0 +1,7 @@
+node_modules/
+dist/
+ui/node_modules/
+ui/dist/
+.env
+ghostsender-warmup-stats.json
+*.log
