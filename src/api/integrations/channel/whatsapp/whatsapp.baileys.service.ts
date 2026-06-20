@@ -22,11 +22,14 @@ import {
   GroupDescriptionDto,
   GroupInvite,
   GroupJid,
+  GroupJoinApprovalModeDto,
+  GroupMemberAddModeDto,
   GroupPictureDto,
   GroupSendInvite,
   GroupSubjectDto,
   GroupToggleEphemeralDto,
   GroupUpdateParticipantDto,
+  GroupUpdateParticipantRequestDto,
   GroupUpdateSettingDto,
 } from '@api/dto/group.dto';
 import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
@@ -34,6 +37,7 @@ import { HandleLabelDto, LabelDto } from '@api/dto/label.dto';
 import {
   Button,
   ContactMessage,
+  ForwardMessageDto,
   KeyType,
   MediaMessage,
   Options,
@@ -550,6 +554,20 @@ export class BaileysStartupService extends ChannelStartupService {
       return webMessageInfo[0].message;
     } catch {
       return { conversation: '' };
+    }
+  }
+
+  public async forwardMessage(data: ForwardMessageDto) {
+    try {
+      const fullMsg = (await this.getMessage({ id: data.messageId }, true)) as unknown as WAMessage;
+      if (!fullMsg?.message) {
+        throw new BadRequestException('Message not found');
+      }
+      const number = data.number.replace(/\D/g, '');
+      const jid = data.number.includes('@') ? data.number : `${number}@s.whatsapp.net`;
+      return await this.client.sendMessage(jid, { forward: fullMsg });
+    } catch (error) {
+      throw new BadRequestException('Error forwarding message', error.toString());
     }
   }
 
@@ -4594,6 +4612,43 @@ export class BaileysStartupService extends ChannelStartupService {
       return { success: true };
     } catch (error) {
       throw new BadRequestException('Error updating setting', error.toString());
+    }
+  }
+
+  public async updateMemberAddMode(update: GroupMemberAddModeDto) {
+    try {
+      await this.client.groupMemberAddMode(update.groupJid, update.mode);
+      return { success: true };
+    } catch (error) {
+      throw new BadRequestException('Error updating member add mode', error.toString());
+    }
+  }
+
+  public async updateJoinApprovalMode(update: GroupJoinApprovalModeDto) {
+    try {
+      await this.client.groupJoinApprovalMode(update.groupJid, update.mode);
+      return { success: true };
+    } catch (error) {
+      throw new BadRequestException('Error updating join approval mode', error.toString());
+    }
+  }
+
+  public async findParticipantRequests(id: GroupJid) {
+    try {
+      const requests = await this.client.groupRequestParticipantsList(id.groupJid);
+      return { requests: requests || [] };
+    } catch (error) {
+      throw new BadRequestException('Error fetching participant requests', error.toString());
+    }
+  }
+
+  public async updateParticipantRequests(update: GroupUpdateParticipantRequestDto) {
+    try {
+      const participants = update.participants.map((p) => (p.includes('@') ? p : `${p}@s.whatsapp.net`));
+      const result = await this.client.groupRequestParticipantsUpdate(update.groupJid, participants, update.action);
+      return { updateParticipantRequests: result };
+    } catch (error) {
+      throw new BadRequestException('Error updating participant requests', error.toString());
     }
   }
 
