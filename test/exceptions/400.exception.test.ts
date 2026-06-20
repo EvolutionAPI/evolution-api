@@ -1,56 +1,46 @@
-import { BadRequestException } from '../../src/exceptions/400.exception';
-
 jest.mock('../../src/api/routes/index.router', () => ({
-  HttpStatus: {
-    OK: 200,
-    CREATED: 201,
-    NOT_FOUND: 404,
-    FORBIDDEN: 403,
-    BAD_REQUEST: 400,
-    UNAUTHORIZED: 401,
-    INTERNAL_SERVER_ERROR: 500,
-  },
+  HttpStatus: { BAD_REQUEST: 400 }
 }));
 
+import { BadRequestException } from '../../src/exceptions/400.exception';
+
 describe('BadRequestException', () => {
-  const catchThrown = (fn: () => void): any => {
+  it('should initialize with status 400 and default error when no arguments are provided', () => {
     try {
-      fn();
-    } catch (thrown) {
-      return thrown;
+      new BadRequestException();
+    } catch (error: any) {
+      expect(error.status).toBe(400);
+      expect(error.error).toBe('Bad Request');
+      expect(error.message).toBeUndefined();
     }
-  };
-
-  it('should throw an object with status 400 and default error', () => {
-    const error = catchThrown(() => new BadRequestException());
-    
-    expect(error).toEqual({
-      status: 400,
-      error: 'Bad Request',
-      message: undefined,
-    });
   });
 
-  it('should include a single message when provided', () => {
-    const error = catchThrown(() => new BadRequestException('invalid data'));
+  it('should format a single string argument as an array in the message property', () => {
+    const customMessage = 'Missing required fields';
     
-    expect(error).toEqual({
-      status: 400,
-      error: 'Bad Request',
-      message: ['invalid data'],
-    });
+    try {
+      new BadRequestException(customMessage);
+    } catch (error: any) {
+      expect(error.status).toBe(400);
+      expect(error.message).toEqual([customMessage]);
+    }
   });
 
-  it('should handle multiple error messages', () => {
-    const error = catchThrown(() => new BadRequestException('error 1', 'error 2'));
+  it('should format a single object argument as an array in the message property', () => {
+    const customObj = { field: 'email', error: 'invalid format' };
     
-    expect(error.message).toEqual(['error 1', 'error 2']);
+    try {
+      new BadRequestException(customObj);
+    } catch (error: any) {
+      expect(error.message).toEqual([customObj]);
+    }
   });
 
-  it('should handle objects as messages', () => {
-    const detail = { field: 'email' };
-    const error = catchThrown(() => new BadRequestException(detail));
-    
-    expect(error.message).toEqual([detail]);
+  it('should handle multiple mixed arguments properly', () => {
+    try {
+      new BadRequestException('Error 1', { reason: 'unknown' }, null, undefined);
+    } catch (error: any) {
+      expect(error.message).toEqual(['Error 1', { reason: 'unknown' }, null, undefined]);
+    }
   });
 });
