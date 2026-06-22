@@ -1,3 +1,6 @@
+import uuid
+import re
+
 from sqlalchemy.orm import Session
 
 from app.models.ticket import Ticket
@@ -6,7 +9,7 @@ from app.schemas.ticket import TicketCreate, TicketUpdate
 from app.schemas.ticket_comment import TicketCommentCreate
 from app.services.command_parser import CommandParserService, ParsedCommand
 from app.services.evolution_event_parser import EvolutionEventParser
-from app.services.ticket_repository import (
+from app.repositories import (
     CommandLogRepository,
     CustomerRepository,
     TicketCommentRepository,
@@ -28,23 +31,23 @@ class TicketService:
         self.event_parser = EvolutionEventParser()
 
     def create_ticket(self, data: TicketCreate) -> Ticket:
-        customer = self.customers.get_or_create(data.customer_phone_number)
         return self.tickets.create(
-            customer_id=customer.id,
+            tenant_id=data.tenant_id,
+            customer_id=data.customer_id,
             subject=data.subject,
             description=data.description,
-            channel=data.channel,
-            source_instance=data.source_instance,
+            category=data.category,
+            source=data.source or 'whatsapp',
         )
 
-    def update_ticket(self, ticket_id: int, data: TicketUpdate) -> Ticket | None:
+    def update_ticket(self, ticket_id: uuid.UUID, data: TicketUpdate) -> Ticket | None:
         ticket = self.tickets.get(ticket_id)
         if not ticket:
             return None
         values = data.model_dump(exclude_unset=True)
         return self.tickets.update(ticket, **values)
 
-    def add_comment(self, ticket_id: int, data: TicketCommentCreate) -> TicketComment | None:
+    def add_comment(self, ticket_id: uuid.UUID, data: TicketCommentCreate) -> TicketComment | None:
         ticket = self.tickets.get(ticket_id)
         if not ticket:
             return None
@@ -53,7 +56,7 @@ class TicketService:
             self.tickets.update(ticket, status='in_progress')
         return comment
 
-    def soft_delete_ticket(self, ticket_id: int) -> Ticket | None:
+    def soft_delete_ticket(self, ticket_id: uuid.UUID) -> Ticket | None:
         ticket = self.tickets.get(ticket_id)
         if not ticket:
             return None
@@ -64,15 +67,26 @@ class TicketService:
         if not message:
             return None
 
-        customer = self.customers.get_or_create(message['customer_phone_number'])
+        customer_phone = message['customer_phone_number']
+        instance_name = message.get('instance', '')
+        tenant_id = self._resolve_tenant_id(instance_name)
+        if not tenant_id:
+            return None
+
+        customer = self.customers.get_or_create(customer_phone, tenant_id)
         command = self.command_parser.parse(message['text'])
 
         if command:
-            return self._process_command(command, customer.id, message)
+            return self._process_command(command, customer.id, message, tenant_id)
 
         return self._process_non_command(customer.id, message)
 
-    def _process_command(self, command: ParsedCommand, customer_id: int, message: dict) -> dict:
+    def _resolve_tenant_id(self, instance_name: str) -> uuid.UUID | None:
+        from app.models.instance_tenant import InstanceTenant
+        link = self.db.query(InstanceTenant).filter(InstanceTenant.instance_name == instance_name).first()
+        return link.tenant_id if link else None
+
+    def _process_command(self, command: ParsedCommand, customer_id: uuid.UUID, message: dict, tenant_id: uuid.UUID) -> dict:
         ticket: Ticket | None = None
         command_status = 'processed'
         error_message = None
@@ -80,11 +94,11 @@ class TicketService:
         try:
             if command.command_type == 'create_ticket':
                 ticket = self.tickets.create(
+                    tenant_id=tenant_id,
                     customer_id=customer_id,
                     subject=command.args['subject'],
                     description=command.args.get('description'),
-                    channel='whatsapp',
-                    source_instance=message.get('instance'),
+                    source='whatsapp',
                 )
                 comment = self.comments.create(
                     ticket_id=ticket.id,
@@ -96,7 +110,7 @@ class TicketService:
                 result = {'action': 'ticket_created', 'ticket': ticket, 'comment': comment}
 
             elif command.command_type == 'add_comment':
-                ticket = self._resolve_ticket(command.args.get('ticket_number'), customer_id)
+                ticket = self._resolve_ticket(command.args.get('ticket_number'), customer_id, tenant_id)
                 self._ensure_ticket(ticket, 'No active ticket found for comment')
                 comment = self.comments.create(
                     ticket_id=ticket.id,
@@ -110,13 +124,13 @@ class TicketService:
                 result = {'action': 'comment_added', 'ticket': ticket, 'comment': comment}
 
             elif command.command_type == 'close_ticket':
-                ticket = self._resolve_ticket(command.args.get('ticket_number'), customer_id)
+                ticket = self._resolve_ticket(command.args.get('ticket_number'), customer_id, tenant_id)
                 self._ensure_ticket(ticket, 'No active ticket found to close')
                 ticket = self.tickets.update(ticket, status='closed')
                 result = {'action': 'ticket_closed', 'ticket': ticket}
 
             elif command.command_type == 'status':
-                ticket = self._resolve_ticket(command.args.get('ticket_number'), customer_id)
+                ticket = self._resolve_ticket(command.args.get('ticket_number'), customer_id, tenant_id)
                 self._ensure_ticket(ticket, 'No ticket found for status update')
                 if not command.args.get('status'):
                     raise ValueError('Invalid status. Use open, in_progress, resolved, or closed')
@@ -124,7 +138,7 @@ class TicketService:
                 result = {'action': 'status_changed', 'ticket': ticket}
 
             elif command.command_type == 'list_my_tickets':
-                tickets = self.tickets.list(customer_id=customer_id, limit=10)
+                tickets = self.tickets.list_all(customer_id=customer_id, limit=10)
                 result = {'action': 'tickets_listed', 'tickets': tickets}
 
             else:
@@ -146,11 +160,10 @@ class TicketService:
         )
         return result
 
-    def _process_non_command(self, customer_id: int, message: dict) -> dict:
+    def _process_non_command(self, customer_id: uuid.UUID, message: dict) -> dict:
         ticket = self.tickets.find_recent_active_for_customer(customer_id)
         if not ticket:
             return {'action': 'ignored', 'reason': 'No command or active ticket found'}
-
         comment = self.comments.create(
             ticket_id=ticket.id,
             author_phone_number=message['author_phone_number'],
@@ -160,9 +173,9 @@ class TicketService:
         )
         return {'action': 'comment_added', 'ticket': ticket, 'comment': comment}
 
-    def _resolve_ticket(self, ticket_number: str | None, customer_id: int) -> Ticket | None:
+    def _resolve_ticket(self, ticket_number: str | None, customer_id: uuid.UUID, tenant_id: uuid.UUID | None = None) -> Ticket | None:
         if ticket_number:
-            return self.tickets.get_by_number(ticket_number)
+            return self.tickets.get_by_number(ticket_number, tenant_id)
         return self.tickets.find_recent_active_for_customer(customer_id)
 
     def _ensure_ticket(self, ticket: Ticket | None, message: str):

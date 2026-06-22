@@ -8,8 +8,12 @@ from app.db.session import Base, engine
 from app.models.command_log import CommandLog  # noqa: F401
 from app.models.customer import Customer  # noqa: F401
 from app.models.event_log import EventLog  # noqa: F401
+from app.models.instance_tenant import InstanceTenant  # noqa: F401
+from app.models.tenant import Tenant  # noqa: F401
 from app.models.ticket import Ticket  # noqa: F401
 from app.models.ticket_comment import TicketComment  # noqa: F401
+from app.models.ticket_message import TicketMessage  # noqa: F401
+from app.models.whatsapp_session import WhatsappSession  # noqa: F401
 from app.services.consumer import start_consumer
 from app.services.rabbitmq import RabbitMQService
 

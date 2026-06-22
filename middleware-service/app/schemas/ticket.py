@@ -1,37 +1,41 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
 
 from app.schemas.customer import CustomerResponse
-from app.schemas.ticket_comment import TicketCommentResponse
+from app.schemas.ticket_message import TicketMessageResponse
 
 
-TICKET_STATUS_PATTERN = '^(open|in_progress|resolved|closed)$'
+TICKET_STATUSES = {'open', 'in_progress', 'resolved', 'closed'}
 
 
 class TicketCreate(BaseModel):
-    customer_phone_number: str = Field(..., min_length=3, max_length=30)
-    subject: str = Field(..., min_length=1, max_length=200)
+    tenant_id: uuid.UUID
+    customer_id: uuid.UUID
+    subject: str = Field(..., min_length=1, max_length=500)
     description: str | None = None
-    channel: str = Field(default='whatsapp', max_length=30)
-    source_instance: str | None = Field(default=None, max_length=100)
+    category: str | None = Field(default=None, max_length=100)
+    source: str = Field(default='whatsapp', max_length=50)
 
 
 class TicketUpdate(BaseModel):
-    status: str | None = Field(default=None, pattern=TICKET_STATUS_PATTERN)
-    subject: str | None = Field(default=None, min_length=1, max_length=200)
+    subject: str | None = Field(default=None, min_length=1, max_length=500)
     description: str | None = None
+    status: str | None = Field(default=None, max_length=50)
+    category: str | None = Field(default=None, max_length=100)
 
 
 class TicketResponse(BaseModel):
-    id: int
+    id: uuid.UUID
     ticket_number: str
-    customer_id: int
-    status: str
-    channel: str
     subject: str
     description: str | None
-    source_instance: str | None
+    status: str
+    category: str | None
+    source: str
+    tenant_id: uuid.UUID
+    customer_id: uuid.UUID
     created_at: datetime
     updated_at: datetime
     closed_at: datetime | None
@@ -41,5 +45,5 @@ class TicketResponse(BaseModel):
 
 
 class TicketDetailResponse(TicketResponse):
-    customer: CustomerResponse
-    comments: list[TicketCommentResponse] = []
+    customer: CustomerResponse | None = None
+    messages: list[TicketMessageResponse] = []

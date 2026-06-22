@@ -19,6 +19,8 @@ import { MetaController } from './integrations/channel/meta/meta.controller';
 import { BaileysController } from './integrations/channel/whatsapp/baileys.controller';
 import { ChatbotController } from './integrations/chatbot/chatbot.controller';
 import { ChatwootController } from './integrations/chatbot/chatwoot/controllers/chatwoot.controller';
+import { HelpdeskController } from './integrations/helpdesk/helpdesk.controller';
+import { HelpdeskService } from './integrations/helpdesk/helpdesk.service';
 import { ChatwootService } from './integrations/chatbot/chatwoot/services/chatwoot.service';
 import { DifyController } from './integrations/chatbot/dify/controllers/dify.controller';
 import { DifyService } from './integrations/chatbot/dify/services/dify.service';
@@ -137,5 +139,8 @@ export const n8nController = new N8nController(n8nService, prismaRepository, waM
 
 const evoaiService = new EvoaiService(waMonitor, prismaRepository, configService, openaiService);
 export const evoaiController = new EvoaiController(evoaiService, prismaRepository, waMonitor);
+
+export const helpdeskService = new HelpdeskService(waMonitor, prismaRepository);
+export const helpdeskController = new HelpdeskController(helpdeskService, waMonitor);
 
 logger.info('Module - ON');

@@ -755,3 +755,83 @@ model EvoaiSetting {
   Instance        Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   instanceId      String    @unique
 }
+
+model Tenant {
+  id        String    @id @default(cuid())
+  name      String    @unique @db.VarChar(255)
+  createdAt DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt DateTime? @updatedAt @db.Timestamp
+  Customer  Customer[]
+  Ticket    Ticket[]
+}
+
+model Customer {
+  id          String    @id @default(cuid())
+  phoneNumber String    @db.VarChar(100)
+  name        String?   @db.VarChar(255)
+  email       String?   @db.VarChar(255)
+  tenantId    String
+  Tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt   DateTime? @updatedAt @db.Timestamp
+  Ticket      Ticket[]
+
+  @@unique([phoneNumber, tenantId])
+  @@index([tenantId])
+}
+
+model Ticket {
+  id           String    @id @default(cuid())
+  ticketNumber String    @unique @db.VarChar(50)
+  subject      String    @db.VarChar(500)
+  description  String?   @db.Text
+  status       String    @default('open') @db.VarChar(50)
+  source       String    @default('whatsapp') @db.VarChar(50)
+  category     String?   @db.VarChar(100)
+  tenantId     String
+  customerId   String
+  Tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  Customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt    DateTime? @updatedAt @db.Timestamp
+  TicketMessage TicketMessage[]
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([status])
+}
+
+model TicketMessage {
+  id           String   @id @default(cuid())
+  content      String   @db.Text
+  fromWhatsApp Boolean  @default(true)
+  ticketId     String
+  Ticket       Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdAt    DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+
+  @@index([ticketId])
+}
+
+model InstanceTenant {
+  id         String    @id @default(cuid())
+  instanceId String    @unique
+  tenantId   String
+  Tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+}
+
+model WhatsappSession {
+  id           String    @id @default(cuid())
+  phoneNumber  String    @db.VarChar(100)
+  tenantId     String
+  customerId   String?
+  state        String    @default('MAIN_MENU') @db.VarChar(50)
+  ticketDraft  Json?     @db.Json
+  lastActivity DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  createdAt    DateTime? @default(dbgenerated("CURRENT_TIMESTAMP")) @db.Timestamp
+  updatedAt    DateTime? @updatedAt @db.Timestamp
+  Tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([phoneNumber, tenantId])
+  @@index([tenantId])
+}

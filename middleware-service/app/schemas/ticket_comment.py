@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -16,8 +17,8 @@ class TicketCommentUpdate(BaseModel):
 
 
 class TicketCommentResponse(BaseModel):
-    id: int
-    ticket_id: int
+    id: uuid.UUID
+    ticket_id: uuid.UUID
     author_phone_number: str
     author_type: str
     message_text: str

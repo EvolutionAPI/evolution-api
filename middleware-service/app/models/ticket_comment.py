@@ -1,6 +1,8 @@
+import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -9,8 +11,8 @@ from app.db.session import Base
 class TicketComment(Base):
     __tablename__ = 'ticket_comments'
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    ticket_id: Mapped[int] = mapped_column(ForeignKey('tickets.id'), nullable=False, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    ticket_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('tickets.id'), nullable=False, index=True)
     author_phone_number: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     author_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
     message_text: Mapped[str] = mapped_column(Text, nullable=False)

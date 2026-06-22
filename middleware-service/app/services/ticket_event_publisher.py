@@ -15,8 +15,9 @@ class TicketEventPublisher:
                 'ticket_id': ticket.id,
                 'ticket_number': ticket.ticket_number,
                 'customer_id': ticket.customer_id,
+                'tenant_id': ticket.tenant_id,
                 'status': ticket.status,
-                'channel': ticket.channel,
+                'channel': ticket.source,
                 'subject': ticket.subject,
             },
         )
@@ -40,6 +41,7 @@ class TicketEventPublisher:
             {
                 'ticket_id': ticket.id,
                 'ticket_number': ticket.ticket_number,
+                'tenant_id': ticket.tenant_id,
                 'status': ticket.status,
             },
         )

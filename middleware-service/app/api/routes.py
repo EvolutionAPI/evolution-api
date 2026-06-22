@@ -3,14 +3,18 @@ from sqlalchemy.orm import Session
 
 from app.api.comments import router as comments_router
 from app.api.customers import router as customers_router
+from app.api.instances import router as instances_router
+from app.api.tenants import router as tenants_router
+from app.api.ticket_messages import router as ticket_messages_router
 from app.api.tickets import router as tickets_router
+from app.api.webhook import router as webhook_router
 from app.core.config import settings
 from app.db.session import get_db
 from app.schemas.events import IncomingEvent, PublishMessage
 from app.schemas.evolution import RabbitMQInstanceConfig
 from app.services.evolution_api import EvolutionAPIService
 from app.services.rabbitmq import RabbitMQService
-from app.services.repository import EventLogRepository
+from app.repositories import EventLogRepository
 from app.services.ticket_event_publisher import TicketEventPublisher
 from app.services.ticket_pipeline import publish_ticket_result, summarize_ticket_result
 from app.services.ticket_service import TicketService
@@ -20,9 +24,13 @@ def get_router(rabbitmq: RabbitMQService) -> APIRouter:
     router = APIRouter()
     evolution_api = EvolutionAPIService()
 
-    router.include_router(tickets_router)
-    router.include_router(comments_router)
+    router.include_router(tenants_router)
     router.include_router(customers_router)
+    router.include_router(tickets_router)
+    router.include_router(ticket_messages_router)
+    router.include_router(comments_router)
+    router.include_router(instances_router)
+    router.include_router(webhook_router)
 
     @router.get('/health')
     async def health_check():
