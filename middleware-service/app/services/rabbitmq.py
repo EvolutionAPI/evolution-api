@@ -53,7 +53,7 @@ class RabbitMQService:
             raise RuntimeError('RabbitMQ exchange is not initialized')
 
         message = Message(
-            body=json.dumps(payload).encode('utf-8'),
+            body=json.dumps(payload, default=str).encode('utf-8'),
             content_type='application/json',
         )
         await self.exchange.publish(message, routing_key=routing_key)

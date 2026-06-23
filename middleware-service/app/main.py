@@ -14,6 +14,8 @@ from app.models.ticket import Ticket  # noqa: F401
 from app.models.ticket_comment import TicketComment  # noqa: F401
 from app.models.ticket_message import TicketMessage  # noqa: F401
 from app.models.whatsapp_session import WhatsappSession  # noqa: F401
+from app.db.session import SessionLocal
+from app.services.bootstrap import bootstrap_default_instance
 from app.services.consumer import start_consumer
 from app.services.rabbitmq import RabbitMQService
 
@@ -26,6 +28,11 @@ rabbitmq_service = RabbitMQService()
 @app.on_event('startup')
 async def on_startup():
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        bootstrap_default_instance(db)
+    finally:
+        db.close()
     await rabbitmq_service.connect()
     await start_consumer(rabbitmq_service)
 

@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     evolution_api_timeout: int = 20
 
     support_whatsapp_number: str = ''
+    default_tenant_name: str = ''
+    default_instance_name: str = ''
 
 
 settings = Settings()

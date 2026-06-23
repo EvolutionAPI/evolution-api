@@ -28,10 +28,10 @@ def summarize_ticket_result(result: dict | None) -> dict | None:
     comment = result.get('comment')
 
     if ticket:
-        summary['ticket_id'] = ticket.id
+        summary['ticket_id'] = str(ticket.id)
         summary['ticket_number'] = ticket.ticket_number
     if comment:
-        summary['comment_id'] = comment.id
+        summary['comment_id'] = str(comment.id)
     if result.get('error'):
         summary['error'] = result['error']
     if result.get('reason'):

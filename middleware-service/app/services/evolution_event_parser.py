@@ -45,6 +45,7 @@ class EvolutionEventParser:
             'author_type': author_type,
             'author_phone_number': author_phone,
             'customer_phone_number': customer_phone,
+            'recipient': remote_jid or customer_phone,
             'instance': payload.get('instance') or data.get('instance'),
         }
 
