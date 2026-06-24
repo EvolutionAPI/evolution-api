@@ -1,35 +1,4 @@
-services:
-  api:
-    container_name: evolution_api
-    image: evolution/api:local
-    build: .
-    restart: always
-    ports:
-      - 8080:8080
-    volumes:
-      - evolution_instances:/evolution/instances
-    networks:
-      - evolution-net
-    env_file:
-      - .env
-    expose:
-      - 8080
-
-  frontend:
-    container_name: evolution_frontend
-    image: evolution/manager:local
-    build: ./evolution-manager-v2
-    restart: always
-    ports:
-      - "3000:80"
-    networks:
-      - evolution-net
-
-volumes:
-  evolution_instances:
-
-
-networks:
-  evolution-net:
-    name: evolution-net
-    driver: bridge
+docker run -d --name evolution \
+  -p 8080:8080 \
+  -e AUTHENTICATION_API_KEY=sua-api-key-aqui \
+  atendai/evolution-api
