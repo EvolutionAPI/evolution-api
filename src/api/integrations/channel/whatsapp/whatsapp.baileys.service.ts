@@ -7,6 +7,7 @@ import {
   getBase64FromMediaMessageDto,
   LastMessage,
   MarkChatUnreadDto,
+  MarkMessageAsPlayedDto,
   NumberBusiness,
   OnWhatsAppDto,
   PrivacySettingDto,
@@ -26,6 +27,7 @@ import {
   GroupSendInvite,
   GroupSubjectDto,
   GroupToggleEphemeralDto,
+  GroupUpdateMemberAddModeDto,
   GroupUpdateParticipantDto,
   GroupUpdateSettingDto,
 } from '@api/dto/group.dto';
@@ -33,12 +35,14 @@ import { InstanceDto, SetPresenceDto } from '@api/dto/instance.dto';
 import { HandleLabelDto, LabelDto } from '@api/dto/label.dto';
 import {
   Button,
+  CarouselCard,
   ContactMessage,
   KeyType,
   MediaMessage,
   Options,
   SendAudioDto,
   SendButtonsDto,
+  SendCarouselDto,
   SendContactDto,
   SendListDto,
   SendLocationDto,
@@ -67,7 +71,6 @@ import {
   Chatwoot,
   ConfigService,
   configService,
-  ConfigSessionPhone,
   Database,
   Log,
   Openai,
@@ -89,9 +92,11 @@ import { sendTelemetry } from '@utils/sendTelemetry';
 import useMultiFileAuthStatePrisma from '@utils/use-multi-file-auth-state-prisma';
 import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-files';
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
+import audioDecode from 'audio-decode';
 import axios from 'axios';
 import makeWASocket, {
   AnyMessageContent,
+  BinaryNode,
   BufferedEventData,
   BufferJSON,
   CacheStore,
@@ -104,6 +109,7 @@ import makeWASocket, {
   DisconnectReason,
   downloadContentFromMessage,
   downloadMediaMessage,
+  generateMessageIDV2,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
   GetCatalogOptions,
@@ -124,7 +130,6 @@ import makeWASocket, {
   Product,
   proto,
   UserFacingSocketConfig,
-  WABrowserDescription,
   WAMediaUpload,
   WAMessage,
   WAMessageKey,
@@ -139,11 +144,11 @@ import { createHash } from 'crypto';
 import EventEmitter2 from 'eventemitter2';
 import ffmpeg from 'fluent-ffmpeg';
 import FormData from 'form-data';
+import { getLinkPreview } from 'link-preview-js';
 import Long from 'long';
 import mimeTypes from 'mime-types';
 import NodeCache from 'node-cache';
 import cron from 'node-cron';
-import { release } from 'os';
 import { join } from 'path';
 import P from 'pino';
 import qrcode, { QRCodeToDataURLOptions } from 'qrcode';
@@ -153,6 +158,7 @@ import { PassThrough, Readable } from 'stream';
 import { v4 } from 'uuid';
 
 import { BaileysMessageProcessor } from './baileysMessage.processor';
+import { buildInteractiveBizNode, buildListBizNode, toNativeFlowButton } from './helpers/interactiveMessage.helper';
 import { useVoiceCallsBaileys } from './voiceCalls/useVoiceCallsBaileys';
 
 export interface ExtendedIMessageKey extends proto.IMessageKey {
@@ -224,6 +230,12 @@ async function getVideoDuration(input: Buffer | string | Readable): Promise<numb
   return Math.round(parseFloat(duration));
 }
 
+function normalizeListType(listMessage?: proto.Message.IListMessage | null): void {
+  if (listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+    listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+  }
+}
+
 export class BaileysStartupService extends ChannelStartupService {
   private messageProcessor = new BaileysMessageProcessor();
 
@@ -249,8 +261,15 @@ export class BaileysStartupService extends ChannelStartupService {
   private readonly msgRetryCounterCache: CacheStore = new NodeCache();
   private readonly userDevicesCache: CacheStore = new NodeCache({ stdTTL: 300000, useClones: false });
   private endSession = false;
+  private isDeleting = false; // Flag to prevent reconnection during deletion
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
   private eventProcessingQueue: Promise<void> = Promise.resolve();
+
+  // Cumulative history sync counters (reset on new sync or completion)
+  private historySyncMessageCount = 0;
+  private historySyncChatCount = 0;
+  private historySyncContactCount = 0;
+  private historySyncLastProgress = -1;
 
   // Cache TTL constants (in seconds)
   private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
@@ -265,10 +284,36 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async logoutInstance() {
-    this.messageProcessor.onDestroy();
-    await this.client?.logout('Log out instance: ' + this.instanceName);
+    // Mark instance as deleting to prevent reconnection attempts.
+    this.isDeleting = true;
+    this.endSession = true;
 
-    this.client?.ws?.close();
+    this.messageProcessor.onDestroy();
+
+    if (this.client) {
+      try {
+        await this.client.logout('Log out instance: ' + this.instanceName);
+      } catch (error) {
+        // Downgraded to warn: logout failures here are recoverable — the
+        // credential cleanup below still runs and the DB row is forced to 'close'.
+        this.logger.warn(
+          `logoutInstance: client.logout() failed (${(error as Error)?.message}), proceeding with credential cleanup`,
+        );
+      }
+
+      // Improved socket cleanup.
+      try {
+        this.client.ws?.close();
+        this.client.end(new Error('Instance logout'));
+      } catch {
+        // ignore — ws may already be closed
+      }
+    }
+
+    // Force the in-memory connection state to 'close' so any concurrent reader
+    // observes the post-logout state immediately, even if the DB update below
+    // is delayed.
+    this.stateConnection = { state: 'close', statusReason: 401 };
 
     const db = this.configService.get<Database>('DATABASE');
     const cache = this.configService.get<CacheConf>('CACHE');
@@ -296,6 +341,11 @@ export class BaileysStartupService extends ChannelStartupService {
     if (sessionExists) {
       await this.prismaRepository.session.delete({ where: { sessionId: this.instanceId } });
     }
+
+    await this.prismaRepository.instance.update({
+      where: { id: this.instanceId },
+      data: { connectionStatus: 'close' },
+    });
   }
 
   public async getProfileName() {
@@ -332,6 +382,18 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async connectionUpdate({ qr, connection, lastDisconnect }: Partial<ConnectionState>) {
+    // Enhanced logging for connection updates
+    const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+    this.logger.info({
+      message: 'Connection update received',
+      connection,
+      hasQr: !!qr,
+      statusCode,
+      instanceName: this.instance.name,
+      isDeleting: this.isDeleting,
+      endSession: this.endSession,
+    });
+
     if (qr) {
       if (this.instance.qrcode.count === this.configService.get<QrCode>('QRCODE').LIMIT) {
         this.sendDataWebhook(Events.QRCODE_UPDATED, {
@@ -424,12 +486,43 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'close') {
+      // Check if instance is being deleted or session is ending
+      if (this.isDeleting || this.endSession) {
+        this.logger.info('Instance is being deleted/ended, skipping reconnection attempt');
+        return;
+      }
+
       const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-      const codesToNotReconnect = [DisconnectReason.loggedOut, DisconnectReason.forbidden, 402, 406];
+      // 408 = request timeout — added per #2501 to avoid reconnect loops on
+      // transient network drops where the server returned a 408 in the close.
+      const codesToNotReconnect = [DisconnectReason.loggedOut, DisconnectReason.forbidden, 402, 406, 408];
+
+      // FIX: Do not reconnect if it's the initial connection (waiting for QR code)
+      // This prevents infinite loop that blocks QR code generation
+      const isInitialConnection = !this.instance.wuid && (this.instance.qrcode?.count ?? 0) === 0;
+
+      if (isInitialConnection) {
+        this.logger.info('Initial connection closed, waiting for QR code generation...');
+        return;
+      }
+
       const shouldReconnect = !codesToNotReconnect.includes(statusCode);
+
+      this.logger.info({
+        message: 'Connection closed, evaluating reconnection',
+        statusCode,
+        shouldReconnect,
+        instanceName: this.instance.name,
+      });
+
       if (shouldReconnect) {
-        await this.connectToWhatsapp(this.phoneNumber);
+        // Add 3 second delay before reconnection to prevent rapid reconnection loops
+        this.logger.info('Reconnecting in 3 seconds...');
+        setTimeout(async () => {
+          await this.connectToWhatsapp(this.phoneNumber);
+        }, 3000);
       } else {
+        this.logger.info(`Skipping reconnection for status code ${statusCode} (code is in codesToNotReconnect list)`);
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
           instance: this.instance.name,
           status: 'closed',
@@ -465,6 +558,10 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'open') {
+      if (!this.client?.user?.id) {
+        this.logger.warn('connectionUpdate: connection open but client.user is undefined, skipping');
+        return;
+      }
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       try {
         const profilePic = await this.profilePicture(this.instance.wuid);
@@ -522,12 +619,27 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async getMessage(key: proto.IMessageKey, full = false) {
     try {
-      // Use raw SQL to avoid JSON path issues
-      const webMessageInfo = (await this.prismaRepository.$queryRaw`
-        SELECT * FROM "Message"
-        WHERE "instanceId" = ${this.instanceId}
-        AND "key"->>'id' = ${key.id}
-      `) as proto.IWebMessageInfo[];
+      const provider = this.configService.get<Database>('DATABASE').PROVIDER;
+
+      let webMessageInfo: proto.IWebMessageInfo[];
+
+      if (provider === 'mysql') {
+        // MySQL version
+        webMessageInfo = (await this.prismaRepository.$queryRaw`
+          SELECT * FROM Message
+          WHERE instanceId = ${this.instanceId}
+          AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.id')) = ${key.id}
+          LIMIT 1
+        `) as proto.IWebMessageInfo[];
+      } else {
+        // PostgreSQL version
+        webMessageInfo = (await this.prismaRepository.$queryRaw`
+          SELECT * FROM "Message"
+          WHERE "instanceId" = ${this.instanceId}
+          AND "key"->>'id' = ${key.id}
+          LIMIT 1
+        `) as proto.IWebMessageInfo[];
+      }
 
       if (full) {
         return webMessageInfo[0];
@@ -576,33 +688,29 @@ export class BaileysStartupService extends ChannelStartupService {
   private async createClient(number?: string): Promise<WASocket> {
     this.instance.authState = await this.defineAuthState();
 
-    const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
-
-    let browserOptions = {};
-
-    if (number || this.phoneNumber) {
+    if (number) {
       this.phoneNumber = number;
-
       this.logger.info(`Phone number: ${number}`);
-    } else {
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-      browserOptions = { browser };
-
-      this.logger.info(`Browser: ${browser}`);
     }
 
-    const baileysVersion = await fetchLatestWaWebVersion({});
+    // Fetch latest WhatsApp Web version automatically
+    const baileysVersion = await fetchLatestWaWebVersion({}, this.cache);
     const version = baileysVersion.version;
-    const log = `Baileys version: ${version.join('.')}`;
 
+    const log = `Baileys version: ${version.join('.')}`;
     this.logger.info(log);
+
+    const error = baileysVersion?.error ?? null;
+    if (error) {
+      this.logger.error(`Fetch latest WaWeb version error: ${JSON.stringify({ error })}`);
+    }
 
     this.logger.info(`Group Ignore: ${this.localSettings.groupsIgnore}`);
 
     let options;
 
     if (this.localProxy?.enabled) {
-      this.logger.info('Proxy enabled: ' + this.localProxy?.host);
+      this.logger.verbose('Proxy enabled');
 
       if (this.localProxy?.host?.includes('proxyscrape')) {
         try {
@@ -611,9 +719,10 @@ export class BaileysStartupService extends ChannelStartupService {
           const proxyUrls = text.split('\r\n');
           const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
           const proxyUrl = 'http://' + proxyUrls[rand];
+          this.logger.info('Proxy url: ' + proxyUrl);
           options = { agent: makeProxyAgent(proxyUrl), fetchAgent: makeProxyAgentUndici(proxyUrl) };
-        } catch {
-          this.localProxy.enabled = false;
+        } catch (error) {
+          this.logger.error(error);
         }
       } else {
         options = {
@@ -647,7 +756,7 @@ export class BaileysStartupService extends ChannelStartupService {
       msgRetryCounterCache: this.msgRetryCounterCache,
       generateHighQualityLinkPreview: true,
       getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-      ...browserOptions,
+      // Removido browserOptions para usar Multi-Device nativo (não WebClient)
       markOnlineOnConnect: this.localSettings.alwaysOnline,
       retryRequestDelayMs: 350,
       maxMsgRetryCount: 4,
@@ -675,19 +784,8 @@ export class BaileysStartupService extends ChannelStartupService {
       userDevicesCache: this.userDevicesCache,
       transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
       patchMessageBeforeSending(message) {
-        if (
-          message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST
-        ) {
-          message = JSON.parse(JSON.stringify(message));
-
-          message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-        }
-
-        if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
-          message = JSON.parse(JSON.stringify(message));
-
-          message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-        }
+        normalizeListType(message.deviceSentMessage?.message?.listMessage);
+        normalizeListType(message.listMessage);
 
         return message;
       },
@@ -940,6 +1038,16 @@ export class BaileysStartupService extends ChannelStartupService {
       syncType?: proto.HistorySync.HistorySyncType;
     }) => {
       try {
+        const normalizedProgress = progress ?? -1;
+
+        if (normalizedProgress <= this.historySyncLastProgress) {
+          this.historySyncMessageCount = 0;
+          this.historySyncChatCount = 0;
+          this.historySyncContactCount = 0;
+        }
+
+        this.historySyncLastProgress = normalizedProgress;
+
         if (syncType === proto.HistorySync.HistorySyncType.ON_DEMAND) {
           console.log('received on-demand history sync, messages=', messages);
         }
@@ -967,14 +1075,29 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         const contactsMap = new Map();
+        const contactsMapLidJid = new Map();
 
         for (const contact of contacts) {
-          if (contact.id && (contact.notify || contact.name)) {
-            contactsMap.set(contact.id, { name: contact.name ?? contact.notify, jid: contact.id });
+          let jid = null;
+
+          if (contact?.id?.search('@lid') !== -1) {
+            if (contact.phoneNumber) {
+              jid = contact.phoneNumber;
+            }
           }
+
+          if (!jid) {
+            jid = contact?.id;
+          }
+
+          if (contact.id && (contact.notify || contact.name)) {
+            contactsMap.set(contact.id, { name: contact.name ?? contact.notify, jid });
+          }
+
+          contactsMapLidJid.set(contact.id, { jid });
         }
 
-        const chatsRaw: { remoteJid: string; instanceId: string; name?: string }[] = [];
+        const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string }[] = [];
         const chatsRepository = new Set(
           (await this.prismaRepository.chat.findMany({ where: { instanceId: this.instanceId } })).map(
             (chat) => chat.remoteJid,
@@ -986,14 +1109,42 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
-          chatsRaw.push({ remoteJid: chat.id, instanceId: this.instanceId, name: chat.name });
-        }
+          let remoteJid = null;
+          let remoteLid = null;
 
-        this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
+          if (chat.id.search('@lid') !== -1) {
+            const contact = contactsMapLidJid.get(chat.id);
+
+            remoteLid = chat.id;
+
+            if (contact && contact.jid) {
+              remoteJid = contact.jid;
+            }
+          }
+
+          if (!remoteLid && chat.accountLid && chat.accountLid.search('@lid') !== -1) {
+            remoteLid = chat.accountLid;
+          }
+
+          if (!remoteJid) {
+            remoteJid = chat.id;
+          }
+
+          chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name });
+        }
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
-          await this.prismaRepository.chat.createMany({ data: chatsRaw, skipDuplicates: true });
+          const chatsToCreateMany = JSON.parse(JSON.stringify(chatsRaw)).map((chat) => {
+            delete chat.remoteLid;
+            return chat;
+          });
+
+          await this.prismaRepository.chat.createMany({ data: chatsToCreateMany, skipDuplicates: true });
         }
+
+        this.historySyncChatCount += chatsRaw.length;
+
+        this.sendDataWebhook(Events.CHATS_SET, chatsRaw);
 
         const messagesRaw: any[] = [];
 
@@ -1046,14 +1197,16 @@ export class BaileysStartupService extends ChannelStartupService {
           messagesRaw.push(this.prepareMessage(m));
         }
 
-        this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw], true, undefined, {
-          isLatest,
-          progress,
-        });
+        this.historySyncMessageCount += messagesRaw.length;
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
           await this.prismaRepository.message.createMany({ data: messagesRaw, skipDuplicates: true });
         }
+
+        this.sendDataWebhook(Events.MESSAGES_SET, [...messagesRaw], true, undefined, {
+          isLatest,
+          progress,
+        });
 
         if (
           this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
@@ -1067,8 +1220,25 @@ export class BaileysStartupService extends ChannelStartupService {
           );
         }
 
+        const filteredContacts = contacts.filter((c) => !!c.notify || !!c.name);
+        this.historySyncContactCount += filteredContacts.length;
+
+        if (normalizedProgress === 100) {
+          this.sendDataWebhook(Events.MESSAGING_HISTORY_SET, {
+            messageCount: this.historySyncMessageCount,
+            chatCount: this.historySyncChatCount,
+            contactCount: this.historySyncContactCount,
+            progress: normalizedProgress,
+          });
+
+          this.historySyncMessageCount = 0;
+          this.historySyncChatCount = 0;
+          this.historySyncContactCount = 0;
+          this.historySyncLastProgress = -1;
+        }
+
         await this.contactHandle['contacts.upsert'](
-          contacts.filter((c) => !!c.notify || !!c.name).map((c) => ({ id: c.id, name: c.name ?? c.notify })),
+          filteredContacts.map((c) => ({ id: c.id, name: c.name ?? c.notify })),
         );
 
         contacts = undefined;
@@ -1201,10 +1371,10 @@ export class BaileysStartupService extends ChannelStartupService {
             }
           }
 
-          const messageRaw = this.prepareMessage(received);
+          const messageRaw = this.prepareMessage(received) as any;
 
           if (messageRaw.messageType === 'pollUpdateMessage') {
-            const pollCreationKey = messageRaw.message.pollUpdateMessage.pollCreationMessageKey;
+            const pollCreationKey = (messageRaw.message as any).pollUpdateMessage.pollCreationMessageKey;
             const pollMessage = (await this.getMessage(pollCreationKey, true)) as proto.IWebMessageInfo;
             const pollMessageSecret = (await this.getMessage(pollCreationKey)) as any;
 
@@ -1213,7 +1383,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 (pollMessage.message as any).pollCreationMessage?.options ||
                 (pollMessage.message as any).pollCreationMessageV3?.options ||
                 [];
-              const pollVote = messageRaw.message.pollUpdateMessage.vote;
+              const pollVote = (messageRaw.message as any).pollUpdateMessage.vote;
 
               const voterJid = received.key.fromMe
                 ? this.instance.wuid
@@ -1293,14 +1463,14 @@ export class BaileysStartupService extends ChannelStartupService {
                 })
                 .map((option) => option.optionName);
 
-              messageRaw.message.pollUpdateMessage.vote.selectedOptions = selectedOptionNames;
+              (messageRaw.message as any).pollUpdateMessage.vote.selectedOptions = selectedOptionNames;
 
               const pollUpdates = pollOptions.map((option) => ({
                 name: option.optionName,
                 voters: selectedOptionNames.includes(option.optionName) ? [successfulVoterJid] : [],
               }));
 
-              messageRaw.pollUpdates = pollUpdates;
+              (messageRaw as any).pollUpdates = pollUpdates;
             }
           }
 
@@ -1348,13 +1518,14 @@ export class BaileysStartupService extends ChannelStartupService {
             });
 
             if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
-              messageRaw.message.speechToText = `[audio] ${await this.openaiService.speechToText(received, this)}`;
+              (messageRaw.message as any).speechToText =
+                `[audio] ${await this.openaiService.speechToText(received, this)}`;
             }
           }
 
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { pollUpdates, ...messageData } = messageRaw;
+            const { pollUpdates, ...messageData } = messageRaw as any;
             const msg = await this.prismaRepository.message.create({ data: messageData });
 
             const { remoteJid } = received.key;
@@ -1430,7 +1601,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
                     const mediaUrl = await s3Service.getObjectUrl(fullName);
 
-                    messageRaw.message.mediaUrl = mediaUrl;
+                    (messageRaw.message as any).mediaUrl = mediaUrl;
 
                     await this.prismaRepository.message.update({ where: { id: msg.id }, data: messageRaw });
                   }
@@ -1452,7 +1623,7 @@ export class BaileysStartupService extends ChannelStartupService {
                 );
 
                 if (buffer) {
-                  messageRaw.message.base64 = buffer.toString('base64');
+                  (messageRaw.message as any).base64 = buffer.toString('base64');
                 } else {
                   // retry to download media
                   const buffer = await downloadMediaMessage(
@@ -1463,7 +1634,7 @@ export class BaileysStartupService extends ChannelStartupService {
                   );
 
                   if (buffer) {
-                    messageRaw.message.base64 = buffer.toString('base64');
+                    (messageRaw.message as any).base64 = buffer.toString('base64');
                   }
                 }
               } catch (error) {
@@ -1475,8 +1646,14 @@ export class BaileysStartupService extends ChannelStartupService {
           this.logger.verbose(messageRaw);
 
           sendTelemetry(`received.message.${messageRaw.messageType ?? 'unknown'}`);
+
           if (messageRaw.key.remoteJid?.includes('@lid') && messageRaw.key.remoteJidAlt) {
+            const lid = messageRaw.key.remoteJid;
+
             messageRaw.key.remoteJid = messageRaw.key.remoteJidAlt;
+            messageRaw.key.remoteJidAlt = lid;
+
+            messageRaw.key.addressingMode = 'pn';
           }
           console.log(messageRaw);
 
@@ -1484,7 +1661,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           await chatbotController.emit({
             instance: { instanceName: this.instance.name, instanceId: this.instanceId },
-            remoteJid: messageRaw.key.remoteJid,
+            remoteJid: (messageRaw.key as any).remoteJid,
             msg: messageRaw,
             pushName: messageRaw.pushName,
           });
@@ -1513,9 +1690,11 @@ export class BaileysStartupService extends ChannelStartupService {
             await saveOnWhatsappCache([
               {
                 remoteJid:
-                  messageRaw.key.addressingMode === 'lid' ? messageRaw.key.remoteJidAlt : messageRaw.key.remoteJid,
-                remoteJidAlt: messageRaw.key.remoteJidAlt,
-                lid: messageRaw.key.addressingMode === 'lid' ? 'lid' : null,
+                  (messageRaw.key as any).addressingMode === 'lid'
+                    ? (messageRaw.key as any).remoteJidAlt
+                    : (messageRaw.key as any).remoteJid,
+                remoteJidAlt: (messageRaw.key as any).remoteJidAlt,
+                lid: (messageRaw.key as any).addressingMode === 'lid' ? 'lid' : null,
               },
             ]);
           }
@@ -1561,7 +1740,18 @@ export class BaileysStartupService extends ChannelStartupService {
       const readChatToUpdate: Record<string, true> = {}; // {remoteJid: true}
 
       for await (const { key, update } of args) {
-        if (settings?.groupsIgnore && key.remoteJid?.includes('@g.us')) {
+        const keyAny = key as any;
+        if (keyAny.remoteJid) {
+          keyAny.remoteJid = keyAny.remoteJid.replace(/:.*$/, '');
+        }
+        if (keyAny.participant) {
+          keyAny.participant = keyAny.participant.replace(/:.*$/, '');
+        }
+
+        const normalizedRemoteJid = keyAny.remoteJid;
+        const normalizedParticipant = keyAny.participant;
+
+        if (settings?.groupsIgnore && normalizedRemoteJid?.includes('@g.us')) {
           continue;
         }
 
@@ -1612,9 +1802,9 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const message: any = {
             keyId: key.id,
-            remoteJid: key?.remoteJid,
+            remoteJid: normalizedRemoteJid,
             fromMe: key.fromMe,
-            participant: key?.participant,
+            participant: normalizedParticipant,
             status: status[update.status] ?? 'SERVER_ACK',
             pollUpdates,
             instanceId: this.instanceId,
@@ -1636,18 +1826,44 @@ export class BaileysStartupService extends ChannelStartupService {
             }
 
             const searchId = originalMessageId || key.id;
+            const dbProvider = this.configService.get<Database>('DATABASE').PROVIDER;
 
-            const messages = (await this.prismaRepository.$queryRaw`
-              SELECT * FROM "Message"
-              WHERE "instanceId" = ${this.instanceId}
-              AND "key"->>'id' = ${searchId}
-              LIMIT 1
-            `) as any[];
+            let messages: any[];
+            if (dbProvider === 'mysql') {
+              messages = (await this.prismaRepository.$queryRaw`
+                SELECT * FROM Message
+                WHERE instanceId = ${this.instanceId}
+                AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.id')) = ${searchId}
+                LIMIT 1
+              `) as any[];
+            } else {
+              messages = (await this.prismaRepository.$queryRaw`
+                SELECT * FROM "Message"
+                WHERE "instanceId" = ${this.instanceId}
+                AND "key"->>'id' = ${searchId}
+                LIMIT 1
+              `) as any[];
+            }
             findMessage = messages[0] || null;
 
             if (!findMessage?.id) {
-              this.logger.warn(`Original message not found for update. Skipping. Key: ${JSON.stringify(key)}`);
+              this.logger.verbose(
+                `Original message not found for update. Skipping. This is expected for protocol messages or ephemeral events not saved to the database. Key: ${JSON.stringify(key)}`,
+              );
               continue;
+            }
+
+            // Sync the incoming key.remoteJid with the stored one.
+            // This mutation is safe and necessary because Baileys events might use LIDs while we store Phone JIDs (or vice versa).
+            // Normalizing ensuring downstream logic uses the identifier that exists in our database.
+            if (findMessage?.key?.remoteJid && key.remoteJid !== findMessage.key.remoteJid) {
+              key.remoteJid = findMessage.key.remoteJid;
+            }
+            if (findMessage?.key?.remoteJid && findMessage.key.remoteJid !== key.remoteJid) {
+              this.logger.verbose(
+                `Updating key.remoteJid from ${key.remoteJid} to ${findMessage.key.remoteJid} based on stored message`,
+              );
+              key.remoteJid = findMessage.key.remoteJid;
             }
             message.messageId = findMessage.id;
           }
@@ -2126,6 +2342,51 @@ export class BaileysStartupService extends ChannelStartupService {
       return error;
     }
   }
+  public generateMessageID() {
+    return {
+      id: generateMessageIDV2(this.client.user?.id),
+    };
+  }
+
+  private async generateLinkPreview(text: string) {
+    try {
+      const linkRegex = /https?:\/\/[^\s]+/;
+      const match = text.match(linkRegex);
+
+      if (!match) return undefined;
+
+      // Trim common trailing punctuation that may follow URLs in natural text
+      const url = match[0].replace(/[.,);\]]+$/u, '');
+      if (!url) return undefined;
+
+      const previewData = (await getLinkPreview(url, {
+        imagesPropertyType: 'og', // fetches only open-graph images
+        headers: {
+          'user-agent': 'googlebot', // fetches with googlebot to prevent login pages
+        },
+      })) as any;
+
+      if (!previewData || !previewData.title) return undefined;
+
+      const image = previewData.images && previewData.images.length > 0 ? previewData.images[0] : undefined;
+
+      return {
+        externalAdReply: {
+          title: previewData.title,
+          body: previewData.description,
+          mediaType: 2, // 2 for video/image preview, though usually 1 is for thumbnail
+          thumbnailUrl: image,
+          sourceUrl: url,
+          mediaUrl: url,
+          renderLargerThumbnail: true,
+          // showAdAttribution: true // Removed to prevent "Sent via ad" label
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Error generating link preview: ${error}`);
+      return undefined;
+    }
+  }
 
   private async sendMessage(
     sender: string,
@@ -2136,6 +2397,7 @@ export class BaileysStartupService extends ChannelStartupService {
     messageId?: string,
     ephemeralExpiration?: number,
     contextInfo?: any,
+    additionalNodes?: BinaryNode[],
     // participants?: GroupParticipant[],
   ) {
     sender = sender.toLowerCase();
@@ -2155,14 +2417,17 @@ export class BaileysStartupService extends ChannelStartupService {
     // NOTE: NÃO DEVEMOS GERAR O messageId AQUI, SOMENTE SE VIER INFORMADO POR PARAMETRO. A GERAÇÃO ANTERIOR IMPEDE O WZAP DE IDENTIFICAR A SOURCE.
     if (messageId) option.messageId = messageId;
 
-    if (message['viewOnceMessage']) {
+    if (message['viewOnceMessage'] || message['interactiveMessage'] || message['listMessage']) {
       const m = generateWAMessageFromContent(sender, message, {
         timestamp: new Date(),
         userJid: this.instance.wuid,
         messageId,
         quoted,
       });
-      const id = await this.client.relayMessage(sender, message, { messageId });
+      const id = await this.client.relayMessage(sender, message, {
+        messageId,
+        ...(additionalNodes?.length ? { additionalNodes } : {}),
+      });
       m.key = { id: id, remoteJid: sender, participant: isPnUser(sender) ? sender : undefined, fromMe: true };
       for (const [key, value] of Object.entries(m)) {
         if (!value || (isArray(value) && value.length) === 0) {
@@ -2291,10 +2556,11 @@ export class BaileysStartupService extends ChannelStartupService {
     message: T,
     options?: Options,
     isIntegration = false,
+    additionalNodes?: BinaryNode[],
   ) {
     const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
-    if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+    if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast') && !isWA.jid.includes('@lid')) {
       throw new BadRequestException(isWA);
     }
 
@@ -2338,7 +2604,12 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
-      const linkPreview = options?.linkPreview != false ? undefined : false;
+      const linkPreview = options?.linkPreview === false ? false : undefined;
+
+      let previewContext: any = undefined;
+      if (linkPreview !== false && (message as any)?.conversation) {
+        previewContext = await this.generateLinkPreview((message as any).conversation);
+      }
 
       let quoted: WAMessage;
 
@@ -2372,7 +2643,7 @@ export class BaileysStartupService extends ChannelStartupService {
           throw new NotFoundException('Group not found');
         }
 
-        if (options?.mentionsEveryOne) {
+        if (options?.mentionsEveryOne === true) {
           mentions = group.participants.map((participant) => participant.id);
         } else if (options?.mentioned?.length) {
           mentions = options.mentioned.map((mention) => {
@@ -2390,8 +2661,10 @@ export class BaileysStartupService extends ChannelStartupService {
           mentions,
           linkPreview,
           quoted,
-          null,
+          options?.messageId ?? null,
           group?.ephemeralDuration,
+          previewContext,
+          additionalNodes,
           // group?.participants,
         );
       } else {
@@ -2405,6 +2678,7 @@ export class BaileysStartupService extends ChannelStartupService {
             unsigned: false,
           },
           disappearingMode: { initiator: 0 },
+          ...previewContext,
         };
         messageSent = await this.sendMessage(
           sender,
@@ -2412,9 +2686,10 @@ export class BaileysStartupService extends ChannelStartupService {
           mentions,
           linkPreview,
           quoted,
-          null,
+          options?.messageId ?? null,
           undefined,
           contextInfo,
+          additionalNodes,
         );
       }
 
@@ -2422,7 +2697,7 @@ export class BaileysStartupService extends ChannelStartupService {
         messageSent.messageTimestamp = messageSent.messageTimestamp?.toNumber();
       }
 
-      const messageRaw = this.prepareMessage(messageSent);
+      const messageRaw = this.prepareMessage(messageSent) as any;
 
       const isMedia =
         messageSent?.message?.imageMessage ||
@@ -2444,14 +2719,15 @@ export class BaileysStartupService extends ChannelStartupService {
         );
       }
 
-      if (this.configService.get<Openai>('OPENAI').ENABLED && messageRaw?.message?.audioMessage) {
+      if (this.configService.get<Openai>('OPENAI').ENABLED && (messageRaw as any)?.message?.audioMessage) {
         const openAiDefaultSettings = await this.prismaRepository.openaiSetting.findFirst({
           where: { instanceId: this.instanceId },
           include: { OpenaiCreds: true },
         });
 
         if (openAiDefaultSettings && openAiDefaultSettings.openaiCredsId && openAiDefaultSettings.speechToText) {
-          messageRaw.message.speechToText = `[audio] ${await this.openaiService.speechToText(messageRaw, this)}`;
+          (messageRaw.message as any).speechToText =
+            `[audio] ${await this.openaiService.speechToText(messageRaw, this)}`;
         }
       }
 
@@ -2568,7 +2844,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
 
-      if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast')) {
+      if (!isWA.exists && !isJidGroup(isWA.jid) && !isWA.jid.includes('@broadcast') && !isWA.jid.includes('@lid')) {
         throw new BadRequestException(isWA);
       }
 
@@ -2643,6 +2919,7 @@ export class BaileysStartupService extends ChannelStartupService {
         linkPreview: data?.linkPreview,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
       isIntegration,
     );
@@ -2659,6 +2936,7 @@ export class BaileysStartupService extends ChannelStartupService {
         linkPreview: data?.linkPreview,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
     );
   }
@@ -2829,7 +3107,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const response = await axios.get(mediaMessage.media, config);
 
-          mimetype = response.headers['content-type'];
+          mimetype = String(response.headers['content-type']);
         }
       }
 
@@ -2879,7 +3157,14 @@ export class BaileysStartupService extends ChannelStartupService {
       prepareMedia[mediaType].fileName = mediaMessage.fileName;
 
       if (mediaMessage.mediatype === 'video') {
-        prepareMedia[mediaType].gifPlayback = false;
+        prepareMedia[mediaType].gifPlayback = mediaMessage.gifPlayback === true || mediaMessage.gifPlayback === 'true';
+
+        if (mediaMessage.gifAttribution !== undefined) {
+          const gifAttribution = Number(mediaMessage.gifAttribution);
+          if (gifAttribution === 0 || gifAttribution === 1 || gifAttribution === 2) {
+            prepareMedia[mediaType].gifAttribution = gifAttribution;
+          }
+        }
       }
 
       return generateWAMessageFromContent(
@@ -2972,6 +3257,7 @@ export class BaileysStartupService extends ChannelStartupService {
         quoted: data?.quoted,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
     );
 
@@ -2994,6 +3280,7 @@ export class BaileysStartupService extends ChannelStartupService {
         quoted: data?.quoted,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
       isIntegration,
     );
@@ -3010,6 +3297,7 @@ export class BaileysStartupService extends ChannelStartupService {
       quoted: data?.quoted,
       mentionsEveryOne: data?.mentionsEveryOne,
       mentioned: data?.mentioned,
+      messageId: data?.messageId,
     };
 
     if (file) mediaData.media = file.buffer.toString('base64');
@@ -3025,6 +3313,7 @@ export class BaileysStartupService extends ChannelStartupService {
         quoted: data?.quoted,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
+        messageId: data?.messageId,
       },
       isIntegration,
     );
@@ -3171,7 +3460,7 @@ export class BaileysStartupService extends ChannelStartupService {
           .noVideo()
           .audioCodec('libopus')
           .addOutputOptions('-avoid_negative_ts make_zero')
-          .audioBitrate('128k')
+          .audioBitrate('48k')
           .audioFrequency(48000)
           .audioChannels(1)
           .outputOptions([
@@ -3203,6 +3492,58 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
+  private async getAudioMetadata(audioBuffer: Buffer): Promise<{ seconds: number; waveform: Uint8Array }> {
+    try {
+      this.logger.debug('Decoding audio buffer for metadata extraction...');
+      const audioData = await audioDecode(audioBuffer);
+
+      // Extract duration
+      const seconds = Math.ceil(audioData.duration);
+      this.logger.debug(`Audio duration: ${seconds} seconds`);
+
+      // Generate waveform
+      const samples = audioData.getChannelData(0);
+      const waveformLength = 64;
+      const samplesPerWaveform = Math.max(1, Math.floor(samples.length / waveformLength));
+
+      // First pass: calculate raw averages
+      const rawValues: number[] = [];
+      for (let i = 0; i < waveformLength; i++) {
+        const start = i * samplesPerWaveform;
+        const end = start + samplesPerWaveform;
+        let sum = 0;
+        for (let j = start; j < end && j < samples.length; j++) {
+          sum += Math.abs(samples[j]);
+        }
+        const avg = sum / samplesPerWaveform;
+        rawValues.push(avg);
+      }
+
+      // Find max value for normalization
+      const maxValue = Math.max(...rawValues);
+
+      // Second pass: normalize to 0-100 range
+      const waveform = new Uint8Array(waveformLength);
+      if (maxValue > 0) {
+        for (let i = 0; i < waveformLength; i++) {
+          const normalized = Math.floor((rawValues[i] / maxValue) * 100);
+          waveform[i] = rawValues[i] > 0 ? Math.max(5, Math.min(100, normalized)) : 0;
+        }
+      } else {
+        waveform.fill(50);
+      }
+
+      this.logger.debug(`Generated waveform with ${waveform.length} values`);
+
+      return { seconds, waveform };
+    } catch (error) {
+      this.logger.warn(`Failed to extract audio metadata: ${error.message}, using defaults`);
+      const defaultWaveform = new Uint8Array(64);
+      defaultWaveform.fill(50);
+      return { seconds: 1, waveform: defaultWaveform };
+    }
+  }
+
   public async audioWhatsapp(data: SendAudioDto, file?: any, isIntegration = false) {
     const mediaData: SendAudioDto = { ...data };
 
@@ -3221,10 +3562,14 @@ export class BaileysStartupService extends ChannelStartupService {
       const convert = await this.processAudio(mediaData.audio);
 
       if (Buffer.isBuffer(convert)) {
+        const { seconds, waveform } = await this.getAudioMetadata(convert);
+
+        const messageContent = { audio: convert, ptt: true, mimetype: 'audio/ogg; codecs=opus', seconds, waveform };
+
         const result = this.sendMessageWithTyping<AnyMessageContent>(
           data.number,
-          { audio: convert, ptt: true, mimetype: 'audio/ogg; codecs=opus' },
-          { presence: 'recording', delay: data?.delay },
+          messageContent as any,
+          { presence: 'recording', delay: data?.delay, quoted: data?.quoted },
           isIntegration,
         );
 
@@ -3234,14 +3579,23 @@ export class BaileysStartupService extends ChannelStartupService {
       }
     }
 
+    const audioBuffer = isURL(data.audio) ? { url: data.audio } : Buffer.from(data.audio, 'base64');
+    let metadata: { seconds: number; waveform: Uint8Array } | undefined;
+
+    // Only generate waveform for buffers, not URLs
+    if (Buffer.isBuffer(audioBuffer)) {
+      metadata = await this.getAudioMetadata(audioBuffer);
+    }
+
     return await this.sendMessageWithTyping<AnyMessageContent>(
       data.number,
       {
-        audio: isURL(data.audio) ? { url: data.audio } : Buffer.from(data.audio, 'base64'),
+        audio: audioBuffer,
         ptt: true,
         mimetype: 'audio/ogg; codecs=opus',
+        ...(metadata && { seconds: metadata.seconds, waveform: metadata.waveform }),
       },
-      { presence: 'recording', delay: data?.delay },
+      { presence: 'recording', delay: data?.delay, quoted: data?.quoted },
       isIntegration,
     );
   }
@@ -3311,105 +3665,141 @@ export class BaileysStartupService extends ChannelStartupService {
   ]);
 
   public async buttonMessage(data: SendButtonsDto) {
-    if (data.buttons.length === 0) {
+    if (!data.buttons || data.buttons.length === 0) {
       throw new BadRequestException('At least one button is required');
     }
 
     const hasReplyButtons = data.buttons.some((btn) => btn.type === 'reply');
-
     const hasPixButton = data.buttons.some((btn) => btn.type === 'pix');
+    const hasCTAButtons = data.buttons.some((btn) => btn.type === 'url' || btn.type === 'call' || btn.type === 'copy');
 
-    const hasOtherButtons = data.buttons.some((btn) => btn.type !== 'reply' && btn.type !== 'pix');
+    /* =========================
+     * REGRAS DE VALIDAÇÃO
+     * ========================= */
 
+    // Reply
     if (hasReplyButtons) {
       if (data.buttons.length > 3) {
         throw new BadRequestException('Maximum of 3 reply buttons allowed');
       }
-      if (hasOtherButtons) {
-        throw new BadRequestException('Reply buttons cannot be mixed with other button types');
+      if (hasCTAButtons || hasPixButton) {
+        throw new BadRequestException('Reply buttons cannot be mixed with CTA or PIX buttons');
       }
     }
 
+    // PIX
     if (hasPixButton) {
       if (data.buttons.length > 1) {
         throw new BadRequestException('Only one PIX button is allowed');
       }
-      if (hasOtherButtons) {
+      if (hasReplyButtons || hasCTAButtons) {
         throw new BadRequestException('PIX button cannot be mixed with other button types');
       }
 
       const message: proto.IMessage = {
-        viewOnceMessage: {
-          message: {
-            interactiveMessage: {
-              nativeFlowMessage: {
-                buttons: [{ name: this.mapType.get('pix'), buttonParamsJson: this.toJSONString(data.buttons[0]) }],
-                messageParamsJson: JSON.stringify({ from: 'api', templateId: v4() }),
+        interactiveMessage: {
+          nativeFlowMessage: {
+            buttons: [
+              {
+                name: this.mapType.get('pix'),
+                buttonParamsJson: this.toJSONString(data.buttons[0]),
               },
-            },
+            ],
+            messageParamsJson: JSON.stringify({
+              from: 'api',
+              templateId: v4(),
+            }),
           },
         },
       };
 
-      return await this.sendMessageWithTyping(data.number, message, {
+      return await this.sendMessageWithTyping(
+        data.number,
+        message,
+        {
+          delay: data?.delay,
+          presence: 'composing',
+          quoted: data?.quoted,
+          mentionsEveryOne: data?.mentionsEveryOne,
+          mentioned: data?.mentioned,
+        },
+        false,
+        [buildInteractiveBizNode()],
+      );
+    }
+
+    // CTA (url / call / copy)
+    if (hasCTAButtons) {
+      if (data.buttons.length > 2) {
+        throw new BadRequestException('Maximum of 2 CTA buttons allowed');
+      }
+      if (hasReplyButtons) {
+        throw new BadRequestException('CTA buttons cannot be mixed with reply buttons');
+      }
+    }
+
+    /* =========================
+     * HEADER (opcional)
+     * ========================= */
+
+    const generatedMedia = data?.thumbnailUrl
+      ? await this.prepareMediaMessage({ mediatype: 'image', media: data.thumbnailUrl })
+      : null;
+
+    /* =========================
+     * BOTÕES
+     * ========================= */
+
+    const buttons = data.buttons.map((btn) => ({
+      name: this.mapType.get(btn.type),
+      buttonParamsJson: this.toJSONString(btn),
+    }));
+
+    /* =========================
+     * MENSAGEM FINAL
+     * ========================= */
+
+    const message: proto.IMessage = {
+      interactiveMessage: {
+        body: {
+          text: (() => {
+            let text = `*${data.title}*`;
+            if (data?.description) {
+              text += `\n\n${data.description}`;
+            }
+            return text;
+          })(),
+        },
+        footer: data?.footer ? { text: data.footer } : undefined,
+        header: generatedMedia?.message?.imageMessage
+          ? {
+              hasMediaAttachment: true,
+              imageMessage: generatedMedia.message.imageMessage,
+            }
+          : undefined,
+        nativeFlowMessage: {
+          buttons,
+          messageParamsJson: JSON.stringify({
+            from: 'api',
+            templateId: v4(),
+          }),
+        },
+      },
+    };
+
+    return await this.sendMessageWithTyping(
+      data.number,
+      message,
+      {
         delay: data?.delay,
         presence: 'composing',
         quoted: data?.quoted,
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
-      });
-    }
-
-    const generate = await (async () => {
-      if (data?.thumbnailUrl) {
-        return await this.prepareMediaMessage({ mediatype: 'image', media: data.thumbnailUrl });
-      }
-    })();
-
-    const buttons = data.buttons.map((value) => {
-      return { name: this.mapType.get(value.type), buttonParamsJson: this.toJSONString(value) };
-    });
-
-    const message: proto.IMessage = {
-      viewOnceMessage: {
-        message: {
-          interactiveMessage: {
-            body: {
-              text: (() => {
-                let t = '*' + data.title + '*';
-                if (data?.description) {
-                  t += '\n\n';
-                  t += data.description;
-                  t += '\n';
-                }
-                return t;
-              })(),
-            },
-            footer: { text: data?.footer },
-            header: (() => {
-              if (generate?.message?.imageMessage) {
-                return {
-                  hasMediaAttachment: !!generate.message.imageMessage,
-                  imageMessage: generate.message.imageMessage,
-                };
-              }
-            })(),
-            nativeFlowMessage: {
-              buttons: buttons,
-              messageParamsJson: JSON.stringify({ from: 'api', templateId: v4() }),
-            },
-          },
-        },
       },
-    };
-
-    return await this.sendMessageWithTyping(data.number, message, {
-      delay: data?.delay,
-      presence: 'composing',
-      quoted: data?.quoted,
-      mentionsEveryOne: data?.mentionsEveryOne,
-      mentioned: data?.mentioned,
-    });
+      false,
+      [buildInteractiveBizNode()],
+    );
   }
 
   public async locationMessage(data: SendLocationDto) {
@@ -3434,18 +3824,30 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   public async listMessage(data: SendListDto) {
+    // Formato LEGADO (`listMessage` com listType SINGLE_SELECT) — funciona em Web, iOS e Android.
+    // O formato moderno (interactiveMessage + nativeFlowMessage com single_select) só renderiza
+    // em mobile recente; no WhatsApp Web/Desktop a mensagem chega vazia.
+    const message: proto.IMessage = {
+      listMessage: {
+        title: data.title || '',
+        description: data.description || '',
+        buttonText: data.buttonText || 'Ver Menu',
+        footerText: data.footerText || '',
+        listType: proto.Message.ListMessage.ListType.SINGLE_SELECT,
+        sections: (data.sections || []).map((section) => ({
+          title: section.title || '',
+          rows: (section.rows || []).map((row) => ({
+            title: row.title || '',
+            description: row.description || '',
+            rowId: row.rowId || '',
+          })),
+        })),
+      },
+    };
+
     return await this.sendMessageWithTyping(
       data.number,
-      {
-        listMessage: {
-          title: data.title,
-          description: data.description,
-          buttonText: data?.buttonText,
-          footerText: data?.footerText,
-          sections: data.sections,
-          listType: 2,
-        },
-      },
+      message,
       {
         delay: data?.delay,
         presence: 'composing',
@@ -3453,6 +3855,93 @@ export class BaileysStartupService extends ChannelStartupService {
         mentionsEveryOne: data?.mentionsEveryOne,
         mentioned: data?.mentioned,
       },
+      false,
+      [buildListBizNode()],
+    );
+  }
+
+  public async carouselMessage(data: SendCarouselDto) {
+    if (!data.cards?.length) {
+      throw new BadRequestException('At least one card is required');
+    }
+    if (data.cards.length > 10) {
+      throw new BadRequestException('Maximum of 10 cards allowed');
+    }
+
+    for (const card of data.cards) {
+      if (!card.buttons?.length) {
+        throw new BadRequestException('Each card must have at least one button');
+      }
+      if (card.buttons.length > 3) {
+        throw new BadRequestException('Maximum of 3 buttons per card');
+      }
+      if (card.buttons.some((b) => b.type === 'pix')) {
+        throw new BadRequestException('PIX buttons are not supported in carousel');
+      }
+    }
+
+    const buildCardButtons = (card: CarouselCard) =>
+      card.buttons.map((btn) =>
+        toNativeFlowButton(btn, {
+          generateRandomId: this.generateRandomId.bind(this),
+          mapKeyType: this.mapKeyType,
+        }),
+      );
+
+    // Otimização iOS: 1 card sem imagem → nativeFlowMessage direto (sem carouselMessage wrapper)
+    const isSingleNoImage = data.cards.length === 1 && !data.cards[0].imageUrl;
+
+    let interactiveMessage: proto.Message.IInteractiveMessage;
+
+    if (isSingleNoImage) {
+      const card = data.cards[0];
+      interactiveMessage = {
+        body: { text: card.body },
+        footer: card.footer ? { text: card.footer } : undefined,
+        nativeFlowMessage: {
+          buttons: buildCardButtons(card),
+          messageParamsJson: JSON.stringify({ from: 'api', templateId: v4() }),
+        },
+      };
+    } else {
+      const cards = await Promise.all(
+        data.cards.map(async (card) => {
+          let header: proto.Message.InteractiveMessage.IHeader | undefined;
+          if (card.imageUrl) {
+            const prepared = await this.prepareMediaMessage({ mediatype: 'image', media: card.imageUrl });
+            if (prepared?.message?.imageMessage) {
+              header = { hasMediaAttachment: true, imageMessage: prepared.message.imageMessage };
+            }
+          }
+          return {
+            header,
+            body: { text: card.body },
+            footer: card.footer ? { text: card.footer } : undefined,
+            nativeFlowMessage: { buttons: buildCardButtons(card) },
+          } as proto.Message.IInteractiveMessage;
+        }),
+      );
+
+      interactiveMessage = {
+        body: { text: data.body },
+        carouselMessage: { cards, messageVersion: 1 },
+      };
+    }
+
+    const message: proto.IMessage = { interactiveMessage };
+
+    return await this.sendMessageWithTyping(
+      data.number,
+      message,
+      {
+        delay: data?.delay,
+        presence: 'composing',
+        quoted: data?.quoted,
+        mentionsEveryOne: data?.mentionsEveryOne,
+        mentioned: data?.mentioned,
+      },
+      false,
+      [buildInteractiveBizNode()],
     );
   }
 
@@ -3511,8 +4000,23 @@ export class BaileysStartupService extends ChannelStartupService {
       users: { number: string; jid: string; name?: string }[];
     } = { groups: [], broadcast: [], users: [] };
 
+    const onWhatsapp: OnWhatsAppDto[] = [];
+
     data.numbers.forEach((number) => {
       const jid = createJid(number);
+
+      if (isJidNewsletter(jid)) {
+        onWhatsapp.push(
+          new OnWhatsAppDto(
+            jid,
+            true, // Newsletters are always valid
+            number,
+            undefined, // Can be fetched later if needed
+            'newsletter', // Indicate it's a newsletter type
+          ),
+        );
+        return;
+      }
 
       if (isJidGroup(jid)) {
         jids.groups.push({ number, jid });
@@ -3522,8 +4026,6 @@ export class BaileysStartupService extends ChannelStartupService {
         jids.users.push({ number, jid });
       }
     });
-
-    const onWhatsapp: OnWhatsAppDto[] = [];
 
     // BROADCAST
     onWhatsapp.push(...jids.broadcast.map(({ jid, number }) => new OnWhatsAppDto(jid, false, number)));
@@ -3677,7 +4179,7 @@ export class BaileysStartupService extends ChannelStartupService {
     try {
       const keys: proto.IMessageKey[] = [];
       data.readMessages.forEach((read) => {
-        if (isJidGroup(read.remoteJid) || isPnUser(read.remoteJid)) {
+        if (!isJidBroadcast(read.remoteJid) && !isJidNewsletter(read.remoteJid)) {
           keys.push({ remoteJid: read.remoteJid, fromMe: read.fromMe, id: read.id });
         }
       });
@@ -3688,8 +4190,26 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
+  public async markMessageAsPlayed(data: MarkMessageAsPlayedDto) {
+    try {
+      const keys: proto.IMessageKey[] = [];
+      data.playedMessages.forEach((played) => {
+        if (isJidGroup(played.remoteJid) || isPnUser(played.remoteJid)) {
+          keys.push({ remoteJid: played.remoteJid, fromMe: played.fromMe, id: played.id });
+        }
+      });
+      // Baileys exposes sendReceipts(keys, type) where type='played' triggers the
+      // PLAYED ack (blue microphone). Used when an agent plays back an audio
+      // message received from a contact, mirroring the contact's view in WhatsApp.
+      await this.client.sendReceipts(keys, 'played');
+      return { message: 'Played messages', played: 'success' };
+    } catch (error) {
+      throw new InternalServerErrorException('Mark messages as played fail', error.toString());
+    }
+  }
+
   public async getLastMessage(number: string) {
-    const where: any = { key: { remoteJid: number }, instanceId: this.instance.id };
+    const where: any = { key: { path: ['remoteJid'], equals: number }, instanceId: this.instanceId };
 
     const messages = await this.prismaRepository.message.findMany({
       where,
@@ -4588,6 +5108,15 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
+  public async updateMemberAddMode(update: GroupUpdateMemberAddModeDto) {
+    try {
+      await this.client.groupMemberAddMode(update.groupJid, update.mode);
+      return { update: 'success', mode: update.mode };
+    } catch (error) {
+      throw new BadRequestException('Error updating member add mode', error.toString());
+    }
+  }
+
   public async toggleEphemeral(update: GroupToggleEphemeralDto) {
     try {
       await this.client.groupToggleEphemeral(update.groupJid, update.expiration);
@@ -4649,26 +5178,28 @@ export class BaileysStartupService extends ChannelStartupService {
     return obj;
   }
 
-  private prepareMessage(message: proto.IWebMessageInfo): any {
-    const contentType = getContentType(message.message);
-    const contentMsg = message?.message[contentType] as any;
-
-    const messageRaw = {
-      key: message.key, // Save key exactly as it comes from Baileys
+  private prepareMessage(message: WAMessage): Message {
+    const keyAny = message.key as any;
+    const messageRaw: any = {
+      key: {
+        ...message.key,
+        remoteJid: keyAny.remoteJid?.replace(/:.*$/, ''),
+        participant: keyAny.participant?.replace(/:.*$/, ''),
+      },
       pushName:
         message.pushName ||
         (message.key.fromMe
           ? 'Você'
           : message?.participant || (message.key?.participant ? message.key.participant.split('@')[0] : null)),
-      status: status[message.status],
       message: this.deserializeMessageBuffers({ ...message.message }),
-      contextInfo: this.deserializeMessageBuffers(contentMsg?.contextInfo),
-      messageType: contentType || 'unknown',
+      messageType: getContentType(message.message),
       messageTimestamp: Long.isLong(message.messageTimestamp)
         ? message.messageTimestamp.toNumber()
         : (message.messageTimestamp as number),
+      source: getDevice(keyAny.id),
       instanceId: this.instanceId,
-      source: getDevice(message.key.id),
+      status: status[message.status],
+      contextInfo: this.deserializeMessageBuffers(message.message?.messageContextInfo),
     };
 
     if (!messageRaw.status && message.key.fromMe === false) {
@@ -4698,6 +5229,10 @@ export class BaileysStartupService extends ChannelStartupService {
         quotedMessage.documentMessage = quotedMessage.documentWithCaptionMessage.message.documentMessage;
         delete quotedMessage.documentWithCaptionMessage;
       }
+    }
+
+    if (isJidNewsletter(message.key.remoteJid) && message.key.fromMe) {
+      messageRaw.status = status[3]; // DELIVERED MESSAGE TO NEWSLETTER CHANNEL
     }
 
     return messageRaw;
@@ -4734,16 +5269,32 @@ export class BaileysStartupService extends ChannelStartupService {
   private async updateMessagesReadedByTimestamp(remoteJid: string, timestamp?: number): Promise<number> {
     if (timestamp === undefined || timestamp === null) return 0;
 
-    // Use raw SQL to avoid JSON path issues
-    const result = await this.prismaRepository.$executeRaw`
-      UPDATE "Message"
-      SET "status" = ${status[4]}
-      WHERE "instanceId" = ${this.instanceId}
-      AND "key"->>'remoteJid' = ${remoteJid}
-      AND ("key"->>'fromMe')::boolean = false
-      AND "messageTimestamp" <= ${timestamp}
-      AND ("status" IS NULL OR "status" = ${status[3]})
-    `;
+    const provider = this.configService.get<Database>('DATABASE').PROVIDER;
+    let result: number;
+
+    if (provider === 'mysql') {
+      // MySQL version
+      result = await this.prismaRepository.$executeRaw`
+        UPDATE Message
+        SET status = ${status[4]}
+        WHERE instanceId = ${this.instanceId}
+        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.remoteJid')) = ${remoteJid}
+        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.fromMe')) = 'false'
+        AND messageTimestamp <= ${timestamp}
+        AND (status IS NULL OR status = ${status[3]})
+      `;
+    } else {
+      // PostgreSQL version
+      result = await this.prismaRepository.$executeRaw`
+        UPDATE "Message"
+        SET "status" = ${status[4]}
+        WHERE "instanceId" = ${this.instanceId}
+        AND "key"->>'remoteJid' = ${remoteJid}
+        AND ("key"->>'fromMe')::boolean = false
+        AND "messageTimestamp" <= ${timestamp}
+        AND ("status" IS NULL OR "status" = ${status[3]})
+      `;
+    }
 
     if (result) {
       if (result > 0) {
@@ -4757,16 +5308,33 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async updateChatUnreadMessages(remoteJid: string): Promise<number> {
-    const [chat, unreadMessages] = await Promise.all([
-      this.prismaRepository.chat.findFirst({ where: { remoteJid } }),
-      // Use raw SQL to avoid JSON path issues
-      this.prismaRepository.$queryRaw`
+    const provider = this.configService.get<Database>('DATABASE').PROVIDER;
+
+    let unreadMessagesPromise: Promise<number>;
+
+    if (provider === 'mysql') {
+      // MySQL version
+      unreadMessagesPromise = this.prismaRepository.$queryRaw`
+        SELECT COUNT(*) as count FROM Message
+        WHERE instanceId = ${this.instanceId}
+        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.remoteJid')) = ${remoteJid}
+        AND JSON_UNQUOTE(JSON_EXTRACT(\`key\`, '$.fromMe')) = 'false'
+        AND status = ${status[3]}
+      `.then((result: any[]) => Number(result[0]?.count) || 0);
+    } else {
+      // PostgreSQL version
+      unreadMessagesPromise = this.prismaRepository.$queryRaw`
         SELECT COUNT(*)::int as count FROM "Message"
         WHERE "instanceId" = ${this.instanceId}
         AND "key"->>'remoteJid' = ${remoteJid}
         AND ("key"->>'fromMe')::boolean = false
         AND "status" = ${status[3]}
-      `.then((result: any[]) => result[0]?.count || 0),
+      `.then((result: any[]) => result[0]?.count || 0);
+    }
+
+    const [chat, unreadMessages] = await Promise.all([
+      this.prismaRepository.chat.findFirst({ where: { remoteJid } }),
+      unreadMessagesPromise,
     ]);
 
     if (chat && chat.unreadMessages !== unreadMessages) {
@@ -4778,50 +5346,95 @@ export class BaileysStartupService extends ChannelStartupService {
 
   private async addLabel(labelId: string, instanceId: string, chatId: string) {
     const id = cuid();
+    const provider = this.configService.get<Database>('DATABASE').PROVIDER;
 
-    await this.prismaRepository.$executeRawUnsafe(
-      `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
-       VALUES ($4, $2, $3, to_jsonb(ARRAY[$1]::text[]), NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
-     DO
-      UPDATE
-          SET "labels" = (
-          SELECT to_jsonb(array_agg(DISTINCT elem))
-          FROM (
-          SELECT jsonb_array_elements_text("Chat"."labels") AS elem
-          UNION
-          SELECT $1::text AS elem
-          ) sub
-          ),
-          "updatedAt" = NOW();`,
-      labelId,
-      instanceId,
-      chatId,
-      id,
-    );
+    if (provider === 'mysql') {
+      // MySQL version - use INSERT ... ON DUPLICATE KEY UPDATE
+      await this.prismaRepository.$executeRawUnsafe(
+        `INSERT INTO Chat (id, instanceId, remoteJid, labels, createdAt, updatedAt)
+         VALUES (?, ?, ?, JSON_ARRAY(?), NOW(), NOW())
+         ON DUPLICATE KEY UPDATE
+           labels = JSON_ARRAY_APPEND(
+             COALESCE(labels, JSON_ARRAY()),
+             '$',
+             ?
+           ),
+           updatedAt = NOW()`,
+        id,
+        instanceId,
+        chatId,
+        labelId,
+        labelId,
+      );
+    } else {
+      // PostgreSQL version
+      await this.prismaRepository.$executeRawUnsafe(
+        `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
+         VALUES ($4, $2, $3, to_jsonb(ARRAY[$1]::text[]), NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
+       DO
+        UPDATE
+            SET "labels" = (
+            SELECT to_jsonb(array_agg(DISTINCT elem))
+            FROM (
+            SELECT jsonb_array_elements_text("Chat"."labels") AS elem
+            UNION
+            SELECT $1::text AS elem
+            ) sub
+            ),
+            "updatedAt" = NOW();`,
+        labelId,
+        instanceId,
+        chatId,
+        id,
+      );
+    }
   }
 
   private async removeLabel(labelId: string, instanceId: string, chatId: string) {
     const id = cuid();
+    const provider = this.configService.get<Database>('DATABASE').PROVIDER;
 
-    await this.prismaRepository.$executeRawUnsafe(
-      `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
-       VALUES ($4, $2, $3, '[]'::jsonb, NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
-     DO
-      UPDATE
-          SET "labels" = COALESCE (
-          (
-          SELECT jsonb_agg(elem)
-          FROM jsonb_array_elements_text("Chat"."labels") AS elem
-          WHERE elem <> $1
-          ),
-          '[]'::jsonb
-          ),
-          "updatedAt" = NOW();`,
-      labelId,
-      instanceId,
-      chatId,
-      id,
-    );
+    if (provider === 'mysql') {
+      // MySQL version - use INSERT ... ON DUPLICATE KEY UPDATE
+      await this.prismaRepository.$executeRawUnsafe(
+        `INSERT INTO Chat (id, instanceId, remoteJid, labels, createdAt, updatedAt)
+         VALUES (?, ?, ?, JSON_ARRAY(), NOW(), NOW())
+         ON DUPLICATE KEY UPDATE
+           labels = COALESCE(
+             JSON_REMOVE(
+               labels,
+               JSON_UNQUOTE(JSON_SEARCH(labels, 'one', ?))
+             ),
+             JSON_ARRAY()
+           ),
+           updatedAt = NOW()`,
+        id,
+        instanceId,
+        chatId,
+        labelId,
+      );
+    } else {
+      // PostgreSQL version
+      await this.prismaRepository.$executeRawUnsafe(
+        `INSERT INTO "Chat" ("id", "instanceId", "remoteJid", "labels", "createdAt", "updatedAt")
+         VALUES ($4, $2, $3, '[]'::jsonb, NOW(), NOW()) ON CONFLICT ("instanceId", "remoteJid")
+       DO
+        UPDATE
+            SET "labels" = COALESCE (
+            (
+            SELECT jsonb_agg(elem)
+            FROM jsonb_array_elements_text("Chat"."labels") AS elem
+            WHERE elem <> $1
+            ),
+            '[]'::jsonb
+            ),
+            "updatedAt" = NOW();`,
+        labelId,
+        instanceId,
+        chatId,
+        id,
+      );
+    }
   }
 
   public async baileysOnWhatsapp(jid: string) {
@@ -5117,6 +5730,301 @@ export class BaileysStartupService extends ChannelStartupService {
         currentPage: query.page,
         records: formattedMessages,
       },
+    };
+  }
+
+  public async baileysDecryptPollVote(pollCreationMessageKey: proto.IMessageKey) {
+    try {
+      this.logger.verbose('Starting poll vote decryption process');
+
+      // Buscar a mensagem de criação da enquete
+      const pollCreationMessage = (await this.getMessage(pollCreationMessageKey, true)) as proto.IWebMessageInfo;
+
+      if (!pollCreationMessage) {
+        throw new NotFoundException('Poll creation message not found');
+      }
+
+      // Extrair opções da enquete
+      const pollOptions =
+        (pollCreationMessage.message as any)?.pollCreationMessage?.options ||
+        (pollCreationMessage.message as any)?.pollCreationMessageV3?.options ||
+        [];
+
+      if (!pollOptions || pollOptions.length === 0) {
+        throw new NotFoundException('Poll options not found');
+      }
+
+      // Recuperar chave de criptografia
+      const pollMessageSecret = (await this.getMessage(pollCreationMessageKey)) as any;
+      let pollEncKey = pollMessageSecret?.messageContextInfo?.messageSecret;
+
+      if (!pollEncKey) {
+        throw new NotFoundException('Poll encryption key not found');
+      }
+
+      // Normalizar chave de criptografia
+      if (typeof pollEncKey === 'string') {
+        pollEncKey = Buffer.from(pollEncKey, 'base64');
+      } else if (pollEncKey?.type === 'Buffer' && Array.isArray(pollEncKey.data)) {
+        pollEncKey = Buffer.from(pollEncKey.data);
+      }
+
+      if (Buffer.isBuffer(pollEncKey) && pollEncKey.length === 44) {
+        pollEncKey = Buffer.from(pollEncKey.toString('utf8'), 'base64');
+      }
+
+      // Buscar todas as mensagens de atualização de votos
+      const allPollUpdateMessages = await this.prismaRepository.message.findMany({
+        where: {
+          instanceId: this.instanceId,
+          messageType: 'pollUpdateMessage',
+        },
+        select: {
+          id: true,
+          key: true,
+          message: true,
+          messageTimestamp: true,
+        },
+      });
+
+      this.logger.verbose(`Found ${allPollUpdateMessages.length} pollUpdateMessage messages in database`);
+
+      // Filtrar apenas mensagens relacionadas a esta enquete específica
+      const pollUpdateMessages = allPollUpdateMessages.filter((msg) => {
+        const pollUpdate = (msg.message as any)?.pollUpdateMessage;
+        if (!pollUpdate) return false;
+
+        const creationKey = pollUpdate.pollCreationMessageKey;
+        if (!creationKey) return false;
+
+        return (
+          creationKey.id === pollCreationMessageKey.id &&
+          jidNormalizedUser(creationKey.remoteJid || '') === jidNormalizedUser(pollCreationMessageKey.remoteJid || '')
+        );
+      });
+
+      this.logger.verbose(`Filtered to ${pollUpdateMessages.length} matching poll update messages`);
+
+      // Preparar candidatos de JID para descriptografia
+      const creatorCandidates = [
+        this.instance.wuid,
+        this.client.user?.lid,
+        pollCreationMessage.key.participant,
+        (pollCreationMessage.key as any).participantAlt,
+        pollCreationMessage.key.remoteJid,
+        (pollCreationMessage.key as any).remoteJidAlt,
+      ].filter(Boolean);
+
+      const uniqueCreators = [...new Set(creatorCandidates.map((id) => jidNormalizedUser(id)))];
+
+      // Processar votos
+      const votesByUser = new Map<string, { timestamp: number; selectedOptions: string[]; voterJid: string }>();
+
+      this.logger.verbose(`Processing ${pollUpdateMessages.length} poll update messages for decryption`);
+
+      for (const pollUpdateMsg of pollUpdateMessages) {
+        const pollVote = (pollUpdateMsg.message as any)?.pollUpdateMessage?.vote;
+        if (!pollVote) continue;
+
+        const key = pollUpdateMsg.key as any;
+        const voterCandidates = [
+          this.instance.wuid,
+          this.client.user?.lid,
+          key.participant,
+          key.participantAlt,
+          key.remoteJidAlt,
+          key.remoteJid,
+        ].filter(Boolean);
+
+        const uniqueVoters = [...new Set(voterCandidates.map((id) => jidNormalizedUser(id)))];
+
+        let selectedOptionNames: string[] = [];
+        let successfulVoterJid: string | undefined;
+
+        // Verificar se o voto já está descriptografado
+        if (pollVote.selectedOptions && Array.isArray(pollVote.selectedOptions)) {
+          const selectedOptions = pollVote.selectedOptions;
+          this.logger.verbose('Vote already has selectedOptions, checking format');
+
+          // Verificar se são strings (já descriptografado) ou buffers (precisa descriptografar)
+          if (selectedOptions.length > 0 && typeof selectedOptions[0] === 'string') {
+            // Já está descriptografado como nomes de opções
+            selectedOptionNames = selectedOptions;
+            successfulVoterJid = uniqueVoters[0];
+            this.logger.verbose(
+              `Using already decrypted vote: voter=${successfulVoterJid}, options=${selectedOptionNames.join(',')}`,
+            );
+          } else {
+            // Está como hash, precisa converter para nomes
+            selectedOptionNames = pollOptions
+              .filter((option: any) => {
+                const hash = createHash('sha256').update(option.optionName).digest();
+                return selectedOptions.some((selected: any) => {
+                  if (Buffer.isBuffer(selected)) {
+                    return Buffer.compare(selected, hash) === 0;
+                  }
+                  return false;
+                });
+              })
+              .map((option: any) => option.optionName);
+            successfulVoterJid = uniqueVoters[0];
+          }
+        } else if (pollVote.encPayload && pollEncKey) {
+          // Tentar descriptografar
+          let decryptedVote: any = null;
+
+          for (const creator of uniqueCreators) {
+            for (const voter of uniqueVoters) {
+              try {
+                decryptedVote = decryptPollVote(pollVote, {
+                  pollCreatorJid: creator,
+                  pollMsgId: pollCreationMessage.key.id,
+                  pollEncKey,
+                  voterJid: voter,
+                } as any);
+
+                if (decryptedVote) {
+                  successfulVoterJid = voter;
+                  break;
+                }
+              } catch {
+                // Continue tentando outras combinações
+              }
+            }
+            if (decryptedVote) break;
+          }
+
+          if (decryptedVote && decryptedVote.selectedOptions) {
+            // Converter hashes para nomes de opções
+            selectedOptionNames = pollOptions
+              .filter((option: any) => {
+                const hash = createHash('sha256').update(option.optionName).digest();
+                return decryptedVote.selectedOptions.some((selected: any) => {
+                  if (Buffer.isBuffer(selected)) {
+                    return Buffer.compare(selected, hash) === 0;
+                  }
+                  return false;
+                });
+              })
+              .map((option: any) => option.optionName);
+
+            this.logger.verbose(
+              `Successfully decrypted vote for voter: ${successfulVoterJid}, creator: ${uniqueCreators[0]}`,
+            );
+          } else {
+            this.logger.warn(`Failed to decrypt vote. Last error: Could not decrypt with any combination`);
+            continue;
+          }
+        } else {
+          this.logger.warn('Vote has no encPayload and no selectedOptions, skipping');
+          continue;
+        }
+
+        if (selectedOptionNames.length > 0 && successfulVoterJid) {
+          const normalizedVoterJid = jidNormalizedUser(successfulVoterJid);
+          const existingVote = votesByUser.get(normalizedVoterJid);
+
+          // Manter apenas o voto mais recente de cada usuário
+          if (!existingVote || pollUpdateMsg.messageTimestamp > existingVote.timestamp) {
+            votesByUser.set(normalizedVoterJid, {
+              timestamp: pollUpdateMsg.messageTimestamp,
+              selectedOptions: selectedOptionNames,
+              voterJid: successfulVoterJid,
+            });
+          }
+        }
+      }
+
+      // Agrupar votos por opção
+      const results: Record<string, { votes: number; voters: string[] }> = {};
+
+      // Inicializar todas as opções com zero votos
+      pollOptions.forEach((option: any) => {
+        results[option.optionName] = {
+          votes: 0,
+          voters: [],
+        };
+      });
+
+      // Agregar votos
+      votesByUser.forEach((voteData) => {
+        voteData.selectedOptions.forEach((optionName) => {
+          if (results[optionName]) {
+            results[optionName].votes++;
+            if (!results[optionName].voters.includes(voteData.voterJid)) {
+              results[optionName].voters.push(voteData.voterJid);
+            }
+          }
+        });
+      });
+
+      // Obter nome da enquete
+      const pollName =
+        (pollCreationMessage.message as any)?.pollCreationMessage?.name ||
+        (pollCreationMessage.message as any)?.pollCreationMessageV3?.name ||
+        'Enquete sem nome';
+
+      // Calcular total de votos únicos
+      const totalVotes = votesByUser.size;
+
+      return {
+        poll: {
+          name: pollName,
+          totalVotes,
+          results,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Error decrypting poll votes: ${error}`);
+      throw new InternalServerErrorException('Error decrypting poll votes', error.toString());
+    }
+  }
+
+  public async fetchChannels(query: Query<Contact>) {
+    const page = Number((query as any)?.page ?? 1);
+    const limit = Number((query as any)?.limit ?? (query as any)?.rows ?? 50);
+    const skip = (page - 1) * limit;
+
+    const messages = await this.prismaRepository.message.findMany({
+      where: {
+        instanceId: this.instanceId,
+        AND: [{ key: { path: ['remoteJid'], not: null } }],
+      },
+      orderBy: { messageTimestamp: 'desc' },
+      select: {
+        key: true,
+        messageTimestamp: true,
+      },
+    });
+
+    const channelMap = new Map<string, { remoteJid: string; pushName: undefined; lastMessageTimestamp: number }>();
+
+    for (const msg of messages) {
+      const key = msg.key as any;
+      const remoteJid = key?.remoteJid as string | undefined;
+      if (!remoteJid || !isJidNewsletter(remoteJid)) continue;
+
+      if (!channelMap.has(remoteJid)) {
+        channelMap.set(remoteJid, {
+          remoteJid,
+          pushName: undefined, // Push name is never stored for channels, so we set it as undefined
+          lastMessageTimestamp: msg.messageTimestamp,
+        });
+      }
+    }
+
+    const allChannels = Array.from(channelMap.values());
+
+    const total = allChannels.length;
+    const pages = Math.ceil(total / limit);
+    const records = allChannels.slice(skip, skip + limit);
+
+    return {
+      total,
+      pages,
+      currentPage: page,
+      limit,
+      records,
     };
   }
 }
