@@ -257,8 +257,25 @@ export class WAMonitoringService {
           businessId: data.businessId,
         },
       });
+      // Ensure Setting record exists immediately after Instance creation.
+      // Prevents FK constraint violations (Setting_instanceId_fkey) in chatbot
+      // integrations that write to IntegrationSession before setSettings() runs.
+      await this.prismaRepository.setting.upsert({
+        where: { instanceId: data.instanceId },
+        update: {},
+        create: {
+          instanceId: data.instanceId,
+          rejectCall: false,
+          groupsIgnore: false,
+          alwaysOnline: false,
+          readMessages: false,
+          readStatus: false,
+          syncFullHistory: false,
+        },
+      });
     } catch (error) {
       this.logger.error(error);
+      throw error;
     }
   }
 

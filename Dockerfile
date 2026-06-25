@@ -24,6 +24,7 @@ COPY ./prisma ./prisma
 COPY ./manager ./manager
 COPY ./.env.example ./.env
 COPY ./runWithProvider.js ./
+COPY ./prisma.config.ts ./
 
 COPY ./Docker ./Docker
 
@@ -65,6 +66,7 @@ COPY --from=builder /evolution/.env ./.env
 COPY --from=builder /evolution/Docker ./Docker
 COPY --from=builder /evolution/runWithProvider.js ./runWithProvider.js
 COPY --from=builder /evolution/tsup.config.ts ./tsup.config.ts
+COPY --from=builder /evolution/prisma.config.ts ./prisma.config.ts
 
 ENV DOCKER_ENV=true
 

@@ -8,6 +8,8 @@ fi
 
 if [[ "$DATABASE_PROVIDER" == "postgresql" || "$DATABASE_PROVIDER" == "mysql" || "$DATABASE_PROVIDER" == "psql_bouncer" ]]; then
     export DATABASE_URL
+    echo "Ensuring database exists for $DATABASE_PROVIDER..."
+    node ./Docker/scripts/create_database.js
     echo "Deploying migrations for $DATABASE_PROVIDER"
     echo "Database URL: $DATABASE_URL"
     # rm -rf ./prisma/migrations

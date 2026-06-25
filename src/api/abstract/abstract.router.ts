@@ -51,7 +51,12 @@ export abstract class RouterBroker {
     }
 
     if (request.originalUrl.includes('/instance/create')) {
-      Object.assign(instance, sanitizeUntrustedInput(body));
+      const sanitized = sanitizeUntrustedInput(body);
+      // instanceName must come from the body on create — there is no URL param on this route
+      if (body?.instanceName !== undefined) {
+        sanitized.instanceName = body.instanceName;
+      }
+      Object.assign(instance, sanitized);
     }
 
     Object.assign(ref, body);

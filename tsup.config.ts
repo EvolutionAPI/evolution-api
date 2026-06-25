@@ -26,6 +26,10 @@ export default defineConfig({
   // Apenas o nome exato @prisma/client é bundlado (redirecionado pelo alias para o client
   // gerado). Subpaths como @prisma/client/runtime/* permanecem externos (node_modules).
   noExternal: [/^@prisma\/client$/],
+  define: {
+    __LICENSE_ENDPOINT_ENCODED__: licenseEndpointEncoded,
+    __LICENSE_ENDPOINT_XOR_KEY__: licenseEndpointXorKey,
+  },
   esbuildOptions(options) {
     // platform node: garante o shim de import.meta.url no bundle CJS (client Prisma 7 usa import.meta)
     options.platform = 'node';
@@ -33,9 +37,6 @@ export default defineConfig({
       ...(options.alias ?? {}),
       '@prisma/client': path.resolve(process.cwd(), 'prisma/generated/client/client.ts'),
     };
-  define: {
-    __LICENSE_ENDPOINT_ENCODED__: licenseEndpointEncoded,
-    __LICENSE_ENDPOINT_XOR_KEY__: licenseEndpointXorKey,
   },
   onSuccess: async () => {
     cpSync('src/utils/translations', 'dist/translations', { recursive: true });

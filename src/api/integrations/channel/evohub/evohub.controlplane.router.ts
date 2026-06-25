@@ -37,7 +37,7 @@ export class EvoHubControlPlaneRouter extends RouterBroker {
     });
 
     this.router.get('/evohub/channels/:id', guard, async (req, res) => {
-      res.json(await evoHubClient.getChannel(req.params.id));
+      res.json(await evoHubClient.getChannel(req.params.id as string));
     });
 
     this.router.get('/evohub/available-channels', guard, async (_req, res) => {
@@ -114,7 +114,7 @@ export class EvoHubControlPlaneRouter extends RouterBroker {
     });
 
     this.router.post('/evohub/channels/:id/meta-connect', guard, async (req, res) => {
-      res.json(await evoHubClient.connectToMeta(req.params.id, req.body));
+      res.json(await evoHubClient.connectToMeta(req.params.id as string, req.body));
     });
   }
 }
