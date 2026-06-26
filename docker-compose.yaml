@@ -18,6 +18,11 @@ services:
       - .env
     expose:
       - 8080
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   redis:
     image: redis:latest
@@ -31,6 +36,11 @@ services:
     ports:
       - 6379:6379
     restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   postgres:
     container_name: postgres
@@ -47,6 +57,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     expose:
       - 5432
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
   evolution_instances:
