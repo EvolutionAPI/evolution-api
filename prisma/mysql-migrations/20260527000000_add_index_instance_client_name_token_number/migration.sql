@@ -1,8 +1,8 @@
 -- CreateIndex
-CREATE INDEX `Instance_clientName_idx` ON `Instance`(`clientName`);
+CREATE UNIQUE INDEX `Instance_clientName_idx` ON `Instance`(`clientName`);
 
 -- CreateIndex
-CREATE INDEX `Instance_token_idx` ON `Instance`(`token`);
+CREATE UNIQUE INDEX `Instance_token_idx` ON `Instance`(`token`);
 
 -- CreateIndex
-CREATE INDEX `Instance_number_idx` ON `Instance`(`number`);
+CREATE UNIQUE INDEX `Instance_number_idx` ON `Instance`(`number`);
