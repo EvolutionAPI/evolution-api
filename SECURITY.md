@@ -1,99 +1,68 @@
 # Security Policy
 
-## Supported Versions
-
-We actively support the following versions of Evolution API with security updates:
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 2.3.x   | ✅ Yes             |
-| 2.2.x   | ✅ Yes             |
-| 2.1.x   | ⚠️ Critical fixes only |
-| < 2.1   | ❌ No              |
+Evolution Foundation takes the security of Evolution API seriously. We
+appreciate your efforts to responsibly disclose any vulnerabilities you find.
 
 ## Reporting a Vulnerability
 
-We take security vulnerabilities seriously. If you discover a security vulnerability in Evolution API, please help us by reporting it responsibly.
+**Please do NOT open a public GitHub issue for security vulnerabilities.**
 
-### 🔒 Private Disclosure Process
+Instead, report them privately through one of the following channels:
 
-**Please DO NOT create a public GitHub issue for security vulnerabilities.**
+### Preferred channels
 
-Instead, please report security vulnerabilities via email to:
+1. **GitHub Private Vulnerability Reporting** — use the "Security" tab on this
+   repository to submit a private advisory.
 
-**📧 contato@evolution-api.com**
+2. **Email** — send your report to **suporte@evofoundation.com.br** with the
+   subject line `[SECURITY] Evolution API — <brief description>`.
 
-### 📋 What to Include
+### What to include
 
-When reporting a vulnerability, please include:
+To help us triage and resolve the issue quickly, please include:
 
-- **Description**: A clear description of the vulnerability
-- **Impact**: What an attacker could achieve by exploiting this vulnerability
-- **Steps to Reproduce**: Detailed steps to reproduce the issue
-- **Proof of Concept**: If possible, include a minimal proof of concept
-- **Environment**: Version of Evolution API, OS, Node.js version, etc.
-- **Suggested Fix**: If you have ideas for how to fix the issue
+- A clear description of the vulnerability
+- Steps to reproduce (proof of concept, if available)
+- Affected versions
+- Potential impact and severity assessment
+- Any suggested mitigation or fix
+- Your name and contact information (for credit, if desired)
 
-### 🕐 Response Timeline
+## Response Timeline
 
-We will acknowledge receipt of your vulnerability report within **48 hours** and will send you regular updates about our progress.
+| Stage | Target |
+|---|---|
+| Initial acknowledgment | Within 48 hours |
+| Triage and validation | Within 5 business days |
+| Fix development | Depends on severity (1–30 days) |
+| Public disclosure | Coordinated with reporter after fix is released |
 
-- **Initial Response**: Within 48 hours
-- **Status Update**: Within 7 days
-- **Resolution Timeline**: Varies based on complexity, typically 30-90 days
+## Disclosure Policy
 
-### 🎯 Scope
+We follow a coordinated disclosure model:
 
-This security policy applies to:
+1. You report the vulnerability privately
+2. We acknowledge receipt and begin triage
+3. We work with you to understand and validate the issue
+4. We develop, test, and release a fix
+5. We publicly disclose the vulnerability and credit you (unless you prefer
+   to remain anonymous)
 
-- Evolution API core application
-- Official Docker images
-- Documentation that could lead to security issues
+## Supported Versions
 
-### 🚫 Out of Scope
+Security updates are provided for the latest released version. Older versions
+may receive critical security fixes at our discretion.
 
-The following are generally considered out of scope:
+## Recognition
 
-- Third-party integrations (Chatwoot, Typebot, etc.) - please report to respective projects
-- Issues in dependencies - please report to the dependency maintainers
-- Social engineering attacks
-- Physical attacks
-- Denial of Service attacks
+We value the security research community. Researchers who responsibly disclose
+vulnerabilities will be:
 
-### 🏆 Recognition
-
-We believe in recognizing security researchers who help us keep Evolution API secure:
-
-- We will acknowledge your contribution in our security advisories (unless you prefer to remain anonymous)
-- For significant vulnerabilities, we may feature you in our Hall of Fame
-- We will work with you on coordinated disclosure timing
-
-### 📚 Security Best Practices
-
-For users deploying Evolution API:
-
-- Always use the latest supported version
-- Keep your dependencies up to date
-- Use strong authentication methods
-- Implement proper network security
-- Monitor your logs for suspicious activity
-- Follow the principle of least privilege
-
-### 🔄 Security Updates
-
-Security updates will be:
-
-- Released as patch versions (e.g., 2.3.1 → 2.3.2)
-- Documented in our [CHANGELOG.md](./CHANGELOG.md)
-- Announced in our community channels
-- Tagged with security labels in GitHub releases
-
-## Contact
-
-For any questions about this security policy, please contact:
-
-- **Email**: contato@evolution-api.com
+- Credited in the security advisory (with permission)
+- Listed in our acknowledgments page (when available)
+- Eligible for public recognition via Evolution Foundation channels
 
 ---
 
-Thank you for helping keep Evolution API and our community safe! 🛡️
+For general inquiries (non-security): **suporte@evofoundation.com.br**
+For more information: [evolutionfoundation.com.br](https://evolutionfoundation.com.br)
