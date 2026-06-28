@@ -144,7 +144,17 @@ class ChatwootImport {
         }
         sqlInsert += ` ON CONFLICT (identifier, account_id)
                        DO UPDATE SET
-                        name = EXCLUDED.name,
+                        name = CASE
+                          WHEN contacts.identifier LIKE '%@g.us'
+                            AND (
+                              EXCLUDED.name IS NULL
+                              OR UPPER(TRIM(EXCLUDED.name)) = 'GROUP'
+                              OR TRIM(EXCLUDED.name) = SPLIT_PART(contacts.identifier, '@', 1)
+                              OR TRIM(EXCLUDED.name) = SPLIT_PART(contacts.identifier, '@', 1) || ' (GROUP)'
+                            )
+                          THEN contacts.name
+                          ELSE EXCLUDED.name
+                        END,
                         phone_number = EXCLUDED.phone_number,
                         updated_at = NOW()`;
 
@@ -456,7 +466,17 @@ class ChatwootImport {
                   to_timestamp(conversation_seed.last_activity_at)
                 FROM conversation_seed
                 ON CONFLICT(identifier, account_id) DO UPDATE SET
-                  name = EXCLUDED.name,
+                  name = CASE
+                    WHEN contact.identifier LIKE '%@g.us'
+                      AND (
+                        EXCLUDED.name IS NULL
+                        OR UPPER(TRIM(EXCLUDED.name)) = 'GROUP'
+                        OR TRIM(EXCLUDED.name) = SPLIT_PART(contact.identifier, '@', 1)
+                        OR TRIM(EXCLUDED.name) = SPLIT_PART(contact.identifier, '@', 1) || ' (GROUP)'
+                      )
+                    THEN contact.name
+                    ELSE EXCLUDED.name
+                  END,
                   phone_number = EXCLUDED.phone_number,
                   updated_at = EXCLUDED.updated_at
                 RETURNING contact.id, contact.identifier, contact.created_at, contact.updated_at
