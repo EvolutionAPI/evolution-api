@@ -251,6 +251,7 @@ export class BaileysStartupService extends ChannelStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
   private eventProcessingQueue: Promise<void> = Promise.resolve();
+  private groupMetadataRateLimitUntil = 0;
 
   // Cache TTL constants (in seconds)
   private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
@@ -789,8 +790,8 @@ export class BaileysStartupService extends ChannelStartupService {
 
       for (const chat of chats) {
         await this.prismaRepository.chat.updateMany({
-          where: { instanceId: this.instanceId, remoteJid: chat.id, name: chat.name },
-          data: { remoteJid: chat.id },
+          where: { instanceId: this.instanceId, remoteJid: chat.id },
+          data: { remoteJid: chat.id, name: chat.name },
         });
       }
     },
@@ -1063,7 +1064,7 @@ export class BaileysStartupService extends ChannelStartupService {
         ) {
           this.chatwootService.addHistoryMessages(
             instance,
-            messagesRaw.filter((msg) => !chatwootImport.isIgnorePhoneNumber(msg.key?.remoteJid)),
+            messagesRaw.filter((msg) => !chatwootImport.isIgnoredRemoteJid(msg.key?.remoteJid)),
           );
         }
 
@@ -4285,6 +4286,11 @@ export class BaileysStartupService extends ChannelStartupService {
 
   // Group
   private async updateGroupMetadataCache(groupJid: string) {
+    if (Date.now() < this.groupMetadataRateLimitUntil) {
+      this.logger.warn(`Skipping group metadata refresh while WhatsApp rate limit is active: ${groupJid}`);
+      return null;
+    }
+
     try {
       const meta = await this.client.groupMetadata(groupJid);
 
@@ -4297,7 +4303,15 @@ export class BaileysStartupService extends ChannelStartupService {
 
       return meta;
     } catch (error) {
-      this.logger.error(error);
+      const isRateLimit =
+        error?.data === 429 || error?.message === 'rate-overlimit' || error?.toString?.()?.includes?.('rate-overlimit');
+
+      if (isRateLimit) {
+        this.groupMetadataRateLimitUntil = Date.now() + 5 * 60 * 1000;
+        this.logger.warn(`WhatsApp group metadata rate limit reached; pausing group metadata refresh for 5 minutes.`);
+      } else {
+        this.logger.error(error);
+      }
       return null;
     }
   }
