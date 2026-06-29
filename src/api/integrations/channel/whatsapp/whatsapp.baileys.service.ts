@@ -252,10 +252,16 @@ export class BaileysStartupService extends ChannelStartupService {
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
   private eventProcessingQueue: Promise<void> = Promise.resolve();
   private groupMetadataRateLimitUntil = 0;
+  private reconnectAttempts = 0;
 
   // Cache TTL constants (in seconds)
   private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
   private readonly UPDATE_CACHE_TTL_SECONDS = 30 * 60; // 30 minutes - avoid duplicate status updates
+  private readonly HISTORY_GAP_SECONDS = 10 * 60; // 10 minutes - request recent history when a chat jumps ahead
+  private readonly HISTORY_GAP_SYNC_TTL_SECONDS = 15 * 60; // 15 minutes - avoid Baileys/WhatsApp rate limits
+  private readonly HISTORY_GAP_GLOBAL_TTL_SECONDS = 10; // Pace cross-chat history requests
+  private readonly HISTORY_GAP_SYNC_MESSAGE_COUNT = 50;
+  private readonly MAX_RECONNECT_DELAY_MS = 30_000;
 
   public stateConnection: wa.StateConnection = { state: 'close' };
 
@@ -429,6 +435,15 @@ export class BaileysStartupService extends ChannelStartupService {
       const codesToNotReconnect = [DisconnectReason.loggedOut, DisconnectReason.forbidden, 402, 406];
       const shouldReconnect = !codesToNotReconnect.includes(statusCode);
       if (shouldReconnect) {
+        this.reconnectAttempts += 1;
+        const reconnectDelayMs = Math.min(
+          1000 * 2 ** Math.min(this.reconnectAttempts - 1, 5),
+          this.MAX_RECONNECT_DELAY_MS,
+        );
+        this.logger.warn(
+          `WhatsApp connection closed for ${this.instance.name}. Reconnecting in ${reconnectDelayMs}ms. Reason: ${statusCode}`,
+        );
+        await delay(reconnectDelayMs);
         await this.connectToWhatsapp(this.phoneNumber);
       } else {
         this.sendDataWebhook(Events.STATUS_INSTANCE, {
@@ -466,6 +481,7 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     if (connection === 'open') {
+      this.reconnectAttempts = 0;
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
       try {
         const profilePic = await this.profilePicture(this.instance.wuid);
@@ -1176,6 +1192,8 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
+          await this.requestRecentHistoryOnGap(received);
+
           const existingChat = await this.prismaRepository.chat.findFirst({
             where: { instanceId: this.instanceId, remoteJid: received.key.remoteJid },
             select: { id: true, name: true },
@@ -1315,6 +1333,13 @@ export class BaileysStartupService extends ChannelStartupService {
             received?.message?.audioMessage;
 
           const isVideo = received?.message?.videoMessage;
+          const storedMessage = await this.findStoredMessageByKeyId(received.key.id);
+          const shouldSendToChatwoot = !storedMessage?.chatwootMessageId;
+
+          if (storedMessage?.chatwootMessageId) {
+            this.logger.info(`Message duplicated ignored before integrations: ${received.key.id}`);
+            continue;
+          }
 
           if (this.localSettings.readMessages && received.key.id !== 'status@broadcast') {
             await this.client.readMessages([received.key]);
@@ -1327,7 +1352,8 @@ export class BaileysStartupService extends ChannelStartupService {
           if (
             this.configService.get<Chatwoot>('CHATWOOT').ENABLED &&
             this.localChatwoot?.enabled &&
-            !received.key.id.includes('@broadcast')
+            !received.key.id.includes('@broadcast') &&
+            shouldSendToChatwoot
           ) {
             const chatwootSentMessage = await this.chatwootService.eventWhatsapp(
               Events.MESSAGES_UPSERT,
@@ -1356,7 +1382,27 @@ export class BaileysStartupService extends ChannelStartupService {
           if (this.configService.get<Database>('DATABASE').SAVE_DATA.NEW_MESSAGE) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { pollUpdates, ...messageData } = messageRaw;
-            const msg = await this.prismaRepository.message.create({ data: messageData });
+            const msg =
+              storedMessage ??
+              (await this.prismaRepository.message.create({
+                data: messageData,
+              }));
+
+            if (storedMessage) {
+              const chatwootFields = {
+                chatwootMessageId: messageRaw.chatwootMessageId,
+                chatwootInboxId: messageRaw.chatwootInboxId,
+                chatwootConversationId: messageRaw.chatwootConversationId,
+              };
+              const hasChatwootUpdate = Object.values(chatwootFields).some((value) => value != null);
+              if (hasChatwootUpdate) {
+                await this.prismaRepository.message.update({
+                  where: { id: storedMessage.id },
+                  data: chatwootFields,
+                });
+              }
+              this.logger.info(`Message duplicated ignored in database insert: ${received.key.id}`);
+            }
 
             const { remoteJid } = received.key;
             const timestamp = msg.messageTimestamp;
@@ -1385,7 +1431,7 @@ export class BaileysStartupService extends ChannelStartupService {
               this.logger.info(`Update readed messages duplicated ignored [avoid deadlock]: ${messageKey}`);
             }
 
-            if (isMedia) {
+            if (isMedia && !storedMessage) {
               if (this.configService.get<S3>('S3').ENABLE) {
                 try {
                   if (isVideo && !this.configService.get<S3>('S3').SAVE_VIDEO) {
@@ -1440,6 +1486,10 @@ export class BaileysStartupService extends ChannelStartupService {
                 }
               }
             }
+          }
+
+          if (storedMessage) {
+            continue;
           }
 
           if (this.localWebhook.enabled) {
@@ -4661,6 +4711,107 @@ export class BaileysStartupService extends ChannelStartupService {
     }
 
     return obj;
+  }
+
+  private getMessageTimestampAsNumber(message: proto.IWebMessageInfo): number | null {
+    const timestamp = message?.messageTimestamp;
+
+    if (Long.isLong(timestamp)) {
+      return Math.floor(timestamp.toNumber());
+    }
+
+    if (typeof timestamp === 'number' && Number.isFinite(timestamp)) {
+      return Math.floor(timestamp);
+    }
+
+    if (typeof timestamp === 'string') {
+      const parsed = Number(timestamp);
+      return Number.isFinite(parsed) ? Math.floor(parsed) : null;
+    }
+
+    return null;
+  }
+
+  private async findStoredMessageByKeyId(keyId?: string): Promise<Message | null> {
+    if (!keyId) {
+      return null;
+    }
+
+    const rows = (await this.prismaRepository.$queryRaw`
+      SELECT * FROM "Message"
+      WHERE "instanceId" = ${this.instanceId}
+      AND "key"->>'id' = ${keyId}
+      LIMIT 1
+    `) as Message[];
+
+    return rows[0] ?? null;
+  }
+
+  private async requestRecentHistoryOnGap(message: WAMessage): Promise<void> {
+    const remoteJid = message?.key?.remoteJid;
+    const timestamp = this.getMessageTimestampAsNumber(message);
+
+    if (
+      !this.client ||
+      !remoteJid ||
+      !message?.key?.id ||
+      !timestamp ||
+      remoteJid === 'status@broadcast' ||
+      isJidBroadcast(remoteJid) ||
+      isJidNewsletter(remoteJid)
+    ) {
+      return;
+    }
+
+    const cacheKey = `history_gap_sync:${this.instanceId}:${remoteJid}`;
+    const syncRequested = await this.baileysCache.get(cacheKey);
+    if (syncRequested) {
+      return;
+    }
+
+    const globalCacheKey = `history_gap_sync:${this.instanceId}:global`;
+    const globalSyncRequested = await this.baileysCache.get(globalCacheKey);
+    if (globalSyncRequested) {
+      return;
+    }
+
+    const rows = (await this.prismaRepository.$queryRaw`
+      SELECT "id", "messageTimestamp"
+      FROM "Message"
+      WHERE "instanceId" = ${this.instanceId}
+      AND "key"->>'remoteJid' = ${remoteJid}
+      AND "key"->>'id' <> ${message.key.id}
+      ORDER BY "messageTimestamp" DESC
+      LIMIT 1
+    `) as Pick<Message, 'id' | 'messageTimestamp'>[];
+
+    const lastStoredMessage = rows[0];
+    const secondsSinceLastMessage = lastStoredMessage ? timestamp - Number(lastStoredMessage.messageTimestamp) : null;
+    const shouldSyncHistory =
+      !lastStoredMessage || (secondsSinceLastMessage !== null && secondsSinceLastMessage > this.HISTORY_GAP_SECONDS);
+
+    if (!shouldSyncHistory) {
+      return;
+    }
+
+    await this.baileysCache.set(cacheKey, true, this.HISTORY_GAP_SYNC_TTL_SECONDS);
+    await this.baileysCache.set(globalCacheKey, true, this.HISTORY_GAP_GLOBAL_TTL_SECONDS);
+
+    try {
+      const requestId = await this.client.fetchMessageHistory(
+        this.HISTORY_GAP_SYNC_MESSAGE_COUNT,
+        message.key,
+        timestamp,
+      );
+      const gapDescription = lastStoredMessage ? `${secondsSinceLastMessage}s` : 'no local messages';
+      this.logger.warn(
+        `Requested WhatsApp history sync for ${remoteJid} after gap (${gapDescription}). RequestId: ${requestId}`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Unable to request WhatsApp history sync for ${remoteJid}: ${error?.message ?? JSON.stringify(error)}`,
+      );
+    }
   }
 
   private prepareMessage(message: proto.IWebMessageInfo): any {
