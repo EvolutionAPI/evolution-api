@@ -730,11 +730,25 @@ export class ChatwootService {
 
         if (isGroup) {
           this.logger.verbose(`Processing group conversation`);
-          const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
-          this.logger.verbose(`Group metadata: JID:${group.JID} - Subject:${group?.subject || group?.Name}`);
+          const storedGroupName = await this.getStoredGroupName(instance.instanceId, chatId);
+          nameContact = storedGroupName ? `${storedGroupName} (GROUP)` : `${chatId.split('@')[0]} (GROUP)`;
+
+          try {
+            const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
+            this.logger.verbose(`Group metadata: JID:${group.JID} - Subject:${group?.subject || group?.Name}`);
+
+            const metadataGroupName = this.normalizeGroupSubject(group?.subject || group?.Name || group?.name);
+            if (this.isUsableGroupName(chatId, metadataGroupName)) {
+              nameContact = `${metadataGroupName} (GROUP)`;
+              await this.persistSyncedGroupNames(instance.instanceId, [{ remoteJid: chatId, name: metadataGroupName }]);
+            }
+          } catch (error) {
+            this.logger.warn(
+              `Unable to refresh group metadata for Chatwoot contact ${chatId}: ${error?.toString?.() || error}`,
+            );
+          }
 
           const participantJid = isLid && !body.key.fromMe ? body.key.participantAlt : body.key.participant;
-          nameContact = `${group.subject} (GROUP)`;
 
           const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(
             participantJid.split('@')[0],
@@ -2830,6 +2844,22 @@ export class ChatwootService {
     return !!cleanName && cleanName.toUpperCase() !== 'GROUP' && cleanName !== remoteJid.split('@')[0];
   }
 
+  private async getStoredGroupName(instanceId: string, remoteJid: string): Promise<string | null> {
+    const [chat, contact] = await Promise.all([
+      this.prismaRepository.chat.findFirst({
+        where: { instanceId, remoteJid },
+        select: { name: true },
+      }),
+      this.prismaRepository.contact.findFirst({
+        where: { instanceId, remoteJid },
+        select: { pushName: true },
+      }),
+    ]);
+
+    const storedName = [chat?.name, contact?.pushName].find((name) => this.isUsableGroupName(remoteJid, name));
+    return storedName ? this.normalizeGroupSubject(storedName) : null;
+  }
+
   private prepareContactsForChatwootImport(
     instanceId: string,
     contactsRaw: ContactModel[],
@@ -2849,7 +2879,13 @@ export class ChatwootService {
       const existingContact = contactsByJid.get(remoteJid);
       const groupName = groupNamesByJid.get(remoteJid);
       const chat = chatsRaw.find((item) => item.remoteJid === remoteJid);
-      const pushName = groupName || chat?.name || existingContact?.pushName || remoteJid.split('@')[0];
+      const pushName =
+        groupName ||
+        (this.isUsableGroupName(remoteJid, chat?.name) ? this.normalizeGroupSubject(chat?.name) : null) ||
+        (this.isUsableGroupName(remoteJid, existingContact?.pushName)
+          ? this.normalizeGroupSubject(existingContact?.pushName)
+          : null) ||
+        remoteJid.split('@')[0];
 
       contactsByJid.set(remoteJid, {
         ...(existingContact || {

@@ -825,12 +825,19 @@ export class BaileysStartupService extends ChannelStartupService {
   private readonly contactHandle = {
     'contacts.upsert': async (contacts: Contact[]) => {
       try {
-        const contactsRaw: any = contacts.map((contact) => ({
-          remoteJid: contact.id,
-          pushName: contact?.name || contact?.verifiedName || contact.id.split('@')[0],
-          profilePicUrl: null,
-          instanceId: this.instanceId,
-        }));
+        const contactsRaw: any = await Promise.all(
+          contacts.map(async (contact) => {
+            const candidateName = contact?.name || contact?.verifiedName || contact.id.split('@')[0];
+            return {
+              remoteJid: contact.id,
+              pushName: contact.id?.includes('@g.us')
+                ? await this.resolveGroupContactName(contact.id, candidateName)
+                : candidateName,
+              profilePicUrl: null,
+              instanceId: this.instanceId,
+            };
+          }),
+        );
 
         if (contactsRaw.length > 0) {
           this.sendDataWebhook(Events.CONTACTS_UPSERT, contactsRaw);
@@ -861,12 +868,17 @@ export class BaileysStartupService extends ChannelStartupService {
         }
 
         const updatedContacts = await Promise.all(
-          contacts.map(async (contact) => ({
-            remoteJid: contact.id,
-            pushName: contact?.name || contact?.verifiedName || contact.id.split('@')[0],
-            profilePicUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
-            instanceId: this.instanceId,
-          })),
+          contacts.map(async (contact) => {
+            const candidateName = contact?.name || contact?.verifiedName || contact.id.split('@')[0];
+            return {
+              remoteJid: contact.id,
+              pushName: contact.id?.includes('@g.us')
+                ? await this.resolveGroupContactName(contact.id, candidateName)
+                : candidateName,
+              profilePicUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
+              instanceId: this.instanceId,
+            };
+          }),
         );
 
         if (updatedContacts.length > 0) {
@@ -897,10 +909,17 @@ export class BaileysStartupService extends ChannelStartupService {
                   return;
                 }
 
-                this.chatwootService.updateContact(instance, findParticipant.id, {
-                  name: contact.pushName,
+                const updatePayload: { name?: string; avatar_url?: string } = {
                   avatar_url: contact.profilePicUrl,
-                });
+                };
+                if (
+                  !contact.remoteJid.includes('@g.us') ||
+                  this.isUsableGroupName(contact.remoteJid, contact.pushName)
+                ) {
+                  updatePayload.name = contact.pushName;
+                }
+
+                this.chatwootService.updateContact(instance, findParticipant.id, updatePayload);
               }
             }),
           );
@@ -915,9 +934,12 @@ export class BaileysStartupService extends ChannelStartupService {
       const contactsRaw: { remoteJid: string; pushName?: string; profilePicUrl?: string; instanceId: string }[] = [];
       for await (const contact of contacts) {
         this.logger.debug(`Updating contact: ${JSON.stringify(contact, null, 2)}`);
+        const candidateName = contact?.name ?? contact?.verifiedName;
         contactsRaw.push({
           remoteJid: contact.id,
-          pushName: contact?.name ?? contact?.verifiedName,
+          pushName: contact.id?.includes('@g.us')
+            ? await this.resolveGroupContactName(contact.id, candidateName)
+            : candidateName,
           profilePicUrl: (await this.profilePicture(contact.id)).profilePictureUrl,
           instanceId: this.instanceId,
         });
@@ -1546,12 +1568,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
           const contactRaw: {
             remoteJid: string;
-            pushName: string;
+            pushName?: string;
             profilePicUrl?: string;
             instanceId: string;
           } = {
             remoteJid: received.key.remoteJid,
-            pushName: received.key.fromMe ? '' : received.key.fromMe == null ? '' : received.pushName,
+            pushName: received.key.remoteJid?.includes('@g.us')
+              ? await this.resolveGroupContactName(received.key.remoteJid, undefined)
+              : received.key.fromMe
+                ? ''
+                : received.key.fromMe == null
+                  ? ''
+                  : received.pushName,
             profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
             instanceId: this.instanceId,
           };
@@ -4812,6 +4840,44 @@ export class BaileysStartupService extends ChannelStartupService {
         `Unable to request WhatsApp history sync for ${remoteJid}: ${error?.message ?? JSON.stringify(error)}`,
       );
     }
+  }
+
+  private normalizeGroupSubject(name?: string | null) {
+    return name?.replace(/\s+\(GROUP\)$/i, '').trim() || '';
+  }
+
+  private isUsableGroupName(remoteJid: string, name?: string | null) {
+    const cleanName = this.normalizeGroupSubject(name);
+
+    return !!cleanName && cleanName.toUpperCase() !== 'GROUP' && cleanName !== remoteJid.split('@')[0];
+  }
+
+  private async resolveGroupContactName(remoteJid: string, candidateName?: string | null): Promise<string | undefined> {
+    if (!remoteJid?.includes('@g.us')) {
+      return candidateName || remoteJid?.split('@')[0] || '';
+    }
+
+    const [chat, contact] = await Promise.all([
+      this.prismaRepository.chat.findFirst({
+        where: { instanceId: this.instanceId, remoteJid },
+        select: { name: true },
+      }),
+      this.prismaRepository.contact.findFirst({
+        where: { instanceId: this.instanceId, remoteJid },
+        select: { pushName: true },
+      }),
+    ]);
+
+    const preservedName = [chat?.name, contact?.pushName].find((name) => this.isUsableGroupName(remoteJid, name));
+    if (preservedName) {
+      return this.normalizeGroupSubject(preservedName);
+    }
+
+    if (this.isUsableGroupName(remoteJid, candidateName)) {
+      return this.normalizeGroupSubject(candidateName);
+    }
+
+    return undefined;
   }
 
   private prepareMessage(message: proto.IWebMessageInfo): any {
