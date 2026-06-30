@@ -2223,10 +2223,14 @@ export class BaileysStartupService extends ChannelStartupService {
 
       const linkPreview = options?.linkPreview === false ? false : undefined;
 
-      let previewContext: any = undefined;
-      if (linkPreview !== false && (message as any)?.conversation) {
-        previewContext = await this.generateLinkPreview((message as any).conversation);
-      }
+      // Link preview: delegamos ao preview NATIVO do baileys (generateHighQualityLinkPreview: true no socket).
+      // O externalAdReply custom (generateLinkPreview) gerava mensagem malformada (mediaType VÍDEO + thumbnail
+      // por URL remota), o que quebrava a imagem no destinatário e impedia o eco da mensagem enviada para os
+      // próprios dispositivos do remetente (celular/WhatsApp Web). Ver generateLinkPreview() abaixo.
+      const previewContext: any = undefined;
+      // if (linkPreview !== false && (message as any)?.conversation) {
+      //   previewContext = await this.generateLinkPreview((message as any).conversation);
+      // }
 
       let quoted: WAMessage;
 
@@ -2523,6 +2527,10 @@ export class BaileysStartupService extends ChannelStartupService {
     if (!text || text.trim().length === 0) {
       throw new BadRequestException('Text is required');
     }
+
+    this.logger.log(
+      `[SEND-DEBUG] sendText | instance=${this.instance.name} | instanceId=${this.instanceId} | apikey=${this.token} | number=${data.number} | messageId=${data?.messageId ?? '(none)'} | linkPreview=${data?.linkPreview ?? '(default)'} | isIntegration=${isIntegration}`,
+    );
 
     return await this.sendMessageWithTyping(
       data.number,
