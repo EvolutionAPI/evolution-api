@@ -60,7 +60,9 @@ const getTypeMessage = (msg: any) => {
 };
 
 const getMessageContent = (types: any) => {
-  const typeKey = Object.keys(types).find((key) => key !== 'externalAdReplyBody' && types[key] !== undefined);
+  const typeKey = Object.keys(types).find(
+    (key) => key !== 'externalAdReplyBody' && key !== 'messageType' && types[key] !== undefined,
+  );
 
   let result = typeKey ? types[typeKey] : undefined;
 
@@ -68,7 +70,7 @@ const getMessageContent = (types: any) => {
     result = result ? `${result}\n${types.externalAdReplyBody}` : types.externalAdReplyBody;
   }
 
-  return result;
+  return result ?? types.messageType;
 };
 
 export const getConversationMessage = (msg: any) => {

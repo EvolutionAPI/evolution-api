@@ -6,7 +6,11 @@ function normalizeString(str: string): string {
 }
 
 export function advancedOperatorsSearch(data: string, query: string): boolean {
+  if (!query || !query.trim()) return false;
+
   const filters = query.split(' ').reduce((acc: Record<string, string[]>, filter) => {
+    if (!filter.trim()) return acc; // Ignore empty strings caused by extra spaces
+
     const [operator, ...values] = filter.split(':');
     const value = values.join(':');
 

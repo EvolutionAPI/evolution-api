@@ -34,7 +34,8 @@ lerna-debug.log*
 # Project related
 /instances/*
 !/instances/.gitkeep
-/test/
+# Testing
+/coverage/
 /src/env.yml
 /store
 *.env
