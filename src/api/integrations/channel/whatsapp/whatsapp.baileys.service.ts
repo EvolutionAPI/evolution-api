@@ -1114,7 +1114,7 @@ export class BaileysStartupService extends ChannelStartupService {
       signedPreKey,
       registrationId: dump.registrationId,
       advSecretKey: dump.advSecretKey,
-      me: { id: meId, lid: dump.lid, name: '~' },
+      me: { id: meId, lid: dump.lid, name: dump.pushName || '~' },
       account,
       platform: dump.platform || 'android',
       registered: true,
