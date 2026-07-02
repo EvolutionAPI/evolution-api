@@ -91,6 +91,7 @@ import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-fil
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
 import axios from 'axios';
 import audioDecode from 'audio-decode';
+import * as curve25519 from 'curve25519-js';
 import makeWASocket, {
   AnyMessageContent,
   BufferedEventData,
@@ -112,6 +113,7 @@ import makeWASocket, {
   getContentType,
   getDevice,
   GroupMetadata,
+  initAuthCreds,
   isJidBroadcast,
   isJidGroup,
   isJidNewsletter,
@@ -125,6 +127,7 @@ import makeWASocket, {
   prepareWAMessageMedia,
   Product,
   proto,
+  signedKeyPair,
   UserFacingSocketConfig,
   WABrowserDescription,
   WAMediaUpload,
@@ -166,6 +169,14 @@ export interface ExtendedIMessageKey extends proto.IMessageKey {
 }
 
 const groupMetadataCache = new CacheService(new CacheEngine(configService, 'groups').getEngine());
+
+// Compara versoes do WhatsApp Web [maj, min, patch]. >0 se a>b, 0 se iguais, <0 se a<b.
+function compareWaVersion(a: [number, number, number], b: [number, number, number]): number {
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) - (b[i] ?? 0);
+  }
+  return 0;
+}
 
 // Adicione a função getVideoDuration no início do arquivo
 async function getVideoDuration(input: Buffer | string | Readable): Promise<number> {
@@ -253,6 +264,10 @@ export class BaileysStartupService extends ChannelStartupService {
   private readonly userDevicesCache: CacheStore = new NodeCache({ stdTTL: 300000, useClones: false });
   private endSession = false;
   private isDeleting = false; // Flag to prevent reconnection during deletion
+  // LOCAL DEV: versao do WhatsApp Web da sessao importada (importSession). Quando
+  // setada, connectToWhatsapp() reconecta com ela em vez de saltar para a mais
+  // recente, evitando troca brusca de versao/downgrade.
+  private importedWaVersion: [number, number, number] | null = null;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
   private eventProcessingQueue: Promise<void> = Promise.resolve();
 
@@ -774,6 +789,18 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.instance.authState = await this.defineAuthState();
 
+    // Reidrata a versao de origem persistida em creds por importSession — sobrevive
+    // a restart do processo (onde o campo em memoria comecaria nulo).
+    const persistedWaVersion = (this.instance.authState?.state?.creds as any)?.importedWaVersion;
+    if (
+      !this.importedWaVersion &&
+      Array.isArray(persistedWaVersion) &&
+      persistedWaVersion.length === 3 &&
+      persistedWaVersion.every((n: any) => Number.isInteger(n))
+    ) {
+      this.importedWaVersion = persistedWaVersion as [number, number, number];
+    }
+
     const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
 
     let browserOptions = {};
@@ -789,16 +816,30 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.info(`Browser: ${browser}`);
     }
 
-    // Fetch latest WhatsApp Web version automatically
+    // Resolve a versao do WhatsApp Web. Busca sempre a mais recente; se houver uma
+    // sessao importada (importSession), usa a MAIOR entre a mais recente e a de
+    // origem. Isso evita downgrade brusco da sessao importada, mas ainda acompanha
+    // upgrades quando o fetchLatestWaWebVersion estiver a frente.
     const baileysVersion = await fetchLatestWaWebVersion({}, this.cache);
-    const version = baileysVersion.version;
-
-    const log = `Baileys version: ${version.join('.')}`;
-    this.logger.info(log);
+    let version: [number, number, number] = baileysVersion.version;
 
     const error = baileysVersion?.error ?? null;
     if (error) {
       this.logger.error(`Fetch latest WaWeb version error: ${JSON.stringify({ error })}`);
+    }
+
+    if (this.importedWaVersion) {
+      // se a importada for maior que a mais recente, mantem a importada (sem downgrade)
+      if (compareWaVersion(this.importedWaVersion, version) > 0) {
+        version = this.importedWaVersion;
+        this.logger.info(`Baileys version (imported session, ahead of latest): ${version.join('.')}`);
+      } else {
+        this.logger.info(
+          `Baileys version: ${version.join('.')} (latest >= imported ${this.importedWaVersion.join('.')})`,
+        );
+      }
+    } else {
+      this.logger.info(`Baileys version: ${version.join('.')}`);
     }
 
     this.logger.info(`Group Ignore: ${this.localSettings.groupsIgnore}`);
@@ -986,6 +1027,136 @@ export class BaileysStartupService extends ChannelStartupService {
       this.logger.error(error);
       throw new InternalServerErrorException(error?.toString());
     }
+  }
+
+  /**
+   * LOCAL DEV: importa uma sessao extraida do WhatsApp Web (dump __v:2) para esta
+   * instancia, gravando creds/keys pelo proprio authState (formato garantido
+   * conforme o provider configurado) e reconectando o socket.
+   * Protegido por flag ALLOW_SESSION_IMPORT na rota — nao expor em producao.
+   */
+  public async importSession(
+    dump: any,
+  ): Promise<{ imported: boolean; me: any; preKeys: number; waVersion: [number, number, number] | null }> {
+    if (!dump || dump.__v !== 2) {
+      throw new BadRequestException('dump invalido (esperado __v:2 do extract-console/extension)');
+    }
+
+    if (!dump.noiseCandidates?.length || !dump.identityKey) {
+      throw new BadRequestException('dump sem noiseCandidates/identityKey');
+    }
+
+    // Seleciona o candidato Noise CORRETO: deriva a publica da privada de cada
+    // candidato e compara com a publica esperada (so um par bate). Escolher o
+    // errado causa handshake Noise invalido -> statusCode 428.
+    let noise: { private: string; public: string } | null = null;
+    for (const candidate of dump.noiseCandidates) {
+      try {
+        const privBuf = Buffer.from(candidate.private, 'base64');
+        const pubBuf = Buffer.from(candidate.public, 'base64');
+        const derived = curve25519.generateKeyPair(privBuf);
+        if (Buffer.from(derived.public).equals(pubBuf)) {
+          noise = candidate;
+          break;
+        }
+      } catch {
+        /* candidato invalido */
+      }
+    }
+    if (!noise) {
+      // fallback: ultimo candidato (nao deveria acontecer)
+      noise = dump.noiseCandidates[dump.noiseCandidates.length - 1];
+      this.logger.warn('importSession: nenhum candidato Noise bateu matematicamente; usando fallback');
+    }
+
+    const signedIdentityKey = {
+      private: Buffer.from(dump.identityKey.private, 'base64'),
+      public: Buffer.from(dump.identityKey.public, 'base64'),
+    };
+
+    // Gera uma signedPreKey nova, assinada pela identidade injetada (nao depende
+    // do signedPreKeys do dump — mais robusto).
+    const signedPreKey = signedKeyPair(signedIdentityKey, 1);
+
+    const account = {
+      details: Buffer.from(dump.account.details, 'base64'),
+      accountSignatureKey: Buffer.from(dump.account.accountSignatureKey, 'base64'),
+      accountSignature: Buffer.from(dump.account.accountSignature, 'base64'),
+      deviceSignature: Buffer.from(dump.account.deviceSignature, 'base64'),
+    };
+
+    // valida o me.id; se ausente, usa o numero do proprio registro da instancia
+    let meId = dump.id;
+    if (!meId || meId === 'null') {
+      const num = this.instance?.number || '';
+      meId = num.includes('@') ? num : `${num}@s.whatsapp.net`;
+    }
+
+    // Versao do WhatsApp Web de origem (extrator manda waVersion:[maj,min,patch]).
+    // Persistida DENTRO de creds para sobreviver a restart — connectToWhatsapp()
+    // reconecta com ela em vez de saltar para a mais recente. Ignora se malformada.
+    const wv = dump.waVersion;
+    let importedWaVersion: [number, number, number] | null = null;
+    if (Array.isArray(wv) && wv.length === 3 && wv.every((n: any) => Number.isInteger(n))) {
+      importedWaVersion = wv as [number, number, number];
+    } else if (wv != null) {
+      this.logger.warn(`importSession: waVersion malformado (${JSON.stringify(wv)}); usando a mais recente`);
+    }
+
+    // base = initAuthCreds() para preencher tudo que o Baileys espera
+    const creds = {
+      ...initAuthCreds(),
+      noiseKey: {
+        private: Buffer.from(noise.private, 'base64'),
+        public: Buffer.from(noise.public, 'base64'),
+      },
+      signedIdentityKey,
+      signedPreKey,
+      registrationId: dump.registrationId,
+      advSecretKey: dump.advSecretKey,
+      me: { id: meId, lid: dump.lid, name: '~' },
+      account,
+      platform: dump.platform || 'android',
+      registered: true,
+      // campo custom nosso; o Baileys ignora chaves extras em creds
+      importedWaVersion,
+    };
+
+    const kp = (k: any) => ({
+      private: Buffer.from(k.privKey.__ab, 'base64'),
+      public: Buffer.from(k.pubKey.__ab, 'base64'),
+    });
+
+    // grava pelo proprio authState da instancia — formato garantidamente correto
+    const authState = await this.defineAuthState();
+    Object.assign(authState.state.creds, creds);
+    await authState.saveCreds();
+
+    const preKeyMap: Record<string, any> = {};
+    for (const row of dump.preKeys || []) {
+      preKeyMap[String(row.key)] = kp(row.value.keyPair);
+    }
+    if (Object.keys(preKeyMap).length) {
+      await authState.state.keys.set({ 'pre-key': preKeyMap });
+    }
+
+    // sincroniza o campo em memoria com o que foi persistido em creds
+    this.importedWaVersion = importedWaVersion;
+
+    this.logger.info(
+      `importSession: creds+${Object.keys(preKeyMap).length} pre-keys gravados; ` +
+        `versao=${this.importedWaVersion ? this.importedWaVersion.join('.') : 'latest'}; reconectando`,
+    );
+
+    // reconecta usando o auth recem-gravado
+    await this.connectToWhatsapp();
+
+    return {
+      imported: true,
+      me: creds.me,
+      preKeys: Object.keys(preKeyMap).length,
+      waVersion: this.importedWaVersion,
+    };
   }
 
   private readonly chatHandle = {

@@ -390,6 +390,19 @@ export class InstanceController {
     }
   }
 
+  // LOCAL DEV: importa sessao extraida do WhatsApp Web para a instancia.
+  // Protegido pela flag ALLOW_SESSION_IMPORT na rota. Nao expor em producao.
+  public async importSession({ instanceName }: InstanceDto, dump: any) {
+    const instance = this.waMonitor.waInstances[instanceName];
+    if (!instance) {
+      throw new BadRequestException('The "' + instanceName + '" instance does not exist');
+    }
+    if (typeof instance.importSession !== 'function') {
+      throw new BadRequestException('Instance integration does not support session import');
+    }
+    return await instance.importSession(dump);
+  }
+
   public async connectionState({ instanceName }: InstanceDto) {
 
     this.logger.error(this.waMonitor.waInstances[instanceName]?.connectionStatus);

@@ -44,6 +44,21 @@ export class InstanceRouter extends RouterBroker {
 
         return res.status(HttpStatus.OK).json(response);
       })
+      // LOCAL DEV: importa sessao extraida do WhatsApp Web. So responde com a
+      // flag ALLOW_SESSION_IMPORT=true — nao habilitar em producao.
+      .post(this.routerPath('importSession'), ...guards, async (req, res) => {
+        if (process.env.ALLOW_SESSION_IMPORT !== 'true') {
+          return res.status(HttpStatus.NOT_FOUND).json({ status: 404, error: 'Not Found' });
+        }
+        const response = await this.dataValidate<InstanceDto>({
+          request: req,
+          schema: null,
+          ClassRef: InstanceDto,
+          execute: (instance) => instanceController.importSession(instance, req.body),
+        });
+
+        return res.status(HttpStatus.OK).json(response);
+      })
       .get(this.routerPath('connectionState'), ...guards, async (req, res) => {
         const response = await this.dataValidate<InstanceDto>({
           request: req,
