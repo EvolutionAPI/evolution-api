@@ -126,9 +126,11 @@ export const updateParticipantsSchema: JSONSchema7 = {
         description: '"participants" must be an array of numeric strings',
       },
     },
+    inviteOnAddFailure: { type: 'boolean', enum: [true, false] },
+    inviteCaption: { type: 'string' },
   },
   required: ['groupJid', 'action', 'participants'],
-  ...isNotEmpty('groupJid', 'action'),
+  ...isNotEmpty('groupJid', 'action', 'inviteCaption'),
 };
 
 export const updateSettingsSchema: JSONSchema7 = {

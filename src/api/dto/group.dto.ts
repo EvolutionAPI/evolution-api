@@ -45,6 +45,8 @@ export class GroupSendInvite {
 export class GroupUpdateParticipantDto extends GroupJid {
   action: 'add' | 'remove' | 'promote' | 'demote';
   participants: string[];
+  inviteOnAddFailure?: boolean;
+  inviteCaption?: string;
 }
 
 export class GroupUpdateSettingDto extends GroupJid {

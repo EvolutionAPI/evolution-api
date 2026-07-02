@@ -106,6 +106,7 @@ import makeWASocket, {
   downloadMediaMessage,
   generateWAMessageFromContent,
   getAggregateVotesInPollMessage,
+  getBinaryNodeChild,
   GetCatalogOptions,
   getContentType,
   getDevice,
@@ -4568,15 +4569,85 @@ export class BaileysStartupService extends ChannelStartupService {
   public async updateGParticipant(update: GroupUpdateParticipantDto) {
     try {
       const participants = update.participants.map((p) => createJid(p));
-      const updateParticipants = await this.client.groupParticipantsUpdate(
+      const updateParticipants = (await this.client.groupParticipantsUpdate(
         update.groupJid,
         participants,
         update.action,
-      );
+      )) as any[];
+
+      if (update.action === 'add' && update.inviteOnAddFailure) {
+        const metadata = await this.client.groupMetadata(update.groupJid).catch(() => null);
+
+        for await (const participant of updateParticipants) {
+          if (participant.status !== '403') {
+            continue;
+          }
+
+          const addRequest = getBinaryNodeChild(participant.content, 'add_request');
+          const inviteCode = addRequest?.attrs?.code;
+          const inviteExpiration = addRequest?.attrs?.expiration;
+
+          if (!inviteCode || !inviteExpiration) {
+            participant.invite = {
+              sent: false,
+              reason: 'missing_add_request',
+            };
+            continue;
+          }
+
+          try {
+            await this.sendGroupInviteV4({
+              groupJid: update.groupJid,
+              recipientJid: participant.jid,
+              inviteCode,
+              inviteExpiration,
+              groupName: metadata?.subject ?? '',
+              caption: update.inviteCaption,
+            });
+
+            participant.invite = {
+              sent: true,
+              code: inviteCode,
+              expiration: inviteExpiration,
+            };
+          } catch (error) {
+            participant.invite = {
+              sent: false,
+              reason: error?.toString(),
+            };
+          }
+        }
+      }
+
       return { updateParticipants: updateParticipants };
     } catch (error) {
       throw new BadRequestException('Error updating participants', error.toString());
     }
+  }
+
+  private async sendGroupInviteV4(data: {
+    groupJid: string;
+    recipientJid: string;
+    inviteCode: string;
+    inviteExpiration: string | number;
+    groupName: string;
+    caption?: string;
+  }) {
+    const message = generateWAMessageFromContent(
+      data.recipientJid,
+      proto.Message.fromObject({
+        groupInviteMessage: {
+          groupJid: data.groupJid,
+          inviteCode: data.inviteCode,
+          inviteExpiration: Number(data.inviteExpiration),
+          groupName: data.groupName,
+          caption: data.caption ?? 'You have been invited to join this WhatsApp group.',
+        },
+      }),
+      { userJid: data.recipientJid },
+    );
+
+    await this.client.relayMessage(data.recipientJid, message.message, { messageId: message.key.id });
   }
 
   public async updateGSetting(update: GroupUpdateSettingDto) {
