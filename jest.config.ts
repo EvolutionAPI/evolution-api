@@ -48,14 +48,8 @@ const config: Config = {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
-        tsconfig: {
-          // Relax strict mode for tests
-          strict: false,
-          strictNullChecks: false,
-          esModuleInterop: true,
-          // Point rootDir to project root so test files are included
-          rootDir: './',
-        },
+        // Extend the application configuration while including test files
+        tsconfig: '<rootDir>/tsconfig.spec.json',
       },
     ],
   },
