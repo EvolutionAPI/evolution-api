@@ -4,6 +4,7 @@ import {
   BlockUserDto,
   DeleteMessage,
   getBase64FromMediaMessageDto,
+  LimitSharingDto,
   MarkChatUnreadDto,
   NumberDto,
   PrivacySettingDto,
@@ -24,6 +25,7 @@ import {
   blockUserSchema,
   contactValidateSchema,
   deleteMessageSchema,
+  limitSharingSchema,
   markChatUnreadSchema,
   messageUpSchema,
   messageValidateSchema,
@@ -86,6 +88,16 @@ export class ChatRouter extends RouterBroker {
           schema: markChatUnreadSchema,
           ClassRef: MarkChatUnreadDto,
           execute: (instance, data) => chatController.markChatUnread(instance, data),
+        });
+
+        return res.status(HttpStatus.CREATED).json(response);
+      })
+      .post(this.routerPath('updateLimitSharing'), ...guards, async (req, res) => {
+        const response = await this.dataValidate<LimitSharingDto>({
+          request: req,
+          schema: limitSharingSchema,
+          ClassRef: LimitSharingDto,
+          execute: (instance, data) => chatController.updateLimitSharing(instance, data),
         });
 
         return res.status(HttpStatus.CREATED).json(response);
