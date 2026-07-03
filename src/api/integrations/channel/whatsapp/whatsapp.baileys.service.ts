@@ -4578,7 +4578,7 @@ export class BaileysStartupService extends ChannelStartupService {
       if (update.action === 'add' && update.inviteOnAddFailure) {
         const metadata = await this.client.groupMetadata(update.groupJid).catch(() => null);
 
-        for await (const participant of updateParticipants) {
+        for (const participant of updateParticipants) {
           if (participant.status !== '403') {
             continue;
           }
@@ -4611,9 +4611,19 @@ export class BaileysStartupService extends ChannelStartupService {
               expiration: inviteExpiration,
             };
           } catch (error) {
+            this.logger.error([
+              'Failed to send WhatsApp group invite',
+              {
+                groupJid: update.groupJid,
+                participantJid: participant.jid,
+                error: error?.message ?? error?.toString(),
+                stack: error?.stack,
+              },
+            ]);
+
             participant.invite = {
               sent: false,
-              reason: error?.toString(),
+              reason: 'send_failed',
             };
           }
         }

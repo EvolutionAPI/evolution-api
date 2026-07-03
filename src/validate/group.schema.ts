@@ -129,7 +129,8 @@ export const updateParticipantsSchema: JSONSchema7 = {
     inviteOnAddFailure: {
       type: 'boolean',
       enum: [true, false],
-      description: 'When true and action is "add", send a private invite if WhatsApp blocks the add with an add_request response.',
+      description:
+        'When true and action is "add", send a private invite if WhatsApp blocks the add with an add_request response.',
     },
     inviteCaption: {
       type: 'string',
@@ -137,7 +138,7 @@ export const updateParticipantsSchema: JSONSchema7 = {
     },
   },
   required: ['groupJid', 'action', 'participants'],
-  ...isNotEmpty('groupJid', 'action', 'inviteCaption'),
+  ...isNotEmpty('groupJid', 'action'),
 };
 
 export const updateSettingsSchema: JSONSchema7 = {
