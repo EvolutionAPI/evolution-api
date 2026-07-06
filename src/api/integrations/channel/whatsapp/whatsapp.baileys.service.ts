@@ -228,6 +228,12 @@ async function getVideoDuration(input: Buffer | string | Readable): Promise<numb
   return Math.round(parseFloat(duration));
 }
 
+// Throttle global de groupMetadata: serializa e espaca as buscas pra nao
+// estourar o rate-limit (429) do WhatsApp em contas com centenas de grupos.
+let __groupMetaChain: Promise<unknown> = Promise.resolve();
+let __groupMetaLastAt = 0;
+const __GROUP_META_MIN_INTERVAL_MS = 2000;
+
 export class BaileysStartupService extends ChannelStartupService {
   private messageProcessor = new BaileysMessageProcessor();
 
@@ -4303,21 +4309,24 @@ export class BaileysStartupService extends ChannelStartupService {
 
   // Group
   private async updateGroupMetadataCache(groupJid: string) {
-    try {
-      const meta = await this.client.groupMetadata(groupJid);
-
-      const cacheConf = this.configService.get<CacheConf>('CACHE');
-
-      if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
-        this.logger.verbose(`Updating cache for group: ${groupJid}`);
-        await groupMetadataCache.set(groupJid, { timestamp: Date.now(), data: meta });
+    const task = __groupMetaChain.then(async () => {
+      const wait = __GROUP_META_MIN_INTERVAL_MS - (Date.now() - __groupMetaLastAt);
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      __groupMetaLastAt = Date.now();
+      try {
+        const meta = await this.client.groupMetadata(groupJid);
+        const cacheConf = this.configService.get<CacheConf>('CACHE');
+        if ((cacheConf?.REDIS?.ENABLED && cacheConf?.REDIS?.URI !== '') || cacheConf?.LOCAL?.ENABLED) {
+          await groupMetadataCache.set(groupJid, { timestamp: Date.now(), data: meta });
+        }
+        return meta;
+      } catch (error) {
+        this.logger.error(error);
+        return null;
       }
-
-      return meta;
-    } catch (error) {
-      this.logger.error(error);
-      return null;
-    }
+    });
+    __groupMetaChain = task.then(() => undefined, () => undefined);
+    return task;
   }
 
   private getGroupMetadataCache = async (groupJid: string) => {
