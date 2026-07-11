@@ -1175,15 +1175,17 @@ export class BusinessStartupService extends ChannelStartupService {
                 action: {
                   name: 'cta_url',
                   parameters: {
-                    display_text: ctaUrlButton.displayText,
+                    display_text: ctaUrlButton.displayText ?? ctaUrlButton.url,
                     url: ctaUrlButton.url,
                   },
                 },
               },
             };
-            quoted ? (content.context = { message_id: quoted.id }) : content;
+            if (quoted) {
+              content.context = { message_id: quoted.id };
+            }
             message = {
-              conversation: `${message['text'] || 'Select'}\n▶️ ${ctaUrlButton.displayText}: ${ctaUrlButton.url}\n`,
+              conversation: `${message['text'] || 'Select'}\n▶️ ${ctaUrlButton.displayText ?? ctaUrlButton.url}: ${ctaUrlButton.url}\n`,
             };
             return await this.post(content, 'messages');
           }
@@ -1565,7 +1567,7 @@ export class BusinessStartupService extends ChannelStartupService {
       {
         text: !embeddedMedia?.mediaKey ? data.title : undefined,
         buttons: data.buttons.map((button) => {
-          if (button.type === 'url') {
+          if (button.type === 'url' && button.url) {
             return {
               type: 'cta_url',
               displayText: button.displayText,
