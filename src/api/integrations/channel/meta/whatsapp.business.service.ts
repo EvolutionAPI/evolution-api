@@ -126,17 +126,38 @@ export class BusinessStartupService extends ChannelStartupService {
   public async connectToWhatsapp(data?: any): Promise<any> {
     if (!data) return;
 
-    const content = data.entry[0].changes[0].value;
+    const content = data?.entry?.[0]?.changes?.[0]?.value;
+
+    if (!content) {
+      this.logger.error('ChannelStartupService -> connectToWhatsapp -> webhook content not found');
+      return;
+    }
 
     try {
+      const message = Array.isArray(content.messages) ? content.messages[0] : undefined;
+
+      const status = Array.isArray(content.statuses) ? content.statuses[0] : undefined;
+
+      const messageEcho = Array.isArray(content.message_echoes) ? content.message_echoes[0] : undefined;
+
+      const phoneNumber = message?.from ?? status?.recipient_id ?? messageEcho?.to;
+
+      if (!phoneNumber) {
+        this.logger.error(
+          'ChannelStartupService -> connectToWhatsapp -> phone number not found in messages, statuses or message_echoes',
+        );
+        return;
+      }
+
+      this.phoneNumber = createJid(phoneNumber);
+
       this.loadChatwoot();
 
-      this.eventHandler(content);
-
-      this.phoneNumber = createJid(content.messages ? content.messages[0].from : content.statuses[0]?.recipient_id);
+      await this.eventHandler(content);
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(error?.toString());
+
+      throw new InternalServerErrorException(error instanceof Error ? error.message : String(error));
     }
   }
 
