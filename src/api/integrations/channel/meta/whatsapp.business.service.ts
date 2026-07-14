@@ -126,17 +126,38 @@ export class BusinessStartupService extends ChannelStartupService {
   public async connectToWhatsapp(data?: any): Promise<any> {
     if (!data) return;
 
-    const content = data.entry[0].changes[0].value;
+    const content = data?.entry?.[0]?.changes?.[0]?.value;
+
+    if (!content) {
+      this.logger.error('ChannelStartupService -> connectToWhatsapp -> webhook content not found');
+      return;
+    }
 
     try {
+      const message = Array.isArray(content.messages) ? content.messages[0] : undefined;
+
+      const status = Array.isArray(content.statuses) ? content.statuses[0] : undefined;
+
+      const messageEcho = Array.isArray(content.message_echoes) ? content.message_echoes[0] : undefined;
+
+      const phoneNumber = message?.from ?? status?.recipient_id ?? messageEcho?.to;
+
+      if (!phoneNumber) {
+        this.logger.error(
+          'ChannelStartupService -> connectToWhatsapp -> phone number not found in messages, statuses or message_echoes',
+        );
+        return;
+      }
+
+      this.phoneNumber = createJid(phoneNumber);
+
       this.loadChatwoot();
 
-      this.eventHandler(content);
-
-      this.phoneNumber = createJid(content.messages ? content.messages[0].from : content.statuses[0]?.recipient_id);
+      await this.eventHandler(content);
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(error?.toString());
+
+      throw new InternalServerErrorException(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -387,7 +408,10 @@ export class BusinessStartupService extends ChannelStartupService {
       let messageRaw: any;
       let pushName: any;
 
-      if (received.contacts) pushName = received.contacts[0].profile.name;
+      const receivedContact = received.contacts[0];
+      const remoteJid = receivedContact.profile?.phone || receivedContact.wa_id;
+
+      if (received.contacts) pushName = receivedContact.profile?.name || '';
 
       if (received.messages) {
         const message = received.messages[0]; // Añadir esta línea para definir message
@@ -702,7 +726,7 @@ export class BusinessStartupService extends ChannelStartupService {
         });
 
         const contactRaw: any = {
-          remoteJid: received.contacts[0].profile.phone,
+          remoteJid,
           pushName,
           // profilePicUrl: '',
           instanceId: this.instanceId,
@@ -714,7 +738,7 @@ export class BusinessStartupService extends ChannelStartupService {
 
         if (contact) {
           const contactRaw: any = {
-            remoteJid: received.contacts[0].profile.phone,
+            remoteJid,
             pushName,
             // profilePicUrl: '',
             instanceId: this.instanceId,
@@ -1016,7 +1040,8 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['media']) {
-          const isImage = message['mimetype']?.startsWith('image/');
+          const mimeType = this.normalizeMimeType(message['mimetype']);
+          const isImage = mimeType.startsWith('image/');
 
           content = {
             messaging_product: 'whatsapp',
@@ -1025,14 +1050,25 @@ export class BusinessStartupService extends ChannelStartupService {
             to: number.replace(/\D/g, ''),
             [message['mediaType']]: {
               [message['type']]: message['id'],
+
               ...(message['mediaType'] !== 'audio' &&
                 message['mediaType'] !== 'video' &&
                 message['fileName'] &&
-                !isImage && { filename: message['fileName'] }),
-              ...(message['mediaType'] !== 'audio' && message['caption'] && { caption: message['caption'] }),
+                !isImage && {
+                  filename: message['fileName'],
+                }),
+
+              ...(message['mediaType'] !== 'audio' &&
+                message['caption'] && {
+                  caption: message['caption'],
+                }),
             },
           };
-          quoted ? (content.context = { message_id: quoted.id }) : content;
+
+          if (quoted) {
+            content.context = { message_id: quoted.id };
+          }
+
           return await this.post(content, 'messages');
         }
         if (message['audio']) {
@@ -1172,6 +1208,35 @@ export class BusinessStartupService extends ChannelStartupService {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
+  }
+
+  private normalizeMimeType(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      const mimeType = value.find((item) => typeof item === 'string');
+      return typeof mimeType === 'string' ? mimeType : '';
+    }
+
+    if (value && typeof value === 'object') {
+      const mimeTypeObject = value as Record<string, unknown>;
+
+      const candidates = [
+        mimeTypeObject.mimetype,
+        mimeTypeObject.mimeType,
+        mimeTypeObject.contentType,
+        mimeTypeObject.content_type,
+        mimeTypeObject.type,
+      ];
+
+      const mimeType = candidates.find((item) => typeof item === 'string');
+
+      return typeof mimeType === 'string' ? mimeType : '';
+    }
+
+    return '';
   }
 
   // Send Message Controller
