@@ -1040,7 +1040,8 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['media']) {
-          const isImage = message['mimetype']?.startsWith('image/');
+          const mimeType = this.normalizeMimeType(message['mimetype']);
+          const isImage = mimeType.startsWith('image/');
 
           content = {
             messaging_product: 'whatsapp',
@@ -1049,14 +1050,25 @@ export class BusinessStartupService extends ChannelStartupService {
             to: number.replace(/\D/g, ''),
             [message['mediaType']]: {
               [message['type']]: message['id'],
+
               ...(message['mediaType'] !== 'audio' &&
                 message['mediaType'] !== 'video' &&
                 message['fileName'] &&
-                !isImage && { filename: message['fileName'] }),
-              ...(message['mediaType'] !== 'audio' && message['caption'] && { caption: message['caption'] }),
+                !isImage && {
+                  filename: message['fileName'],
+                }),
+
+              ...(message['mediaType'] !== 'audio' &&
+                message['caption'] && {
+                  caption: message['caption'],
+                }),
             },
           };
-          quoted ? (content.context = { message_id: quoted.id }) : content;
+
+          if (quoted) {
+            content.context = { message_id: quoted.id };
+          }
+
           return await this.post(content, 'messages');
         }
         if (message['audio']) {
@@ -1196,6 +1208,35 @@ export class BusinessStartupService extends ChannelStartupService {
       this.logger.error(error);
       throw new BadRequestException(error.toString());
     }
+  }
+
+  private normalizeMimeType(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      const mimeType = value.find((item) => typeof item === 'string');
+      return typeof mimeType === 'string' ? mimeType : '';
+    }
+
+    if (value && typeof value === 'object') {
+      const mimeTypeObject = value as Record<string, unknown>;
+
+      const candidates = [
+        mimeTypeObject.mimetype,
+        mimeTypeObject.mimeType,
+        mimeTypeObject.contentType,
+        mimeTypeObject.content_type,
+        mimeTypeObject.type,
+      ];
+
+      const mimeType = candidates.find((item) => typeof item === 'string');
+
+      return typeof mimeType === 'string' ? mimeType : '';
+    }
+
+    return '';
   }
 
   // Send Message Controller
