@@ -728,7 +728,7 @@ export class BaileysStartupService extends ChannelStartupService {
         try {
           const response = await axios.get(this.localProxy?.host);
           const text = response.data;
-          const proxyUrls = text.split('\r\n');
+          const proxyUrls = text.split('\r\n').filter(Boolean);
           const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
           const proxyUrl = 'http://' + proxyUrls[rand];
           this.logger.info('Proxy url: ' + proxyUrl);
