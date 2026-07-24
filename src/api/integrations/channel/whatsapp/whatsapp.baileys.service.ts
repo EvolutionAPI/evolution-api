@@ -251,6 +251,11 @@ export class BaileysStartupService extends ChannelStartupService {
   private endSession = false;
   private logBaileys = this.configService.get<Log>('LOG').BAILEYS;
   private eventProcessingQueue: Promise<void> = Promise.resolve();
+  // Prevents concurrent connectToWhatsapp/createClient calls from racing on the
+  // same session (e.g. Chatwoot-triggered manual reconnect firing while the
+  // automatic reconnect from a 'close' event is already in flight), which can
+  // itself cause Baileys to emit DisconnectReason.connectionReplaced (440).
+  private isConnecting = false;
 
   // Cache TTL constants (in seconds)
   private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
@@ -425,8 +430,29 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (connection === 'close') {
       const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-      const codesToNotReconnect = [DisconnectReason.loggedOut, DisconnectReason.forbidden, 402, 406];
+      // connectionReplaced (440) means the session was taken over elsewhere (another
+      // device/tab, or a concurrent connection attempt on our own side). Auto-reconnecting
+      // here would retry with credentials that the takeover may have already invalidated,
+      // producing a close -> reconnect -> close loop. Treat it like the other terminal
+      // codes: stop, surface a clear signal, and require an explicit new connection/QR scan.
+      const codesToNotReconnect = [
+        DisconnectReason.loggedOut,
+        DisconnectReason.forbidden,
+        DisconnectReason.connectionReplaced,
+        402,
+        406,
+      ];
       const shouldReconnect = !codesToNotReconnect.includes(statusCode);
+
+      if (statusCode === DisconnectReason.connectionReplaced) {
+        this.logger.warn(
+          `Instance ${this.instance.name}: connection replaced (DisconnectReason.connectionReplaced/440). ` +
+            'This session was opened elsewhere (another device/tab, or a concurrent connection attempt) ' +
+            'and will NOT be auto-reconnected with the current credentials. A new QR Code scan (or explicit ' +
+            'reconnect) will be required.',
+        );
+      }
+
       if (shouldReconnect) {
         await this.connectToWhatsapp(this.phoneNumber);
       } else {
@@ -574,150 +600,168 @@ export class BaileysStartupService extends ChannelStartupService {
   }
 
   private async createClient(number?: string): Promise<WASocket> {
-    this.instance.authState = await this.defineAuthState();
+    // Guard against concurrent connection attempts on the same instance (e.g. a
+    // manual reconnect from Chatwoot/the API firing while the automatic reconnect
+    // triggered by a 'close' event is still in flight). Two Baileys sockets racing
+    // on the same session is a known trigger for DisconnectReason.connectionReplaced.
+    if (this.isConnecting) {
+      this.logger.warn(
+        `Instance ${this.instance.name}: a connection attempt is already in progress; ` +
+          'skipping this concurrent createClient call to avoid racing sockets on the same session.',
+      );
+      return this.client;
+    }
 
-    const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
+    this.isConnecting = true;
+    try {
+      this.instance.authState = await this.defineAuthState();
 
-    let browserOptions = {};
+      const session = this.configService.get<ConfigSessionPhone>('CONFIG_SESSION_PHONE');
 
-    if (number || this.phoneNumber) {
+      let browserOptions = {};
+
+      if (number || this.phoneNumber) {
+        this.phoneNumber = number;
+
+        this.logger.info(`Phone number: ${number}`);
+      } else {
+        const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
+        browserOptions = { browser };
+
+        this.logger.info(`Browser: ${browser}`);
+      }
+
+      const baileysVersion = await fetchLatestWaWebVersion({});
+      const version = baileysVersion.version;
+      const log = `Baileys version: ${version.join('.')}`;
+
+      this.logger.info(log);
+
+      this.logger.info(`Group Ignore: ${this.localSettings.groupsIgnore}`);
+
+      let options;
+
+      if (this.localProxy?.enabled) {
+        this.logger.info('Proxy enabled: ' + this.localProxy?.host);
+
+        if (this.localProxy?.host?.includes('proxyscrape')) {
+          try {
+            const response = await axios.get(this.localProxy?.host);
+            const text = response.data;
+            const proxyUrls = text.split('\r\n');
+            const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
+            const proxyUrl = 'http://' + proxyUrls[rand];
+            options = { agent: makeProxyAgent(proxyUrl), fetchAgent: makeProxyAgentUndici(proxyUrl) };
+          } catch {
+            this.localProxy.enabled = false;
+          }
+        } else {
+          options = {
+            agent: makeProxyAgent({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
+            fetchAgent: makeProxyAgentUndici({
+              host: this.localProxy.host,
+              port: this.localProxy.port,
+              protocol: this.localProxy.protocol,
+              username: this.localProxy.username,
+              password: this.localProxy.password,
+            }),
+          };
+        }
+      }
+
+      const socketConfig: UserFacingSocketConfig = {
+        ...options,
+        version,
+        logger: P({ level: this.logBaileys }),
+        printQRInTerminal: false,
+        auth: {
+          creds: this.instance.authState.state.creds,
+          keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
+        },
+        msgRetryCounterCache: this.msgRetryCounterCache,
+        generateHighQualityLinkPreview: true,
+        getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+        ...browserOptions,
+        markOnlineOnConnect: this.localSettings.alwaysOnline,
+        retryRequestDelayMs: 350,
+        maxMsgRetryCount: 4,
+        fireInitQueries: true,
+        connectTimeoutMs: 30_000,
+        keepAliveIntervalMs: 30_000,
+        qrTimeout: 45_000,
+        emitOwnEvents: false,
+        shouldIgnoreJid: (jid) => {
+          if (this.localSettings.syncFullHistory && isJidGroup(jid)) {
+            return false;
+          }
+
+          const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
+          const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
+          const isNewsletter = isJidNewsletter(jid);
+
+          return isGroupJid || isBroadcast || isNewsletter;
+        },
+        syncFullHistory: this.localSettings.syncFullHistory,
+        shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
+          return this.historySyncNotification(msg);
+        },
+        cachedGroupMetadata: this.getGroupMetadataCache,
+        userDevicesCache: this.userDevicesCache,
+        transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
+        patchMessageBeforeSending(message) {
+          if (
+            message.deviceSentMessage?.message?.listMessage?.listType ===
+            proto.Message.ListMessage.ListType.PRODUCT_LIST
+          ) {
+            message = JSON.parse(JSON.stringify(message));
+
+            message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+
+          if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
+            message = JSON.parse(JSON.stringify(message));
+
+            message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
+          }
+
+          return message;
+        },
+      };
+
+      this.endSession = false;
+
+      this.client = makeWASocket(socketConfig);
+
+      if (this.localSettings.wavoipToken && this.localSettings.wavoipToken.length > 0) {
+        useVoiceCallsBaileys(this.localSettings.wavoipToken, this.client, this.connectionStatus.state as any, true);
+      }
+
+      this.eventHandler();
+
+      this.client.ws.on('CB:call', (packet) => {
+        console.log('CB:call', packet);
+        const payload = { event: 'CB:call', packet: packet };
+        this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
+      });
+
+      this.client.ws.on('CB:ack,class:call', (packet) => {
+        console.log('CB:ack,class:call', packet);
+        const payload = { event: 'CB:ack,class:call', packet: packet };
+        this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
+      });
+
       this.phoneNumber = number;
 
-      this.logger.info(`Phone number: ${number}`);
-    } else {
-      const browser: WABrowserDescription = [session.CLIENT, session.NAME, release()];
-      browserOptions = { browser };
-
-      this.logger.info(`Browser: ${browser}`);
+      return this.client;
+    } finally {
+      this.isConnecting = false;
     }
-
-    const baileysVersion = await fetchLatestWaWebVersion({});
-    const version = baileysVersion.version;
-    const log = `Baileys version: ${version.join('.')}`;
-
-    this.logger.info(log);
-
-    this.logger.info(`Group Ignore: ${this.localSettings.groupsIgnore}`);
-
-    let options;
-
-    if (this.localProxy?.enabled) {
-      this.logger.info('Proxy enabled: ' + this.localProxy?.host);
-
-      if (this.localProxy?.host?.includes('proxyscrape')) {
-        try {
-          const response = await axios.get(this.localProxy?.host);
-          const text = response.data;
-          const proxyUrls = text.split('\r\n');
-          const rand = Math.floor(Math.random() * Math.floor(proxyUrls.length));
-          const proxyUrl = 'http://' + proxyUrls[rand];
-          options = { agent: makeProxyAgent(proxyUrl), fetchAgent: makeProxyAgentUndici(proxyUrl) };
-        } catch {
-          this.localProxy.enabled = false;
-        }
-      } else {
-        options = {
-          agent: makeProxyAgent({
-            host: this.localProxy.host,
-            port: this.localProxy.port,
-            protocol: this.localProxy.protocol,
-            username: this.localProxy.username,
-            password: this.localProxy.password,
-          }),
-          fetchAgent: makeProxyAgentUndici({
-            host: this.localProxy.host,
-            port: this.localProxy.port,
-            protocol: this.localProxy.protocol,
-            username: this.localProxy.username,
-            password: this.localProxy.password,
-          }),
-        };
-      }
-    }
-
-    const socketConfig: UserFacingSocketConfig = {
-      ...options,
-      version,
-      logger: P({ level: this.logBaileys }),
-      printQRInTerminal: false,
-      auth: {
-        creds: this.instance.authState.state.creds,
-        keys: makeCacheableSignalKeyStore(this.instance.authState.state.keys, P({ level: 'error' }) as any),
-      },
-      msgRetryCounterCache: this.msgRetryCounterCache,
-      generateHighQualityLinkPreview: true,
-      getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
-      ...browserOptions,
-      markOnlineOnConnect: this.localSettings.alwaysOnline,
-      retryRequestDelayMs: 350,
-      maxMsgRetryCount: 4,
-      fireInitQueries: true,
-      connectTimeoutMs: 30_000,
-      keepAliveIntervalMs: 30_000,
-      qrTimeout: 45_000,
-      emitOwnEvents: false,
-      shouldIgnoreJid: (jid) => {
-        if (this.localSettings.syncFullHistory && isJidGroup(jid)) {
-          return false;
-        }
-
-        const isGroupJid = this.localSettings.groupsIgnore && isJidGroup(jid);
-        const isBroadcast = !this.localSettings.readStatus && isJidBroadcast(jid);
-        const isNewsletter = isJidNewsletter(jid);
-
-        return isGroupJid || isBroadcast || isNewsletter;
-      },
-      syncFullHistory: this.localSettings.syncFullHistory,
-      shouldSyncHistoryMessage: (msg: proto.Message.IHistorySyncNotification) => {
-        return this.historySyncNotification(msg);
-      },
-      cachedGroupMetadata: this.getGroupMetadataCache,
-      userDevicesCache: this.userDevicesCache,
-      transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 3000 },
-      patchMessageBeforeSending(message) {
-        if (
-          message.deviceSentMessage?.message?.listMessage?.listType === proto.Message.ListMessage.ListType.PRODUCT_LIST
-        ) {
-          message = JSON.parse(JSON.stringify(message));
-
-          message.deviceSentMessage.message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-        }
-
-        if (message.listMessage?.listType == proto.Message.ListMessage.ListType.PRODUCT_LIST) {
-          message = JSON.parse(JSON.stringify(message));
-
-          message.listMessage.listType = proto.Message.ListMessage.ListType.SINGLE_SELECT;
-        }
-
-        return message;
-      },
-    };
-
-    this.endSession = false;
-
-    this.client = makeWASocket(socketConfig);
-
-    if (this.localSettings.wavoipToken && this.localSettings.wavoipToken.length > 0) {
-      useVoiceCallsBaileys(this.localSettings.wavoipToken, this.client, this.connectionStatus.state as any, true);
-    }
-
-    this.eventHandler();
-
-    this.client.ws.on('CB:call', (packet) => {
-      console.log('CB:call', packet);
-      const payload = { event: 'CB:call', packet: packet };
-      this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
-    });
-
-    this.client.ws.on('CB:ack,class:call', (packet) => {
-      console.log('CB:ack,class:call', packet);
-      const payload = { event: 'CB:ack,class:call', packet: packet };
-      this.sendDataWebhook(Events.CALL, payload, true, ['websocket']);
-    });
-
-    this.phoneNumber = number;
-
-    return this.client;
   }
 
   public async connectToWhatsapp(number?: string): Promise<WASocket> {
