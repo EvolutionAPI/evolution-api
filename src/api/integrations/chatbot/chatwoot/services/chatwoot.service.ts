@@ -1381,7 +1381,12 @@ export class ChatwootService {
 
           if (state !== 'open') {
             const number = command.split(':')[1];
-            await waInstance.connectToWhatsapp(number);
+            try {
+              await waInstance.connectToWhatsapp(number);
+            } catch (connectError) {
+              this.logger.error(connectError);
+              await this.createBotMessage(instance, i18next.t('cw.inbox.qrError'), 'incoming');
+            }
           } else {
             await this.createBotMessage(
               instance,
@@ -1601,6 +1606,13 @@ export class ChatwootService {
       return { message: 'bot' };
     } catch (error) {
       this.logger.error(error);
+      this.logger.error(error?.stack ?? error);
+
+      try {
+        await this.createBotMessage(instance, i18next.t('cw.inbox.requestError'), 'incoming');
+      } catch (notifyError) {
+        this.logger.error(notifyError);
+      }
 
       return { message: 'bot' };
     }
@@ -1948,6 +1960,10 @@ export class ChatwootService {
   }
 
   public async eventWhatsapp(event: string, instance: InstanceDto, body: any) {
+    // Tracks whether createBotQr already succeeded, so a later failure in this same
+    // handler (e.g. posting the accompanying text message) doesn't also send a
+    // confusing "QR failed" notification into a conversation that just received the QR.
+    let qrPosted = false;
     try {
       const waInstance = this.waMonitor.waInstances[instance.instanceName];
 
@@ -2493,7 +2509,17 @@ export class ChatwootService {
           const erroQRcode = `🚨 ${i18next.t('qrlimitreached')}`;
           return await this.createBotMessage(instance, erroQRcode, 'incoming');
         } else {
-          const fileData = Buffer.from(body?.qrcode.base64.replace('data:image/png;base64,', ''), 'base64');
+          const qrBase64 = body?.qrcode?.base64;
+
+          if (!qrBase64) {
+            this.logger.error(
+              `qrcode.updated event received without a valid qrcode.base64 payload for instance ${instance?.instanceName}`,
+            );
+            await this.createBotMessage(instance, i18next.t('cw.inbox.qrError'), 'incoming');
+            return;
+          }
+
+          const fileData = Buffer.from(qrBase64.replace('data:image/png;base64,', ''), 'base64');
 
           const fileStream = new Readable();
           fileStream._read = () => {};
@@ -2507,6 +2533,7 @@ export class ChatwootService {
             fileStream,
             `${instance.instanceName}.png`,
           );
+          qrPosted = true;
 
           let msgQrCode = `⚡️${i18next.t('qrgeneratedsuccesfully')}\n\n${i18next.t('scanqr')}`;
 
@@ -2524,6 +2551,15 @@ export class ChatwootService {
       }
     } catch (error) {
       this.logger.error(error);
+      this.logger.error(error?.stack ?? error);
+
+      if (event === 'qrcode.updated' && !qrPosted) {
+        try {
+          await this.createBotMessage(instance, i18next.t('cw.inbox.qrError'), 'incoming');
+        } catch (notifyError) {
+          this.logger.error(notifyError);
+        }
+      }
     }
   }
 

@@ -2,7 +2,7 @@ import { InstanceDto } from '@api/dto/instance.dto';
 import { ProviderFiles } from '@api/provider/sessions';
 import { PrismaRepository } from '@api/repository/repository.service';
 import { channelController } from '@api/server.module';
-import { Events, Integration } from '@api/types/wa.types';
+import { Events, Integration, wa } from '@api/types/wa.types';
 import { CacheConf, Chatwoot, ConfigService, Database, DelInstance, ProviderSession } from '@config/env.config';
 import { Logger } from '@config/logger.config';
 import { INSTANCE_DIR, STORE_DIR } from '@config/path.config';
@@ -26,6 +26,7 @@ export class WAMonitoringService {
   ) {
     this.removeInstance();
     this.noConnection();
+    this.startConnectionHealthCheck();
 
     Object.assign(this.db, configService.get<Database>('DATABASE'));
     Object.assign(this.redis, configService.get<CacheConf>('CACHE'));
@@ -41,6 +42,12 @@ export class WAMonitoringService {
   private readonly delInstanceTimeouts: Record<string, NodeJS.Timeout> = {};
 
   private readonly providerSession: ProviderSession;
+
+  // Health check: how often (ms) we probe instances cached as 'open' to confirm the
+  // underlying WebSocket is really still connected (mitigates the "zombie open" state,
+  // since connectionStatus is otherwise 100% event-driven from connection.update).
+  private readonly HEALTH_CHECK_INTERVAL_MS = 30_000;
+  private healthCheckInterval: NodeJS.Timeout;
 
   public delInstanceTime(instance: string) {
     const time = this.configService.get<DelInstance>('DEL_INSTANCE');
@@ -81,6 +88,87 @@ export class WAMonitoringService {
       clearTimeout(this.delInstanceTimeouts[instance]);
       delete this.delInstanceTimeouts[instance];
     }
+  }
+
+  /**
+   * Starts the periodic reconciliation of cached connection state ("zombie open" mitigation).
+   * connectionStatus.state is otherwise only ever written from inside the Baileys
+   * 'connection.update' handler, so if that event is ever missed (process hiccup, socket
+   * torn down outside Baileys' own reconnection flow, etc.) an instance can stay marked
+   * 'open' in memory/DB forever even though the WebSocket is gone.
+   */
+  private startConnectionHealthCheck() {
+    this.healthCheckInterval = setInterval(() => {
+      this.checkInstancesConnection();
+    }, this.HEALTH_CHECK_INTERVAL_MS);
+  }
+
+  private async checkInstancesConnection() {
+    for (const instanceName of Object.keys(this.waInstances)) {
+      try {
+        await this.reconcileInstanceConnection(instanceName);
+      } catch (error) {
+        // A failure checking one instance must never abort the loop or affect the others.
+        this.logger.error(`Health check failed for instance "${instanceName}": ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Confirms that an instance cached as 'open' still has a real, open WebSocket
+   * (client.ws.isOpen, per Baileys' AbstractSocketClient). If it does not, forces
+   * stateConnection to 'close', persists it via the same Prisma fields used by
+   * BaileysStartupService.connectionUpdate() on a genuine close, and re-emits
+   * CONNECTION_UPDATE through the instance's own sendDataWebhook (no duplicated logic).
+   *
+   * Used both by the periodic health check above and on-demand by
+   * InstanceController.connectionState() before answering a status request.
+   */
+  public async reconcileInstanceConnection(instanceName: string): Promise<wa.StateConnection | undefined> {
+    const waInstance = this.waInstances[instanceName];
+
+    if (!waInstance || waInstance.connectionStatus?.state !== 'open') {
+      return waInstance?.connectionStatus;
+    }
+
+    const client = waInstance.client;
+
+    // Only instances with an initialized Baileys client expose ws.isOpen; instances
+    // without one (still connecting, non-Baileys channel, etc.) are left untouched.
+    if (!client?.ws || client.ws.isOpen) {
+      return waInstance.connectionStatus;
+    }
+
+    this.logger.warn(
+      `Instance "${instanceName}" is cached as 'open' but its WebSocket is not open (isOpen=false). Reconciling status to 'close'.`,
+    );
+
+    waInstance.stateConnection = { state: 'close', statusReason: 428 };
+
+    try {
+      await this.prismaRepository.instance.update({
+        where: { id: waInstance.instanceId },
+        data: {
+          connectionStatus: 'close',
+          disconnectionAt: new Date(),
+          disconnectionReasonCode: 428,
+          disconnectionObject: JSON.stringify({ reason: 'health-check: websocket not open' }),
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to persist reconciled connection state for "${instanceName}": ${error}`);
+    }
+
+    try {
+      await waInstance.sendDataWebhook?.(Events.CONNECTION_UPDATE, {
+        instance: instanceName,
+        ...waInstance.stateConnection,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to emit CONNECTION_UPDATE for "${instanceName}": ${error}`);
+    }
+
+    return waInstance.connectionStatus;
   }
 
   public async instanceInfo(instanceNames?: string[]): Promise<any> {

@@ -391,6 +391,15 @@ export class InstanceController {
   }
 
   public async connectionState({ instanceName }: InstanceDto) {
+    // Cross-check the cached state against the real WebSocket before answering, so a
+    // "zombie open" instance (state cached as 'open' after the socket already dropped)
+    // is reconciled here too, not only on the next periodic health check.
+    try {
+      await this.waMonitor.reconcileInstanceConnection(instanceName);
+    } catch (error) {
+      this.logger.error(error);
+    }
+
     return {
       instance: {
         instanceName: instanceName,
