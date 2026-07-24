@@ -695,6 +695,15 @@ export class BaileysStartupService extends ChannelStartupService {
 
     this.endSession = false;
 
+    if (this.client) {
+      try {
+        this.client.ws?.close();
+        this.client.end(new Error('Recreating socket connection'));
+      } catch (error) {
+        this.logger.warn(`Error closing previous socket before recreating client: ${error}`);
+      }
+    }
+
     this.client = makeWASocket(socketConfig);
 
     if (this.localSettings.wavoipToken && this.localSettings.wavoipToken.length > 0) {
