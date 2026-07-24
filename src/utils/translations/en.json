@@ -2,6 +2,8 @@
   "qrgeneratedsuccesfully": "QRCode successfully generated!",
   "scanqr": "Scan this QR code within the next 40 seconds.",
   "qrlimitreached": "QRCode generation limit reached, to generate a new QRCode, send the 'init' message again.",
+  "cw.inbox.qrError": "🚨 Failed to generate the QR Code. Please try again by sending 'init' in this conversation.",
+  "cw.inbox.requestError": "⚠️ An error occurred while processing your request. If you were trying to connect via QR Code, please try again by sending 'init'.",
   "cw.inbox.connected": "🚀 Connection successfully established!",
   "cw.inbox.disconnect": "🚨 Disconnecting WhatsApp from inbox *{{inboxName}}*.",
   "cw.inbox.alreadyConnected": "🚨 {{inboxName}} instance is connected.",
