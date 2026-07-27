@@ -270,6 +270,7 @@ export class BaileysStartupService extends ChannelStartupService {
   private historySyncChatCount = 0;
   private historySyncContactCount = 0;
   private historySyncLastProgress = -1;
+  private readonly historySyncLidToJidMap = new Map<string, string>();
 
   // Cache TTL constants (in seconds)
   private readonly MESSAGE_CACHE_TTL_SECONDS = 5 * 60; // 5 minutes - avoid duplicate message processing
@@ -1039,6 +1040,36 @@ export class BaileysStartupService extends ChannelStartupService {
     },
   };
 
+  private async resolveLidsIntoHistoryMap(jids: (string | null | undefined)[]) {
+    const lidStore = (this.client as any)?.signalRepository?.lidMapping;
+    if (!lidStore?.getPNsForLIDs) return;
+
+    const unresolved = new Set<string>();
+    for (const jid of jids) {
+      if (jid?.endsWith('@lid') && !this.historySyncLidToJidMap.has(jid)) {
+        unresolved.add(jid);
+      }
+    }
+
+    if (!unresolved.size) return;
+
+    try {
+      const mappings = await lidStore.getPNsForLIDs([...unresolved]);
+      let resolved = 0;
+      for (const mapping of mappings ?? []) {
+        const { lid, pn } = mapping ?? {};
+        const normalizedPn = pn ? jidNormalizedUser(pn) : null;
+        if (lid?.endsWith('@lid') && normalizedPn && !normalizedPn.endsWith('@lid')) {
+          this.historySyncLidToJidMap.set(lid, normalizedPn);
+          resolved += 1;
+        }
+      }
+      this.logger.verbose(`[historySync] LID store resolved ${resolved}/${unresolved.size} @lid jids`);
+    } catch (error) {
+      this.logger.warn(`[historySync] LID store lookup failed: ${error?.message}`);
+    }
+  }
+
   private readonly messageHandle = {
     'messaging-history.set': async ({
       messages,
@@ -1062,6 +1093,7 @@ export class BaileysStartupService extends ChannelStartupService {
           this.historySyncMessageCount = 0;
           this.historySyncChatCount = 0;
           this.historySyncContactCount = 0;
+          this.historySyncLidToJidMap.clear();
         }
 
         this.historySyncLastProgress = normalizedProgress;
@@ -1092,6 +1124,12 @@ export class BaileysStartupService extends ChannelStartupService {
           }
         }
 
+        await this.resolveLidsIntoHistoryMap([
+          ...chats.map((c) => c?.id),
+          ...contacts.map((c) => c?.id),
+          ...messages.flatMap((m) => [m?.key?.remoteJid, m?.key?.participant]),
+        ]);
+
         const contactsMap = new Map();
         const contactsMapLidJid = new Map();
 
@@ -1101,6 +1139,8 @@ export class BaileysStartupService extends ChannelStartupService {
           if (contact?.id?.search('@lid') !== -1) {
             if (contact.phoneNumber) {
               jid = contact.phoneNumber;
+            } else {
+              jid = this.historySyncLidToJidMap.get(contact.id) ?? null;
             }
           }
 
@@ -1113,6 +1153,10 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           contactsMapLidJid.set(contact.id, { jid });
+
+          if (jid && jid !== contact.id && !jid.includes('@lid')) {
+            this.historySyncLidToJidMap.set(contact.id, jid);
+          }
         }
 
         const chatsRaw: { remoteJid: string; remoteLid: string; instanceId: string; name?: string }[] = [];
@@ -1135,8 +1179,10 @@ export class BaileysStartupService extends ChannelStartupService {
 
             remoteLid = chat.id;
 
-            if (contact && contact.jid) {
+            if (contact?.jid && !contact.jid.includes('@lid')) {
               remoteJid = contact.jid;
+            } else {
+              remoteJid = this.historySyncLidToJidMap.get(chat.id) ?? null;
             }
           }
 
@@ -1149,6 +1195,12 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           chatsRaw.push({ remoteJid, remoteLid, instanceId: this.instanceId, name: chat.name });
+        }
+
+        for (const chat of chatsRaw) {
+          if (chat.remoteLid && chat.remoteJid && chat.remoteLid !== chat.remoteJid) {
+            this.historySyncLidToJidMap.set(chat.remoteLid, chat.remoteJid);
+          }
         }
 
         if (this.configService.get<Database>('DATABASE').SAVE_DATA.HISTORIC) {
@@ -1193,6 +1245,28 @@ export class BaileysStartupService extends ChannelStartupService {
             m.messageTimestamp = m.messageTimestamp?.toNumber();
           }
 
+          const mKey = m.key as ExtendedIMessageKey;
+          if (mKey.remoteJid?.includes('@lid')) {
+            const resolvedJid = mKey.remoteJidAlt || this.historySyncLidToJidMap.get(mKey.remoteJid);
+            if (resolvedJid && !resolvedJid.includes('@lid')) {
+              const lid = mKey.remoteJid;
+              mKey.remoteJid = resolvedJid;
+              mKey.remoteJidAlt = lid;
+              this.historySyncLidToJidMap.set(lid, resolvedJid);
+            }
+          }
+          if (mKey.participant?.includes('@lid')) {
+            const resolvedParticipant =
+              mKey.participantAlt ||
+              contactsMapLidJid.get(mKey.participant)?.jid ||
+              this.historySyncLidToJidMap.get(mKey.participant);
+            if (resolvedParticipant && !resolvedParticipant.includes('@lid')) {
+              const lidParticipant = mKey.participant;
+              mKey.participant = resolvedParticipant;
+              mKey.participantAlt = lidParticipant;
+            }
+          }
+
           if (this.configService.get<Chatwoot>('CHATWOOT').ENABLED) {
             if (m.messageTimestamp <= timestampLimitToImport) {
               continue;
@@ -1205,8 +1279,13 @@ export class BaileysStartupService extends ChannelStartupService {
 
           if (!m.pushName && !m.key.fromMe) {
             const participantJid = m.participant || m.key.participant || m.key.remoteJid;
-            if (participantJid && contactsMap.has(participantJid)) {
-              m.pushName = contactsMap.get(participantJid).name;
+            const participantLid = mKey.participantAlt || mKey.remoteJidAlt;
+            const contactMatch =
+              (participantJid && contactsMap.get(participantJid)) ||
+              (participantLid && contactsMap.get(participantLid));
+
+            if (contactMatch) {
+              m.pushName = contactMatch.name;
             } else if (participantJid) {
               m.pushName = participantJid.split('@')[0];
             }
@@ -1363,8 +1442,25 @@ export class BaileysStartupService extends ChannelStartupService {
             continue;
           }
 
+          const rawKey = received.key as ExtendedIMessageKey;
+          let resolvedRemoteJid = rawKey.remoteJid;
+          let resolvedRemoteJidAlt = rawKey.remoteJidAlt;
+          let resolvedParticipant = rawKey.participant;
+          let resolvedParticipantAlt = rawKey.participantAlt;
+          let resolvedAddressingMode = (rawKey as any).addressingMode;
+
+          if (resolvedRemoteJid?.includes('@lid') && resolvedRemoteJidAlt) {
+            resolvedRemoteJid = rawKey.remoteJidAlt;
+            resolvedRemoteJidAlt = rawKey.remoteJid;
+            resolvedAddressingMode = 'pn';
+          }
+          if (resolvedParticipant?.includes('@lid') && resolvedParticipantAlt) {
+            resolvedParticipant = rawKey.participantAlt;
+            resolvedParticipantAlt = rawKey.participant;
+          }
+
           const existingChat = await this.prismaRepository.chat.findFirst({
-            where: { instanceId: this.instanceId, remoteJid: received.key.remoteJid },
+            where: { instanceId: this.instanceId, remoteJid: resolvedRemoteJid },
             select: { id: true, name: true },
           });
 
@@ -1374,7 +1470,7 @@ export class BaileysStartupService extends ChannelStartupService {
             existingChat.name !== received.pushName &&
             received.pushName.trim().length > 0 &&
             !received.key.fromMe &&
-            !received.key.remoteJid.includes('@g.us')
+            !resolvedRemoteJid.includes('@g.us')
           ) {
             this.sendDataWebhook(Events.CHATS_UPSERT, [{ ...existingChat, name: received.pushName }]);
             if (this.configService.get<Database>('DATABASE').SAVE_DATA.CHATS) {
@@ -1384,12 +1480,27 @@ export class BaileysStartupService extends ChannelStartupService {
                   data: { name: received.pushName },
                 });
               } catch {
-                console.log(`Chat insert record ignored: ${received.key.remoteJid} - ${this.instanceId}`);
+                console.log(`Chat insert record ignored: ${resolvedRemoteJid} - ${this.instanceId}`);
               }
             }
           }
 
-          const messageRaw = this.prepareMessage(received) as any;
+          const messageForPersist =
+            resolvedRemoteJid !== rawKey.remoteJid || resolvedParticipant !== rawKey.participant
+              ? {
+                  ...received,
+                  key: {
+                    ...received.key,
+                    remoteJid: resolvedRemoteJid,
+                    remoteJidAlt: resolvedRemoteJidAlt,
+                    participant: resolvedParticipant,
+                    participantAlt: resolvedParticipantAlt,
+                    addressingMode: resolvedAddressingMode,
+                  },
+                }
+              : received;
+
+          const messageRaw = this.prepareMessage(messageForPersist) as any;
 
           if (messageRaw.messageType === 'pollUpdateMessage') {
             const pollCreationKey = (messageRaw.message as any).pollUpdateMessage.pollCreationMessageKey;
@@ -1546,7 +1657,7 @@ export class BaileysStartupService extends ChannelStartupService {
             const { pollUpdates, ...messageData } = messageRaw as any;
             const msg = await this.prismaRepository.message.create({ data: messageData });
 
-            const { remoteJid } = received.key;
+            const remoteJid = resolvedRemoteJid;
             const timestamp = msg.messageTimestamp;
             const fromMe = received.key.fromMe.toString();
             const messageKey = `${remoteJid}_${timestamp}_${fromMe}`;
@@ -1601,7 +1712,7 @@ export class BaileysStartupService extends ChannelStartupService {
                     const mimetype = mimeTypes.lookup(fileName).toString();
                     const fullName = join(
                       `${this.instance.id}`,
-                      received.key.remoteJid,
+                      resolvedRemoteJid,
                       mediaType,
                       `${Date.now()}_${fileName}`,
                     );
@@ -1665,14 +1776,6 @@ export class BaileysStartupService extends ChannelStartupService {
 
           sendTelemetry(`received.message.${messageRaw.messageType ?? 'unknown'}`);
 
-          if (messageRaw.key.remoteJid?.includes('@lid') && messageRaw.key.remoteJidAlt) {
-            const lid = messageRaw.key.remoteJid;
-
-            messageRaw.key.remoteJid = messageRaw.key.remoteJidAlt;
-            messageRaw.key.remoteJidAlt = lid;
-
-            messageRaw.key.addressingMode = 'pn';
-          }
           console.log(messageRaw);
 
           this.sendDataWebhook(Events.MESSAGES_UPSERT, messageRaw);
@@ -1685,7 +1788,7 @@ export class BaileysStartupService extends ChannelStartupService {
           });
 
           const contact = await this.prismaRepository.contact.findFirst({
-            where: { remoteJid: received.key.remoteJid, instanceId: this.instanceId },
+            where: { remoteJid: resolvedRemoteJid, instanceId: this.instanceId },
           });
 
           const contactRaw: {
@@ -1694,9 +1797,9 @@ export class BaileysStartupService extends ChannelStartupService {
             profilePicUrl?: string;
             instanceId: string;
           } = {
-            remoteJid: received.key.remoteJid,
+            remoteJid: resolvedRemoteJid,
             pushName: received.key.fromMe ? '' : received.key.fromMe == null ? '' : received.pushName,
-            profilePicUrl: (await this.profilePicture(received.key.remoteJid)).profilePictureUrl,
+            profilePicUrl: (await this.profilePicture(resolvedRemoteJid)).profilePictureUrl,
             instanceId: this.instanceId,
           };
 
