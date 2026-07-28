@@ -1154,7 +1154,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
           contactsMapLidJid.set(contact.id, { jid });
 
-          if (jid && jid !== contact.id && !jid.includes('@lid')) {
+          if (jid && jid !== contact.id && !jid.endsWith('@lid')) {
             this.historySyncLidToJidMap.set(contact.id, jid);
           }
         }
@@ -1179,7 +1179,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
             remoteLid = chat.id;
 
-            if (contact?.jid && !contact.jid.includes('@lid')) {
+            if (contact?.jid && !contact.jid.endsWith('@lid')) {
               remoteJid = contact.jid;
             } else {
               remoteJid = this.historySyncLidToJidMap.get(chat.id) ?? null;
@@ -1246,21 +1246,21 @@ export class BaileysStartupService extends ChannelStartupService {
           }
 
           const mKey = m.key as ExtendedIMessageKey;
-          if (mKey.remoteJid?.includes('@lid')) {
+          if (mKey.remoteJid?.endsWith('@lid')) {
             const resolvedJid = mKey.remoteJidAlt || this.historySyncLidToJidMap.get(mKey.remoteJid);
-            if (resolvedJid && !resolvedJid.includes('@lid')) {
+            if (resolvedJid && !resolvedJid.endsWith('@lid')) {
               const lid = mKey.remoteJid;
               mKey.remoteJid = resolvedJid;
               mKey.remoteJidAlt = lid;
               this.historySyncLidToJidMap.set(lid, resolvedJid);
             }
           }
-          if (mKey.participant?.includes('@lid')) {
+          if (mKey.participant?.endsWith('@lid')) {
             const resolvedParticipant =
               mKey.participantAlt ||
               contactsMapLidJid.get(mKey.participant)?.jid ||
               this.historySyncLidToJidMap.get(mKey.participant);
-            if (resolvedParticipant && !resolvedParticipant.includes('@lid')) {
+            if (resolvedParticipant && !resolvedParticipant.endsWith('@lid')) {
               const lidParticipant = mKey.participant;
               mKey.participant = resolvedParticipant;
               mKey.participantAlt = lidParticipant;
@@ -1449,12 +1449,12 @@ export class BaileysStartupService extends ChannelStartupService {
           let resolvedParticipantAlt = rawKey.participantAlt;
           let resolvedAddressingMode = (rawKey as any).addressingMode;
 
-          if (resolvedRemoteJid?.includes('@lid') && resolvedRemoteJidAlt) {
+          if (resolvedRemoteJid?.endsWith('@lid') && resolvedRemoteJidAlt) {
             resolvedRemoteJid = rawKey.remoteJidAlt;
             resolvedRemoteJidAlt = rawKey.remoteJid;
             resolvedAddressingMode = 'pn';
           }
-          if (resolvedParticipant?.includes('@lid') && resolvedParticipantAlt) {
+          if (resolvedParticipant?.endsWith('@lid') && resolvedParticipantAlt) {
             resolvedParticipant = rawKey.participantAlt;
             resolvedParticipantAlt = rawKey.participant;
           }
