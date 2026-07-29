@@ -1858,6 +1858,7 @@ export class ChatwootService {
         msg?.message?.viewOnceMessageV2?.message?.imageMessage?.url ||
         msg?.message?.viewOnceMessageV2?.message?.videoMessage?.url ||
         msg?.message?.viewOnceMessageV2?.message?.audioMessage?.url,
+      templateMessage: msg.templateMessage?.hydratedTemplate?.hydratedContentText,
     };
 
     return types;
