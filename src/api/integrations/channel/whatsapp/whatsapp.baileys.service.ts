@@ -91,6 +91,7 @@ import { AuthStateProvider } from '@utils/use-multi-file-auth-state-provider-fil
 import { useMultiFileAuthStateRedisDb } from '@utils/use-multi-file-auth-state-redis-db';
 import axios from 'axios';
 import makeWASocket, {
+  ALL_WA_PATCH_NAMES,
   AnyMessageContent,
   BufferedEventData,
   BufferJSON,
@@ -466,6 +467,7 @@ export class BaileysStartupService extends ChannelStartupService {
 
     if (connection === 'open') {
       this.instance.wuid = this.client.user.id.replace(/:\d+/, '');
+      void this.resyncAppStateAfterConnection();
       try {
         const profilePic = await this.profilePicture(this.instance.wuid);
         this.instance.profilePictureUrl = profilePic.profilePictureUrl;
@@ -1194,6 +1196,7 @@ export class BaileysStartupService extends ChannelStartupService {
             const campaign = this.getCampaignMetadata(messageRaw.contextInfo);
             const isMetaAdsMessage = campaign?.isMetaAds === true;
             const phoneNumber = await this.resolvePhoneNumber(received.key as ExtendedIMessageKey);
+            const chatLabels = await this.getChatLabels(received.key as ExtendedIMessageKey);
 
             const createWebhookMessage = () => {
               const webhookKey = { ...messageRaw.key } as ExtendedIMessageKey & { remoteJidLid?: string };
@@ -1206,6 +1209,8 @@ export class BaileysStartupService extends ChannelStartupService {
                 key: webhookKey,
                 phoneNumber: phoneNumber ?? undefined,
                 phoneJid: phoneNumber ? `${phoneNumber}@s.whatsapp.net` : undefined,
+                labelIds: chatLabels.labelIds,
+                labels: chatLabels.labels,
                 campaign,
                 message: this.deserializeMessageBuffers(messageRaw.message),
                 contextInfo: this.deserializeMessageBuffers(messageRaw.contextInfo),
@@ -4808,6 +4813,74 @@ export class BaileysStartupService extends ChannelStartupService {
       ctwaPayload: contextInfo.ctwaPayload,
       externalAdReply,
     };
+  }
+
+  private async getChatLabels(key: ExtendedIMessageKey): Promise<{ labelIds: string[]; labels: LabelDto[] }> {
+    const chatJids = [key.remoteJid, key.remoteJidAlt].filter(
+      (jid, index, candidates): jid is string => Boolean(jid) && candidates.indexOf(jid) === index,
+    );
+
+    if (chatJids.length === 0) {
+      return { labelIds: [], labels: [] };
+    }
+
+    try {
+      const chats = await this.prismaRepository.chat.findMany({
+        where: { instanceId: this.instanceId, remoteJid: { in: chatJids } },
+        select: { labels: true },
+      });
+
+      const labelIds = [
+        ...new Set(
+          chats.flatMap((chat) =>
+            Array.isArray(chat.labels)
+              ? chat.labels.filter((labelId): labelId is string => typeof labelId === 'string')
+              : [],
+          ),
+        ),
+      ];
+
+      if (labelIds.length === 0) {
+        return { labelIds: [], labels: [] };
+      }
+
+      const labels = await this.prismaRepository.label.findMany({
+        where: { instanceId: this.instanceId, labelId: { in: labelIds } },
+        select: { labelId: true, name: true, color: true, predefinedId: true },
+      });
+
+      return {
+        labelIds,
+        labels: labels.map((label) => ({
+          id: label.labelId,
+          name: label.name,
+          color: label.color,
+          predefinedId: label.predefinedId,
+        })),
+      };
+    } catch (error) {
+      this.logger.warn({
+        local: 'messages.upsert.getChatLabels',
+        message: error?.message,
+        stack: error?.stack,
+        remoteJid: key.remoteJid,
+      });
+
+      return { labelIds: [], labels: [] };
+    }
+  }
+
+  private async resyncAppStateAfterConnection(): Promise<void> {
+    try {
+      await this.client.resyncAppState(ALL_WA_PATCH_NAMES, false);
+      this.logger.info('WhatsApp app state resynchronized after connection');
+    } catch (error) {
+      this.logger.warn({
+        local: 'connection.update.resyncAppState',
+        message: error?.message,
+        stack: error?.stack,
+      });
+    }
   }
 
   private async resolvePhoneNumber(key: ExtendedIMessageKey): Promise<string | null> {
