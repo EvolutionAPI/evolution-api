@@ -1201,10 +1201,6 @@ export class BaileysStartupService extends ChannelStartupService {
                 webhookKey.remoteJidLid = originalRemoteJid;
               }
 
-              if (phoneNumber && originalRemoteJid?.includes('@lid')) {
-                webhookKey.remoteJid = `${phoneNumber}@s.whatsapp.net`;
-              }
-
               return {
                 ...messageRaw,
                 key: webhookKey,
