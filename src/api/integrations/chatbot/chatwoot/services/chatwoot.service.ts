@@ -931,6 +931,7 @@ export class ChatwootService {
     messageBody?: any,
     sourceId?: string,
     quotedMsg?: MessageModel,
+    referral?: Record<string, string>,
   ) {
     const client = await this.clientCw(instance);
 
@@ -943,6 +944,12 @@ export class ChatwootService {
 
     const sourceReplyId = quotedMsg?.chatwootMessageId || null;
 
+    let contentAttributes: Record<string, unknown> = { ...replyToIds };
+
+    if (referral) {
+      contentAttributes = { ...contentAttributes, referral };
+    }
+
     const message = await client.messages.create({
       accountId: this.provider.accountId,
       conversationId: conversationId,
@@ -952,9 +959,7 @@ export class ChatwootService {
         attachments: attachments,
         private: privateMessage || false,
         source_id: sourceId,
-        content_attributes: {
-          ...replyToIds,
-        },
+        content_attributes: contentAttributes,
         source_reply_id: sourceReplyId ? sourceReplyId.toString() : null,
       },
     });
@@ -2254,12 +2259,45 @@ export class ChatwootService {
 
         const isAdsMessage = (adsMessage && adsMessage.title) || adsMessage.body || adsMessage.thumbnailUrl;
         if (isAdsMessage) {
+          const truncStr = (str: string, len: number) => {
+            if (!str) return '';
+
+            return str.length > len ? str.substring(0, len) + '...' : str;
+          };
+
+          const title = truncStr(adsMessage.title, 40);
+          const description = truncStr(adsMessage?.body, 75);
+          const referralAttributes = this.buildReferralAttributes(adsMessage);
+          const adCaption = `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`;
+
+          const sendWithoutThumbnail = async () => {
+            const send = await this.createMessage(
+              instance,
+              getConversation,
+              adCaption,
+              messageType,
+              false,
+              [],
+              body,
+              'WAID:' + body.key.id,
+              quotedMsg,
+              referralAttributes,
+            );
+
+            if (!send) {
+              this.logger.warn('message not sent');
+              return;
+            }
+
+            return send;
+          };
+
           let imgBuffer;
           try {
             imgBuffer = await axios.get(adsMessage.thumbnailUrl, { responseType: 'arraybuffer' });
           } catch (error) {
             this.logger.warn(`Failed to download ads thumbnail: ${error?.message || error}`);
-            return;
+            return sendWithoutThumbnail();
           }
 
           const extension = mimeTypes.extension(imgBuffer.headers['content-type']);
@@ -2267,7 +2305,7 @@ export class ChatwootService {
 
           if (!mimeType) {
             this.logger.warn('mimetype of Ads message not found');
-            return;
+            return sendWithoutThumbnail();
           }
 
           const random = Math.random().toString(36).substring(7);
@@ -2293,26 +2331,17 @@ export class ChatwootService {
           fileStream.push(processedBuffer);
           fileStream.push(null);
 
-          const truncStr = (str: string, len: number) => {
-            if (!str) return '';
-
-            return str.length > len ? str.substring(0, len) + '...' : str;
-          };
-
-          const title = truncStr(adsMessage.title, 40);
-          const description = truncStr(adsMessage?.body, 75);
-
           const send = await this.sendData(
             getConversation,
             fileStream,
             nameFile,
             messageType,
-            `${bodyMessage}\n\n\n**${title}**\n${description}\n${adsMessage.sourceUrl}`,
+            adCaption,
             instance,
             body,
             'WAID:' + body.key.id,
             quotedMsg,
-            this.buildReferralAttributes(adsMessage),
+            referralAttributes,
           );
 
           if (!send) {
