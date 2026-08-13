@@ -479,22 +479,26 @@ export class ChannelStartupService {
   }
 
   // Check if the number is br
-  public formatBRNumber(jid: string) {
-    const regexp = new RegExp(/^(\d{2})(\d{2})\d{1}(\d{8})$/);
-    if (regexp.test(jid)) {
-      const match = regexp.exec(jid);
-      if (match && match[1] === '55') {
-        const joker = Number.parseInt(match[3][0]);
-        const ddd = Number.parseInt(match[2]);
-        if (joker < 7 || ddd < 31) {
-          return match[0];
-        }
-        return match[1] + match[2] + match[3];
-      }
-      return jid;
-    } else {
+  public formatBRNumber(jid: string): string {
+    if (!jid.startsWith('55')) {
       return jid;
     }
+
+    // 13-digit Brazilian mobile number (55 + DDD + 9 + 8 digits)
+    if (jid.length === 13) {
+      return jid;
+    }
+
+    // 12-digit Brazilian number (55 + DDD + 8 digits)
+    if (jid.length === 12) {
+      const firstDigit = Number.parseInt(jid[4]);
+      // If local number starts with 6, 7, 8, or 9, it's a mobile number missing the 9th digit '9'
+      if (firstDigit >= 6) {
+        return `${jid.slice(0, 4)}9${jid.slice(4)}`;
+      }
+    }
+
+    return jid;
   }
 
   public async fetchContacts(query: Query<Contact>) {
