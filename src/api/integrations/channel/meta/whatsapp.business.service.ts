@@ -1125,9 +1125,8 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['media']) {
-          // `mimeTypes.lookup()` returns `false`, not `undefined`, when it cannot resolve the
-          // type, for example a Chatwoot ActiveStorage URL with no file extension. Optional
-          // chaining only guards `null` and `undefined`, so `false.startsWith` would throw.
+          // `mimeTypes.lookup()` returns `false`, not `undefined`, when the URL has no file
+          // extension, and optional chaining only guards `null` and `undefined`.
           const isImage = typeof message['mimetype'] === 'string' && message['mimetype'].startsWith('image/');
 
           content = {
