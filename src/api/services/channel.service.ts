@@ -13,7 +13,7 @@ import { Auth, Chatwoot, ConfigService, Database, HttpServer, Proxy } from '@con
 import { Logger } from '@config/logger.config';
 import { NotFoundException } from '@exceptions';
 import { Contact, Message, Prisma } from '@prisma/client';
-import { createJid } from '@utils/createJid';
+import { createJid, formatBRNumber } from '@utils/createJid';
 import { WASocket } from 'baileys';
 import { isArray } from 'class-validator';
 import EventEmitter2 from 'eventemitter2';
@@ -478,27 +478,8 @@ export class ChannelStartupService {
     return jid;
   }
 
-  // Check if the number is br
   public formatBRNumber(jid: string): string {
-    if (!jid.startsWith('55')) {
-      return jid;
-    }
-
-    // 13-digit Brazilian mobile number (55 + DDD + 9 + 8 digits)
-    if (jid.length === 13) {
-      return jid;
-    }
-
-    // 12-digit Brazilian number (55 + DDD + 8 digits)
-    if (jid.length === 12) {
-      const firstDigit = Number.parseInt(jid[4]);
-      // If local number starts with 6, 7, 8, or 9, it's a mobile number missing the 9th digit '9'
-      if (firstDigit >= 6) {
-        return `${jid.slice(0, 4)}9${jid.slice(4)}`;
-      }
-    }
-
-    return jid;
+    return formatBRNumber(jid);
   }
 
   public async fetchContacts(query: Query<Contact>) {

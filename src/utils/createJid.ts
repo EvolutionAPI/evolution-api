@@ -13,23 +13,32 @@ function formatMXOrARNumber(jid: string): string {
   return jid;
 }
 
-// Check if the number is br
-function formatBRNumber(jid: string): string {
-  if (!jid.startsWith('55')) {
+const BRAZIL_COUNTRY_CODE = '55';
+const BRAZIL_PHONE_WITH_NINTH_DIGIT_LENGTH = 13;
+const BRAZIL_PHONE_WITHOUT_NINTH_DIGIT_LENGTH = 12;
+const BRAZIL_MOBILE_NINTH_DIGIT = '9';
+const COUNTRY_AND_AREA_CODE_LENGTH = 4;
+const FIRST_SUBSCRIBER_DIGIT_INDEX = 4;
+const MINIMUM_MOBILE_FIRST_DIGIT = 6;
+
+export function formatBRNumber(jid: string): string {
+  if (!jid.startsWith(BRAZIL_COUNTRY_CODE)) {
     return jid;
   }
 
-  // 13-digit Brazilian mobile number (55 + DDD + 9 + 8 digits)
-  if (jid.length === 13) {
+  if (jid.length === BRAZIL_PHONE_WITH_NINTH_DIGIT_LENGTH) {
     return jid;
   }
 
-  // 12-digit Brazilian number (55 + DDD + 8 digits)
-  if (jid.length === 12) {
-    const firstDigit = Number.parseInt(jid[4]);
-    // If local number starts with 6, 7, 8, or 9, it's a mobile number missing the 9th digit '9'
-    if (firstDigit >= 6) {
-      return `${jid.slice(0, 4)}9${jid.slice(4)}`;
+  if (jid.length === BRAZIL_PHONE_WITHOUT_NINTH_DIGIT_LENGTH) {
+    const firstSubscriberDigit = Number.parseInt(jid[FIRST_SUBSCRIBER_DIGIT_INDEX]);
+    const isMobileMissingNinthDigit = firstSubscriberDigit >= MINIMUM_MOBILE_FIRST_DIGIT;
+
+    if (isMobileMissingNinthDigit) {
+      const countryAndAreaCode = jid.slice(0, COUNTRY_AND_AREA_CODE_LENGTH);
+      const subscriberNumber = jid.slice(COUNTRY_AND_AREA_CODE_LENGTH);
+
+      return `${countryAndAreaCode}${BRAZIL_MOBILE_NINTH_DIGIT}${subscriberNumber}`;
     }
   }
 

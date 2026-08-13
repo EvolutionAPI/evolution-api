@@ -37,7 +37,9 @@ function getAvailableNumbers(remoteJid: string) {
     }
 
     numbersAvailable.push(numberWithDigit);
-    numbersAvailable.push(numberWithoutDigit);
+    if (numberWithoutDigit !== numberWithDigit) {
+      numbersAvailable.push(numberWithoutDigit);
+    }
   }
 
   // Mexican/Argentina numbers
@@ -58,7 +60,9 @@ function getAvailableNumbers(remoteJid: string) {
     const numberWithoutDigit = number.length === 12 ? number : number.slice(0, 2) + number.slice(3);
 
     numbersAvailable.push(numberWithDigit);
-    numbersAvailable.push(numberWithoutDigit);
+    if (numberWithoutDigit !== numberWithDigit) {
+      numbersAvailable.push(numberWithoutDigit);
+    }
   }
 
   // Other countries
