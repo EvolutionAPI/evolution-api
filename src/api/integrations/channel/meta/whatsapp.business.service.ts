@@ -1125,7 +1125,10 @@ export class BusinessStartupService extends ChannelStartupService {
           return await this.post(content, 'messages');
         }
         if (message['media']) {
-          const isImage = message['mimetype']?.startsWith('image/');
+          // `mimeTypes.lookup()` returns `false`, not `undefined`, when it cannot resolve the
+          // type, for example a Chatwoot ActiveStorage URL with no file extension. Optional
+          // chaining only guards `null` and `undefined`, so `false.startsWith` would throw.
+          const isImage = typeof message['mimetype'] === 'string' && message['mimetype'].startsWith('image/');
 
           content = {
             messaging_product: 'whatsapp',
