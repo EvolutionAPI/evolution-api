@@ -2812,7 +2812,13 @@ export class BaileysStartupService extends ChannelStartupService {
                   await s3Service.uploadFile(fullName, buffer, size.fileLength?.low, { 'Content-Type': mimetype });
 
                   await this.prismaRepository.media.create({
-                    data: { messageId: msg.id, instanceId: this.instanceId, type: mediaType, fileName: fullName, mimetype },
+                    data: {
+                      messageId: msg.id,
+                      instanceId: this.instanceId,
+                      type: mediaType,
+                      fileName: fullName,
+                      mimetype,
+                    },
                   });
 
                   const mediaUrl = await s3Service.getObjectUrl(fullName);
