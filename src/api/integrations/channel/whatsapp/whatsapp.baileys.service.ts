@@ -5184,6 +5184,21 @@ export class BaileysStartupService extends ChannelStartupService {
     if (messageRaw.message.extendedTextMessage) {
       messageRaw.messageType = 'conversation';
       messageRaw.message.conversation = messageRaw.message.extendedTextMessage.text;
+
+      /**
+       * Keep the reply metadata before dropping the wrapper.
+       *
+       * `stanzaId`, `participant` and `quotedMessage` live inside the
+       * extendedTextMessage's own contextInfo. Deleting the wrapper dropped
+       * them, so every text reply reached webhooks and the database unquoted,
+       * while media replies (never flattened) kept theirs.
+       */
+      const quotedContext = messageRaw.message.extendedTextMessage.contextInfo;
+
+      if (quotedContext) {
+        messageRaw.contextInfo = { ...(messageRaw.contextInfo ?? {}), ...quotedContext };
+      }
+
       delete messageRaw.message.extendedTextMessage;
     }
 
