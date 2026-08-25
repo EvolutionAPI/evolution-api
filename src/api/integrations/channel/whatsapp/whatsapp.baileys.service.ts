@@ -520,7 +520,15 @@ export class BaileysStartupService extends ChannelStartupService {
     }
   }
 
-  private async getMessage(key: proto.IMessageKey, full = false) {
+  // Baileys resends the content returned by the socket's getMessage callback
+  // whenever a peer requests a retry. Serving stale messages there makes them
+  // reappear as brand-new for recipients that never decrypted the original
+  // (e.g. when a reconnect flushes a backlog of queued retry receipts), so the
+  // callback only serves messages younger than this. Poll creation messages are
+  // exempt: vote decryption needs them at any age.
+  private static readonly RETRY_RESEND_MAX_AGE_SECONDS = 15 * 60;
+
+  private async getMessage(key: proto.IMessageKey, full = false, recentOnly = false) {
     try {
       // Use raw SQL to avoid JSON path issues
       const webMessageInfo = (await this.prismaRepository.$queryRaw`
@@ -528,6 +536,10 @@ export class BaileysStartupService extends ChannelStartupService {
         WHERE "instanceId" = ${this.instanceId}
         AND "key"->>'id' = ${key.id}
       `) as proto.IWebMessageInfo[];
+
+      if (!webMessageInfo?.length) {
+        return undefined;
+      }
 
       if (full) {
         return webMessageInfo[0];
@@ -547,9 +559,19 @@ export class BaileysStartupService extends ChannelStartupService {
         }
       }
 
+      if (recentOnly) {
+        const messageTimestamp = Number(webMessageInfo[0].messageTimestamp);
+        if (
+          !messageTimestamp ||
+          Date.now() / 1000 - messageTimestamp > BaileysStartupService.RETRY_RESEND_MAX_AGE_SECONDS
+        ) {
+          return undefined;
+        }
+      }
+
       return webMessageInfo[0].message;
     } catch {
-      return { conversation: '' };
+      return undefined;
     }
   }
 
@@ -646,7 +668,7 @@ export class BaileysStartupService extends ChannelStartupService {
       },
       msgRetryCounterCache: this.msgRetryCounterCache,
       generateHighQualityLinkPreview: true,
-      getMessage: async (key) => (await this.getMessage(key)) as Promise<proto.IMessage>,
+      getMessage: async (key) => (await this.getMessage(key, false, true)) as Promise<proto.IMessage>,
       ...browserOptions,
       markOnlineOnConnect: this.localSettings.alwaysOnline,
       retryRequestDelayMs: 350,
