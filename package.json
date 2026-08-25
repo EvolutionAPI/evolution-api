@@ -1,6 +1,6 @@
 {
   "name": "evolution-api",
-  "version": "2.3.7-retryfix.1",
+  "version": "2.4.0",
   "description": "Rest api for communication with WhatsApp",
   "main": "./dist/main.js",
   "type": "commonjs",
