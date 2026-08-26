@@ -15,6 +15,7 @@ import {
   UpdateMessageDto,
   WhatsAppNumberDto,
 } from '@api/dto/chat.dto';
+import { SaveContactDto } from '@api/dto/contact.dto';
 import {
   AcceptGroupInvite,
   CreateGroupDto,
@@ -3764,6 +3765,53 @@ export class BaileysStartupService extends ChannelStartupService {
       throw new InternalServerErrorException({
         markedChatUnread: false,
         message: ['An error occurred while marked unread the chat. Open a calling.', error.toString()],
+      });
+    }
+  }
+
+  public async saveContact(data: SaveContactDto) {
+    try {
+      const jid = createJid(data.number);
+      const firstName = data.firstName || data.name.trim().split(' ')[0];
+
+      await this.client.chatModify(
+        {
+          contact: {
+            fullName: data.name,
+            firstName: firstName,
+            saveOnPrimaryAddressbook: data.saveOnDevice ?? true,
+          },
+        },
+        jid,
+      );
+
+      if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS) {
+        await this.prismaRepository.contact.upsert({
+          where: { remoteJid_instanceId: { remoteJid: jid, instanceId: this.instanceId } },
+          create: {
+            remoteJid: jid,
+            pushName: data.name,
+            profilePicUrl: null,
+            instanceId: this.instanceId,
+          },
+          update: {
+            pushName: data.name,
+          },
+        });
+      }
+
+      return {
+        saved: true,
+        number: data.number,
+        name: data.name,
+        firstName: firstName,
+        saveOnDevice: data.saveOnDevice ?? true,
+      };
+    } catch (error) {
+      this.logger.error(`Error saving contact: ${error}`);
+      throw new InternalServerErrorException({
+        saved: false,
+        message: ['Failed to save contact to WhatsApp.', error?.message || error.toString()],
       });
     }
   }
