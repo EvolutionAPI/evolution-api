@@ -3796,6 +3796,16 @@ export class BaileysStartupService extends ChannelStartupService {
       }
       contactPayload.pnJid = jid;
 
+      // Ensure local collection LTHash is 100% in sync with WhatsApp Cloud before mutating
+      try {
+        if (typeof (this.client as any).resyncAppState === 'function') {
+          this.logger.info(`[saveContact] Syncing full critical_unblock_low snapshot from WhatsApp Cloud...`);
+          await (this.client as any).resyncAppState(['critical_unblock_low'], true);
+        }
+      } catch (syncErr) {
+        this.logger.warn(`[saveContact] resyncAppState warning: ${syncErr}`);
+      }
+
       this.logger.info(`[saveContact] Attempting chatModify for PN jid=${jid} with payload=${JSON.stringify(contactPayload)}`);
 
       const result = await this.client.chatModify(
