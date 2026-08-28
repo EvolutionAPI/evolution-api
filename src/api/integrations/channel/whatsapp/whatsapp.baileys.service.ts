@@ -3774,16 +3774,22 @@ export class BaileysStartupService extends ChannelStartupService {
       const jid = createJid(data.number);
       const firstName = data.firstName || data.name.trim().split(' ')[0];
 
-      await this.client.chatModify(
+      const contactPayload = {
+        fullName: data.name,
+        firstName: firstName,
+        saveOnPrimaryAddressbook: data.saveOnDevice ?? true,
+      };
+
+      this.logger.info(`[saveContact] Attempting chatModify for jid=${jid} with payload=${JSON.stringify(contactPayload)}`);
+
+      const result = await this.client.chatModify(
         {
-          contact: {
-            fullName: data.name,
-            firstName: firstName,
-            saveOnPrimaryAddressbook: data.saveOnDevice ?? true,
-          },
+          contact: contactPayload,
         },
         jid,
       );
+
+      this.logger.info(`[saveContact] chatModify completed for jid=${jid}, result=${JSON.stringify(result)}`);
 
       if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS) {
         await this.prismaRepository.contact.upsert({
