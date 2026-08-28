@@ -3774,13 +3774,29 @@ export class BaileysStartupService extends ChannelStartupService {
       const jid = createJid(data.number);
       const firstName = data.firstName || data.name.trim().split(' ')[0];
 
-      const contactPayload = {
+      let lid: string | null = null;
+      try {
+        if (this.client?.signalRepository?.lidMapping) {
+          lid = await this.client.signalRepository.lidMapping.getLIDForPN(jid);
+        }
+      } catch (lidErr) {
+        this.logger.warn(`[saveContact] Failed to get LID for PN ${jid}: ${lidErr}`);
+      }
+
+      this.logger.info(`[saveContact] Resolved LID for ${jid} => ${lid}`);
+
+      const contactPayload: any = {
         fullName: data.name,
         firstName: firstName,
         saveOnPrimaryAddressbook: data.saveOnDevice ?? true,
       };
 
-      this.logger.info(`[saveContact] Attempting chatModify for jid=${jid} with payload=${JSON.stringify(contactPayload)}`);
+      if (lid) {
+        contactPayload.lidJid = lid;
+      }
+      contactPayload.pnJid = jid;
+
+      this.logger.info(`[saveContact] Attempting chatModify for PN jid=${jid} with payload=${JSON.stringify(contactPayload)}`);
 
       const result = await this.client.chatModify(
         {
@@ -3790,6 +3806,20 @@ export class BaileysStartupService extends ChannelStartupService {
       );
 
       this.logger.info(`[saveContact] chatModify completed for jid=${jid}, result=${JSON.stringify(result)}`);
+
+      if (lid && lid !== jid) {
+        try {
+          this.logger.info(`[saveContact] Also attempting chatModify for LID jid=${lid}`);
+          await this.client.chatModify(
+            {
+              contact: contactPayload,
+            },
+            lid,
+          );
+        } catch (lidErr) {
+          this.logger.warn(`[saveContact] chatModify for LID failed (non-fatal): ${lidErr}`);
+        }
+      }
 
       if (this.configService.get<Database>('DATABASE').SAVE_DATA.CONTACTS) {
         await this.prismaRepository.contact.upsert({
@@ -3811,6 +3841,7 @@ export class BaileysStartupService extends ChannelStartupService {
         number: data.number,
         name: data.name,
         firstName: firstName,
+        lid: lid,
         saveOnDevice: data.saveOnDevice ?? true,
       };
     } catch (error) {
