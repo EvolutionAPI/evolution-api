@@ -316,7 +316,9 @@ export class ChatwootService {
           avatar_url: avatar_url,
         };
 
-        if ((jid && jid.includes('@')) || !jid) {
+        // LID identifiers are not E.164 numbers. Omit phone_number so Chatwoot
+        // does not persist the numeric LID as a fake phone number.
+        if (!jid?.includes('@lid') && ((jid && jid.includes('@')) || !jid)) {
           data['phone_number'] = `+${phoneNumber}`;
         }
       } else {
@@ -632,8 +634,10 @@ export class ChatwootService {
   public async createConversation(instance: InstanceDto, body: any) {
     const isLid = body.key.addressingMode === 'lid';
     const isGroup = body.key.remoteJid.endsWith('@g.us');
-    const phoneNumber = isLid && !isGroup ? body.key.remoteJidAlt : body.key.remoteJid;
     const { remoteJid } = body.key;
+    // When addressingMode is lid, remoteJidAlt holds the phone JID.
+    // If it is missing, fall back to the LID itself so conversation creation can proceed.
+    const phoneNumber = isLid && !isGroup ? body.key.remoteJidAlt || remoteJid : remoteJid;
     const cacheKey = `${instance.instanceName}:createConversation-${remoteJid}`;
     const lockKey = `${instance.instanceName}:lock:createConversation-${remoteJid}`;
     const maxWaitTime = 5000; // 5 seconds
@@ -642,27 +646,36 @@ export class ChatwootService {
 
     try {
       // Processa atualização de contatos já criados @lid
-      if (phoneNumber && remoteJid && !isGroup) {
-        const contact = await this.findContact(instance, phoneNumber.split('@')[0]);
-        if (contact && contact.identifier !== remoteJid) {
-          this.logger.verbose(
-            `Identifier needs update: (contact.identifier: ${contact.identifier}, phoneNumber: ${phoneNumber}, body.key.remoteJidAlt: ${remoteJid}`,
-          );
-          const updateContact = await this.updateContact(instance, contact.id, {
-            identifier: phoneNumber,
-            phone_number: `+${phoneNumber.split('@')[0]}`,
-          });
-
-          if (updateContact === null) {
-            const baseContact = await this.findContact(instance, phoneNumber.split('@')[0]);
-            if (baseContact) {
-              await this.mergeContacts(baseContact.id, contact.id);
+      try {
+        if (phoneNumber && remoteJid && !isGroup && (!isLid || body.key.remoteJidAlt)) {
+          const phoneNumberId = phoneNumber.split('@')?.[0];
+          if (!phoneNumberId) {
+            this.logger.warn(`Unable to extract identifier from JID: ${phoneNumber}`);
+          } else {
+            const contact = await this.findContact(instance, phoneNumberId);
+            if (contact && contact.identifier !== remoteJid) {
               this.logger.verbose(
-                `Merge contacts: (${baseContact.id}) ${baseContact.phone_number} and (${contact.id}) ${contact.phone_number}`,
+                `Identifier needs update: (contact.identifier: ${contact.identifier}, phoneNumber: ${phoneNumber}, body.key.remoteJidAlt: ${remoteJid}`,
               );
+              const updateContact = await this.updateContact(instance, contact.id, {
+                identifier: phoneNumber,
+                phone_number: `+${phoneNumberId}`,
+              });
+
+              if (updateContact === null) {
+                const baseContact = await this.findContact(instance, phoneNumberId);
+                if (baseContact) {
+                  await this.mergeContacts(baseContact.id, contact.id);
+                  this.logger.verbose(
+                    `Merge contacts: (${baseContact.id}) ${baseContact.phone_number} and (${contact.id}) ${contact.phone_number}`,
+                  );
+                }
+              }
             }
           }
         }
+      } catch (error) {
+        this.logger.warn(`Failed to update LID contact mapping for ${remoteJid}: ${error}`);
       }
       this.logger.verbose(`--- Start createConversation ---`);
       this.logger.verbose(`Instance: ${JSON.stringify(instance)}`);
@@ -723,7 +736,7 @@ export class ChatwootService {
           return (await this.cache.get(cacheKey)) as number;
         }
 
-        const chatId = isGroup ? remoteJid : phoneNumber.split('@')[0].split(':')[0];
+        const chatId = isGroup ? remoteJid : phoneNumber?.split('@')?.[0]?.split(':')?.[0];
         let nameContact = !body.key.fromMe ? body.pushName : chatId;
         const filterInbox = await this.getInbox(instance);
         if (!filterInbox) return null;
@@ -733,15 +746,15 @@ export class ChatwootService {
           const group = await this.waMonitor.waInstances[instance.instanceName].client.groupMetadata(chatId);
           this.logger.verbose(`Group metadata: JID:${group.JID} - Subject:${group?.subject || group?.Name}`);
 
-          const participantJid = isLid && !body.key.fromMe ? body.key.participantAlt : body.key.participant;
+          const participantJid =
+            isLid && !body.key.fromMe ? body.key.participantAlt || body.key.participant : body.key.participant;
           nameContact = `${group.subject} (GROUP)`;
 
-          const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(
-            participantJid.split('@')[0],
-          );
+          const participantId = participantJid?.split('@')?.[0];
+          const picture_url = await this.waMonitor.waInstances[instance.instanceName].profilePicture(participantId);
           this.logger.verbose(`Participant profile picture URL: ${JSON.stringify(picture_url)}`);
 
-          const findParticipant = await this.findContact(instance, participantJid.split('@')[0]);
+          const findParticipant = participantId ? await this.findContact(instance, participantId) : null;
 
           if (findParticipant) {
             this.logger.verbose(
@@ -756,7 +769,7 @@ export class ChatwootService {
           } else {
             await this.createContact(
               instance,
-              participantJid.split('@')[0].split(':')[0],
+              participantId?.split(':')?.[0],
               filterInbox.id,
               false,
               body.pushName,
@@ -770,7 +783,10 @@ export class ChatwootService {
         this.logger.verbose(`Contact profile picture URL: ${JSON.stringify(picture_url)}`);
 
         this.logger.verbose(`Searching contact for: ${chatId}`);
-        let contact = await this.findContact(instance, chatId);
+        const isLidFallback = isLid && !isGroup && !body.key.remoteJidAlt;
+        let contact = isLidFallback
+          ? await this.findContactByIdentifier(instance, remoteJid)
+          : await this.findContact(instance, chatId);
 
         if (contact) {
           this.logger.verbose(`Found contact: ID:${contact.id} - Name:${contact.name}`);
