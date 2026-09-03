@@ -316,7 +316,9 @@ export class ChatwootService {
           avatar_url: avatar_url,
         };
 
-        if ((jid && jid.includes('@')) || !jid) {
+        // LID identifiers are not E.164 numbers. Omit phone_number so Chatwoot
+        // does not persist the numeric LID as a fake phone number.
+        if (!jid?.includes('@lid') && ((jid && jid.includes('@')) || !jid)) {
           data['phone_number'] = `+${phoneNumber}`;
         }
       } else {
@@ -645,7 +647,7 @@ export class ChatwootService {
     try {
       // Processa atualização de contatos já criados @lid
       try {
-        if (phoneNumber && remoteJid && !isGroup) {
+        if (phoneNumber && remoteJid && !isGroup && (!isLid || body.key.remoteJidAlt)) {
           const phoneNumberId = phoneNumber.split('@')?.[0];
           if (!phoneNumberId) {
             this.logger.warn(`Unable to extract identifier from JID: ${phoneNumber}`);
@@ -781,7 +783,10 @@ export class ChatwootService {
         this.logger.verbose(`Contact profile picture URL: ${JSON.stringify(picture_url)}`);
 
         this.logger.verbose(`Searching contact for: ${chatId}`);
-        let contact = await this.findContact(instance, chatId);
+        const isLidFallback = isLid && !isGroup && !body.key.remoteJidAlt;
+        let contact = isLidFallback
+          ? await this.findContactByIdentifier(instance, remoteJid)
+          : await this.findContact(instance, chatId);
 
         if (contact) {
           this.logger.verbose(`Found contact: ID:${contact.id} - Name:${contact.name}`);
